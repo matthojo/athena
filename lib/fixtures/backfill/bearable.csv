@@ -1,0 +1,11 @@
+date formatted,date,weekday,time of day,category,rating/amount,detail,notes
+03/11/2026,2026-11-03,Tue,am,Mood,7,,
+03/11/2026,2026-11-03,Tue,pm,Mood,9,,
+03/11/2026,2026-11-03,Tue,am,Energy,,High,
+03/11/2026,2026-11-03,Tue,all day,Symptom,2,Headache (Moderate),
+03/11/2026,2026-11-03,Tue,all day,Factors,,Caffeine | Walk outside,
+03/11/2026,2026-11-03,Tue,all day,Sleep,07:40,Asleep 23:10 – 06:50,
+02/11/2026,2026-11-02,Mon,all day,Factors,,Alcohol,
+02/11/2026,2026-11-02,Mon,pm,Mood,4,,
+02/11/2026,2026-11-02,Mon,all day,Symptom,,Irritability (Severe),
+02/11/2026,2026-11-02,Mon,all day,Sleep quality,,ok,

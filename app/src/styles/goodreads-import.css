@@ -1,0 +1,99 @@
+/* Import your library (components/goodreads-import.ts). Shares the YouTube
+   import's styles (youtube-import.css); only the Latest list lives here. */
+
+.grimp-latest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+
+
+.grimp-latest .list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grimp-book {
+  align-items: flex-start;
+}
+
+.grimp-book__day,
+.grimp-book__stars {
+  margin-top: 2px;
+}
+
+/* The day it lands on, like a calendar leaf. */
+.grimp-book__day {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.grimp-book__d {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.grimp-book__m {
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.grimp-book .row__title {
+  display: -webkit-box;
+  white-space: normal;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.grimp-book__stars {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+/* The rest of the five, so 3 and 4 read against the same scale. */
+.grimp-book__empty {
+  color: var(--line-strong);
+}
+
+/* On a phone the review runs long: keep its one action in reach. */
+@media (max-width: 639px) {
+  .grimp .ytimp__actions:has(.btn--primary + .ytimp__again) {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-inline: calc(var(--space-md) * -1);
+    padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    /* A short fade, so what scrolls under it is clearly passing beneath. */
+    box-shadow: 0 -20px 16px -8px var(--surface);
+  }
+}
+
+/* A wrong file is a warning, not an error: one amber tone for the border and the message. */
+.grimp .ytimp-drop.has-problem {
+  border-color: var(--warn);
+}

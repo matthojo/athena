@@ -1,0 +1,88 @@
+/* ---------- @ mentions in Ask: the field, its chips and the list as a sheet ---------- */
+
+/* The composer's field: one line like the input it replaced, growing to five as it wraps. */
+.composer-bar .mention-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: calc(5 * 24px + 20px);
+  padding: 10px 0;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  outline: 0;
+  font-size: var(--text-body);
+  line-height: 24px;
+  cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.composer-bar.is-wrapped {
+  align-items: flex-end;
+  border-radius: var(--radius-lg);
+}
+
+.mention-input:empty::before {
+  content: attr(data-placeholder);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+/* A chip is one thing: picked whole, deleted whole, never edited inside. */
+.mention-input .mention {
+  cursor: default;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+/* Your own bubble is sunken already: things sit on the card colour there. */
+.msg--me .bubble :is(.mention--saved, .mention--todo, .mention--watch) {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.msg .bubble .mention {
+  cursor: pointer;
+}
+
+.msg .bubble .mention:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* A saved image or link's picture in place of its icon. */
+.tile--thumb {
+  overflow: hidden;
+  padding: 0;
+}
+
+.tile--thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* On a phone: a sheet docked above the composer, so above the keyboard. */
+.mention-menu--sheet {
+  max-height: min(320px, 46dvh);
+  padding: var(--space-xs);
+  border-radius: var(--radius-lg);
+  animation: mention-sheet-in var(--dur-base) var(--ease-out);
+}
+
+.mention-menu--sheet .mention-menu__item {
+  min-height: 52px;
+}
+
+@keyframes mention-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mention-menu--sheet {
+    animation: none;
+  }
+}

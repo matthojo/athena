@@ -1,0 +1,269 @@
+/* Team: "When it runs" as sentences (team/trigger-editor.ts). */
+
+.trg-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.trg {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.trg__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+}
+
+.trg__sentence {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding-top: 6px;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.trg__remove {
+  flex: none;
+  margin: -2px -6px 0 0;
+  color: var(--ink-3);
+}
+
+.trg__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.trg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+/* The house chip, made checkable: checked reads as ink, like a pressed chip. */
+.trg-chip[aria-checked="true"],
+.trg-chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.trg-chip {
+  height: 40px;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+/* 36px tall, with the chip's own 4px hit area above and below: 44px to tap. */
+.trg-chips--quiet .trg-chip {
+  height: 36px;
+  padding-inline: 12px;
+  background: var(--sunken);
+  border-color: transparent;
+  color: var(--ink-2);
+}
+
+.trg-chips--quiet .trg-chip[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.trg-chip--add svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* How it starts: a quiet two-way switch above the controls. */
+.trg-kind {
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  justify-self: start;
+  flex-wrap: nowrap;
+}
+
+.trg-kind .trg-chip {
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-weight: var(--weight-medium);
+}
+
+.trg-kind .trg-chip[aria-checked="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-card), 0 0 0 1px var(--line);
+}
+
+@media (prefers-color-scheme: dark) {
+  .trg-kind .trg-chip[aria-checked="true"] {
+    background: var(--sunken-strong);
+    box-shadow: 0 0 0 1px var(--line-strong);
+  }
+}
+
+.trg-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  max-width: 400px;
+}
+
+.trg-day {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.trg-day[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.trg-day:active,
+.trg-chip:active {
+  transform: scale(0.96);
+}
+
+.trg-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.trg-word {
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.trg-at {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-left: auto;
+}
+
+.trg-time,
+.trg-input {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.trg-input {
+  flex: 1;
+  min-width: 8ch;
+}
+
+.trg-time:focus-visible,
+.trg-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.trg-field {
+  flex-wrap: nowrap;
+  position: relative;
+}
+
+.trg-hash {
+  margin-right: -6px;
+  color: var(--ink-3);
+}
+
+.trg-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.trg-foot__label {
+  margin-right: var(--space-2xs);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.trg-add svg {
+  width: 16px;
+  height: 16px;
+}
+
+.trg-empty {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-md);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+}
+
+.trg-empty__text,
+.trg-note {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trg-day,
+  .trg-chip {
+    transition: none;
+  }
+
+  .trg-day:active,
+  .trg-chip:active {
+    transform: none;
+  }
+}
+
+/* A phone: the two-way switch fits its card, and "Add another" sits on its own line above its two buttons. */
+@media (max-width: 479px) {
+  .trg-kind {
+    max-width: 100%;
+  }
+
+  .trg-kind .trg-chip {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-inline: 12px;
+    font-size: var(--text-small);
+  }
+
+  .trg-foot__label {
+    flex-basis: 100%;
+  }
+}

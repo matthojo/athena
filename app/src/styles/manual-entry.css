@@ -1,0 +1,160 @@
+/* Adding things by hand: the sheets for spending, health, a day's entries and meter
+   readings, and the short lists of what was added (Money, House). */
+
+.manual-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+
+.manual-amount__sign {
+  color: var(--ink-3);
+  font-size: var(--text-body);
+}
+
+.manual-amount .prop__input {
+  max-width: 10ch;
+}
+
+.manual-pair {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.manual-pair .prop__input {
+  max-width: 8ch;
+}
+
+.manual-pair__unit {
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.manual-sheet__hint {
+  margin: var(--space-sm) var(--space-2xs) 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.manual-sheet__group {
+  margin: var(--space-md) var(--space-2xs) var(--space-2xs);
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ---------- The lists ---------- */
+
+.manual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.manual__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.manual-list {
+  margin: 0;
+  padding: var(--space-2xs) var(--space-md);
+  list-style: none;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.manual-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 48px;
+  padding: var(--space-xs) 0;
+}
+
+.manual-row + .manual-row {
+  border-top: 1px solid var(--line);
+}
+
+.manual-row__words {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.manual-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-ui);
+}
+
+.manual-row__meta {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.manual-row__value {
+  font-size: var(--text-ui);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.manual-row.is-leaving {
+  opacity: 0.4;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.manual__more {
+  align-self: flex-start;
+}
+
+.life-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manual-row.is-leaving {
+    transition: none;
+  }
+}
+
+/* The day page's "Add to this day" and "Log health", under the day's story. */
+.day-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+/* Place visits added by hand: under the Places card on the Library's Places page, and in a day's Places section. */
+.where-manual {
+  margin-top: var(--space-md);
+}
+
+.day-places__added .where-manual {
+  margin-top: var(--space-sm);
+}
+
+.day-places__foot {
+  margin-top: var(--space-sm);
+}
+
+/* "Add a visit" under a Place's Visits. */
+.story__add {
+  margin-top: var(--space-sm);
+}

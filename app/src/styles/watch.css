@@ -1,0 +1,850 @@
+/*
+ * Watch & read, the page (views/reading.ts). The sheet's own styles stay in
+ * life.css. The page is covers first: a line for the month, a shelf of what's
+ * under way with how far through each is, Up next on shelves by kind or by
+ * who made it, the favourites, then what's finished. One bar finds what's on
+ * the list or adds what isn't; the chips narrow everything to one kind.
+ */
+
+/* ---------- The bar ---------- */
+
+.watch-bar {
+  margin-top: var(--space-2xs);
+  padding-right: var(--space-xs);
+}
+
+.watch-bar__add,
+.watch-bar__clear {
+  display: none;
+}
+
+.watch-bar.has-text .watch-bar__add {
+  display: inline-flex;
+}
+
+.watch-bar.has-text .watch-bar__clear {
+  display: grid;
+}
+
+.watch-bar.has-text .watch-bar__new {
+  display: none;
+}
+
+.watch-bar__add {
+  flex: none;
+  animation: watch-pop var(--dur-fast) var(--ease-out) both;
+}
+
+@keyframes watch-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+/* The chips sit close under the bar: they narrow what the bar finds. */
+.watch-kinds {
+  margin-top: calc(-1 * var(--space-sm));
+  padding-block: 0;
+}
+
+.watch-kinds[hidden] {
+  display: none;
+}
+
+/* ---------- Sections ---------- */
+
+.watch__list {
+  gap: var(--space-xl);
+}
+
+.watch-group {
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+/* Up next holds several shelves: they sit closer to each other than sections do. */
+.watch-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.watch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 32px;
+}
+
+.watch-head--shelf {
+  min-height: 24px;
+}
+
+.watch-head__end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.watch-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  color: var(--ink);
+  font: var(--weight-semibold) var(--text-title) / var(--leading-snug) var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.watch-title__count {
+  color: var(--ink-3);
+  font: var(--weight-regular) var(--text-small) / 1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.watch-year {
+  margin-top: var(--space-xs);
+}
+
+/* "See all": a quiet way on, at a heading's far end. */
+.watch-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  min-height: 32px;
+  padding-inline: var(--space-2xs);
+  border-radius: var(--radius-xs);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.watch-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: hover) {
+  .watch-link:hover {
+    color: var(--ink);
+  }
+}
+
+/* Kind or Made by: how Up next is shelved. */
+.watch-switch {
+  display: inline-flex;
+  padding: var(--space-3xs);
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+}
+
+.watch-switch__item {
+  height: 28px;
+  padding-inline: var(--space-sm);
+  border-radius: var(--radius-pill);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.watch-switch__item[aria-pressed="true"] {
+  background: var(--surface);
+  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.1);
+  color: var(--ink);
+}
+
+/* ---------- The month so far ---------- */
+
+.watch-recap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 112px;
+  padding: var(--space-md) var(--space-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  /* The latest finished cover's own colour, as a wash from the side its covers sit on. */
+  background: linear-gradient(285deg, color-mix(in oklch, var(--tone, var(--sunken-strong)) 22%, var(--surface)), var(--surface) 62%);
+}
+
+.watch-recap__words {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+
+.watch-recap__month {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.watch-recap__line {
+  color: var(--ink);
+  font: var(--weight-semibold) var(--text-title) / var(--leading-snug) var(--font-display);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.watch-recap__covers {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  padding-left: var(--space-md);
+}
+
+.watch-recap__cover {
+  display: block;
+  height: 80px;
+  margin-left: calc(-1 * var(--space-md));
+  border-radius: var(--radius-2xs);
+  box-shadow: 0 0 0 2px var(--surface);
+  transform: rotate(var(--tilt, 0deg));
+  transform-origin: bottom center;
+}
+
+.watch-recap__cover:nth-child(odd) {
+  --tilt: -3deg;
+}
+
+.watch-recap__cover:nth-child(even) {
+  --tilt: 2deg;
+}
+
+.watch-recap__cover .art-img {
+  height: 100%;
+  border-radius: var(--radius-2xs);
+}
+
+/* Too small for a mark or a name: a made cover is its colour here. */
+.watch-recap__cover .art-img__icon,
+.watch-recap__cover .art-img__words {
+  display: none;
+}
+
+.watch-recap__cover[data-shape="wide"] {
+  height: 56px;
+}
+
+.watch-recap__cover[data-shape="square"] {
+  height: 68px;
+}
+
+@media (max-width: 639.98px) {
+  .watch-recap {
+    padding-inline: var(--space-md);
+  }
+
+  .watch-recap__cover {
+    height: 64px;
+  }
+
+  .watch-recap__cover[data-shape="wide"] {
+    height: 44px;
+  }
+
+  .watch-recap__cover[data-shape="square"] {
+    height: 54px;
+  }
+
+  /* Three is plenty beside a sentence on a narrow screen. */
+  .watch-recap__cover:nth-child(n + 4) {
+    display: none;
+  }
+}
+
+/* ---------- Cards: one thing, cover first ---------- */
+
+.watch-card {
+  /* A poster stands, an album sits square, a video lies wide: the shape says the kind before the words do. */
+  --w: 124px;
+  --ch: calc(var(--w) * 1.5);
+  position: relative;
+  flex: none;
+  width: var(--w);
+  min-width: 0;
+}
+
+.watch-card[data-shape="square"] {
+  --w: 148px;
+  --ch: var(--w);
+}
+
+.watch-card[data-shape="wide"] {
+  --w: 232px;
+  --ch: calc(var(--w) * 9 / 16);
+}
+
+@media (max-width: 639.98px) {
+  .watch-card {
+    --w: 108px;
+  }
+
+  .watch-card[data-shape="square"] {
+    --w: 128px;
+  }
+
+  .watch-card[data-shape="wide"] {
+    --w: 200px;
+  }
+}
+
+.watch-card__open {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  width: 100%;
+  border-radius: var(--radius-xs);
+  text-align: left;
+}
+
+.watch-card__open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* Every cover stands on its shelf's line. */
+.watch-card__cover {
+  display: flex;
+  align-items: flex-end;
+  height: var(--ch);
+  margin-bottom: var(--space-xs);
+}
+
+.watch-card .art-img {
+  width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-xs);
+  box-shadow:
+    0 1px 2px oklch(0.2 0.02 264 / 0.1),
+    0 10px 20px -12px oklch(0.2 0.02 264 / 0.28);
+}
+
+/* A made cover lying wide has a short face: a smaller mark, and its name sets smaller and keeps to two lines. */
+.watch-card[data-shape="wide"] .art-img--made {
+  padding-block: 7% 8%;
+}
+
+.watch-card[data-shape="wide"] .art-img--made .art-img__icon {
+  width: 12%;
+}
+
+
+.watch-card[data-shape="wide"] .art-img__title {
+  font-size: clamp(var(--text-small), 7.6cqi, var(--text-title));
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.watch-card__track {
+  position: relative;
+  display: block;
+  height: 4px;
+  margin-bottom: var(--space-2xs);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--sunken-strong);
+}
+
+.watch-card__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transform: scaleX(var(--p, 0));
+  transform-origin: left;
+  animation: watch-fill var(--dur-slow) var(--ease-out-expo) both;
+}
+
+@keyframes watch-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.watch-card__where {
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.watch-card__title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink);
+  font: var(--weight-medium) var(--text-small) / var(--leading-snug) var(--font-ui);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.watch-card__sub {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  line-height: var(--leading-snug);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.watch-card__stars {
+  display: flex;
+  margin-top: var(--space-3xs);
+}
+
+/* Finished: a touch quieter, so what's still to get to leads. */
+.watch-card[data-status="done"] .watch-card__title {
+  color: var(--ink-2);
+}
+
+/* Start or Finish rides the cover's corner. */
+.watch-card__act {
+  position: absolute;
+  top: calc(var(--ch) - 36px - var(--space-xs));
+  right: var(--space-xs);
+  border-color: transparent;
+  background: color-mix(in oklch, var(--surface) 92%, transparent);
+  box-shadow:
+    0 1px 2px oklch(0.2 0.02 264 / 0.16),
+    0 6px 14px -6px oklch(0.2 0.02 264 / 0.35);
+  color: var(--ink);
+  transition:
+    transform var(--dur-instant) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.watch-card__act--start svg {
+  width: 15px;
+  height: 15px;
+  /* A play mark reads centred a hair to the right of its box. */
+  transform: translateX(1px);
+}
+
+@media (hover: hover) {
+  /* With a pointer the mark waits for it, so a shelf is covers and nothing else. */
+  .watch-card__act {
+    opacity: 0;
+  }
+
+  .watch-card:hover .watch-card__act,
+  .watch-card__act:focus-visible {
+    opacity: 1;
+  }
+
+  .watch-card__act:hover {
+    background: var(--ink);
+    color: var(--on-ink);
+  }
+}
+
+/* ---------- Shelves and grids ---------- */
+
+.watch-rail {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin: 0 calc(-1 * var(--space-md));
+  padding: var(--space-2xs) var(--space-md) var(--space-sm);
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--space-md);
+  scrollbar-width: none;
+}
+
+.watch-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.watch-rail > .watch-card {
+  scroll-snap-align: start;
+}
+
+/* A shelf fades only at an edge with more to pull, the way the chip rows do (components.css). */
+@supports (animation-timeline: scroll()) {
+  .watch-rail {
+    animation-name: edge-start, edge-end;
+    animation-duration: auto;
+    animation-timing-function: var(--ease-linear);
+    animation-fill-mode: both;
+    animation-timeline: scroll(self inline);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--edge-start), #000 calc(100% - var(--edge-end)), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 var(--edge-start), #000 calc(100% - var(--edge-end)), transparent 100%);
+  }
+}
+
+/* A shelf of mixed shapes keeps one line for every cover to stand on. */
+.watch-rail[data-shape="mixed"] > .watch-card,
+.watch-grid[data-shape="mixed"] > .watch-card {
+  --ch: 186px;
+}
+
+@media (max-width: 639.98px) {
+  .watch-rail[data-shape="mixed"] > .watch-card,
+  .watch-grid[data-shape="mixed"] > .watch-card {
+    --ch: 162px;
+  }
+}
+
+.watch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--gw, 124px));
+  justify-content: space-between;
+  gap: var(--space-lg) var(--space-sm);
+  margin: 0;
+  padding: var(--space-2xs) 0 0;
+  list-style: none;
+}
+
+.watch-grid[data-shape="square"] {
+  --gw: 148px;
+}
+
+.watch-grid[data-shape="wide"] {
+  --gw: 232px;
+}
+
+/* Mixed shapes have no one column width: they wrap as they come. */
+.watch-grid[data-shape="mixed"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--space-lg) var(--space-md);
+}
+
+@media (max-width: 639.98px) {
+  .watch-grid {
+    --gw: 108px;
+  }
+
+  .watch-grid[data-shape="square"] {
+    --gw: 128px;
+  }
+
+  /* A video's screen takes the row on a phone. */
+  .watch-grid[data-shape="wide"] {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .watch-grid[data-shape="wide"] > .watch-card {
+    --w: 100%;
+    --ch: auto;
+    width: 100%;
+  }
+
+  .watch-grid[data-shape="wide"] .watch-card__act {
+    display: none;
+  }
+}
+
+.watch-more {
+  align-self: center;
+}
+
+/* ---------- Coming and going ---------- */
+
+.is-leaving {
+  animation: watch-leave var(--dur-fast) var(--ease-in) forwards;
+  pointer-events: none;
+}
+
+@keyframes watch-leave {
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+.is-arriving {
+  animation: watch-arrive var(--dur-slow) var(--ease-out-expo) both;
+}
+
+@keyframes watch-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.watch-empty .btn {
+  margin-top: var(--space-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .watch-bar__add,
+  .watch-card__fill,
+  .is-leaving,
+  .is-arriving {
+    animation: none;
+  }
+
+  .watch-card__act,
+  .watch-switch__item,
+  .watch-link {
+    transition: none;
+  }
+}
+
+/* ---------- What the sources know: lengths, seasons, more ways to shelve ---------- */
+
+.watch-card__cover {
+  position: relative;
+}
+
+/* How long it runs, in the cover's corner, as a player prints it. */
+.watch-card__len {
+  position: absolute;
+  bottom: var(--space-2xs);
+  left: var(--space-2xs);
+  padding: var(--space-3xs) var(--space-2xs);
+  border-radius: var(--radius-2xs);
+  background: oklch(0.16 0.01 264 / 0.78);
+  color: oklch(0.98 0 0);
+  font: var(--weight-medium) var(--text-micro) / 1.3 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+.watch-recap__time {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.watch-recap__time strong {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Five ways to shelve Up next: on a phone the switch takes its own line and slides. */
+.watch-switch {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.watch-switch::-webkit-scrollbar {
+  display: none;
+}
+
+.watch-switch__item {
+  flex: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .watch-block > .watch-head {
+    flex-wrap: wrap;
+    row-gap: var(--space-xs);
+  }
+
+  .watch-block > .watch-head .watch-head__end {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+.watch-link--plain {
+  padding-inline: var(--space-xs);
+}
+
+/* For the season: a shelf with the time of year's own tint, quiet enough to sit among the others. */
+.watch-season {
+  --season: oklch(0.62 0.11 150);
+  margin-inline: calc(-1 * var(--space-md));
+  padding: var(--space-md) var(--space-md) var(--space-xs);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--season) 9%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--season) 16%, transparent);
+}
+
+.watch-season[data-season="halloween"] {
+  --season: oklch(0.7 0.14 55);
+}
+
+.watch-season[data-season="valentines"] {
+  --season: oklch(0.65 0.14 12);
+}
+
+.watch-season[data-season="summer"] {
+  --season: oklch(0.78 0.13 85);
+}
+
+.watch-season .watch-title {
+  color: color-mix(in oklch, var(--season) 38%, var(--ink));
+}
+
+.watch-season__line {
+  margin-top: calc(-1 * var(--space-xs));
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+/* The rail already bleeds to the page's edge; inside the tinted shelf it stops at the shelf's. */
+.watch-season .watch-rail {
+  margin-inline: calc(-1 * var(--space-md));
+}
+
+/* A song's video on a music shelf: its thumbnail cropped to a sleeve. */
+.watch-card[data-shape="square"] .art-img {
+  aspect-ratio: 1;
+}
+
+/* Sleeves and screens together, no posters: the shelf is as tall as a sleeve. */
+.watch-rail[data-shape="mixed"][data-low] > .watch-card,
+.watch-grid[data-shape="mixed"][data-low] > .watch-card {
+  --ch: 148px;
+}
+
+@media (max-width: 639.98px) {
+  .watch-rail[data-shape="mixed"][data-low] > .watch-card,
+  .watch-grid[data-shape="mixed"][data-low] > .watch-card {
+    --ch: 128px;
+  }
+}
+
+/* ---------- The month in numbers ---------- */
+
+.watch-recap {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: var(--space-md);
+}
+
+.watch-recap__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 80px;
+}
+
+.watch-recap__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.watch-recap__steps {
+  display: inline-flex;
+  margin-block: calc(-1 * var(--space-2xs));
+  color: var(--ink-3);
+}
+
+.watch-recap__step--back svg {
+  transform: scaleX(-1);
+}
+
+.watch-recap__step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.watch-recap__mostly {
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+/* The figures: a number, then what it counts. Words do the labelling; no tiles. */
+.watch-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-xl);
+  margin: 0;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.watch-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  min-width: 0;
+}
+
+.watch-stat__value {
+  margin: 0;
+  color: var(--ink);
+  font: var(--weight-semibold) var(--text-title) / 1.1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.watch-stat__label {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.watch-recap__chart {
+  margin-bottom: calc(-1 * var(--space-2xs));
+}
+
+@media (max-width: 639.98px) {
+  .watch-stats {
+    gap: var(--space-sm) var(--space-lg);
+  }
+}
+
+/* With a chart in it the card stays plain: a wash behind the columns would read as data. */
+.watch-recap--stats {
+  background: var(--surface);
+}
+
+/* The figures, with the way into Screen time at their far end. */
+.watch-stats-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.watch-stats-row .watch-stats {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.watch-stats-row .watch-link {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* The month's genres as a radar, under the daily columns. */
+.watch-recap__genres {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.watch-recap__genres-title {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.watch-recap__genres-note {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  text-align: center;
+}

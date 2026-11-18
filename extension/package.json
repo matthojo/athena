@@ -1,0 +1,20 @@
+{
+  "name": "save-to-athena",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser extension that saves pages, quotes, images and links to your Athena.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs chrome firefox safari",
+    "zip": "node scripts/build.mjs chrome firefox --zip",
+    "zip:chrome": "node scripts/build.mjs chrome --zip",
+    "zip:firefox": "node scripts/build.mjs firefox --zip",
+    "test": "node --test test/*.test.mjs",
+    "test:e2e": "node scripts/build.mjs chrome --e2e && node e2e/e2e.mjs",
+    "shots": "node scripts/build.mjs chrome --e2e && node e2e/e2e.mjs --shots",
+    "mock": "node e2e/mock-server.mjs",
+    "test:native": "node scripts/build.mjs chrome && xvfb-run -a -s \"-screen 0 1280x900x24\" node e2e/native.mjs",
+    "test:real": "node scripts/build.mjs chrome --e2e && node e2e/real.mjs"
+  }
+}

@@ -1,0 +1,67 @@
+/* Settings → About you → What Athena knows (components/knows-page.ts). Rows are About you's (profile.css). */
+
+.knows__count {
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+  letter-spacing: 0;
+}
+
+.knows__lede {
+  margin: -2px 0 2px;
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-meta);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+.knows-row__who {
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.knows-row__who::after {
+  content: " · ";
+  font-weight: var(--weight-regular, 400);
+  color: var(--ink-3);
+}
+
+.knows-row__why {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--text-meta);
+  font-style: italic;
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+.knows-edit__from {
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.knows-empty {
+  padding: var(--space-lg) var(--space-md);
+}
+
+.knows-empty__title {
+  margin: 0 0 4px;
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.knows-empty__body {
+  margin: 0;
+  font-size: var(--text-meta);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+/* Settings → About you: "Let Ask read transactions" (components/ask-money-setting.ts). */
+.ask-money-card {
+  padding: 0 var(--space-md);
+  margin-top: var(--space-sm);
+}
+

@@ -1,0 +1,423 @@
+/* The owner's profile: Home's setup card, the setup wizard, Settings → About you,
+   and the Review inbox's About you group (components/profile-*.ts). */
+
+/* ---------- a question: label, control, hint ---------- */
+
+.profile-q {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-q .field-label {
+  color: var(--ink);
+}
+
+.profile-q .form__hint {
+  padding-inline: 2px;
+}
+
+/* Region: what Athena reads in the answer, live under the field (components/profile-inputs.ts regionControl). */
+.profile-q__with-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-q__reading {
+  margin: 0;
+  padding-inline: 2px;
+  text-wrap: pretty;
+}
+
+.profile-q__area {
+  height: auto;
+  min-height: 48px;
+  padding: 12px 14px;
+  line-height: var(--leading-body);
+  resize: none;
+}
+
+.profile-q .form-chips {
+  padding-block: 2px;
+}
+
+/* Several people: their chips, then a picker for the next one, in a field-like box. */
+.profile-people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.profile-people:focus-within {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.profile-people__chips {
+  display: contents;
+}
+
+.profile-people .picker__chip {
+  background: var(--surface);
+  padding-left: 4px;
+}
+
+.profile-people__pick {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+}
+
+.profile-people__picker .picker__input {
+  height: 34px;
+  margin-left: 0;
+  padding: 0 4px;
+  background: transparent;
+}
+
+.profile-people__picker .picker__input:focus {
+  border-color: transparent;
+  background: transparent;
+}
+
+.profile-people__picker .picker__list {
+  left: -10px;
+}
+
+.profile-goals__wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.profile-goals__from {
+  margin-top: var(--space-2xs);
+}
+
+.profile-goals .chip svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- the wizard ---------- */
+
+.profile-wiz__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding-bottom: var(--space-sm);
+}
+
+.profile-wiz__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-wiz__steps {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 var(--space-xs);
+  padding: 0;
+  list-style: none;
+}
+
+.profile-wiz__dot {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken-strong);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.profile-wiz__dot[data-state="done"] {
+  background: color-mix(in oklch, var(--accent) 45%, var(--sunken-strong));
+}
+
+.profile-wiz__dot[data-state="now"] {
+  background: var(--accent);
+}
+
+.profile-wiz__count {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.profile-wiz__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+
+.profile-wiz__lede {
+  max-width: 52ch;
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.profile-wiz__questions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.profile-wiz__foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-inline: calc(-1 * var(--space-md));
+  padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.profile-wiz__spacer {
+  flex: 1;
+}
+
+.profile-wiz__foot .btn {
+  flex: none;
+}
+
+.profile-wiz__queued {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.profile-wiz__done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding-block: var(--space-lg);
+}
+
+.profile-wiz__done .tile {
+  color: var(--accent-ink);
+  background: var(--accent-wash);
+}
+
+.profile-wiz__done .btn {
+  margin-top: var(--space-sm);
+}
+
+/* ---------- Home ---------- */
+
+.profile-card {
+  align-items: start;
+}
+
+.profile-card__snippet {
+  white-space: normal;
+}
+
+.profile-card__actions {
+  display: flex;
+  margin-top: var(--space-xs);
+}
+
+/* ---------- Settings → About you ---------- */
+
+.profile-set {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-top: var(--space-xs);
+}
+
+.profile-set__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.profile-set__title {
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.profile-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.profile-set .row + .row::before,
+.profile-set .row + .profile-edit::before,
+.profile-set .profile-edit + .row::before {
+  left: var(--space-md);
+}
+
+.profile-row__label {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.profile-row__value {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.profile-row__value--empty {
+  font-weight: var(--weight-regular, 400);
+  color: var(--ink-3);
+}
+
+.profile-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.profile-row .row__chevron svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+}
+
+.profile-edit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  background: color-mix(in oklch, var(--sunken) 45%, var(--surface));
+}
+
+.profile-edit::before,
+.row + .profile-edit::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--space-md);
+  right: var(--space-md);
+  height: 1px;
+  background: var(--line);
+}
+
+.list > .profile-edit:first-child::before {
+  display: none;
+}
+
+.profile-edit .field {
+  background: var(--surface);
+}
+
+.profile-edit__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.profile-edit__forget {
+  color: var(--bad);
+}
+
+.profile-edit__forget svg {
+  width: 15px;
+  height: 15px;
+}
+
+.profile-history:empty {
+  display: none;
+}
+
+.profile-history__title {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+}
+
+.profile-history__none {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.profile-history__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 6px 0 0;
+  padding: 0 0 0 var(--space-sm);
+  border-left: 2px solid var(--line);
+  list-style: none;
+}
+
+.profile-history__item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.profile-history__value {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.profile-history__meta {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* ---------- Review inbox ---------- */
+
+.review__group {
+  justify-content: flex-start;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.review__group:first-child {
+  margin-top: 0;
+}
+
+/* Region: country, currency and language, each its own dropdown (profile-inputs.ts regionControl). */
+.profile-region {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: 1fr;
+}
+.profile-region__part {
+  display: grid;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+.profile-region__label {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+.profile-region__pick {
+  width: 100%;
+  min-height: 44px;
+}
+@media (min-width: 720px) {
+  .profile-region {
+    grid-template-columns: 1.4fr 1.2fr 1fr;
+  }
+}
+

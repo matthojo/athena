@@ -1,0 +1,268 @@
+/* Ask's live steps (views/ask.ts): one quiet line per thing Athena does while
+   it works, the running one with a small cobalt ring. When the reply lands the
+   lines fold into "N steps" at the top of it, tap to open again. Calm: grey
+   ink, one accent for the ring and for checks on things it changed. */
+
+.steps {
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+/* Settings' setup steps (accounts.css) share the .steps name and draw a card:
+   in Ask it's plain lines inside the bubble, never a card in a card. */
+.bubble .steps {
+  display: block;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  counter-reset: none;
+}
+
+.steps__list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 3px 0;
+  color: var(--ink-2);
+  animation: step-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.step[data-state="done"] {
+  color: var(--ink-3);
+}
+
+/* Something it changed reads a shade stronger than something it looked up. */
+.step[data-state="done"][data-change] {
+  color: var(--ink-2);
+}
+
+.step__mark {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 18px;
+}
+
+.step__mark > * {
+  grid-area: 1 / 1;
+}
+
+.step__spin {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: step-spin var(--dur-spin) var(--ease-linear) infinite;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.step__mark svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+  color: var(--ink-3);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-base) var(--ease-out-expo);
+}
+
+.step[data-change] .step__mark svg {
+  color: var(--accent);
+}
+
+.step[data-state="done"] .step__spin {
+  opacity: 0;
+  animation: none;
+}
+
+.step[data-state="done"] .step__mark svg {
+  opacity: 1;
+  transform: none;
+}
+
+.step__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.step[data-state="running"] .step__text::after {
+  content: "…";
+}
+
+.step__text.is-new {
+  animation: step-text var(--dur-fast) var(--ease-out);
+}
+
+/* Before the first step, and between steps while it thinks. */
+.steps__idle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.steps__list:not([hidden]) + .steps__idle {
+  padding: 2px 0 0 1px;
+}
+
+.steps__idle[hidden] {
+  display: none;
+}
+
+.steps__idle .assist__working {
+  margin: 0;
+}
+
+/* ---------- Folded, on the reply ---------- */
+
+.steps--fold {
+  margin: -2px 0 6px;
+}
+
+.steps__toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 24px;
+  margin-left: -2px;
+  padding: 0 4px 0 2px;
+  border-radius: var(--radius-xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+/* A 44px target without a 44px line. */
+.steps__toggle::before {
+  content: "";
+  position: absolute;
+  inset: -10px -8px;
+}
+
+.steps__toggle svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--dur-base) var(--ease-out-expo);
+}
+
+.steps--fold[data-open="true"] .steps__toggle svg {
+  transform: rotate(180deg);
+}
+
+@media (hover: hover) {
+  .steps__toggle:hover {
+    color: var(--ink-2);
+  }
+}
+
+.steps__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.steps__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-base) var(--ease-out-expo);
+}
+
+.steps--fold[data-open="true"] .steps__panel {
+  grid-template-rows: 1fr;
+}
+
+.steps__clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.steps--fold .steps__list {
+  margin: 6px 0 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.steps--fold[data-open="true"] .steps__list {
+  opacity: 1;
+}
+
+.steps--fold .step {
+  animation: none;
+}
+
+/* The reply settles in as its steps fold away. */
+.steps--fold[data-live] ~ * {
+  animation: step-reply var(--dur-slow) var(--ease-out-expo) var(--dur-instant) both;
+}
+
+/* Talk's bar: the step in place of "Thinking". */
+.talk-bar__state.is-step {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: step-text var(--dur-fast) var(--ease-out);
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes step-text {
+  from {
+    opacity: 0.35;
+  }
+}
+
+@keyframes step-reply {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes step-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step,
+  .step__text.is-new,
+  .steps--fold[data-live] ~ *,
+  .talk-bar__state.is-step {
+    animation: none;
+  }
+
+  .step__spin {
+    animation: none;
+    border-color: var(--accent);
+    transform: scale(0.5);
+    background: var(--accent);
+  }
+
+  .steps__panel,
+  .steps__toggle svg,
+  .steps--fold .steps__list {
+    transition: none;
+  }
+}

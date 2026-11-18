@@ -1,0 +1,280 @@
+/* Athena's tokens (app/src/styles/tokens.css), trimmed to what the popup and
+   options page use. Light is the default; dark follows the system. */
+
+@font-face {
+  font-family: "Geist";
+  src: url("fonts/geist-latin.woff2") format("woff2");
+  font-weight: 400 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Funnel Display";
+  src: url("fonts/funnel-display-latin.woff2") format("woff2");
+  font-weight: 500 600;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --font-display: "Funnel Display", "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --canvas: oklch(0.972 0.004 264);
+  --surface: oklch(0.993 0.002 264);
+  --sunken: oklch(0.955 0.005 264);
+  --line: oklch(0.915 0.006 264);
+  --line-strong: oklch(0.87 0.008 264);
+  --ink: oklch(0.21 0.012 264);
+  --ink-2: oklch(0.43 0.014 264);
+  --ink-3: oklch(0.49 0.012 264);
+  --on-ink: oklch(0.985 0.003 264);
+  --accent: oklch(0.53 0.2 264);
+  --accent-wash: oklch(0.95 0.03 264);
+  --good: oklch(0.5 0.12 158);
+  --warn: oklch(0.53 0.12 65);
+  --warn-wash: oklch(0.95 0.04 80);
+  --bad: oklch(0.55 0.19 25);
+  --aurora-a: oklch(0.86 0.09 240 / 0.6);
+  --aurora-b: oklch(0.91 0.1 165 / 0.55);
+  --shadow-card: 0 1px 2px oklch(0.3 0.02 264 / 0.04), 0 6px 20px -12px oklch(0.3 0.03 264 / 0.12);
+
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-pill: 999px;
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --canvas: oklch(0.165 0.01 264);
+    --surface: oklch(0.205 0.012 264);
+    --sunken: oklch(0.245 0.012 264);
+    --line: oklch(0.29 0.012 264);
+    --line-strong: oklch(0.34 0.014 264);
+    --ink: oklch(0.95 0.006 264);
+    --ink-2: oklch(0.79 0.01 264);
+    --ink-3: oklch(0.68 0.012 264);
+    --on-ink: oklch(0.18 0.012 264);
+    --accent: oklch(0.7 0.15 264);
+    --accent-wash: oklch(0.29 0.06 264);
+    --good: oklch(0.72 0.14 158);
+    --warn: oklch(0.78 0.12 80);
+    --warn-wash: oklch(0.3 0.05 80);
+    --bad: oklch(0.7 0.16 25);
+    --aurora-a: oklch(0.42 0.12 250 / 0.26);
+    --aurora-b: oklch(0.45 0.09 168 / 0.16);
+    --shadow-card: 0 1px 0 oklch(1 0 0 / 0.03) inset;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font: 400 14px/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+p {
+  margin: 0;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+a:hover {
+  text-decoration: underline;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+[hidden] {
+  display: none !important;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+.meta {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+.sunken {
+  background: var(--sunken);
+  border-radius: var(--radius-sm);
+}
+
+/* Buttons: ink pill for the main action, outlined pill otherwise. */
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  min-height: 36px;
+  padding: 0 16px;
+  font: 500 14px/1 var(--font-ui);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 120ms var(--ease-out), border-color 120ms var(--ease-out);
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.btn-primary:hover {
+  background: color-mix(in oklch, var(--ink) 88%, var(--canvas));
+}
+.btn-outline {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.btn-outline:hover {
+  background: var(--sunken);
+}
+.btn-quiet {
+  background: transparent;
+  color: var(--ink-2);
+  padding: 0 10px;
+  min-height: 30px;
+}
+.btn-quiet:hover {
+  background: var(--sunken);
+  color: var(--ink);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+input,
+textarea {
+  width: 100%;
+  font: 400 15px/1.4 var(--font-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-3);
+}
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+input[aria-invalid="true"] {
+  border-color: var(--bad);
+}
+textarea {
+  resize: none;
+}
+
+/* Status line: always an icon and words, never colour alone. */
+.status {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.status svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+.status.good svg {
+  color: var(--good);
+}
+.status.warn svg {
+  color: var(--warn);
+}
+.status.bad svg {
+  color: var(--bad);
+}
+.status.busy svg {
+  color: var(--ink-3);
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status.busy svg {
+    animation: none;
+  }
+}
+.field-error {
+  color: var(--bad);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.outbox {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.outbox li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.outbox li:first-child {
+  border-top: 0;
+}
+.outbox .what {
+  flex: 1;
+  min-width: 0;
+}
+.outbox .what b {
+  display: block;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.outbox .actions {
+  display: flex;
+  flex: none;
+}
+
+kbd {
+  font: 500 12px/1 var(--font-ui);
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+}

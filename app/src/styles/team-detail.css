@@ -1,0 +1,1462 @@
+/*
+ * Team: one assistant's page (team/team-detail.ts, detail-work.ts, detail-brief.ts).
+ * A desk, not a form: the character and what it's doing, then its work, then
+ * how it works for you. Wide screens put the work left and the rest right.
+ */
+
+.team-detail {
+  max-width: 1120px;
+  padding-bottom: var(--space-3xl);
+}
+
+.td-top {
+  padding-top: var(--page-top, var(--space-md));
+  margin-bottom: var(--space-2xs);
+}
+
+.td-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  margin-left: -10px;
+  padding: 0 12px 0 6px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-ui);
+  cursor: pointer;
+}
+
+.td-back svg {
+  width: 20px;
+  height: 20px;
+}
+
+@media (hover: hover) {
+  .td-back:hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+}
+
+/* ---------- the hero ---------- */
+
+.td-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "fig id"
+    "act act";
+  align-items: center;
+  column-gap: var(--space-md);
+  row-gap: var(--space-md);
+  padding-bottom: var(--space-lg);
+}
+
+.td-figure {
+  grid-area: fig;
+  position: relative;
+}
+
+/* The character's tile (kit renderAvatarTile) is the button: tap it to open the wardrobe. */
+.td-disc {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: filter var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.td-face {
+  --kit-size: 96px;
+  transition: background-color var(--dur-slow) var(--ease-out-expo);
+}
+
+.td-disc:active {
+  transform: scale(0.98);
+}
+
+.td-disc:focus-visible {
+  outline: none;
+}
+
+.td-disc:focus-visible .td-face {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.team-detail.is-paused .td-disc {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+/* What it says when you ask it to start: a small bubble at its chin, tail up, so it never covers the name. */
+.td-say {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: calc(100% - 22px);
+  margin: 0;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  box-shadow: var(--shadow-float);
+  transform: translateX(-50%);
+  transform-origin: 50% 0;
+}
+
+.td-say::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-3xs);
+  background: inherit;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.td-say.is-in {
+  animation: td-say-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.td-say[hidden] {
+  display: none;
+}
+
+@keyframes td-say-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px) scale(0.92);
+  }
+}
+
+.td-id {
+  grid-area: id;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Name and job read as text until touched. */
+.td-inplace {
+  width: 100%;
+  margin: 0 0 0 -9px;
+  padding: 1px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: inherit;
+  resize: none;
+  overflow: hidden;
+  transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .td-inplace:hover {
+    background: var(--sunken);
+  }
+}
+
+.td-inplace:focus {
+  outline: none;
+  border-color: var(--line-strong);
+  background: var(--surface);
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.td-name {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+}
+
+/* The name's field hugs the name, so editing it doesn't draw a bar across the page. */
+@supports (field-sizing: content) {
+  .td-name {
+    field-sizing: content;
+    justify-self: start;
+    width: auto;
+    min-width: 5ch;
+    max-width: calc(100% + 9px);
+  }
+}
+
+@supports not (field-sizing: content) {
+  .td-name {
+    justify-self: start;
+    max-width: 16ch;
+  }
+}
+
+.td-job {
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+/* What it's doing right now. While it works, a slow dot and its own words. */
+.td-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 22px;
+  margin: 4px 0 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+/*
+ * At rest the line is in parts ("Watching for gift ideas", "last ran 19:14")
+ * with a dot between. Each part carries its dot in front; the list is pulled
+ * left by one dot's width and clipped, so a part that wraps to a new line
+ * starts clean instead of with a stray dot.
+ */
+.td-status__parts {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.td-status__list {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -1.1em;
+}
+
+.td-status__part {
+  white-space: nowrap;
+}
+
+.td-status__part:first-child {
+  white-space: normal;
+}
+
+.td-status__part::before {
+  content: "·" / "";
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+}
+
+/* Working: the breathing dot in its own colour (styles/team-pulse.css), beside plain words. */
+.team-detail.is-working .td-status {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.td-actions {
+  grid-area: act;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-xs);
+}
+
+/* On a phone the name is just above, so Chat says "Chat"; wider, it says who. */
+.td-chat > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 759px) {
+  .td-chat__who {
+    display: none;
+  }
+}
+
+/* Rename: one quiet control beside Chat and Run now. No fill, no border; a 44px target. */
+.td-rename {
+  gap: 6px;
+  min-width: 44px;
+  min-height: 48px;
+  padding-inline: 10px;
+  color: var(--ink-2);
+}
+
+.td-rename svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* While the name is being changed, Rename steps back so the field leads. */
+.td-hero.is-renaming .td-rename {
+  background: none;
+  color: var(--ink-3);
+}
+
+/* 16px sides on a phone, so paused ("Turn back on" is wider than "Run now") all three still fit at 390px. */
+.td-chat,
+.td-start {
+  gap: 8px;
+  min-height: 48px;
+  padding-inline: 16px;
+}
+
+@media (min-width: 760px) {
+  .td-chat,
+  .td-start {
+    padding-inline: 20px;
+  }
+}
+
+.td-chat svg,
+.td-start svg {
+  width: 18px;
+  height: 18px;
+}
+
+.td-start[hidden] {
+  display: none;
+}
+
+.td-start[aria-disabled="true"] {
+  color: var(--ink-3);
+  cursor: default;
+}
+
+@media (min-width: 760px) {
+  .td-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "fig id"
+      "fig act";
+    column-gap: var(--space-xl);
+    row-gap: var(--space-sm);
+    align-items: end;
+    padding-bottom: var(--space-xl);
+  }
+
+  .td-face {
+    --kit-size: 148px;
+  }
+
+  .td-id {
+    align-self: end;
+  }
+
+  .td-name {
+    font-size: var(--text-display);
+  }
+
+  .td-job {
+    font-size: var(--text-body);
+  }
+
+  .td-actions {
+    align-self: start;
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+.td-paused {
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.td-paused[hidden] {
+  display: none;
+}
+
+/* ---------- the layout ---------- */
+
+.td-layout {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.td-main,
+.td-aside {
+  display: grid;
+  align-content: start;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+@media (min-width: 1080px) {
+  .td-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: var(--space-2xl);
+  }
+
+  .td-aside {
+    position: sticky;
+    top: var(--space-md);
+  }
+}
+
+/* ---------- what it has done (detail-work.ts) ---------- */
+
+.tdw {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.tdw__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
+}
+
+.tdw__body {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.tdw-day {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.tdw-day__title {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.tdw-runs {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  list-style: none;
+  overflow: hidden;
+}
+
+.tdw-run + .tdw-run {
+  border-top: 1px solid var(--line);
+}
+
+.tdw-run,
+.tdw-run__open {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-sm);
+  padding: 14px var(--space-md);
+}
+
+/* A run that doesn't open (one that didn't finish) keeps the chevron's column empty, so its time lines up with the rest. */
+.tdw-run:not(:has(> .tdw-run__open)) {
+  grid-template-columns: 28px minmax(0, 1fr) 16px;
+}
+
+.tdw-run:has(> .tdw-run__open) {
+  display: block;
+  padding: 0;
+}
+
+.tdw-run__open {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .tdw-run__open:hover {
+    background: var(--sunken);
+  }
+}
+
+.tdw-run__open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tdw-run__mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-3);
+}
+
+.tdw-run__mark svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tdw-run.is-done .tdw-run__mark {
+  background: var(--mint-wash);
+  color: var(--good);
+}
+
+.tdw-run.is-failed .tdw-run__mark {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.tdw-run__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+  min-width: 0;
+}
+
+.tdw-run__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+/* What set it off wraps to a second line before it cuts, so the item it was about stays readable on a phone. */
+.tdw-run__why {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  line-height: var(--leading-snug);
+  text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.tdw-run__time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.tdw-run__what {
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+/* Its last plan, while it waits for Go: Home's words and pip (team-report__waiting). */
+.tdw-run__waits {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.tdw-run__pip {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.tdw-run__error {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.tdw-run__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.tdw-run__acts .btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tdw-run__go {
+  align-self: center;
+  color: var(--ink-3);
+}
+
+.tdw-run__go svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* A run seen finishing on this page: a moment of light, then it settles. */
+.tdw-run.is-fresh {
+  animation: tdw-fresh calc(var(--dur-hold) * 3) var(--ease-out) both;
+}
+
+@keyframes tdw-fresh {
+  from {
+    background: var(--accent-wash);
+  }
+}
+
+.tdw-run.is-new,
+.tdw-now.is-new {
+  animation: tdw-in var(--dur-spring) var(--ease-out-expo) both;
+}
+
+@keyframes tdw-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* What it's doing now. */
+.tdw-nows {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.tdw-now {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 12px var(--space-md);
+  border: 1px solid color-mix(in oklch, var(--who, var(--accent)) 35%, var(--line));
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--who, var(--accent)) 12%, var(--surface));
+}
+
+.tdw-now--open {
+  cursor: pointer;
+}
+
+
+.tdw-now__text {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  min-width: 0;
+}
+
+.tdw-now__step {
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+}
+
+.tdw-now__meta {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tdw-now__pulse {
+  margin-right: 6px;
+}
+
+.tdw-empty {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-lg);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+}
+
+.tdw-empty__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+}
+
+.tdw-empty__text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+.tdw-empty__acts {
+  margin-top: var(--space-xs);
+}
+
+.tdw-empty__acts .btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tdw-more {
+  justify-self: start;
+  margin-left: -10px;
+  color: var(--ink-2);
+}
+
+/* ---------- how it works for you (detail-brief.ts) ---------- */
+
+.td-sec {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+@media (max-width: 559px) {
+  .td-sec {
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+  }
+}
+
+.td-sec__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 32px;
+}
+
+.td-sec__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.td-sec__head .btn {
+  margin: -6px -10px -6px 0;
+  gap: 6px;
+}
+
+.td-sec__head .btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.td-sec__head .btn[hidden] {
+  display: none;
+}
+
+/* One line of the brief: tap to change. */
+.tdb-rows {
+  display: grid;
+  margin-inline: calc(var(--space-sm) * -1);
+}
+
+.tdb-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px;
+  grid-template-areas:
+    "label go"
+    "value go"
+    "note go";
+  align-items: center;
+  column-gap: var(--space-sm);
+  row-gap: 2px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.tdb-row + .tdb-row {
+  position: relative;
+}
+
+.tdb-row + .tdb-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--space-sm);
+  right: var(--space-sm);
+  border-top: 1px solid var(--line);
+}
+
+@media (hover: hover) {
+  .tdb-row:hover {
+    background: var(--sunken);
+  }
+
+  .tdb-row:hover::before,
+  .tdb-row:hover + .tdb-row::before {
+    opacity: 0;
+  }
+}
+
+.tdb-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tdb-row__label {
+  grid-area: label;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.tdb-row__value {
+  grid-area: value;
+  color: var(--ink);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+.tdb-row__value.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.tdb-row__note {
+  grid-area: note;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.tdb-row__go {
+  grid-area: go;
+  color: var(--ink-3);
+}
+
+.tdb-row__go svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tdb-lines {
+  display: grid;
+  gap: 4px;
+}
+
+.tdb-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tdb-line svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+}
+
+.tdb-line.is-off {
+  color: var(--ink-3);
+}
+
+/* The sheets the brief opens. */
+.tdb-sheet {
+  display: grid;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.tdb-sheet__lede {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.tdb-sheet__foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  background: linear-gradient(to bottom, transparent, var(--surface) 30%);
+}
+
+.tdb-sheet__foot .btn {
+  min-height: 44px;
+  padding-inline: 20px;
+}
+
+/* What it knows about you. */
+.tdm {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.tdm-summary {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  text-wrap: pretty;
+}
+
+.tdm-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tdm-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 36px;
+  padding: 0 4px 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: var(--text-small);
+}
+
+.tdm-forget {
+  width: 28px;
+  height: 28px;
+  color: var(--ink-3);
+}
+
+.tdm-forget svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tdm-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.tdm-all {
+  margin-right: -10px;
+  color: var(--ink-2);
+}
+
+/* Personality. */
+.tdp {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+/* Pause and Delete. */
+.td-end {
+  gap: var(--space-xs);
+}
+
+.td-end__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding-top: var(--space-2xs);
+}
+
+.td-end__row .btn {
+  flex: none;
+}
+
+.td-delete {
+  justify-self: start;
+  gap: 8px;
+  margin-left: -10px;
+  color: var(--bad);
+}
+
+.td-delete svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .td-disc,
+  .td-inplace,
+  .tdb-row,
+  .tdw-run__open {
+    transition: none;
+  }
+
+  .td-say.is-in,
+  .tdw-run.is-new,
+  .tdw-now.is-new,
+  .tdw-run.is-fresh {
+    animation: none;
+  }
+}
+
+.td-empty {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-ui);
+  list-style: none;
+}
+
+.td-area {
+  width: 100%;
+  min-height: 140px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  resize: vertical;
+}
+
+.td-area:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+/* What it can do alone */
+.td-allows {
+  display: grid;
+  margin-inline: calc(var(--space-md) * -1);
+}
+
+.td-allow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 56px;
+  padding: 8px var(--space-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .td-allow:hover {
+    background: var(--sunken);
+  }
+}
+
+.td-allow__text {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.td-allow__label {
+  color: var(--ink);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+}
+
+.td-allow__detail {
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+/* Personality */
+.td-greet {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-xs);
+}
+
+
+.td-bubble {
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-xs);
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.td-label {
+  margin: var(--space-xs) 0 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+.td-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.td-chip {
+  cursor: pointer;
+}
+
+.td-chip[aria-checked="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.td-wardrobe {
+  padding-bottom: var(--space-md);
+}
+
+.td-more {
+  justify-self: start;
+  margin: var(--space-2xs) 0 0 -10px;
+  color: var(--ink-2);
+}
+
+/* Clear of the dock and its + button on a phone, when a section's Save sits low. */
+@media (max-width: 767px) {
+  .team-detail {
+    padding-bottom: calc(var(--dock-height, 72px) + var(--safe-bottom) + var(--space-3xl));
+  }
+
+  .td-sec,
+  .tdw {
+    scroll-margin-bottom: calc(var(--dock-height, 72px) + var(--safe-bottom) + var(--space-lg));
+  }
+}
+
+/* The wardrobe in this sheet: swatches fill whole rows (no lone swatch at 390px), and the picked species reads in dark mode. */
+.td-wardrobe .kit-wr-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  justify-items: center;
+  gap: var(--space-2xs) 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .td-wardrobe .kit-wr-seg button[aria-checked="true"] {
+    background: var(--sunken-strong);
+    box-shadow: 0 0 0 1.5px var(--ink-2);
+  }
+}
+
+/* How <Name> works: its own skill (team/team-skill-section.ts) */
+.tds > .btn {
+  justify-self: start;
+}
+
+.tds-lede {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.tds-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.4em;
+  list-style: decimal;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.tds-steps li::marker {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tds-thinking {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+}
+
+.tds-thinking p {
+  margin: 0;
+}
+
+
+/* The update offer: a sunken panel inside the section, so it reads as a question about the skill below it. */
+.tds-offer {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  animation: tds-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.tds-offer__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.tds-offer__lede {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.tds-preview {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.tds-all summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+
+.tds-pre {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@keyframes tds-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tds-offer {
+    animation: none;
+  }
+}
+
+/* Shared by the skill section (team-skill-section.ts). */
+.td-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  padding-top: var(--space-2xs);
+}
+
+.td-prose {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  white-space: pre-wrap;
+  text-wrap: pretty;
+}
+
+.td-fine {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+/* A skill's steps, folded under its summary. */
+.tds-each summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  list-style: none;
+  cursor: pointer;
+}
+
+.tds-each summary::-webkit-details-marker {
+  display: none;
+}
+
+.tds-each summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.tds-each[open] summary::after {
+  margin-top: 3px;
+  transform: rotate(-135deg);
+}
+
+.tds-each .tds-steps {
+  padding-bottom: var(--space-xs);
+}
+
+
+
+/* Can look things up online (team/detail-web.ts): a brief line with its switch right there. */
+.tdb-web {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "label switch"
+    "name switch"
+    "need need"
+    "detail detail"
+    "follows follows"
+    "foot foot";
+  align-items: center;
+  column-gap: var(--space-md);
+  row-gap: 2px;
+  min-height: 56px;
+  padding: 10px var(--space-sm);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.tdb-web.is-blocked {
+  cursor: default;
+}
+
+.tdb-web::before,
+.tdb-web + .tdb-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--space-sm);
+  right: var(--space-sm);
+  border-top: 1px solid var(--line);
+}
+
+.tdb-web + .tdb-row {
+  position: relative;
+}
+
+@media (hover: hover) {
+  .tdb-web:not(.is-blocked):hover {
+    background: var(--sunken);
+  }
+
+  .tdb-web:not(.is-blocked):hover::before,
+  .tdb-web:not(.is-blocked):hover + .tdb-row::before,
+  .tdb-row:hover + .tdb-web::before {
+    opacity: 0;
+  }
+}
+
+.tdb-web:has(.switch:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tdb-web .switch:focus-visible {
+  outline: none;
+}
+
+.tdb-web__label {
+  grid-area: label;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.tdb-web__name {
+  grid-area: name;
+  color: var(--ink);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  text-wrap: balance;
+}
+
+.tdb-web__detail {
+  grid-area: detail;
+  margin-top: 2px;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+.tdb-web__follows {
+  grid-area: follows;
+  margin-top: 6px;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+/* Its job needs this and it's off: said once, plainly, above what the switch means. */
+.tdb-web__need {
+  grid-area: need;
+  justify-self: start;
+  margin-block: 4px 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+.tdb-web__switch {
+  grid-area: switch;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.tdb-web__foot {
+  grid-area: foot;
+  margin-top: var(--space-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tdb-web {
+    transition: none;
+  }
+}

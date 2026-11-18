@@ -1,0 +1,1289 @@
+/* Habits, money and home: the day page's chips and rows, and the Library's Habits and Money pages. */
+
+/* ---------- Habits on a day ---------- */
+
+.habit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.habit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.habit-chip--done {
+  padding-left: 8px;
+  border-color: transparent;
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.habit-chip__tick {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.habit-chip__tick svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.4;
+}
+
+.habit-chip__note {
+  color: var(--ink-3);
+  font-weight: var(--weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-sec.is-editing .habit-chip {
+  padding-right: 6px;
+}
+
+/* ---------- Money and home on a day ---------- */
+
+.day-money__row .day-health__words {
+  gap: 3px;
+}
+
+.money-split {
+  display: flex;
+  gap: 2px;
+  width: 100%;
+  max-width: 220px;
+  height: 4px;
+  margin-top: 6px;
+  border-radius: var(--radius-3xs);
+  overflow: hidden;
+}
+
+.money-split__part {
+  flex-basis: 0;
+  min-width: 4px;
+  background: var(--chart-1);
+}
+
+.money-split__part--1 {
+  background: var(--chart-2);
+}
+
+.money-split__part--2 {
+  background: var(--sunken-strong);
+}
+
+.money-split__part--3 {
+  background: var(--line-strong);
+}
+
+.hour-bars {
+  display: block;
+  overflow: visible;
+}
+
+.hour-bars__base {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.hour-bars__bar {
+  fill: var(--sunken-strong);
+}
+
+.hour-bars__bar--evening {
+  fill: var(--chart-1);
+}
+
+/* ---------- Library: Habits ---------- */
+
+.life-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-width: 880px;
+}
+
+.life-page__lede {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.life-empty {
+  padding: var(--space-xl) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.life-empty__title {
+  margin: 0 0 var(--space-2xs);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.life-empty__text {
+  margin: 0 0 var(--space-md);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.habit-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.habit-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.habit-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.habit-card__name {
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.habit-card__source {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+
+.habit-card__line {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.habit-card__line strong {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+/* A year of days: weeks as columns, Monday at the top, like a calendar on its side. */
+.habit-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 2px;
+  width: 100%;
+  justify-content: start;
+  overflow: hidden;
+  padding: 2px;
+}
+
+.habit-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.habit-grid__day {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-3xs);
+  background: var(--sunken);
+}
+
+.habit-grid__day--missed {
+  background: color-mix(in oklch, var(--ink-3) 30%, transparent);
+}
+
+/* In dark, 30% sat about 1.4:1 from "Nothing logged" and the legend's two greys read as one. */
+@media (prefers-color-scheme: dark) {
+  .habit-grid__day--missed {
+    background: color-mix(in oklch, var(--ink-3) 55%, transparent);
+  }
+}
+
+.habit-grid__day--done {
+  background: var(--chart-1);
+}
+
+.habit-grid__day--none {
+  background: transparent;
+}
+
+.habit-grid__day--today {
+  outline: 1.5px solid var(--ink-3);
+  outline-offset: 1px;
+}
+
+@media (min-width: 900px) {
+  .habit-grid__day {
+    width: 11px;
+    height: 11px;
+  }
+}
+
+.habit-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  max-width: 320px;
+}
+
+.habit-week__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.habit-week__bar {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  border-radius: var(--radius-2xs);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.habit-week__fill {
+  position: absolute;
+  inset: auto 0 0 0;
+  background: var(--chart-1);
+  opacity: 0.85;
+}
+
+.habit-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.habit-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.habit-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ---------- Library: Money ---------- */
+
+.money-months {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.money-month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.money-month__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.money-month__name {
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.money-month__total {
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.money-month__sub {
+  margin: -10px 0 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.money-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.money-cat {
+  display: grid;
+  grid-template-columns: minmax(96px, 30%) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-small);
+}
+
+.money-cat__name {
+  color: var(--ink-2);
+}
+
+.money-cat__track {
+  height: 8px;
+  border-radius: var(--radius-2xs);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.money-cat__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-2xs);
+  background: var(--chart-1);
+}
+
+.money-cat__amount {
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
+}
+
+.money-merchants {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--space-2xs) 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.money-merchants__title {
+  margin: var(--space-xs) 0 var(--space-2xs);
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.money-merchant {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 32px;
+  padding: 6px 0;
+  font-size: var(--text-small);
+}
+
+.money-merchant + .money-merchant {
+  border-top: 1px solid var(--line);
+}
+
+.money-merchant__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.money-merchant__times {
+  margin-left: 6px;
+  color: var(--ink-3);
+}
+
+.money-merchant__amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.life-section-title {
+  margin: 0 0 var(--space-2xs);
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+}
+
+.life-section-sub {
+  margin: 0 0 var(--space-sm);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+/* ---------- Settings → Days: Money and Home ---------- */
+
+.life-prefs {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-lg) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.life-prefs__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 56px;
+  padding: var(--space-xs) 0;
+  cursor: pointer;
+}
+
+.life-prefs__row + .life-prefs__row {
+  border-top: 1px solid var(--line);
+}
+
+.life-prefs__words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.life-prefs__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+}
+
+.life-prefs__sub,
+.life-prefs__note {
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.life-prefs__note {
+  margin: var(--space-xs) 0 0;
+}
+
+@media (min-width: 900px) {
+  .money-month {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    column-gap: var(--space-xl);
+    row-gap: var(--space-md);
+  }
+
+  .money-month__head,
+  .money-month__sub {
+    grid-column: 1 / -1;
+  }
+
+  .money-cat {
+    grid-template-columns: 112px minmax(0, 1fr) auto;
+  }
+
+  .money-month .money-merchants__title {
+    margin-top: 0;
+  }
+
+  .money-month .money-merchants {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
+.life-prefs__radio {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* ---------- Library: Money → Regular payments ---------- */
+
+.regular {
+  display: flex;
+  flex-direction: column;
+}
+
+.regular__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2xs) var(--space-md);
+}
+
+.regular__total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+
+.regular__amount {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: var(--leading-tight);
+}
+
+.regular__per {
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.regular-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+/* The month in one strip: each payment its share, subscriptions in blue, bills in green. */
+.regular-strip {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.regular-strip__part {
+  min-width: 3px;
+  border-radius: var(--radius-3xs);
+  transform-origin: left center;
+  animation: regular-grow var(--dur-slow) var(--ease-out-expo) backwards;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger) * 0.7);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.regular-strip__part--subscription {
+  background: var(--chart-1);
+}
+
+.regular-strip__part--bill {
+  background: var(--chart-2);
+}
+
+.regular-strip.has-lit .regular-strip__part:not(.is-lit) {
+  opacity: 0.28;
+}
+
+.regular-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-md);
+  margin: calc(var(--space-xs) * -1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.regular-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.regular-legend__item::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chart-1);
+}
+
+.regular-legend__item--bill::before {
+  background: var(--chart-2);
+}
+
+.regular-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.regular-group__title {
+  margin: 0 0 var(--space-2xs);
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.regular-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0 calc(var(--space-xs) * -1);
+  padding: 0;
+  list-style: none;
+}
+
+.regular-row {
+  display: grid;
+  grid-template-rows: auto 0fr;
+  border-radius: var(--radius-sm);
+  animation: regular-in var(--dur-base) var(--ease-out-expo) backwards;
+  animation-delay: calc(var(--dur-stagger) * 2 + var(--i, 0) * var(--dur-stagger) * 0.8);
+  transition:
+    grid-template-rows var(--dur-base) var(--ease-out-expo),
+    background-color var(--dur-fast) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-base) var(--ease-out-expo);
+}
+
+.regular.is-settled .regular-row,
+.regular.is-settled .regular-strip__part {
+  animation: none;
+}
+
+.regular-row + .regular-row {
+  box-shadow: 0 -1px 0 var(--line);
+}
+
+.regular-row.is-open {
+  grid-template-rows: auto 1fr;
+  background: var(--sunken);
+  box-shadow: none;
+}
+
+.regular-row.is-open + .regular-row {
+  box-shadow: none;
+}
+
+.regular-row.is-leaving {
+  grid-template-rows: 0fr 0fr;
+  opacity: 0;
+  transform: translateX(12px);
+  overflow: hidden;
+}
+
+.regular-row__main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 60px;
+  min-width: 0;
+  padding: var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-instant) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .regular-row:not(.is-open) .regular-row__main:hover {
+    background: var(--sunken);
+  }
+}
+
+.regular-row__main:active {
+  transform: scale(0.985);
+}
+
+.regular-row__main:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.regular-row__logo,
+.regular-row__initial {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  transition: transform var(--dur-base) var(--ease-out-expo);
+}
+
+.regular-row__main:active .regular-row__logo,
+.regular-row__main:active .regular-row__initial {
+  transform: scale(0.94);
+}
+
+.regular-row__initial {
+  --hue: var(--ctx-blue);
+  display: grid;
+  flex: none;
+  place-items: center;
+  background: color-mix(in oklch, var(--hue) 16%, var(--surface));
+  color: color-mix(in oklch, var(--hue) 80%, var(--ink));
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--hue) 22%, transparent);
+}
+
+.regular-row__initial--teal { --hue: var(--ctx-teal); }
+.regular-row__initial--green { --hue: var(--ctx-green); }
+.regular-row__initial--amber { --hue: var(--ctx-amber); }
+.regular-row__initial--orange { --hue: var(--ctx-orange); }
+.regular-row__initial--pink { --hue: var(--ctx-pink); }
+.regular-row__initial--violet { --hue: var(--ctx-violet); }
+.regular-row__initial--red { --hue: var(--ctx-red); }
+
+.regular-row__words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.regular-row__name {
+  overflow: hidden;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.regular-row__meta {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.regular-row__amount {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gentle marks: a word and a small sign, never a red alarm. */
+.regular-row__flag {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 3px;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px 1px 6px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.regular-row__flag svg {
+  width: 11px;
+  height: 11px;
+}
+
+.regular-row__flag--up {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.regular-row__flag--missed {
+  background: var(--sunken-strong);
+  color: var(--ink-2);
+}
+
+.regular-row__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.regular-row__chev {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  transition: transform var(--dur-base) var(--ease-out-expo);
+}
+
+.regular-row__chev svg {
+  width: 16px;
+  height: 16px;
+}
+
+.regular-row.is-open .regular-row__chev {
+  transform: rotate(180deg);
+}
+
+.regular-row__more {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.regular-row__inner {
+  padding: 0 var(--space-xs) var(--space-sm) calc(var(--space-xs) + 40px + var(--space-sm));
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-base) var(--ease-out-expo);
+}
+
+.regular-row.is-open .regular-row__inner {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(var(--dur-stagger) * 1.5);
+}
+
+.regular-row__detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-sm) var(--space-lg);
+}
+
+.regular-row__notes {
+  display: flex;
+  flex: 1 1 220px;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.regular-row__notes p {
+  margin: 0;
+}
+
+.regular-row__actions {
+  margin-top: var(--space-xs);
+}
+
+/* The last few payments as little bars, rising in when the row opens. */
+.regular-beats {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 64px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.regular-beat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  width: 26px;
+  height: 100%;
+}
+
+.regular-beat__bar {
+  width: 100%;
+  height: calc(var(--h) * 0.44px);
+  border-radius: var(--radius-xs) var(--radius-xs) var(--radius-3xs) var(--radius-3xs);
+  background: var(--sunken-strong);
+  transform: scaleY(0.2);
+  transform-origin: bottom;
+  transition: transform var(--dur-slow) var(--ease-out-expo);
+  transition-delay: calc(var(--dur-stagger) * 2 + var(--i, 0) * var(--dur-stagger));
+}
+
+.regular-row.is-open .regular-beat__bar {
+  transform: none;
+}
+
+.regular-beat--last .regular-beat__bar {
+  background: var(--chart-1);
+}
+
+.regular-row.is-up .regular-beat--last .regular-beat__bar {
+  background: var(--warn);
+}
+
+.regular-beat__on {
+  color: var(--ink-3);
+  font-size: var(--text-micro);
+  white-space: nowrap;
+}
+
+.regular-hidden {
+  margin-top: var(--space-sm);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.regular-hidden summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.regular-hidden__list {
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.regular-hidden__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 40px;
+  color: var(--ink-2);
+}
+
+@keyframes regular-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes regular-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (min-width: 900px) {
+  .regular-card {
+    padding: var(--space-md) var(--space-lg) var(--space-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regular-row,
+  .regular-row__main,
+  .regular-row__inner,
+  .regular-row__chev,
+  .regular-row__logo,
+  .regular-row__initial,
+  .regular-strip__part,
+  .regular-beat__bar {
+    animation: none;
+    transition: none;
+  }
+
+  .regular-row__main:active,
+  .regular-row__main:active .regular-row__logo,
+  .regular-row__main:active .regular-row__initial {
+    transform: none;
+  }
+
+  .regular-beat__bar {
+    transform: none;
+  }
+}
+
+/* ---------- Watch & read: the sheet (views/reading.ts). The page itself is watch.css. ---------- */
+
+/* The sheet: the cover first, large, on a soft glow of its own colour. */
+.rs .loop-sheet__top {
+  align-items: flex-start;
+}
+
+.rs-cover {
+  position: relative;
+  width: 128px;
+  isolation: isolate;
+}
+
+.rs-cover::before {
+  content: "";
+  position: absolute;
+  inset: 12% -30% -18%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in oklch, var(--rs-glow, var(--sunken-strong)) 28%, transparent), transparent);
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+.rs-cover .art-img {
+  width: 100%;
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-float);
+  animation: rs-cover-in var(--dur-slow) var(--ease-out-expo) both;
+}
+
+@keyframes rs-cover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@media (min-width: 640px) {
+  .rs-cover {
+    width: 148px;
+  }
+}
+
+.rs .loop-sheet__title {
+  margin-top: var(--space-2xs);
+}
+
+/* Who made it, who it's from and the stars sit right under the title. */
+.rs-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  margin-top: calc(-1 * var(--space-sm));
+}
+
+.rs-hero[hidden] {
+  display: none;
+}
+
+.rs-by,
+.rs-from {
+  margin: 0;
+  color: var(--ink-2);
+  font: var(--text-ui) / 1.4 var(--font-ui);
+}
+
+.rs-by:not([hidden]) + .rs-from-slot:not(:empty)::before {
+  content: "·";
+  margin-right: var(--space-sm);
+  color: var(--ink-3);
+}
+
+.rs-from-slot {
+  display: flex;
+  align-items: center;
+}
+
+.rs-from-slot:empty,
+.rs-stars:empty {
+  display: none;
+}
+
+.rs-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 2px;
+  padding: 2px 10px 2px 2px;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  vertical-align: middle;
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.rs-person .avatar {
+  width: 22px;
+  height: 22px;
+}
+
+@media (hover: hover) {
+  .rs-person:hover {
+    background: color-mix(in oklch, var(--accent-wash) 70%, var(--accent) 12%);
+  }
+}
+
+.rs-person:active {
+  transform: scale(0.97);
+}
+
+.rs-person:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.rs-stars {
+  flex-basis: 100%;
+}
+
+.rs-stars .stars svg {
+  width: 18px;
+  height: 18px;
+}
+
+.rs-progress[hidden] {
+  display: none;
+}
+
+/*
+ * From about 720px the cover sits on the left and the title, who made it,
+ * who it's from, the stars and how far through you are sit beside it; the
+ * notes and the folded form run full width below. Phones keep the stack.
+ */
+@media (min-width: 720px) {
+  .loop-sheet.rs {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    /* The last row takes up any height the cover has left over, so the rows beside it stay snug. */
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: var(--space-lg);
+    row-gap: var(--space-md);
+    align-items: start;
+  }
+
+  .rs .loop-sheet__top {
+    display: contents;
+  }
+
+  .rs .loop-sheet__top > .note__bar-spacer {
+    display: none;
+  }
+
+  .rs .rs-cover {
+    grid-column: 1;
+    grid-row: 1 / 5;
+  }
+
+  .rs .loop-sheet__top > .icon-btn {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .rs .loop-sheet__title {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .rs .rs-hero {
+    grid-column: 2 / 4;
+    grid-row: 2;
+  }
+
+  .rs .rs-progress {
+    grid-column: 2 / 4;
+    grid-row: 3;
+  }
+
+  .rs .loop-sheet__top ~ :not(.loop-sheet__title, .rs-hero, .rs-progress) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The form, folded: Status, Kind, Link, By, From and the owner's own fields. */
+.rs-details > .rs-details__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  width: fit-content;
+  margin-bottom: var(--space-xs);
+  color: var(--ink-3);
+  list-style: none;
+  cursor: pointer;
+}
+
+.rs-details > .rs-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.rs-details__summary .group__label {
+  margin: 0;
+}
+
+.rs-details__summary svg {
+  width: 16px;
+  height: 16px;
+  transform: rotate(-90deg);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.rs-details[open] .rs-details__summary svg {
+  transform: none;
+}
+
+.rs-details[open] > .fields {
+  animation: rs-unfold var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes rs-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-cover .art-img,
+  .rs-details[open] > .fields {
+    animation: none;
+  }
+  .rs-details__summary svg,
+  .rs-person {
+    transition: none;
+  }
+  .rs-person:active {
+    transform: none;
+  }
+}
+
+/* Watch & read's sheet: what the sources know (year, length, genres), and the playlists it's in. */
+.rs-facts {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--ink-3);
+  font: var(--text-small) / 1.4 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-lists {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs) var(--space-xs);
+  margin: 0;
+  color: var(--ink-3);
+  font: var(--text-small) / 1.4 var(--font-ui);
+}
+
+.rs-lists[hidden],
+.rs-facts[hidden] {
+  display: none;
+}
+
+.rs-lists__name {
+  padding: var(--space-3xs) var(--space-xs);
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+}

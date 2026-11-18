@@ -1,0 +1,68 @@
+/* Sleep stages: colours by stage (tokens.css), the segmented bar and its legend. components/sleep-stages.ts. */
+
+.stage--deep { fill: var(--stage-deep); background: var(--stage-deep); }
+.stage--rem { fill: var(--stage-rem); background: var(--stage-rem); }
+.stage--core { fill: var(--stage-core); background: var(--stage-core); }
+.stage--awake { fill: var(--stage-awake); background: var(--stage-awake); }
+.stage--none { fill: var(--stage-none); background: var(--stage-none); }
+
+/* The night as one segmented bar (components/sleep-stages.ts). */
+.stagebar {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.stagebar__track {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.stagebar__track--slim {
+  height: 6px;
+}
+
+.stagebar__part {
+  flex-basis: 0;
+  min-width: 2px;
+}
+
+.stage-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.stage-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stage-legend__swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-3xs);
+}
+
+.stage-legend__value {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  .stagebar__part,
+  .stage-legend__swatch {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+}

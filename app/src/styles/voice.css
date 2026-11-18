@@ -1,0 +1,1184 @@
+/* =========================================================================
+   Voice: Talk in Ask (the orb in the composer, the talk bar) and the
+   ElevenLabs connection in Settings → Voice (setup, usage, the voice
+   picker). Built on the Ask composer, the orb, profile and list rows; what's
+   here is only what those don't cover.
+   ========================================================================= */
+
+/* ---------- The ElevenLabs mark ---------- */
+
+.logo--elevenlabs {
+  background: #0e0e10;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+.logo--elevenlabs svg {
+  width: 60%;
+  height: 60%;
+}
+
+/* ---------- Ask: the Talk orb beside the mic ---------- */
+
+.talk-btn {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.talk-btn .orb {
+  --size: 40px;
+  transition: box-shadow var(--dur-base) var(--ease-out);
+}
+
+/* A small waveform on the orb: this one talks, the dock's opens Ask. */
+.talk-btn__wave {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 20px;
+  height: 20px;
+  color: oklch(1 0 0 / 0.94);
+  filter: drop-shadow(0 1px 1.5px oklch(0.3 0.16 266 / 0.55));
+  pointer-events: none;
+}
+
+.talk-btn:active {
+  transform: scale(0.92);
+}
+
+.talk-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .talk-btn:hover .orb {
+    box-shadow:
+      0 0 0 3px var(--surface),
+      0 0 0 5px color-mix(in oklch, var(--accent) 35%, transparent),
+      0 8px 22px -8px oklch(0.5 0.2 262 / 0.7);
+  }
+}
+
+/* An empty box offers the mic and the orb; typing turns them into Send. */
+.composer-bar--talk[data-empty="false"] .talk-btn {
+  display: none;
+}
+
+/* Beside the orb, the one-shot mic steps back to a plain icon. */
+.composer-bar--talk .voice-btn {
+  background: transparent;
+  color: var(--ink-2);
+}
+
+@media (hover: hover) {
+  .composer-bar--talk .voice-btn:hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+}
+
+.composer-bar--talk .voice-btn:active {
+  background: var(--sunken);
+}
+
+/* ---------- The talk bar (in the composer's place) ---------- */
+
+.talk-active > :not(.talk-bar, .talk-live) {
+  display: none;
+}
+
+/* ---------- Talk's states, at a glance ----------
+   Listening is cool and drawn in: a teal orb, a ring that closes on it as
+   the owner speaks, rings gathering inward. Speaking is bright and pushes
+   out: the orb swells and lights with Athena's voice, ripples and a glow
+   spread from it. Thinking circles. Paused and problem rest, grey.
+
+   Each cue is its own layer, faded in and out by --talk-on, so a change of
+   state never snaps. Everything that moves per frame is a transform or
+   opacity; colours only change between states. */
+
+/* The voice level, 0–1, set per frame by talk/session.ts on the few elements
+   that draw with it. It doesn't inherit, so a change restyles only those;
+   their layers take it with --talk-level: inherit. Only the orb and its
+   button (and the big intro orb) carry it. */
+@property --talk-level {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --talk-on {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --talk-gain {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --talk-ring {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+@property --talk-glow {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+.talk-bar,
+.talk-stage,
+.ask.is-talking {
+  --talk-cool: oklch(0.6 0.11 200);
+  --talk-cool-wash: oklch(0.95 0.035 195);
+  --talk-cool-ink: oklch(0.47 0.09 210);
+  --talk-glow-speak: oklch(0.72 0.16 258 / 0.5);
+  --talk-glow-listen: oklch(0.82 0.09 192 / 0.55);
+  --talk-rest: var(--line-strong);
+}
+
+@media (prefers-color-scheme: dark) {
+  .talk-bar,
+  .talk-stage,
+  .ask.is-talking {
+    --talk-cool: oklch(0.78 0.1 195);
+    --talk-cool-wash: oklch(0.3 0.05 200);
+    --talk-cool-ink: oklch(0.84 0.08 195);
+    --talk-glow-speak: oklch(0.6 0.18 262 / 0.5);
+    --talk-glow-listen: oklch(0.62 0.1 195 / 0.42);
+  }
+}
+
+/* The halo round the bar takes the state's colour. */
+.composer-bar.talk-active,
+.composer-bar.talk-active:focus-within {
+  padding: 8px;
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 0 0 4px var(--accent-wash),
+    var(--shadow-float);
+  transition:
+    bottom var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-slow) var(--ease-out);
+}
+
+.composer-bar.talk-active:has(.talk-bar[data-state="listening"]) {
+  box-shadow:
+    0 0 0 4px var(--talk-cool-wash),
+    var(--shadow-float);
+}
+
+.composer-bar.talk-active:has(.talk-bar[data-state="speaking"]) {
+  box-shadow:
+    0 0 0 4px var(--accent-wash),
+    0 0 0 5px color-mix(in oklch, var(--accent) 22%, transparent),
+    0 10px 36px -10px color-mix(in oklch, var(--accent) 55%, transparent),
+    var(--shadow-float);
+}
+
+.composer-bar.talk-active:has(.talk-bar:is([data-state="paused"], [data-state="problem"])) {
+  box-shadow:
+    0 0 0 4px var(--sunken),
+    var(--shadow-float);
+}
+
+.talk-bar {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  animation: voice-in var(--dur-fast) var(--ease-out);
+}
+
+.talk-bar__orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.talk-bar__orb:active:not([aria-disabled="true"]) {
+  transform: scale(0.92);
+}
+
+.talk-bar__orb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.talk-bar__orb[aria-disabled="true"] {
+  cursor: default;
+}
+
+/* Layers behind the orb, centred on it (the orb's button is the bar's first 52px). */
+.talk-bar::before,
+.talk-bar::after,
+.talk-bar__body::before,
+.talk-bar__body::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 26px;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* The glow: spreads from the orb with the voice, blue when Athena speaks,
+   teal when she listens. It and the ear ring hang off the orb's button, so
+   the per-frame level restyles only the button and the orb. */
+.talk-bar__orb::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -49px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--talk-glow), transparent);
+  --talk-level: inherit;
+  opacity: calc(var(--talk-on) * (0.3 + var(--talk-level) * 0.7));
+  transform: scale(calc(0.62 + var(--talk-level) * 0.38));
+  pointer-events: none;
+  transition:
+    --talk-on var(--dur-slow) var(--ease-out),
+    --talk-glow var(--dur-slow) var(--ease-out);
+}
+
+.talk-bar[data-state="speaking"] .talk-bar__orb::after {
+  --talk-on: 1;
+  --talk-glow: var(--talk-glow-speak);
+}
+
+.talk-bar[data-state="listening"] .talk-bar__orb::after {
+  --talk-on: 0.6;
+  --talk-glow: var(--talk-glow-listen);
+}
+
+/* Listening: rings gather inward, toward the orb. */
+.talk-bar::after,
+.ask.is-talking .ask__intro::after {
+  border: 1.5px solid color-mix(in oklch, var(--talk-cool) calc(var(--talk-on) * 100%), transparent);
+  opacity: 0;
+  animation: talk-gather calc(var(--dur-pulse) * 1.625) var(--ease-in) infinite paused;
+  transition: --talk-on var(--dur-slow) var(--ease-out);
+}
+
+.talk-bar[data-state="listening"]::after,
+.ask[data-talk="listening"] .ask__intro::after {
+  --talk-on: 1;
+  animation-play-state: running;
+}
+
+/* Speaking: ripples push outward. */
+.talk-bar__body::before,
+.talk-bar__body::after {
+  background: radial-gradient(
+    closest-side,
+    transparent 58%,
+    color-mix(in oklch, var(--accent) calc(var(--talk-on) * 22%), transparent) 80%,
+    color-mix(in oklch, var(--accent) calc(var(--talk-on) * 75%), transparent) 94%,
+    transparent
+  );
+  opacity: 0;
+  animation: talk-ripple calc(var(--dur-pulse) * 1.125) var(--ease-out) infinite paused;
+  transition: --talk-on var(--dur-slow) var(--ease-out);
+}
+
+.talk-bar__body::after {
+  animation-delay: calc(var(--dur-pulse) * 1.125 / -2);
+}
+
+.talk-bar[data-state="speaking"] .talk-bar__body::before,
+.talk-bar[data-state="speaking"] .talk-bar__body::after {
+  --talk-on: 1;
+  animation-play-state: running;
+}
+
+/* The ring on the orb: an ear while listening, closing in as the owner
+   speaks; let go outward when she answers. At rest it's a quiet grey
+   outline, red when something needs fixing. */
+.talk-bar__orb::before,
+.ask.is-talking .ask__intro::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 1.5px solid var(--talk-ring);
+  --talk-level: inherit;
+  opacity: calc(var(--talk-on) * (0.6 + var(--talk-level) * 0.4));
+  transform: scale(calc(1.3 + (1 - var(--talk-on)) * 0.22 - var(--talk-level) * 0.2));
+  pointer-events: none;
+  transition:
+    --talk-on var(--dur-slow) var(--ease-out),
+    --talk-ring var(--dur-slow) var(--ease-out);
+}
+
+.talk-bar[data-state="listening"] .talk-bar__orb::before,
+.ask[data-talk="listening"] .ask__intro::before {
+  --talk-on: 1;
+  --talk-ring: var(--talk-cool);
+}
+
+.talk-bar[data-state="paused"] .talk-bar__orb::before,
+.ask[data-talk="paused"] .ask__intro::before {
+  --talk-on: 0.9;
+  --talk-ring: var(--talk-rest);
+}
+
+.talk-bar[data-state="problem"] .talk-bar__orb::before,
+.ask[data-talk="problem"] .ask__intro::before {
+  --talk-on: 0.9;
+  --talk-ring: var(--bad);
+}
+
+/* Thinking (and getting the microphone ready): an arc circles the orb. */
+.talk-bar::before {
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 150deg, var(--talk-ring) 360deg);
+  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  mask: radial-gradient(closest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  opacity: var(--talk-on);
+  animation: orb-spin calc(var(--dur-spin) * 1.375) var(--ease-linear) infinite paused;
+  transition:
+    --talk-on var(--dur-base) var(--ease-out),
+    --talk-ring var(--dur-slow) var(--ease-out);
+}
+
+.talk-bar[data-state="thinking"]::before {
+  --talk-on: 1;
+  --talk-ring: var(--accent);
+  animation-play-state: running;
+}
+
+.talk-bar[data-state="starting"]::before {
+  --talk-on: 0.8;
+  --talk-ring: var(--talk-cool);
+  animation-play-state: running;
+}
+
+/* The orb: its colour says the state; its size and light follow the voice.
+   The state sets the resting size (scale, eased); the voice adds to it
+   (transform, per frame). */
+.talk-orb,
+.ask.is-talking .ask__intro .orb {
+  --size: 44px;
+  --talk-gain: 0;
+  transform: scale(calc(1 + var(--talk-gain) * var(--talk-level)));
+  filter: brightness(calc(1 + var(--talk-gain) * var(--talk-level) * 1.3));
+  transition:
+    scale var(--dur-slow) var(--ease-out),
+    opacity var(--dur-slow) var(--ease-out),
+    box-shadow var(--dur-slow) var(--ease-out),
+    --talk-gain var(--dur-slow) var(--ease-out),
+    --orb-hi var(--dur-slow) var(--ease-out),
+    --orb-mid var(--dur-slow) var(--ease-out),
+    --orb-low var(--dur-slow) var(--ease-out),
+    --orb-sheen var(--dur-slow) var(--ease-out);
+}
+
+.talk-orb::before,
+.ask.is-talking .ask__intro .orb::before {
+  animation-duration: calc(var(--dur-drift) / 5);
+}
+
+:is(.talk-bar, .talk-stage)[data-state="listening"] .talk-orb,
+.ask[data-talk="listening"] .ask__intro .orb,
+:is(.talk-bar, .talk-stage)[data-state="starting"] .talk-orb,
+.ask[data-talk="starting"] .ask__intro .orb {
+  --talk-gain: 0.06;
+  --orb-hi: oklch(0.94 0.06 188);
+  --orb-mid: oklch(0.68 0.12 210);
+  --orb-low: oklch(0.43 0.13 244);
+  --orb-sheen: oklch(0.95 0.07 172 / 0.8);
+  scale: 0.9;
+}
+
+:is(.talk-bar, .talk-stage)[data-state="starting"] .talk-orb,
+.ask[data-talk="starting"] .ask__intro .orb {
+  opacity: 0.7;
+  scale: 0.84;
+}
+
+:is(.talk-bar, .talk-stage)[data-state="speaking"] .talk-orb,
+.ask[data-talk="speaking"] .ask__intro .orb {
+  --talk-gain: 0.16;
+  --orb-hi: oklch(0.96 0.05 222);
+  --orb-mid: oklch(0.63 0.21 258);
+  --orb-low: oklch(0.4 0.2 266);
+  --orb-sheen: oklch(0.96 0.08 205 / 0.95);
+  scale: 1.04;
+}
+
+:is(.talk-bar, .talk-stage)[data-state="thinking"] .talk-orb,
+.ask[data-talk="thinking"] .ask__intro .orb {
+  scale: 0.86;
+}
+
+:is(.talk-bar, .talk-stage):is([data-state="paused"], [data-state="problem"]) .talk-orb,
+.ask:is([data-talk="paused"], [data-talk="problem"]) .ask__intro .orb {
+  --orb-hi: oklch(0.94 0.012 250);
+  --orb-mid: oklch(0.72 0.03 256);
+  --orb-low: oklch(0.5 0.04 262);
+  --orb-sheen: oklch(0.97 0.01 230 / 0.55);
+  scale: 0.84;
+  box-shadow: 0 4px 12px -6px oklch(0.4 0.03 262 / 0.5);
+}
+
+/* Not listening: the sheen stops turning. */
+:is(.talk-bar, .talk-stage):is([data-state="paused"], [data-state="problem"]) .talk-orb::before,
+.ask:is([data-talk="paused"], [data-talk="problem"]) .ask__intro .orb::before {
+  animation-play-state: paused;
+}
+
+@keyframes talk-gather {
+  0% {
+    opacity: 0;
+    transform: scale(1.48);
+  }
+  45% {
+    opacity: 0.65;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes talk-ripple {
+  0% {
+    opacity: 1;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+.talk-bar__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.talk-bar__state {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+  transition: color var(--dur-slow) var(--ease-out);
+}
+
+/* The label takes the orb's colour too. */
+.talk-bar[data-state="listening"] .talk-bar__state {
+  color: var(--talk-cool-ink);
+}
+
+.talk-bar[data-state="speaking"] .talk-bar__state {
+  color: var(--accent-ink);
+}
+
+.talk-bar__line {
+  display: flex;
+  min-width: 0;
+  font-size: var(--text-small);
+  line-height: 1.35;
+  color: var(--ink-3);
+}
+
+/* Hints and problems: up to two lines. */
+.talk-bar__line > span {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* What's being heard: one line, the latest words, fading in from the left. */
+.talk-bar__line.is-heard {
+  overflow: hidden;
+  color: var(--ink-2);
+}
+
+.talk-bar__line.is-heard > span {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.talk-bar__line.is-heard.is-long {
+  justify-content: flex-end;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
+  mask-image: linear-gradient(to right, transparent, #000 28px);
+}
+
+.talk-bar__line.is-heard.is-long > span {
+  flex: none;
+  overflow: visible;
+}
+
+.talk-bar__action {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: start;
+  margin-top: 2px;
+}
+
+.talk-bar__end {
+  gap: 6px;
+  padding: 0 14px 0 10px;
+}
+
+.talk-bar__end svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- The rest of Ask while Talk is on ---------- */
+
+/* Typed suggestions would only distract mid-conversation. */
+.ask .suggestions {
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.ask.is-talking .suggestions {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* A long reply is shown from its start, where the spoken part is. */
+.ask.is-talking .msg {
+  scroll-margin-top: calc(var(--safe-top) + var(--space-md));
+}
+
+/* The big intro orb follows along, with the same cues (shared above). */
+.ask.is-talking .ask__intro {
+  position: relative;
+  isolation: isolate;
+}
+
+.ask.is-talking .ask__intro .orb {
+  --size: 112px;
+}
+
+/* Its layers sit on the orb: the intro's top padding plus half the orb. */
+.ask.is-talking .ask__intro::before,
+.ask.is-talking .ask__intro::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: auto;
+  left: 50%;
+  top: calc(8vh + 56px);
+  width: 112px;
+  height: 112px;
+  margin: -56px 0 0 -56px;
+  border-radius: 50%;
+  pointer-events: none;
+  /* Rings stay clear of the title below. */
+  scale: 0.86;
+}
+
+.ask[data-talk="listening"] .ask__intro .orb {
+  box-shadow: 0 0 56px -8px var(--talk-glow-listen);
+}
+
+.ask[data-talk="speaking"] .ask__intro .orb {
+  box-shadow: 0 0 72px -4px var(--talk-glow-speak);
+}
+
+/* Thinking: the big orb breathes. */
+.ask[data-talk="thinking"] .ask__intro .orb::after {
+  animation: orb-glint calc(var(--dur-pulse) * 1.125) var(--ease-in-out) infinite;
+}
+
+/* ---------- The stage: a large orb, centred above the bar ----------
+   talk/session.ts builds it inside the Ask view and sets --stage-left,
+   --stage-width (the Ask column) and --stage-bottom (the composer's top).
+   The orb lifts out of the composer's orb into place (a transform, run from
+   session.ts), the conversation behind softens, and the bar keeps only the
+   words and End. Its layers are real elements, sized as a share of the orb. */
+
+.talk-stage {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-sticky) - 1);
+  pointer-events: none;
+}
+
+/* The conversation behind softens: clear near the edges, calm near the orb.
+   Only the Ask column: on a desk the sidebar stays bright. Taps still reach it. */
+.talk-stage__scrim {
+  position: absolute;
+  inset: 0 0 0 var(--scrim-left, 0px);
+  /* A soft left edge where it meets the sidebar. */
+  mask-image: linear-gradient(90deg, transparent, #000 min(var(--scrim-left, 0px), 40px));
+  background:
+    radial-gradient(
+      70vmax 60vmax at calc(var(--stage-left, 0px) - var(--scrim-left, 0px) + var(--stage-width, 100vw) / 2) 42%,
+      var(--canvas) 0%,
+      color-mix(in oklch, var(--canvas) 96%, transparent) 34%,
+      color-mix(in oklch, var(--canvas) 88%, transparent) 66%,
+      color-mix(in oklch, var(--canvas) 80%, transparent) 100%
+    );
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.talk-stage.is-on .talk-stage__scrim {
+  opacity: 1;
+}
+
+.talk-stage__area {
+  position: absolute;
+  top: calc(var(--safe-top) + var(--space-md));
+  bottom: calc(var(--stage-bottom, 200px) + var(--space-md));
+  left: var(--stage-left, 0px);
+  width: var(--stage-width, 100%);
+  display: grid;
+  place-items: center;
+  container-type: size;
+}
+
+/* Big on a phone, capped on a desk, never taller than the room above the bar
+   (the ripples reach 1.6 times the orb). */
+.talk-stage__orb {
+  --s: min(clamp(150px, 58vmin, 300px), 58cqh, 62cqw);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.talk-stage__orb .talk-orb {
+  --size: var(--s);
+  width: 100%;
+  height: 100%;
+  /* Its drop shadow, filtered at this size, painted as a box: the stage's glow does that job. */
+  clip-path: circle(50%);
+  /* At this size a strong brightening washes the highlight out; the swell and glow carry the voice. */
+  filter: brightness(calc(1 + var(--talk-gain) * var(--talk-level) * 0.55));
+}
+
+.talk-stage__orb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+}
+
+.talk-stage__orb[aria-disabled="true"] {
+  cursor: default;
+}
+
+.talk-stage__orb {
+  transition: scale var(--dur-instant) var(--ease-out);
+}
+
+.talk-stage__orb:active:not([aria-disabled="true"]) {
+  scale: 0.96;
+}
+
+:where(.talk-stage__orb > span:not(.orb)) {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  --talk-level: inherit;
+}
+
+/* Glow: a wide, soft bloom in the state's colour, swelling with the voice.
+   Many stops so it fades without banding. */
+.talk-stage__glow {
+  z-index: -1;
+  inset: -85%;
+  background: radial-gradient(
+    closest-side,
+    var(--talk-glow) 0%,
+    color-mix(in oklch, var(--talk-glow) 78%, transparent) 22%,
+    color-mix(in oklch, var(--talk-glow) 50%, transparent) 42%,
+    color-mix(in oklch, var(--talk-glow) 26%, transparent) 62%,
+    color-mix(in oklch, var(--talk-glow) 9%, transparent) 82%,
+    transparent 100%
+  );
+  opacity: calc(var(--talk-on) * (0.45 + var(--talk-level) * 0.55));
+  transform: scale(calc(0.78 + var(--talk-level) * 0.26));
+  transition:
+    --talk-on var(--dur-slow) var(--ease-out),
+    --talk-glow var(--dur-slow) var(--ease-out);
+}
+
+.talk-stage[data-state="speaking"] .talk-stage__glow {
+  --talk-on: 1;
+  --talk-glow: var(--talk-glow-speak);
+}
+
+.talk-stage:is([data-state="listening"], [data-state="starting"]) .talk-stage__glow {
+  --talk-on: 0.75;
+  --talk-glow: var(--talk-glow-listen);
+}
+
+.talk-stage[data-state="thinking"] .talk-stage__glow {
+  --talk-on: 0.5;
+  --talk-glow: var(--talk-glow-speak);
+}
+
+/* Speaking: three ripples push outward. */
+.talk-stage__ripple {
+  z-index: -1;
+  background: radial-gradient(
+    closest-side,
+    transparent 60%,
+    color-mix(in oklch, var(--accent) calc(var(--talk-on) * 14%), transparent) 78%,
+    color-mix(in oklch, var(--accent) calc(var(--talk-on) * 45%), transparent) 93%,
+    transparent 100%
+  );
+  opacity: 0;
+  animation: talk-ripple calc(var(--dur-pulse) * 1.5) var(--ease-out) infinite paused;
+  transition: --talk-on var(--dur-slow) var(--ease-out);
+}
+
+.talk-stage__ripple:nth-child(3) {
+  animation-delay: calc(var(--dur-pulse) * 1.5 / -3);
+}
+
+.talk-stage__ripple:nth-child(4) {
+  animation-delay: calc(var(--dur-pulse) * 1.5 * 2 / -3);
+}
+
+.talk-stage[data-state="speaking"] .talk-stage__ripple {
+  --talk-on: 1;
+  animation-play-state: running;
+}
+
+/* Listening: rings gather inward. */
+.talk-stage__gather {
+  z-index: -1;
+  border: 1.5px solid color-mix(in oklch, var(--talk-cool) calc(var(--talk-on) * 70%), transparent);
+  opacity: 0;
+  animation: talk-gather calc(var(--dur-pulse) * 1.875) var(--ease-in) infinite paused;
+  transition: --talk-on var(--dur-slow) var(--ease-out);
+}
+
+.talk-stage__gather:nth-child(6) {
+  animation-delay: calc(var(--dur-pulse) * 1.875 / -2);
+}
+
+.talk-stage[data-state="listening"] .talk-stage__gather {
+  --talk-on: 1;
+  animation-play-state: running;
+}
+
+/* The ear: a ring that closes on the orb as the owner speaks. Grey at rest,
+   red when something needs fixing. */
+.talk-stage__ear {
+  border: 2px solid var(--talk-ring);
+  opacity: calc(var(--talk-on) * (0.55 + var(--talk-level) * 0.45));
+  transform: scale(calc(1.16 + (1 - var(--talk-on)) * 0.16 - var(--talk-level) * 0.1));
+  transition:
+    --talk-on var(--dur-slow) var(--ease-out),
+    --talk-ring var(--dur-slow) var(--ease-out);
+}
+
+.talk-stage[data-state="listening"] .talk-stage__ear {
+  --talk-on: 1;
+  --talk-ring: var(--talk-cool);
+}
+
+.talk-stage[data-state="paused"] .talk-stage__ear {
+  --talk-on: 0.9;
+  --talk-ring: var(--talk-rest);
+}
+
+.talk-stage[data-state="problem"] .talk-stage__ear {
+  --talk-on: 0.9;
+  --talk-ring: var(--bad);
+}
+
+/* Thinking (and getting the microphone ready): an arc circles the orb. */
+.talk-stage__arc {
+  inset: -9%;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 140deg, var(--talk-ring) 360deg);
+  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(closest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  opacity: var(--talk-on);
+  animation: orb-spin calc(var(--dur-spin) * 1.625) var(--ease-linear) infinite paused;
+  transition:
+    --talk-on var(--dur-base) var(--ease-out),
+    --talk-ring var(--dur-slow) var(--ease-out);
+}
+
+.talk-stage[data-state="thinking"] .talk-stage__arc {
+  --talk-on: 1;
+  --talk-ring: var(--accent);
+  animation-play-state: running;
+}
+
+.talk-stage[data-state="starting"] .talk-stage__arc {
+  --talk-on: 0.8;
+  --talk-ring: var(--talk-cool);
+  animation-play-state: running;
+}
+
+/* Going home: the layers let go and the orb takes its resting colours. */
+.talk-stage[data-state="ending"] .talk-orb {
+  scale: 1;
+}
+
+/* While the stage is up, the bar keeps the words and End; the big intro orb steps aside. */
+.ask.talk-staged .ask__intro {
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.ask.talk-staged .composer-bar.talk-active {
+  padding-left: 18px;
+}
+
+.ask.talk-staged .talk-bar {
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 52px;
+}
+
+.ask.talk-staged .talk-bar__orb,
+.ask.talk-staged .talk-bar::before,
+.ask.talk-staged .talk-bar::after,
+.ask.talk-staged .talk-bar__body::before,
+.ask.talk-staged .talk-bar__body::after {
+  display: none;
+}
+
+.ask.talk-staged .talk-bar__action {
+  grid-column: 1;
+}
+
+/* The composer's orb waits, hidden, while the stage orb settles into it. */
+.talk-landing .talk-btn .orb {
+  opacity: 0;
+}
+
+/* Choices on screen: the orb has settled into the bar (talk/session.ts), so
+   the stage steps away. The bar's orb waits, hidden, until it lands. */
+.talk-stage.is-settled .talk-stage__area {
+  visibility: hidden;
+}
+
+.talk-bar.is-landing .talk-bar__orb,
+.talk-bar.is-landing::before,
+.talk-bar.is-landing::after,
+.talk-bar.is-landing .talk-bar__body::before,
+.talk-bar.is-landing .talk-bar__body::after {
+  visibility: hidden;
+}
+
+/* The small orb beside the reply being read out moves with Athena's voice:
+   it swells a little and a ring spreads from it. talk/session.ts writes
+   --talk-level on it; ask.ts marks the message. */
+.ask.is-talking .msg--athena > .orb {
+  /* Letting go is slow; following the voice is quick (the level is smoothed already). */
+  transition:
+    box-shadow var(--dur-slow) var(--ease-out),
+    scale var(--dur-slow) var(--ease-out);
+}
+
+.ask.is-talking .msg[data-speaking] > .orb {
+  scale: calc(1 + var(--talk-level) * 0.14);
+  box-shadow:
+    0 0 0 calc(2px + var(--talk-level) * 4px) color-mix(in oklch, var(--accent) calc(18% + var(--talk-level) * 22%), transparent),
+    0 0 calc(10px + var(--talk-level) * 14px) calc(var(--talk-level) * 3px) var(--talk-glow-speak);
+  transition-duration: calc(var(--dur-stagger) * 2);
+  transition-timing-function: var(--ease-linear);
+}
+
+/* A short screen (a phone on its side): no stage; the bar's own orb does the job. */
+@media (max-height: 460px) {
+  .talk-stage {
+    display: none;
+  }
+}
+
+/* ---------- Reduced motion: no spin, ripples or pulse; colour and a still ring say the state ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .talk-bar::after,
+  .ask.is-talking .ask__intro::after,
+  .talk-bar__body::after {
+    display: none;
+  }
+
+  /* Speaking: one still ring outside the orb. */
+  .talk-bar__body::before {
+    opacity: var(--talk-on);
+    transform: scale(1.45);
+  }
+
+  /* Thinking: a still arc. */
+  .talk-bar::before,
+  .talk-stage__arc {
+    animation: none;
+  }
+
+  /* The stage: one still ring outside the orb while speaking, no gathering rings. */
+  .talk-stage__gather,
+  .talk-stage__ripple:not(:nth-child(2)) {
+    display: none;
+  }
+
+  .talk-stage__ripple {
+    opacity: var(--talk-on);
+    transform: scale(1.3);
+  }
+
+  /* The reply being read out: a still ring, no pulse. */
+  .ask.is-talking .msg[data-speaking] > .orb {
+    scale: none;
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 30%, transparent);
+  }
+}
+
+/* ---------- Connectors: ElevenLabs ---------- */
+
+.voice-prompt {
+  min-height: 64px;
+}
+
+.voice-prompt[aria-current="true"] {
+  border-color: var(--line-strong);
+  background: color-mix(in oklch, var(--sunken) 45%, var(--surface));
+}
+
+.voice-intro {
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.voice-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  list-style: none;
+}
+
+.voice-step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.voice-step__n {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-step__body {
+  padding-top: 1px;
+}
+
+.voice-step .prop__link {
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.voice-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.voice-form .prop__input::placeholder {
+  color: var(--ink-3);
+}
+
+.voice-current {
+  align-items: center;
+}
+
+.voice-current .row__trail .row__meta {
+  margin-top: 0;
+  color: var(--accent-ink);
+  font-weight: var(--weight-medium);
+}
+
+.voice-usage .prop__value {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-block: 4px;
+}
+
+.voice-usage__text {
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-usage__meter {
+  display: block;
+  height: 6px;
+  border-radius: var(--radius-3xs);
+  background: var(--sunken-strong);
+  overflow: hidden;
+}
+
+.voice-usage__meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.voice-usage__meter.is-full > span {
+  background: var(--bad);
+}
+
+.voice-detail .profile__action.is-playing .profile__action-icon {
+  animation: blink calc(var(--dur-pulse) * 0.75) var(--ease-in-out) infinite;
+}
+
+/* ---------- The voice picker ---------- */
+
+.voice-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.voice-picker__hint {
+  margin-top: calc(-1 * var(--space-2xs));
+}
+
+.voice-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.voice-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  padding: 6px var(--space-sm) 6px var(--space-md);
+}
+
+.voice-row:active {
+  background: none;
+}
+
+@media (hover: hover) {
+  .voice-row:hover {
+    background: none;
+  }
+}
+
+.row + .row.voice-row::before {
+  left: calc(var(--space-md) + 36px + var(--space-sm));
+}
+
+.voice-play {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink);
+  transition:
+    transform var(--dur-instant) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.voice-play::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+
+.voice-play svg {
+  width: 16px;
+  height: 16px;
+}
+
+.voice-play:active {
+  transform: scale(0.92);
+}
+
+.voice-play.is-playing {
+  background: var(--accent);
+  color: var(--on-ink);
+}
+
+@media (hover: hover) {
+  .voice-play:not(.is-playing):hover {
+    background: var(--sunken-strong);
+  }
+}
+
+.voice-row__pick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 48px;
+  padding: 4px 4px 4px 0;
+  text-align: left;
+}
+
+.voice-row__pick .row__meta {
+  margin-top: 2px;
+}
+
+.voice-row__check {
+  display: inline-flex;
+  color: var(--accent-ink);
+}
+
+.voice-row__check svg {
+  width: 20px;
+  height: 20px;
+}
+
+.voice-row.is-selected .row__title {
+  color: var(--accent-ink);
+}

@@ -1,0 +1,1378 @@
+/* Assignments and Team chat (docs/team.md "Assignments"): Team chat
+   (team/chat.ts), the lineup card (team/lineup-card.ts), New assignment
+   (team/new-assignment.ts), the assignment's page (team/assignment-page.ts)
+   and Home's way in (team/home-chat-card.ts). Quiet surfaces; the
+   characters bring the colour. The working dot and ring come from
+   styles/team-pulse.css, in each character's own colour (.has-who). */
+
+/* ---------- shared: back, who, badges ---------- */
+
+.ta-top {
+  padding-top: var(--page-top, var(--space-md));
+  margin-bottom: calc(var(--space-2xs) - var(--space-lg));
+}
+
+.ta-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  margin-left: -10px;
+  padding: 0 12px 0 6px;
+  border-radius: var(--radius-pill);
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  text-decoration: none;
+}
+
+.ta-back svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ta-back:focus-visible,
+.tthread__title:focus-visible,
+.strip__item:focus-visible,
+.home-chat:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .ta-back:hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ta-top {
+    padding-top: 0;
+  }
+}
+
+.who-words {
+  display: grid;
+  min-width: 0;
+  line-height: var(--leading-tight);
+}
+
+.who-words__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.who-words__sub {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tpost__badge,
+.trail__badge,
+.stage-tile__badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.tpost__badge--waits,
+.trail__stage[data-status="waiting"] .trail__badge,
+.stage-tile[data-status="waiting"] .stage-tile__badge {
+  background: var(--warn-wash);
+  color: var(--ink);
+}
+
+.tpost__badge--failed,
+.trail__stage[data-status="failed"] .trail__badge,
+.stage-tile[data-status="failed"] .stage-tile__badge {
+  background: color-mix(in oklch, var(--bad) 12%, var(--surface));
+  color: var(--bad);
+}
+
+.tpost__badge--working,
+.stage-tile[data-status="running"] .stage-tile__badge {
+  color: var(--ink);
+}
+
+/* ---------- Team chat ---------- */
+
+.team-chat {
+  max-width: var(--page-narrow);
+  gap: var(--space-md);
+}
+
+.tc__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.tc__older {
+  align-self: center;
+}
+
+.tc__empty {
+  margin: 0;
+  padding: var(--space-lg) 0;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+}
+
+/* The strip: what waits, pinned under the title while the channel scrolls. */
+.strip {
+  position: sticky;
+  top: var(--space-xs);
+  z-index: var(--z-sticky);
+  display: grid;
+  gap: var(--space-xs);
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.strip--quiet {
+  position: static;
+  border-color: transparent;
+  background: var(--sunken);
+  box-shadow: none;
+}
+
+.strip__count {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.strip--quiet .strip__count {
+  color: var(--ink-2);
+  font-weight: var(--weight-medium);
+}
+
+.strip__list {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.strip__list:empty {
+  display: none;
+}
+
+.strip__list > li {
+  flex: none;
+  max-width: 78%;
+}
+
+.strip__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 12px 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+/* A run that didn't finish: its row, then Dismiss. */
+.strip__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.strip__row .strip__item {
+  min-width: 0;
+}
+
+.strip__dismiss {
+  flex: none;
+}
+
+.strip__text {
+  display: grid;
+  min-width: 0;
+}
+
+.strip__title {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.strip__sub {
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .strip__item:hover {
+    background: var(--sunken-strong);
+  }
+}
+
+.tc__threads {
+  display: grid;
+  gap: var(--space-md);
+}
+
+/* A thread: one assignment, its lineup first and its stages under it. */
+.tthread {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.tthread--alone {
+  margin: 0;
+  list-style: none;
+}
+
+.tthread__head {
+  display: grid;
+  gap: 2px;
+}
+
+.tthread__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 28px;
+  border-radius: var(--radius-xs);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.tthread__title svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+}
+
+.tthread__meta {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.tthread__posts {
+  display: grid;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tthread__gap {
+  padding-left: 48px;
+}
+
+.tthread__foot {
+  display: flex;
+  gap: var(--space-md);
+  padding-left: 48px;
+}
+
+.tthread__foot:empty {
+  display: none;
+}
+
+.tthread__fold,
+.tthread__reply {
+  min-height: 32px;
+}
+
+/* A post: the tile, then who, when and what it said. */
+.tpost {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.tpost:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+}
+
+/* Opened at a post: it holds a wash for a moment, so the eye lands on it. */
+.tpost.is-found {
+  animation: tpost-found var(--dur-hold) var(--ease-out) 1;
+}
+
+@keyframes tpost-found {
+  from {
+    box-shadow: 0 0 0 8px var(--accent-wash);
+    background: var(--accent-wash);
+  }
+  to {
+    box-shadow: 0 0 0 8px transparent;
+    background: transparent;
+  }
+}
+
+/* Working: the ring round the character, as on its desk. */
+.tpost.has-who .who-tile,
+.trail__stage[data-status="running"] > .kit-tile,
+.stage-tile[data-status="running"] .kit-tile {
+  box-shadow: inset 0 0 0 1px var(--kit-line), 0 0 0 3px color-mix(in oklch, var(--who, var(--accent)) 22%, var(--surface));
+}
+
+.tpost__main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tpost__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.tpost__head .who-words {
+  flex: 0 1 auto;
+}
+
+.tpost__when {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+
+.tpost__body {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.tpost__text {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  overflow-wrap: anywhere;
+}
+
+.tpost__body .card {
+  box-shadow: none;
+}
+
+/* The owner's own words: a bubble on the far side, as in Ask. */
+.tpost--me {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.tpost--me .tpost__when {
+  margin-left: 0;
+}
+
+.tpost__bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+/* The box to type in: stays at the foot of the channel. */
+.tc__compose {
+  position: sticky;
+  bottom: calc(var(--dock-height, 0px) + var(--safe-bottom, 0px) + var(--space-xs));
+  z-index: var(--z-sticky);
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+}
+
+@media (min-width: 1024px) {
+  .tc__compose {
+    bottom: var(--space-sm);
+  }
+}
+
+.tc__row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-xs);
+}
+
+.tc__box {
+  flex: 1;
+  min-height: 44px;
+  max-height: 140px;
+  padding: 11px 10px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-body);
+  line-height: var(--leading-snug);
+  resize: none;
+  outline: none;
+}
+
+.tc__box::placeholder {
+  color: var(--ink-3);
+}
+
+.tc__compose:focus-within {
+  border-color: var(--accent);
+}
+
+.tc__send {
+  flex: none;
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.tc__send:disabled {
+  background: var(--sunken-strong);
+  color: var(--ink-3);
+}
+
+.tc__to {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0 8px 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.tc__to > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tc__to svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- a question, with its choices ---------- */
+
+.qcard {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-sm);
+}
+
+.qcard__group {
+  display: grid;
+  gap: 6px;
+}
+
+.qcard__question {
+  margin: 0 0 2px;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.qcard__choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-ui);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.qcard__choice:focus-visible,
+.lineup__check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.qcard__choice[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.qcard__mark,
+.lineup__check-mark {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.qcard__choice[aria-pressed="true"] .qcard__mark,
+.lineup__check[aria-pressed="true"] .lineup__check-mark {
+  border: 5px solid var(--accent);
+}
+
+.qcard__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  line-height: var(--leading-snug);
+}
+
+.qcard__why {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.qcard__tag {
+  margin-right: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--mint-wash);
+  color: var(--ink);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.qcard__other,
+.approve__note,
+.approve__to,
+.lineup__swap,
+.na__box {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-body);
+}
+
+.qcard__other:focus-visible,
+.approve__note:focus-visible,
+.approve__to:focus-visible,
+.lineup__swap:focus-visible,
+.na__box:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-wash);
+}
+
+.qcard__foot,
+.approve__acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.qcard__foot .btn,
+.approve__acts .btn,
+.doc .btn {
+  min-height: 40px;
+}
+
+.btn[aria-busy="true"] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Answered: the question, the answer, and whose it was. */
+.qa,
+.handoff {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.qa dt,
+.handoff dt {
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+.qa dt:not(:first-child),
+.handoff dt:not(:first-child) {
+  margin-top: 8px;
+}
+
+.qa dd,
+.handoff dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+.qa__a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.qa__by {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.qa__a--suggested .qa__by {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--mint-wash);
+  color: var(--ink);
+}
+
+/* ---------- an approval ---------- */
+
+.approve {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+}
+
+.approve__note-line {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.approve__form {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.approve__row {
+  display: grid;
+  gap: 4px;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.approve__note {
+  min-height: 72px;
+  resize: vertical;
+}
+
+/* ---------- the document ---------- */
+
+.doc {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+}
+
+.doc__head {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.doc__files {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doc__file {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.doc__icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-2);
+}
+
+.doc__name {
+  display: grid;
+  min-width: 0;
+}
+
+.doc__title {
+  overflow: hidden;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc__meta,
+.doc__hint {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+}
+
+.doc__acts,
+.doc__send-menu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.doc__send-menu[hidden] {
+  display: none;
+}
+
+/* ---------- the lineup card ---------- */
+
+.lineup {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.lineup__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.lineup__note,
+.lineup__label {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.lineup__label {
+  font-weight: var(--weight-medium);
+}
+
+.lineup__stages {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lineup__stage {
+  display: grid;
+  grid-template-columns: 18px 40px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "n face who move"
+    ". task task task"
+    ". set set set";
+  align-items: center;
+  gap: 8px 10px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.lineup__n {
+  grid-area: n;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+.lineup__stage > .kit-tile {
+  grid-area: face;
+}
+
+.lineup__who {
+  grid-area: who;
+  display: grid;
+  min-width: 0;
+  line-height: var(--leading-tight);
+}
+
+.lineup__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.lineup__sub {
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineup__move {
+  grid-area: move;
+  display: flex;
+}
+
+.lineup__move .icon-btn:disabled {
+  opacity: 0.3;
+}
+
+.lineup__task {
+  grid-area: task;
+  margin: 0;
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.lineup__set {
+  grid-area: set;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.lineup__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.lineup__check .lineup__check-mark {
+  margin-top: 0;
+  border-radius: var(--radius-3xs);
+}
+
+.lineup__check[aria-pressed="true"] {
+  border-color: color-mix(in oklch, var(--accent) 35%, transparent);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.lineup__check--fixed {
+  padding-left: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  cursor: default;
+}
+
+.lineup__swap {
+  width: auto;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-small);
+}
+
+.lineup__choice {
+  display: grid;
+  gap: 6px;
+}
+
+.lineup__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lineup__presets .chip {
+  height: auto;
+  min-height: 40px;
+  padding: 6px 14px;
+  white-space: normal;
+  text-align: start;
+  cursor: pointer;
+}
+
+.lineup__presets .chip[aria-checked="true"] {
+  border-color: color-mix(in oklch, var(--accent) 35%, transparent);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.lineup__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.lineup__go {
+  flex: none;
+  min-width: 96px;
+}
+
+/* ---------- New assignment ---------- */
+
+.na,
+.na__step {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.na {
+  padding-bottom: var(--space-lg);
+}
+
+.na__lede,
+.na__label,
+.na__brief {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.na__label {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.na__brief {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.na__again {
+  justify-self: start;
+  min-height: 32px;
+}
+
+.na__box {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.na__ideas {
+  display: grid;
+  gap: 6px;
+}
+
+.na__ideas .chip {
+  height: auto;
+  min-height: 44px;
+  padding: 8px 14px;
+  white-space: normal;
+  text-align: start;
+  cursor: pointer;
+}
+
+.na__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---------- the assignment's page ---------- */
+
+.asg {
+  max-width: var(--page-narrow);
+}
+
+.asg__body {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.asg__head {
+  display: grid;
+  gap: 6px;
+}
+
+.asg__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.asg__title-row .btn {
+  flex: none;
+  min-height: 40px;
+}
+
+.asg__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.asg__brief {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+}
+
+/* The row of tiles: the lineup in order, a hairline joining them. */
+.stages {
+  display: flex;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 6px 2px var(--space-xs);
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.stage-tile {
+  position: relative;
+  display: grid;
+  flex: none;
+  justify-items: center;
+  gap: 2px;
+  width: 104px;
+  text-align: center;
+}
+
+.stage-tile + .stage-tile::before {
+  position: absolute;
+  top: 28px;
+  left: calc(-1 * var(--space-md) - 24px + 28px);
+  width: calc(var(--space-md) + 48px - 56px + 40px);
+  height: 1px;
+  background: var(--line-strong);
+  content: "";
+}
+
+.stage-tile__face {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.stage-tile__name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-tile__sub {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.stage-tile__badge {
+  margin-top: 4px;
+}
+
+.stage-tile__badge--quiet,
+.stage-tile[data-status="done"] .stage-tile__badge,
+.stage-tile[data-status="skipped"] .stage-tile__badge {
+  background: none;
+  color: var(--ink-3);
+}
+
+.stage-tile[data-status="pending"] .kit-tile,
+.stage-tile[data-status="skipped"] .kit-tile {
+  opacity: 0.55;
+}
+
+.asg__wait {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.asg__set {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.asg__set-note {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.trail {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.trail__list {
+  display: grid;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trail__stage {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.trail__main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.trail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.trail__task {
+  margin: 0;
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.trail__when,
+.trail__quiet,
+.trail__back {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.trail__when {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.trail__body {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-xs);
+  margin-top: 4px;
+}
+
+.trail__body:empty {
+  display: none;
+}
+
+.trail__body > dl {
+  justify-self: stretch;
+}
+
+.trail__now {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink);
+}
+
+.trail__keep {
+  min-height: 40px;
+}
+
+.trail__full,
+.trail__failed {
+  margin: 0;
+  color: var(--bad);
+  font-size: var(--text-small);
+}
+
+.trail__stage[data-status="pending"] > .kit-tile,
+.trail__stage[data-status="skipped"] > .kit-tile {
+  opacity: 0.55;
+}
+
+/* ---------- the Team page's and Home's ways in ---------- */
+
+.team-entry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.team-entry .btn {
+  min-height: 40px;
+}
+
+.team-entry__count,
+.side-item__count {
+  cursor: pointer;
+}
+
+.team-entry__count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+.home-chat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px var(--space-md);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.home-chat[hidden] {
+  display: none;
+}
+
+.home-chat__faces {
+  display: flex;
+  flex: none;
+}
+
+.home-chat__faces > * + * {
+  margin-left: -8px;
+}
+
+.home-chat__text {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+
+.home-chat__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.home-chat__sub {
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-chat > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-3);
+}
+
+.home-teamchat-slot:empty,
+.home-teamchat-slot:has(> [hidden]) {
+  display: none;
+}
+
+/* ---------- wider screens ---------- */
+
+@media (min-width: 760px) {
+  .lineup__stage {
+    grid-template-columns: 18px 40px minmax(140px, 1fr) auto auto;
+    grid-template-areas:
+      "n face who set move"
+      ". task task task task";
+  }
+
+  .strip__list > li {
+    max-width: 320px;
+  }
+
+  .na__ideas {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tpost.is-found {
+    animation: none;
+    background: var(--accent-wash);
+    box-shadow: 0 0 0 8px var(--accent-wash);
+  }
+}

@@ -1,0 +1,823 @@
+/* Team (views/team.ts, docs/team.md "Experience"): walking past your
+   assistants at work. One sentence on what's happening, anything waiting
+   for you, a desk per assistant, and the day's runs in order. */
+
+.team-body {
+  padding-bottom: var(--space-2xl);
+}
+
+.team-layout {
+  display: grid;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .team-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+    gap: var(--space-xl);
+  }
+
+  .team-day {
+    position: sticky;
+    top: var(--space-lg);
+  }
+}
+
+.team-main {
+  display: grid;
+  gap: var(--space-xl);
+  min-width: 0;
+}
+
+.team-lede {
+  max-width: 60ch;
+  color: var(--ink-2);
+}
+
+.team-add svg {
+  width: 16px;
+  height: 16px;
+}
+
+.team-add__short {
+  display: none;
+}
+
+.team-add[aria-disabled="true"] {
+  opacity: 0.55;
+}
+
+.team-waiting,
+.team-day {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+/* ---------- a desk: one assistant ---------- */
+
+.desks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 272px), 1fr));
+  gap: var(--space-md);
+}
+
+.desk {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-base) var(--ease-out-expo);
+}
+
+.desk:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) {
+  .desk:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-float);
+  }
+}
+
+.desk:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.desk__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* The character's tile (kit renderAvatarTile, 72px): its ears rise into the desk's top padding (14px at least), not past the card. */
+.desk__face {
+  margin-top: 6px;
+  transition: box-shadow var(--dur-base) var(--ease-out-expo);
+}
+
+.desk__id {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.desk__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.desk__name {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.012em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desk__job {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+/* The state, said in a word: only when there's something to say. */
+.desk__badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* Working: the badge stays neutral, so the character's own colour is the dot (styles/team-pulse.css). */
+.desk[data-state="working"] .desk__badge,
+.desk[data-state="queued"] .desk__badge {
+  color: var(--ink);
+}
+
+.desk[data-state="waiting"] .desk__badge {
+  background: var(--warn-wash);
+  color: var(--ink);
+}
+
+.desk[data-state="failed"] .desk__badge {
+  background: color-mix(in oklch, var(--bad) 12%, var(--surface));
+  color: var(--bad);
+}
+
+/* Working: a soft ring round the character, which wears its thinking face. */
+.desk[data-state="working"] .desk__face {
+  box-shadow: inset 0 0 0 1px var(--kit-line), 0 0 0 3px color-mix(in oklch, var(--who, var(--accent)) 22%, var(--surface));
+}
+
+/* What it's doing now, or what it did last: a sunken panel, like a note on the desk. */
+.desk__now {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 12px 11px;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.desk__meta {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.desk__line {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  color: var(--ink);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.desk[data-state="working"] .desk__line::after,
+.desk[data-state="queued"] .desk__line::after {
+  content: "…";
+}
+
+.desk__cause {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desk__foot {
+  align-self: end;
+  padding-inline: 2px;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+/* Something new since the last look: the panel warms for a moment. */
+.desk__now.is-fresh {
+  animation: team-fresh calc(var(--dur-slow) * 3) var(--ease-out-expo);
+}
+
+@keyframes team-fresh {
+  from {
+    background: var(--accent-wash);
+  }
+}
+
+
+/* Paused: greyed, and it says so. */
+.desk[data-state="paused"] .desk__face {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+.desk[data-state="paused"] .desk__name,
+.desk[data-state="paused"] .desk__line {
+  color: var(--ink-3);
+}
+
+/* Just added: it settles in like the reveal. */
+.desk.is-new {
+  border-color: var(--line-strong);
+}
+
+/* ---------- waiting for you ---------- */
+
+.wait-list {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wait {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-right: var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.wait__open {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  min-height: 60px;
+  padding: 10px 0 10px 12px;
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.wait__open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.wait__open > svg {
+  width: 18px;
+  height: 18px;
+  color: var(--ink-3);
+}
+
+.wait__text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.wait__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.wait__sub {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+/* What waits, in Home's words and look (team-report__waiting): a still pip, then "1 change waits for you". */
+.wait__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  color: var(--accent-ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.wait__pip {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.wait__acts {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.wait__acts .btn {
+  flex: none;
+}
+
+.wait__dismiss {
+  color: var(--ink-2);
+}
+
+/* Dismissed: the row folds away, and the list closes up behind it. */
+.wait.is-leaving,
+.team-waiting.is-leaving {
+  overflow: hidden;
+  opacity: 0;
+  transition: height var(--dur-base) var(--ease-out-expo), opacity var(--dur-fast) var(--ease-out), margin var(--dur-base) var(--ease-out-expo);
+}
+
+.team-waiting.is-leaving {
+  margin-bottom: calc(var(--space-xl) * -1);
+}
+
+.wait.is-leaving {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* ---------- the day ---------- */
+
+.team-day {
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.team-day .section-head {
+  padding-inline: var(--space-2xs);
+}
+
+/* Not ".day": the Days page owns that class (days.css), and its two-column grid would land here once it loads. */
+.team-feed {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.team-feed__group {
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.team-feed__label {
+  margin: 0;
+  padding-inline: var(--space-2xs);
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.team-feed__quiet {
+  margin: 0;
+  padding: 6px var(--space-2xs);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.team-feed__runs {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.run__open {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px var(--space-2xs);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .run__open:hover {
+    background: var(--sunken);
+  }
+}
+
+.run__open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.run__face {
+  margin-top: 1px;
+}
+
+
+.run__body {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.run__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.run__who {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.run__when {
+  flex: none;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.run[data-status="live"] .run__when {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.run[data-status="live"] .run__text::after {
+  content: "…";
+}
+
+.run[data-status="failed"] .run__text {
+  color: var(--bad);
+}
+
+.run__text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.run__cause {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run.is-fresh {
+  animation: team-arrive var(--dur-base) var(--ease-out-expo);
+}
+
+@keyframes team-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.team-feed__more {
+  justify-self: start;
+  margin: var(--space-2xs) var(--space-2xs) 0;
+  min-height: 32px;
+}
+
+/* ---------- phones ---------- */
+
+@media (max-width: 559px) {
+  .team-add__long {
+    display: none;
+  }
+
+  .team-add__short {
+    display: inline;
+  }
+
+  .desks {
+    gap: var(--space-sm);
+  }
+
+  .desk {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .desk__job {
+    -webkit-line-clamp: 1;
+  }
+
+  .desk__line {
+    -webkit-line-clamp: 2;
+  }
+
+  /* On a phone the desk says what it did; when it runs next is on its page. Paused still says so. */
+  .desk:not([data-state="paused"]) .desk__foot {
+    display: none;
+  }
+
+  .team-day {
+    padding-inline: var(--space-sm);
+  }
+
+  /* A failed row: the words get the width, and the two actions sit under them. */
+  .wait--failed {
+    flex-wrap: wrap;
+    padding-right: 0;
+  }
+
+  .wait--failed .wait__open {
+    flex-basis: 100%;
+    padding-right: var(--space-sm);
+    padding-bottom: 4px;
+  }
+
+  .wait--failed .wait__acts {
+    flex: 1;
+    justify-content: flex-end;
+    padding: 0 var(--space-xs) 10px 64px;
+  }
+}
+
+/* ---------- the empty team ---------- */
+
+.team-hello {
+  display: grid;
+  gap: var(--space-xl);
+  align-items: center;
+  max-width: 880px;
+  padding: var(--space-lg) 0 var(--space-2xl);
+}
+
+@media (min-width: 760px) {
+  .team-hello {
+    grid-template-columns: 300px 1fr;
+    align-items: start;
+    gap: var(--space-2xl);
+    padding-top: var(--space-xl);
+  }
+}
+
+.team-hello__figure {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-md);
+}
+
+
+.team-hello__bubble {
+  max-width: 280px;
+  margin: 0;
+  padding: 12px 18px;
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-xs);
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.team-hello__text {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-sm);
+}
+
+.team-hello__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.02em;
+  line-height: var(--leading-tight);
+}
+
+.team-hello__sub {
+  max-width: 46ch;
+  margin: 0 0 var(--space-xs);
+  color: var(--ink-2);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+/* The example day: what having an assistant is like, before you make one. */
+.team-hello__day {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 0 var(--space-xs);
+  padding: 12px 16px 14px;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.team-hello__day-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.team-hello__tag {
+  padding: 2px 8px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  line-height: 1.3;
+}
+
+.team-hello__day-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-hello__day-item {
+  display: grid;
+  grid-template-columns: 4.75em minmax(0, 1fr);
+  gap: var(--space-xs);
+  align-items: baseline;
+  color: var(--ink);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  animation: team-arrive var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--dur-fast) + var(--i, 0) * var(--dur-stagger) * 4);
+}
+
+.team-hello__day-time {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.team-hello__go {
+  gap: 8px;
+  min-height: 48px;
+  padding-inline: 22px;
+}
+
+.team-hello__go svg,
+.team-hello__idea svg {
+  width: 16px;
+  height: 16px;
+}
+
+.team-hello__label {
+  margin: var(--space-md) 0 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+.team-hello__ideas {
+  display: grid;
+  gap: var(--space-xs);
+  width: 100%;
+  max-width: 460px;
+}
+
+.team-hello__idea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-ui);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.team-hello__idea svg {
+  flex: none;
+  color: var(--ink-3);
+}
+
+@media (hover: hover) {
+  .team-hello__idea:hover {
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+}
+
+@media (max-width: 759px) {
+  /* Phones: the character beside its bubble, so the example and the button fit on the first screen. */
+  .team-hello {
+    gap: var(--space-lg);
+    padding-top: var(--space-sm);
+  }
+
+  .team-hello__figure {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    justify-items: start;
+    gap: var(--space-sm);
+  }
+
+  .team-hello__face {
+    --kit-size: 112px;
+  }
+
+  .team-hello__bubble {
+    font-size: var(--text-small);
+  }
+
+  .team-hello__text {
+    justify-items: stretch;
+  }
+
+  .team-hello__go {
+    justify-content: center;
+  }
+
+  .team-hello__day {
+    padding: 12px 14px 13px;
+  }
+
+  .team-hello__day-item {
+    grid-template-columns: 4.5em minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desk,
+  .run__open,
+  .wait.is-leaving,
+  .team-waiting.is-leaving {
+    transition: none;
+  }
+
+  .desk:active {
+    transform: none;
+  }
+
+  .desk__now.is-fresh,
+  .run.is-fresh,
+  .team-hello__day-item {
+    animation: none;
+  }
+}
+
+
+

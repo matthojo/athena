@@ -1,0 +1,653 @@
+/* ---------- Home: the Ask box and its chips (components/home-ask.ts), New note on a phone ---------- */
+
+.home-ask {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-width: 640px;
+}
+
+.home-ask__box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 56px;
+  padding: 6px 6px 6px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.home-ask__box:focus-within {
+  border-color: color-mix(in oklch, var(--accent) 55%, var(--line));
+}
+
+.home-ask__mark {
+  display: grid;
+  place-items: center;
+}
+
+.home-ask__field {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-ui);
+}
+
+.home-ask__field:focus {
+  outline: none;
+}
+
+.home-ask__field::placeholder {
+  color: var(--ink-3);
+}
+
+.home-ask__send:disabled {
+  opacity: 0.35;
+}
+
+/* Team, on a phone: a small button above the box (the dock doesn't carry it). The sidebar has it on a wide screen. */
+.home-ask__head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: calc(var(--space-xs) * -0.5);
+}
+
+.home-ask__team {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 8px 0 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+  /* A 44px target without a 44px pill. */
+  position: relative;
+}
+
+.home-ask__team::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+
+.home-ask__team svg {
+  width: 16px;
+  height: 16px;
+}
+
+.home-ask__team svg:last-child {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.home-ask__team:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) {
+  .home-ask__team:hover {
+    border-color: color-mix(in oklch, var(--ink) 25%, var(--line));
+  }
+}
+
+/* The team's pulse, as the sidebar keeps it: a soft dot while someone works, then what waits for you. */
+.home-ask__team-dot {
+  margin-left: -1px;
+}
+
+.home-ask__team-count {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  line-height: 1.35;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  animation: fade-in var(--dur-base) var(--ease-out-expo);
+}
+
+.home-ask__team-dot[hidden],
+.home-ask__team-count[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-ask__team-count {
+    animation: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-ask__head {
+    display: none;
+  }
+}
+
+/* The chips scroll sideways on a phone rather than wrapping, so Home below doesn't move. */
+.home-ask__who {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--space-md));
+  padding: 2px var(--space-md);
+  scroll-padding-inline: var(--space-md);
+}
+
+.home-ask__who::-webkit-scrollbar {
+  display: none;
+}
+
+.home-ask__chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px 0 6px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.home-ask__chip:active {
+  transform: scale(0.96);
+}
+
+.home-ask__chip[aria-checked="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+/* However many there are, one row: it scrolls, and an edge fades where there's more. */
+.home-ask__who-wrap {
+  position: relative;
+  /* The row runs into the page's gutter on a phone: the fade ends at the screen's edge. */
+  --edge: var(--space-md);
+  --fade: 48px;
+}
+
+.home-ask__who-wrap.has-more-end .home-ask__who {
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--fade)), transparent calc(100% - var(--edge) + 8px));
+}
+
+.home-ask__who-wrap.has-more-start .home-ask__who {
+  mask-image: linear-gradient(to right, transparent calc(var(--edge) - 8px), #000 var(--fade));
+}
+
+.home-ask__who-wrap.has-more-start.has-more-end .home-ask__who {
+  mask-image: linear-gradient(to right, transparent calc(var(--edge) - 8px), #000 var(--fade), #000 calc(100% - var(--fade)), transparent calc(100% - var(--edge) + 8px));
+}
+
+.home-ask__chip-mark {
+  position: relative;
+  display: grid;
+}
+
+/* On a job: the breathing dot (styles/team-pulse.css), in its colour, on the chip's face. */
+.home-ask__busy {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  --team-dot: 9px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.home-ask__chip[aria-checked="true"] .home-ask__busy {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* What the chosen one does, or is doing now. */
+.home-ask__about {
+  margin: 0;
+  padding-inline: 4px;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: home-ask-about var(--dur-base) var(--ease-out-expo);
+}
+
+.home-ask__about.is-working {
+  color: var(--ink-2);
+}
+
+.home-ask__about-dot {
+  margin-right: 7px;
+  vertical-align: 1px;
+}
+
+@keyframes home-ask-about {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+/* Handing it over: the face in the box becomes the face in Ask's head. */
+.home-ask__mark.is-handing {
+  view-transition-name: who-handoff;
+}
+
+@media (min-width: 640px) {
+  .home-ask__who-wrap {
+    --edge: 8px;
+  }
+
+  .home-ask__who {
+    margin-inline: 0;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
+  }
+
+  .home-ask__chip {
+    height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-ask__about {
+    animation: none;
+  }
+}
+
+/* ---------- New note, on a phone's Home (the sidebar has it on a wide screen) ---------- */
+
+.new-note-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 16px 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.new-note-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.new-note-btn:active {
+  transform: scale(0.95);
+}
+
+.topbar__end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+@media (min-width: 1024px) {
+  .new-note-btn {
+    display: none;
+  }
+}
+
+/* ---------- "From <Name>": a teammate's card leads with its avatar (components/nudge-card.ts) ---------- */
+/* The tile is the kit's (renderAvatarTile, 34px, the size of the rule icons' tiles). */
+
+/* ---------- The team reporting back, under "For you" (components/team-report.ts) ---------- */
+
+.team-report {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.team-report__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  border-top: 1px solid var(--line);
+  transition:
+    opacity var(--dur-fast) var(--ease-in),
+    transform var(--dur-fast) var(--ease-in);
+}
+
+.team-report > :first-child,
+.team-report__now-list + .team-report__row {
+  border-top: 0;
+}
+
+.team-report__row.is-leaving {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.team-report__open,
+.team-report__line,
+.team-report__working {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 4px 14px 14px;
+  text-align: start;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.team-report__open {
+  padding-bottom: 8px;
+}
+
+@media (hover: hover) {
+  .team-report__open:hover,
+  .team-report__line:hover,
+  .team-report__working:hover {
+    background: color-mix(in oklch, var(--sunken) 55%, transparent);
+  }
+}
+
+.team-report__close {
+  margin: 8px 8px 0 0;
+}
+
+/* The tile itself is the kit's (renderAvatarTile); this only places the stand-in icon. */
+.team-report__face {
+  display: grid;
+  place-items: center;
+}
+
+.team-report__face > svg:not(.kit-avatar) {
+  width: 55%;
+  height: 55%;
+  color: var(--ink-2);
+}
+
+/* Working: a ring that breathes slowly, no faster than a calm breath. */
+.team-report__face.is-working::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: var(--kit-ring-r);
+  border: 1.5px solid color-mix(in oklch, var(--who, var(--accent)) 70%, transparent);
+  animation: team-ring var(--dur-pulse) var(--ease-in-out) infinite alternate;
+}
+
+.team-report__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.team-report__who {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.team-report__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.team-report__meta {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.team-report__said {
+  font-size: var(--text-body);
+  line-height: 1.45;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.team-report__said.is-clipped {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-report__foot {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 0 14px 14px calc(14px + 40px + 12px);
+}
+
+@media (max-width: 479px) {
+  .team-report__foot {
+    padding-left: 14px;
+  }
+}
+
+.team-report__waiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+.team-report__pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.team-report__waits svg,
+.team-report__go svg {
+  width: 16px;
+  height: 16px;
+}
+
+.team-report__why {
+  color: var(--ink-3);
+}
+
+.team-report__line {
+  align-items: center;
+  padding-block: 10px;
+}
+
+.team-report__line .row__chevron {
+  flex: none;
+  color: var(--ink-3);
+}
+
+.team-report__line .row__chevron svg {
+  width: 16px;
+  height: 16px;
+}
+
+.team-report__line + .team-report__close,
+.team-report__row:not(.is-full) .team-report__close {
+  margin-top: 10px;
+}
+
+.team-report__badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: white;
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Who's on a job right now: on a sunken strip at the top, in words. */
+.team-report__now-list {
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in oklch, var(--sunken) 70%, transparent);
+  border-bottom: 1px solid var(--line);
+}
+
+.team-report__working {
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 0;
+}
+
+.team-report__working + .team-report__working {
+  border-top: 1px solid var(--line);
+}
+
+.team-report__now {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.team-report__what {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The breathing dot, in the character's colour (styles/team-pulse.css), before what it's doing. */
+.team-report__dot {
+  margin-right: 7px;
+  vertical-align: 1px;
+}
+
+/* A wide screen: the team's word beside Athena's, each at a reading width. */
+@media (min-width: 900px) {
+  .nudge-cards:has(.team-report:not([hidden])):has(.nudge-cards__list:not([hidden])) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .nudge-cards:has(.team-report:not([hidden])):has(.nudge-cards__list:not([hidden])) > .section-head {
+    grid-column: 1 / -1;
+  }
+
+  .nudge-cards:has(.team-report:not([hidden])) .nudge-cards__list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-report__face.is-working::after {
+    animation: none;
+  }
+
+  .team-report__face.is-working::after {
+    opacity: 0.8;
+  }
+
+  .team-report__row {
+    transition: none;
+  }
+}
+
+/* No team yet: one dashed chip that starts one. */
+.home-ask__hire {
+  align-self: flex-start;
+  border-style: dashed;
+  border-color: color-mix(in oklch, var(--ink) 22%, var(--line));
+  background: color-mix(in oklch, var(--surface) 55%, transparent);
+  color: var(--ink-2);
+  text-decoration: none;
+  padding-left: 8px;
+}
+
+.home-ask__hire[hidden] {
+  display: none;
+}
+
+.home-ask__hire-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--sunken);
+}
+
+.home-ask__hire-mark svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: hover) {
+  .home-ask__hire:hover {
+    border-color: color-mix(in oklch, var(--ink) 30%, var(--line));
+    color: var(--ink);
+  }
+}
+
+/* The face's move from Home's box to Ask's head: unhurried, settling (exponential ease-out). Reduced motion has no transition at all (lib/motion.ts). */
+::view-transition-group(who-handoff) {
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-out-expo);
+}
+
+/* A report that came in while Home was open: it settles in where the working line was. */
+.team-report__row.is-new {
+  animation: team-report-in var(--dur-slow) var(--ease-out-expo);
+}
+
+@keyframes team-report-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+    background: color-mix(in oklch, var(--accent) 8%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-report__row.is-new {
+    animation: none;
+  }
+}

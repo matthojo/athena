@@ -1,0 +1,302 @@
+/**
+ * Athena design tokens — see /.impeccable.md for the design context.
+ *
+ * Light is the designed default; dark follows the OS via prefers-color-scheme,
+ * stepped from the same hues (not an inversion). Every neutral is tinted
+ * toward the cobalt brand hue (264). Text pairs were measured, not eyeballed:
+ * ink-3 (the lightest text token) clears 4.83:1 on the sunken fill in light
+ * and 5.64:1 in dark. Chart series were run through the dataviz palette
+ * validator against these surfaces — all gates pass in both modes.
+ */
+
+@font-face {
+  font-family: "Funnel Display";
+  src: url("/fonts/funnel-display-latin.woff2") format("woff2");
+  font-weight: 500 600;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Funnel Display";
+  src: url("/fonts/funnel-display-latin-ext.woff2") format("woff2");
+  font-weight: 500 600;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-latin.woff2") format("woff2");
+  font-weight: 400 600;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-latin-ext.woff2") format("woff2");
+  font-weight: 400 600;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  color-scheme: light;
+
+  /* ---------- Type ---------- */
+  --font-display: "Funnel Display", "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --text-meta: 0.75rem; /* 12 — timestamps, counts */
+  --text-small: 0.875rem; /* 14 — secondary UI, snippets */
+  --text-ui: 0.9375rem; /* 15 — list titles, chat bubbles */
+  --text-body: 1rem; /* 16 — body, inputs */
+  --text-title: 1.25rem; /* 20 — section and card titles (display face) */
+  --text-heading: 1.75rem; /* 28 — page titles */
+  --text-display: 2.125rem; /* 34 — the home headline */
+  /* 11: only where a glyph has to fit a fixed cell (the habit grid's day
+     letters, a count badge on an icon). Never for a sentence. */
+  --text-micro: 0.6875rem;
+  --text-hero: 2.75rem; /* 44 — the one line a page opens on, on a wide screen: Home's greeting, a day's date, a recap */
+
+  --leading-tight: 1.08;
+  --leading-snug: 1.3;
+  --leading-body: 1.55;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* ---------- Space (4pt) ---------- */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* ---------- Shape ---------- */
+  --radius-3xs: 2px; /* hairline marks: grid days, legend swatches, thin bars */
+  --radius-2xs: 4px; /* small marks: chart bars, highlights, key caps */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 999px;
+
+  /* ---------- Motion ---------- */
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1); /* quart */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-instant: 120ms;
+  --dur-fast: 200ms;
+  --dur-base: 320ms;
+  --dur-slow: 520ms;
+  /* A finished to-do rests, ticked, this long before it folds away. */
+  --dur-hold: 600ms;
+  /* The gap between things that arrive one after another. */
+  --dur-stagger: 40ms;
+  /* Loops: one turn of a spinner, one breath of a waiting pulse, a slow drift. */
+  --dur-spin: 0.8s;
+  --dur-pulse: 1.6s;
+  --dur-drift: 30s;
+  --ease-linear: linear;
+  /* A damped spring (stiffness 260, damping 24); a touch of overshoot where linear() works. */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-spring: 480ms;
+
+  /* ---------- Layers ---------- */
+  --z-sticky: 200;
+  --z-dock: 300;
+  --z-popover: 400;
+  --z-toast: 500;
+
+  /* ---------- Surfaces ---------- */
+  --canvas: oklch(0.972 0.004 264); /* #f4f6f8 */
+  --surface: oklch(0.993 0.002 264); /* #fcfdfe */
+  --sunken: oklch(0.955 0.005 264); /* #eef0f4 */
+  --sunken-strong: oklch(0.93 0.007 264);
+  --line: oklch(0.915 0.006 264); /* #e1e3e7 */
+  --line-strong: oklch(0.87 0.008 264);
+  --scrim: oklch(0.25 0.02 264 / 0.28);
+
+  /* ---------- Ink ---------- */
+  --ink: oklch(0.21 0.012 264); /* #15181e */
+  --ink-2: oklch(0.43 0.014 264); /* #4c5058 */
+  --ink-3: oklch(0.49 0.012 264); /* 4.5:1 on the aurora haze too */
+  --on-ink: oklch(0.985 0.003 264);
+
+  /* ---------- Brand ---------- */
+  --accent: oklch(0.53 0.2 264); /* #2c5fdd, 5.4:1 on surface */
+  --accent-wash: oklch(0.95 0.03 264);
+  --accent-ink: oklch(0.45 0.19 264);
+  --mint-wash: oklch(0.955 0.035 170);
+
+  /* ---------- Status (reserved; always paired with an icon or label) ---------- */
+  --good: oklch(0.5 0.12 158); /* 4.5:1 on sunken panels too */
+  --warn: oklch(0.53 0.12 65);
+  --warn-wash: oklch(0.95 0.04 80);
+  --bad: oklch(0.55 0.19 25);
+
+  /* ---------- Charts (dataviz-validated pair) ---------- */
+  --chart-1: #3266e4;
+  --chart-2: #019d7e;
+  /* Series 3–5 (the day ribbon's media kinds and calendar labels): with --chart-1 every pair
+     passes the validator all-pairs on --sunken, both modes, and each is at least 3:1 on it. */
+  --chart-3: #9d4616;
+  --chart-4: #9a2a95;
+  --chart-5: #668e4f;
+  --chart-grid: var(--line);
+  --chart-axis: oklch(0.78 0.01 264);
+  /* Sleep stages, stacked deep → REM → core → awake (validator: every pair passes in both modes;
+     core is under 3:1, so stages always carry a legend with amounts and a table). */
+  --stage-deep: #1c4fb0;
+  --stage-rem: #019d7e;
+  --stage-core: #6da7ec;
+  --stage-awake: #eb6834;
+  --stage-none: oklch(0.8 0.01 264);
+
+  /* To-do contexts (lib/todo-context.ts CONTEXT_COLOURS): small dots, so mid-tone */
+  --ctx-grey: oklch(0.66 0.012 264);
+  --ctx-blue: oklch(0.58 0.17 264);
+  --ctx-teal: oklch(0.62 0.1 195);
+  --ctx-green: oklch(0.62 0.13 155);
+  --ctx-amber: oklch(0.74 0.14 75);
+  --ctx-orange: oklch(0.67 0.16 45);
+  --ctx-red: oklch(0.6 0.19 25);
+  --ctx-pink: oklch(0.64 0.17 350);
+  --ctx-violet: oklch(0.57 0.17 300);
+
+  /* ---------- Graph: one hue per kind with a page; details share a quiet violet ----------
+     Each clears 3:1 against the surface it's drawn on (graphical objects). */
+  --graph-person: oklch(0.55 0.19 264);
+  --graph-note: oklch(0.62 0.022 264);
+  --graph-place: oklch(0.6 0.115 170);
+  --graph-organisation: oklch(0.64 0.135 66);
+  --graph-event: oklch(0.6 0.175 25);
+  --graph-record: oklch(0.58 0.15 345);
+  --graph-saved: oklch(0.55 0.12 110);
+  --graph-detail: oklch(0.6 0.1 300);
+  --graph-link: oklch(0.5 0.02 264 / 0.26);
+  --graph-link-hot: var(--accent);
+  --graph-ring: var(--accent);
+  --graph-label: var(--ink-2);
+  --graph-label-strong: var(--ink);
+  --graph-on-node: oklch(0.99 0.004 264);
+  --graph-bg: var(--surface);
+
+  /* ---------- Atmosphere ---------- */
+  --aurora-a: oklch(0.86 0.09 240 / 0.6);
+  --aurora-b: oklch(0.91 0.1 165 / 0.55);
+  /* The same blue, following the day (base.css, html[data-daypart]): a touch
+     cooler towards cyan in the morning, warmer towards the brand indigo in
+     the evening. No new colours, only the hue moved along the one family. */
+  --aurora-a-morning: oklch(0.88 0.08 228 / 0.58);
+  --aurora-a-evening: oklch(0.85 0.09 262 / 0.6);
+
+  /* ---------- Elevation ---------- */
+  --shadow-card: 0 1px 2px oklch(0.3 0.02 264 / 0.04), 0 6px 20px -12px oklch(0.3 0.03 264 / 0.12);
+  --shadow-float: 0 2px 6px oklch(0.3 0.03 264 / 0.06), 0 18px 44px -14px oklch(0.3 0.04 264 / 0.26);
+  --shadow-sheet: 0 -8px 40px -12px oklch(0.25 0.04 264 / 0.22);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  --dock-height: 64px;
+  --sidebar-width: 256px;
+
+  /* ---------- Page frame (base.css, components.css "Page head") ----------
+     Two widths, both left-aligned to one gutter after the sidebar: narrow
+     for lists, wide for dashboards and reviews. The title sits --page-top
+     from the top of the main pane on every desktop view. */
+  --page-narrow: 760px;
+  --page-wide: 1120px;
+  --page-gutter: var(--space-xl);
+  --page-top: calc(var(--space-xl) + var(--space-lg));
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring: linear(0, 0.0479, 0.1661, 0.3209, 0.4864, 0.6436, 0.7799, 0.8887, 0.9681, 1.0199, 1.0479, 1.0573, 1.0535, 1.0414, 1.0255, 1.0094, 0.9955, 0.9853, 0.9792, 0.9771, 0.9782, 0.9815, 0.9861, 0.9911, 0.9957, 0.9994, 1.002, 1.0035, 1.0039, 1.0036, 1);
+    --dur-spring: 560ms;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --canvas: oklch(0.165 0.01 264); /* #0c0e13 */
+    --surface: oklch(0.205 0.012 264); /* #14171d */
+    --sunken: oklch(0.245 0.012 264); /* #1d2026 */
+    --sunken-strong: oklch(0.28 0.013 264);
+    --line: oklch(0.29 0.012 264);
+    --line-strong: oklch(0.34 0.014 264);
+    --scrim: oklch(0.08 0.01 264 / 0.6);
+
+    --ink: oklch(0.95 0.006 264);
+    --ink-2: oklch(0.79 0.01 264);
+    --ink-3: oklch(0.68 0.012 264);
+    --on-ink: oklch(0.18 0.012 264);
+
+    --accent: oklch(0.7 0.15 264);
+    --accent-wash: oklch(0.29 0.06 264);
+    --accent-ink: oklch(0.82 0.1 264);
+    --mint-wash: oklch(0.28 0.04 170);
+
+    --good: oklch(0.72 0.14 158);
+    --warn: oklch(0.78 0.12 80);
+    --warn-wash: oklch(0.3 0.05 80);
+    --bad: oklch(0.7 0.16 25);
+
+    --chart-1: #5686f2;
+    --chart-2: #23aa8a;
+    --chart-3: #ae5528;
+    --chart-4: #ab3ba5;
+    --chart-5: #56a700;
+    --chart-axis: oklch(0.45 0.012 264);
+    --stage-deep: #6c8ff2;
+    --stage-rem: #23aa8a;
+    --stage-core: #3557c0;
+    --stage-awake: #d95926;
+    --stage-none: oklch(0.42 0.012 264);
+    --ctx-grey: oklch(0.6 0.012 264);
+    --ctx-blue: oklch(0.7 0.14 264);
+    --ctx-teal: oklch(0.72 0.1 195);
+    --ctx-green: oklch(0.72 0.13 155);
+    --ctx-amber: oklch(0.8 0.13 80);
+    --ctx-orange: oklch(0.74 0.14 45);
+    --ctx-red: oklch(0.7 0.16 25);
+    --ctx-pink: oklch(0.74 0.14 350);
+    --ctx-violet: oklch(0.7 0.14 300);
+
+    --graph-person: oklch(0.71 0.145 264);
+    --graph-note: oklch(0.63 0.018 264);
+    --graph-place: oklch(0.72 0.115 170);
+    --graph-organisation: oklch(0.79 0.125 78);
+    --graph-event: oklch(0.71 0.15 25);
+    --graph-record: oklch(0.72 0.13 345);
+    --graph-saved: oklch(0.7 0.12 110);
+    --graph-detail: oklch(0.7 0.09 300);
+    --graph-link: oklch(0.8 0.02 264 / 0.2);
+    --graph-on-node: oklch(0.18 0.012 264);
+
+    --aurora-a: oklch(0.42 0.12 250 / 0.26);
+    --aurora-b: oklch(0.45 0.09 168 / 0.16);
+    --aurora-a-morning: oklch(0.44 0.1 232 / 0.24);
+    --aurora-a-evening: oklch(0.42 0.12 266 / 0.28);
+
+    --shadow-card: 0 1px 0 oklch(1 0 0 / 0.03) inset;
+    --shadow-float: 0 1px 0 oklch(1 0 0 / 0.05) inset, 0 18px 44px -14px oklch(0 0 0 / 0.6);
+    --shadow-sheet: 0 -8px 40px -12px oklch(0 0 0 / 0.6);
+  }
+}

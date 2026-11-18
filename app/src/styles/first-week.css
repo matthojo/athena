@@ -1,0 +1,365 @@
+/* ==========================================================================
+   Night F4: a first week that knows it's a first week
+   (docs/notes/affection-2026-11.md, moment 3; docs/notes/night-f4.md).
+   Home's hello and name question, yesterday as a small page on day two,
+   the one "Your first week" card, and the first-week review's picks.
+   Tokens only; every movement has a reduced-motion cut.
+   ========================================================================== */
+
+/* ---------- Home: the hello ---------- */
+
+/* Day one: who Athena is, in the headline's quieter ink. */
+.headline__intro {
+  color: var(--ink-3);
+  animation: fw-settle var(--dur-slow) var(--ease-out) both;
+  animation-delay: var(--dur-fast);
+}
+
+/* A name given: the greeting settles in with it. */
+.headline__hello.is-new {
+  display: inline-block;
+  color: var(--ink);
+  animation: fw-name var(--dur-spring) var(--ease-spring) both;
+}
+
+@keyframes fw-settle {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+@keyframes fw-name {
+  from {
+    opacity: 0;
+    transform: translateY(0.25em);
+    filter: blur(2px);
+  }
+}
+
+/* ---------- Home: "What should I call you?" ---------- */
+
+.fw-ask {
+  display: grid;
+  grid-template-rows: 1fr;
+  margin-top: var(--space-md);
+  transition:
+    grid-template-rows var(--dur-base) var(--ease-in-out),
+    opacity var(--dur-fast) var(--ease-out),
+    margin var(--dur-base) var(--ease-in-out);
+}
+
+.fw-ask[hidden] {
+  display: none;
+}
+
+.fw-ask.is-folding {
+  grid-template-rows: 0fr;
+  margin-top: 0;
+  opacity: 0;
+}
+
+.fw-ask__in {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fw-ask__label {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+}
+
+.fw-ask__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.fw-ask__row .fw-ask__field {
+  flex: 1 1 12rem;
+  min-width: 0;
+  max-width: 22rem;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  letter-spacing: -0.012em;
+}
+
+.fw-ask__later {
+  color: var(--ink-3);
+}
+
+/* ---------- Home: yesterday as a small page (day two) ---------- */
+
+.fw-page {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-sm);
+  padding: var(--space-md) var(--space-md) var(--space-md) var(--space-lg);
+  color: var(--ink);
+  text-decoration: none;
+  animation: fw-page-in var(--dur-slow) var(--ease-out-expo) both;
+}
+
+.fw-page[hidden] {
+  display: none;
+}
+
+/* A second sheet tucked behind, so it reads as a page from a book of days. */
+.fw-page {
+  box-shadow:
+    var(--shadow-card),
+    3px 4px 0 -1px var(--sunken),
+    3px 4px 0 0 var(--line);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+/* The page's margin rule. */
+.fw-page::before {
+  content: "";
+  position: absolute;
+  top: var(--space-md);
+  bottom: var(--space-md);
+  left: var(--space-sm);
+  width: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-wash);
+}
+
+@media (hover: hover) {
+  .fw-page:hover {
+    box-shadow:
+      var(--shadow-card),
+      5px 6px 0 -1px var(--sunken),
+      5px 6px 0 0 var(--line);
+  }
+}
+
+.fw-page__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+
+.fw-page__kicker {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.fw-page__line {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  line-height: 1.35;
+  letter-spacing: -0.012em;
+  text-wrap: pretty;
+}
+
+@keyframes fw-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) rotate(-0.4deg);
+  }
+}
+
+/* ---------- Home: the one first-week card ---------- */
+
+.fw-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--accent-wash), transparent 60%),
+    var(--surface);
+}
+
+.fw-card[hidden] {
+  display: none;
+}
+
+.fw-card .tile {
+  margin-top: var(--space-3xs);
+  background: var(--surface);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-card);
+}
+
+.fw-card__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+
+.fw-card__kicker {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.fw-card__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+
+.fw-card__body {
+  max-width: 46ch;
+  font-size: var(--text-ui);
+  line-height: 1.45;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.fw-card__go {
+  margin-top: var(--space-xs);
+}
+
+/* The tile's sparkle breathes once when the card arrives, then rests. */
+.fw-card .tile svg {
+  animation: fw-glint var(--dur-hold) var(--ease-out) both;
+  animation-delay: var(--dur-base);
+}
+
+@keyframes fw-glint {
+  40% {
+    transform: scale(1.12) rotate(8deg);
+  }
+}
+
+/* ---------- Home: what steps aside in the first week ---------- */
+
+/* Empty cards would only say "nothing": the first-week card speaks for them. */
+.home--first .bento > [data-empty],
+.home--first .profile-card {
+  display: none;
+}
+
+.home--first .bento:not(:has(> :not([hidden], [data-empty]))) {
+  display: none;
+}
+
+/* Sample mode's preview of a new owner's Home (#/home?first=1): none of the sample owner's things. */
+.home--first-preview .bento,
+.home--first-preview .home-lower,
+.home--first-preview .home-banners > :not(.fw-card) {
+  display: none;
+}
+
+/* ---------- The first-week review: what I picked up ---------- */
+
+.fw-picks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-block: var(--space-lg);
+}
+
+.fw-picks__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+}
+
+.fw-picks__list {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.fw-pick {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows var(--dur-base) var(--ease-in-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.fw-pick.is-leaving {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.fw-pick__in {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.fw-pick.is-kept .fw-pick__in {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.fw-pick__summary {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+
+.fw-pick__quote {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.fw-pick__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.fw-picks__done {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+@media (min-width: 1024px) {
+  .fw-picks__list {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+/* ---------- Reduced motion: everything arrives in place ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .headline__intro,
+  .headline__hello.is-new,
+  .fw-page,
+  .fw-card .tile svg {
+    animation: none;
+  }
+
+  .fw-ask,
+  .fw-pick,
+  .fw-page {
+    transition: none;
+  }
+}

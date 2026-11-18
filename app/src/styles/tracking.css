@@ -1,0 +1,1502 @@
+/**
+ * Tracking (components/tracking.ts, components/track-sheet.ts). One sunken
+ * panel; each tracker a block divided by a hairline: the sentence, a quiet
+ * line, the picture, who checked. Mark spec per the dataviz skill: a 2px
+ * round line in --chart-1, a hairline at the saved value, the best so far in
+ * --chart-2, an 8px end dot with a 2px surface ring, a hairline crosshair.
+ * A state's runs are rounded bars: the hoped-for state in --chart-1, the
+ * one asked for in --chart-2, the rest neutral. Text stays in ink tokens.
+ */
+
+.tk-slot[hidden] {
+  display: none;
+}
+
+.tk {
+  --tk-surface: var(--sunken);
+  --tk-neutral: color-mix(in oklch, var(--ink-3) 34%, var(--tk-surface));
+  --tk-neutral-2: color-mix(in oklch, var(--ink-3) 18%, var(--tk-surface));
+  display: flex;
+  flex-direction: column;
+  padding: 4px var(--space-md) 2px;
+  border-radius: var(--radius-md);
+  background: var(--tk-surface);
+  min-width: 0;
+}
+
+.tk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0 -8px 0 0;
+}
+
+.tk-title {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+  letter-spacing: 0;
+}
+
+/* ---------- a block ---------- */
+
+.tk-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0 6px;
+  min-width: 0;
+}
+
+.tk-head + .tk-block {
+  padding-top: 2px;
+}
+
+.tk-block + .tk-block {
+  border-top: 1px solid var(--line);
+}
+
+.tk-block__label {
+  margin: 0;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.tk-sentence {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.42;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.tk-lead {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reached: a small mark in the second colour before the value, and the words say it. */
+.tk-hit {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--chart-2);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--chart-2) 22%, transparent);
+  vertical-align: 2px;
+}
+
+.tk-hit--sm {
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--chart-2) 22%, transparent);
+  vertical-align: 1px;
+}
+
+.tk-detail {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+
+/* ---------- the picture ---------- */
+
+.tk-figure {
+  margin: 8px 0 0;
+}
+
+.tk-chart {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-xs);
+  touch-action: pan-y;
+}
+
+.tk-chart:focus-visible {
+  outline-offset: 4px;
+}
+
+.tk-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.tk-chart__line {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.tk-chart__ref {
+  stroke: var(--chart-axis);
+  stroke-width: 1;
+}
+
+.tk-chart__reflabel {
+  fill: var(--ink-3);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+/* What the owner asked for: a dashed hairline in the second colour, labelled in ink. */
+.tk-chart__goal {
+  stroke: var(--chart-2);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.tk-chart__goallabel {
+  fill: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-chart__end,
+.tk-chart__best,
+.tk-chart__cursor {
+  stroke: var(--tk-surface);
+  stroke-width: 2;
+}
+
+.tk-chart__end {
+  fill: var(--chart-1);
+}
+
+.tk-chart__best,
+.tk-chart__end--best,
+.tk-chart__end--hit {
+  fill: var(--chart-2);
+}
+
+.tk-chart__hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.tk-chart__cross,
+.tk-chart__cursor {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.tk-chart__cross {
+  stroke: var(--chart-axis);
+  stroke-width: 1;
+}
+
+.tk-chart__cursor {
+  fill: var(--chart-1);
+}
+
+.tk-chart__cursor--state {
+  fill: var(--ink);
+}
+
+.tk-chart.is-hovering .tk-chart__cross,
+.tk-chart.is-hovering .tk-chart__cursor,
+.tk-chart.is-hovering .tk-chart__tip {
+  opacity: 1;
+}
+
+.tk-chart__tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  pointer-events: none;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--ink);
+  color: color-mix(in oklch, var(--on-ink) 72%, var(--ink));
+  font-size: var(--text-meta);
+  white-space: nowrap;
+  box-shadow: var(--shadow-float);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-chart__tip strong {
+  color: var(--on-ink);
+  font-weight: var(--weight-semibold);
+}
+
+/* A state's runs. */
+.tk-run--good {
+  fill: var(--chart-1);
+  background: var(--chart-1);
+}
+
+.tk-run--hit {
+  fill: var(--chart-2);
+  background: var(--chart-2);
+}
+
+.tk-run--other {
+  fill: var(--tk-neutral);
+  background: var(--tk-neutral);
+}
+
+.tk-run--other2 {
+  fill: var(--tk-neutral-2);
+  background: var(--tk-neutral-2);
+}
+
+.tk-run__tick {
+  fill: var(--tk-surface);
+  opacity: 0.75;
+}
+
+.tk-run__label {
+  fill: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.tk-run__label--now {
+  fill: var(--ink-2);
+  font-weight: var(--weight-semibold);
+}
+
+.tk-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.tk-legend[hidden] {
+  display: none;
+}
+
+.tk-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tk-legend__swatch {
+  width: 10px;
+  height: 6px;
+  border-radius: var(--radius-3xs);
+}
+
+.tk-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- who checked, the page ---------- */
+
+.tk-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 12px;
+  margin: 2px 0 0;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.tk-foot__link,
+.tk-row__where a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-2);
+  font-weight: 500;
+  text-decoration: none;
+  min-height: 32px;
+}
+
+.tk-foot__link:hover,
+.tk-row__where a:hover {
+  color: var(--accent);
+}
+
+.tk-foot__link svg,
+.tk-row__where a svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+/* ---------- the bar ---------- */
+
+.tk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 4px;
+  margin: 0 -8px -2px;
+}
+
+.tk-bar--single {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.tk-bar--single > span {
+  padding: 0 8px;
+}
+
+.tk-bar--single > .tk-foot__link {
+  padding: 0 8px;
+}
+
+.tk-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tk-toggle:hover {
+  color: var(--ink);
+  background: color-mix(in oklch, var(--ink) 5%, transparent);
+}
+
+.tk-toggle svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.tk-block.is-open .tk-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.tk-toggle--end,
+.tk-goalwrap {
+  margin-left: auto;
+}
+
+.tk-toggle--quiet {
+  color: var(--ink-3);
+}
+
+/* The target, set: a pill you tap to change, × to clear. */
+.tk-goalwrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tk-goal {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--line);
+  border-right: 0;
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tk-goal__mark {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--chart-2);
+}
+
+.tk-goal.is-hit .tk-goal__mark {
+  background: var(--chart-2);
+}
+
+.tk-goal__clear {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+  position: relative;
+}
+
+/* 44px to tap, 32px to see. */
+.tk-goal::after,
+.tk-goal__clear::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+
+.tk-goal {
+  position: relative;
+}
+
+.tk-goal__clear svg {
+  width: 13px;
+  height: 13px;
+}
+
+.tk-goal:hover,
+.tk-goal__clear:hover {
+  color: var(--ink);
+  background: color-mix(in oklch, var(--ink) 3%, var(--surface));
+}
+
+.tk-goalwrap {
+  margin-right: 8px;
+}
+
+/* ---------- the list ---------- */
+
+.tk-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.tk-list[hidden],
+.tk-listfoot[hidden] {
+  display: none;
+}
+
+.tk-row {
+  display: grid;
+  grid-template-columns: 6.5rem 6rem minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+  animation: tk-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.tk-row__when {
+  display: flex;
+  flex-direction: column;
+  color: var(--ink-2);
+}
+
+.tk-row__time,
+.tk-row__who {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.tk-row__value {
+  display: flex;
+  flex-direction: column;
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  min-width: 0;
+}
+
+.tk-row__value--state::before {
+  content: "";
+  display: block;
+  width: 14px;
+  height: 4px;
+  margin-bottom: 4px;
+  border-radius: var(--radius-3xs);
+  background: var(--tk-row-tone, var(--tk-neutral));
+}
+
+.tk-tone--good {
+  --tk-row-tone: var(--chart-1);
+}
+
+.tk-tone--hit {
+  --tk-row-tone: var(--chart-2);
+}
+
+.tk-tone--other2 {
+  --tk-row-tone: var(--tk-neutral-2);
+}
+
+.tk-row__best {
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.tk-row__best::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--chart-2);
+  vertical-align: 1px;
+}
+
+.tk-row__where {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.tk-row__where a,
+.tk-row__where > span:first-child {
+  min-height: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+.tk-row__remove {
+  justify-self: end;
+  color: var(--ink-3);
+  opacity: 0.6;
+}
+
+.tk-row__remove:hover,
+.tk-row__remove:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .tk-row__remove {
+    opacity: 0;
+  }
+  .tk-row:hover .tk-row__remove,
+  .tk-row__remove:focus-visible {
+    opacity: 1;
+  }
+}
+
+.tk-listfoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 2px -8px 0;
+}
+
+.tk-listfoot .tk-toggle--quiet {
+  margin-left: auto;
+}
+
+.tk-note {
+  flex-basis: 100%;
+  margin: 0 8px 6px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* ---------- forms in a block ---------- */
+
+.tk-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  animation: tk-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.tk-form__label {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.tk-form__row {
+  display: grid;
+  grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.tk-form__row--goal {
+  grid-template-columns: minmax(0, 12rem);
+}
+
+.tk-form__row[hidden] {
+  display: none;
+}
+
+.tk-form__foot {
+  display: flex;
+  gap: 8px;
+}
+
+.tk-form__error {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.tk-form__error[hidden] {
+  display: none;
+}
+
+.tk-seg {
+  max-width: 26rem;
+}
+
+.tk-goalchips .chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.tk-input {
+  min-height: 44px;
+  min-width: 0;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-body);
+}
+
+.tk-input::placeholder {
+  color: var(--ink-3);
+}
+
+.tk-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.tk-input[aria-invalid="true"] {
+  border-color: var(--ink-2);
+}
+
+/* A number with what's written around it, as one field. */
+.tk-affixed {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.tk-affixed:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.tk-affixed__text {
+  flex: none;
+  font-size: var(--text-body);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-input--num {
+  flex: 1;
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-input--num:focus-visible {
+  outline: none;
+}
+
+/* ---------- in a reply ---------- */
+
+.tk--reply {
+  gap: 2px;
+  margin-top: var(--space-sm);
+  padding: 12px var(--space-md) 2px;
+  border-radius: var(--radius-sm);
+}
+
+.tk-slot + .tk-slot .tk--reply {
+  margin-top: var(--space-xs);
+}
+
+.tk-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+  min-width: 0;
+}
+
+.tk-name svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.tk-name__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-name__value {
+  flex: none;
+  color: var(--ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tk--reply .tk-figure {
+  margin: 4px 0 0;
+}
+
+.tk-replyfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-replyfoot > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-replyfoot__hit {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.tk-replyfoot .tk-toggle {
+  margin-right: -8px;
+  font-size: var(--text-meta);
+}
+
+/* ---------- a row: an assistant's page, Saved's tracking cards ---------- */
+
+.tk-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 4px 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tk-line:last-child {
+  border-bottom: 0;
+}
+
+.tk-line > svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.tk-line:hover .tk-line__name {
+  color: var(--ink);
+}
+
+.tk-line__mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.tk-line__mark svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tk-line__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tk-line__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-line__label {
+  margin-right: 8px;
+  color: var(--ink-3);
+}
+
+.tk-line__glance {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- "Track this" ---------- */
+
+.tks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: var(--space-sm);
+}
+
+.tks-lede {
+  margin: 0 0 8px;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tks-note {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.tks-opt {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.tks-opt + .tks-opt {
+  margin-top: 6px;
+}
+
+.tks-opt:hover {
+  border-color: color-mix(in oklch, var(--ink) 18%, var(--line));
+}
+
+.tks-opt:active {
+  transform: scale(0.99);
+}
+
+.tks-opt[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+.tks-opt > svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.tks-opt__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.tks-opt__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tks-opt__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tks-opt__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.tks-opt__sub {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  text-wrap: pretty;
+}
+
+.tks-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tks-group {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tks-group[hidden] {
+  display: none;
+}
+
+.tks-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tks-field__label {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.tks-field__hint {
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.tks-written {
+  display: grid;
+  grid-template-columns: minmax(0, 6rem) auto minmax(0, 6rem);
+  justify-content: start;
+  align-items: center;
+  gap: 12px;
+}
+
+.tks-affix {
+  text-align: center;
+}
+
+.tks-written__n {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tks-preview {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tks-preview strong {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.tks-states {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tks-states + .tk-toggle {
+  align-self: flex-start;
+  margin-left: -8px;
+}
+
+.tks-states + .tk-toggle[hidden] {
+  display: none;
+}
+
+.tks-error {
+  margin: -6px 0 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.tks-error[hidden] {
+  display: none;
+}
+
+@keyframes tk-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-row,
+  .tk-form {
+    animation: none;
+  }
+  .tk-chart__cross,
+  .tk-chart__cursor,
+  .tk-chart__tip,
+  .tk-toggle svg,
+  .tks-opt {
+    transition: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .tk-row {
+    grid-template-columns: 5.5rem 5.25rem minmax(0, 1fr) 36px;
+    gap: 4px 8px;
+  }
+  .tk-form__row {
+    grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+  }
+}
+
+/* ---------- Saved: what's tracked on its own (views/saved.ts) ---------- */
+
+.sv-site__mark--track {
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.sv-site__mark--track svg {
+  width: 11px;
+  height: 11px;
+}
+
+.sv-card__track {
+  display: block;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-trackhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 0 var(--space-md);
+}
+
+.sv-trackhead__text {
+  flex: 1 1 18rem;
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  text-wrap: pretty;
+}
+
+.sv-tracker__page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.sv-tracker__page .sv-reader__head {
+  margin-bottom: 0;
+}
+
+/* The name, editable where it stands: it reads as the title until you touch it. */
+.sv-tracker__name {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.sv-tracker__name:hover {
+  background: color-mix(in oklch, var(--ink) 3%, transparent);
+}
+
+.sv-tracker__name:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* ---------- an assistant's page (team/detail-tracking.ts) ---------- */
+
+.tdt-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tdt-more {
+  margin: 4px 0 0 -8px;
+}
+
+.tk-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  margin: 0 -10px -4px 0;
+}
+
+.tk-block__more {
+  color: var(--ink-3);
+}
+
+.sv-card__tracknote {
+  display: block;
+  margin-top: -2px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-card--tracker .sv-card__track {
+  margin-top: 2px;
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+/* Long names never widen the column they sit in: they end in an ellipsis. */
+.tdt-list,
+.tk {
+  contain: inline-size;
+}
+
+/* A target nobody checks: one plain line, ink, with a hollow mark. */
+.tks-who {
+  margin-top: 14px;
+}
+
+.tks-who .chip-row[hidden],
+.tks-field__hint[hidden] {
+  display: none;
+}
+
+/* ---------- who checks it (every block says who) ---------- */
+
+.tk-who {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 0;
+  min-width: 0;
+}
+
+.tk-who__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.tk-who__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.tk-who__name .kit-tile {
+  flex: none;
+}
+
+.tk-who__words {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.tk-who__title {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+a.tk-who__name:hover .tk-who__title {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--ink) 25%, transparent);
+  text-underline-offset: 3px;
+}
+
+.tk-who__when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nobody, or you: a small ring where a face would be, the size of one. */
+.tk-who__ring {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in oklch, var(--ink-3) 70%, transparent);
+}
+
+.tk-who__ring::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  opacity: 0.5;
+}
+
+.tk-who__name--owner .tk-who__ring {
+  border-style: solid;
+}
+
+.tk-who__name--owner .tk-who__ring::before {
+  background: var(--ink-2);
+  opacity: 1;
+}
+
+.tk-who__when--stack {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.tk-who__choose {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tk-who__choose:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* A bigger target than it looks, without moving the line. */
+.tk-who__choose {
+  position: relative;
+}
+
+.tk-who__choose::after {
+  content: "";
+  position: absolute;
+  inset: -10px -6px;
+}
+
+.tk-who__page {
+  flex: none;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0 -10px 0 auto;
+  padding: 0 10px;
+}
+
+.tk-block {
+  container-type: inline-size;
+}
+
+@container (max-width: 400px) {
+  .tk-who__pagename {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* Its checker can't check: one line, and the fix. */
+.tk-cant {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 8px 8px 8px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--ink) 4%, var(--tk-surface));
+  font-size: var(--text-small);
+  line-height: 1.38;
+  color: var(--ink-2);
+}
+
+.tk-cant__text {
+  flex: 1;
+  min-width: 0;
+  text-wrap: pretty;
+}
+
+.tk-cant__fix {
+  flex: none;
+}
+
+/* ---------- one quiet line: not tracked yet, or didn't load ---------- */
+
+.tk--quiet {
+  padding: 6px 8px 6px var(--space-md);
+}
+
+.tk-quiet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.tk-quiet__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.tk-quiet__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tk-quiet__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tk-quiet__go {
+  flex: none;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* ---------- the "Who checks it?" sheet ---------- */
+
+.tks-who-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tks-who-opt[aria-checked="true"] {
+  border-color: color-mix(in oklch, var(--accent) 45%, var(--line));
+}
+
+.tks-who-opt[aria-checked="true"] > svg {
+  color: var(--accent);
+}
+
+.tks-who-opt__face:has(.kit-tile) {
+  background: none;
+}
+
+.tks-who-opt__face .kit-tile svg {
+  width: auto;
+  height: auto;
+}
+
+.tks-who-opt__gap {
+  width: 16px;
+  flex: none;
+}

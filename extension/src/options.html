@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Save to Athena settings</title>
+    <link rel="stylesheet" href="ui.css" />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="options">
+      <header>
+        <img src="icons/icon-48.png" alt="" width="36" height="36" />
+        <div>
+          <h1>Save to Athena</h1>
+          <p class="muted">Keep pages, quotes, images and links in your Athena.</p>
+        </div>
+      </header>
+
+      <form class="card setup" id="form" novalidate>
+        <div>
+          <label for="address">Athena address</label>
+          <input id="address" name="address" type="url" inputmode="url" autocomplete="url" spellcheck="false"
+            placeholder="https://athena.example.com" aria-describedby="address-help address-error" />
+          <p class="meta help" id="address-help">The address you open Athena at.</p>
+          <p class="field-error" id="address-error" hidden></p>
+        </div>
+        <div>
+          <label for="key">Capture key</label>
+          <input id="key" name="key" type="password" autocomplete="off" spellcheck="false"
+            placeholder="athc_…" aria-describedby="key-help key-error" />
+          <p class="meta help" id="key-help">
+            In Athena, go to Settings → API keys and make a capture key. It can add things to Athena but
+            can't read anything back.
+          </p>
+          <p class="field-error" id="key-error" hidden></p>
+        </div>
+        <div class="buttons">
+          <button class="btn btn-primary" type="submit" id="save">Save</button>
+          <button class="btn btn-outline" type="button" id="test">Test</button>
+        </div>
+        <p class="status" id="status" role="status" aria-live="polite" hidden></p>
+      </form>
+
+      <section class="card" id="outbox-wrap" hidden>
+        <div class="row">
+          <h2 id="outbox-count"></h2>
+          <button class="btn btn-quiet" id="retry-all" type="button">Retry now</button>
+        </div>
+        <ul class="outbox" id="outbox"></ul>
+      </section>
+
+      <section class="card">
+        <h2>How to save</h2>
+        <ul class="how">
+          <li><b>Toolbar button</b> saves the page you're on. Add a note in the window that opens.</li>
+          <li><b>Right-click</b> a page, a selection, an image or a link and pick Save. A selection is kept word for word as a quote, with the page it came from.</li>
+          <li><kbd id="shortcut">Alt+Shift+S</kbd> saves the page without opening anything. You can change it in the browser's extension shortcuts.</li>
+        </ul>
+        <p class="muted">If Athena can't be reached, saves wait here and go when it's back. Nothing is dropped without you removing it.</p>
+      </section>
+
+      <section class="card">
+        <h2>Privacy</h2>
+        <p class="muted">
+          The extension sends saves only to the address above, and nowhere else. There are no analytics. The key
+          stays in this browser's extension storage, and the browser asks you before the extension can reach your
+          Athena.
+        </p>
+      </section>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

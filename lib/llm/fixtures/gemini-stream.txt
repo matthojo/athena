@@ -1,0 +1,6 @@
+data: {"candidates": [{"content": {"parts": [{"text": "Your flight is"}],"role": "model"},"index": 0}],"usageMetadata": {"promptTokenCount": 9,"totalTokenCount": 9},"modelVersion": "gemini-3.5-flash","responseId": "x1"}
+
+data: {"candidates": [{"content": {"parts": [{"text": " on the 19th."}],"role": "model"},"index": 0}],"modelVersion": "gemini-3.5-flash","responseId": "x1"}
+
+data: {"candidates": [{"content": {"parts": [{"functionCall": {"name": "answer","args": {"text": "Your flight is on the 19th.","found": true}},"thoughtSignature": "Cs0BAVSoXO5Vk"}],"role": "model"},"finishReason": "STOP","index": 0}],"usageMetadata": {"promptTokenCount": 9,"candidatesTokenCount": 20,"totalTokenCount": 40,"thoughtsTokenCount": 11},"modelVersion": "gemini-3.5-flash","responseId": "x1"}
+

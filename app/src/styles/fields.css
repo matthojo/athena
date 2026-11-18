@@ -1,0 +1,912 @@
+/**
+ * The owner's own fields: their values in a record's Details
+ * (components/custom-fields.ts), the field editor sheet
+ * (components/field-editor.ts) and Settings (views/settings.ts). Built from
+ * the same tokens and shapes as components.css: prop rows, chips, tags, rows.
+ */
+
+/* ---------- Values in a record's Details ---------- */
+
+/* Ratings: five stars, cobalt when chosen (state, like a pressed chip). */
+.rating {
+  display: inline-flex;
+  align-items: center;
+  margin-left: -8px;
+}
+
+.rating__star {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 40px;
+  border-radius: var(--radius-xs);
+  color: color-mix(in oklch, var(--ink-3) 75%, transparent);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+/* 44px tall to tap; the stars sit edge to edge so the row stays one thumb wide. */
+.rating__star::after {
+  content: "";
+  position: absolute;
+  inset: -2px 0;
+}
+
+.rating__star svg {
+  width: 23px;
+  height: 23px;
+}
+
+.rating__star.is-on {
+  color: var(--accent);
+}
+
+/* A half star: the filled half in cobalt, the rest of the outline as quiet as an empty star. */
+.rating__star.is-half .star-half__fill,
+.stars .is-half .star-half__fill {
+  color: var(--accent);
+}
+
+.rating.is-preview .rating__star.is-half .star-half__fill {
+  color: var(--ink-2);
+}
+
+.rating__star:active {
+  transform: scale(0.88);
+}
+
+.rating__star:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .rating__star:not(.is-on):hover {
+    color: var(--ink-2);
+  }
+}
+
+/* Hovering shows what a click would set, in ink rather than cobalt: a preview, not a choice. */
+.rating.is-preview .rating__star.is-on {
+  color: var(--ink-2);
+}
+
+/* The star just chosen settles into place. */
+.rating__star.is-set svg {
+  animation: rating-set var(--dur-fast) var(--ease-out);
+}
+
+@keyframes rating-set {
+  from {
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rating__star.is-set svg {
+    animation: none;
+  }
+}
+
+/* Stars to read (a Watch & read row): small, cobalt, edge to edge. */
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: color-mix(in oklch, var(--ink-3) 55%, transparent);
+  white-space: nowrap;
+}
+
+.stars .is-on {
+  color: var(--accent);
+}
+
+.stars svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.9;
+}
+
+/* A number with a unit: the box fits the number, the unit follows it. */
+.prop__input--fit {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+.prop__input--fit + .prop__suffix {
+  font-size: var(--text-body);
+}
+
+/* A currency goes before the number: £45. */
+.prop__control--prefixed {
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+.prop__prefix {
+  font-size: var(--text-body);
+  color: var(--ink-3);
+}
+
+.prop__control--prefixed .prop__input {
+  margin-left: -4px;
+}
+
+/*
+ * The empty fields wait behind one quiet row at the end of Details: "Add shoe
+ * size and interests". Small accent text in the label column, like the
+ * "Add detail" prompt under Remembered; the whole row is the tap target.
+ */
+.prop--reveal {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  font-size: var(--text-small);
+  color: var(--accent-ink);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.prop--reveal__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .prop--reveal:hover {
+    background-color: color-mix(in oklch, var(--sunken) 55%, var(--surface));
+  }
+}
+
+.prop--reveal:active {
+  background-color: var(--sunken);
+}
+
+/* Inside the card, which clips: a ring drawn within the row. */
+.prop--reveal:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Choices: tags you can remove, a box to type a new one, and unused options to tap. */
+.prop--tags {
+  align-items: start;
+}
+
+.prop--tags .prop__label {
+  padding-top: 11px;
+}
+
+.choice-tags__control {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding-block: 6px;
+}
+
+.choice-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.choice-tags .tag {
+  line-height: 20px;
+}
+
+/* Its text lines up with the tags (and with the built-in fields' values) when it wraps to its own line. */
+.choice-tags__input {
+  min-width: 128px;
+  height: 28px;
+  margin-left: -4px;
+  padding: 0 4px;
+  font-size: var(--text-body);
+}
+
+/* The "Add …" prompt reads like the built-in fields' placeholders. */
+.choice-tags__input::placeholder {
+  color: var(--accent-ink);
+  opacity: 0.8;
+}
+
+.choice-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.choice-suggest[hidden] {
+  display: none;
+}
+
+.choice-suggest__item {
+  gap: 4px;
+  padding: 0 10px 0 8px;
+  border-style: dashed;
+  color: var(--ink-2);
+}
+
+.choice-suggest__item svg {
+  width: 12px;
+  height: 12px;
+  color: var(--ink-3);
+}
+
+/* A note's own Details, under its tags. */
+.custom-details[hidden] {
+  display: none;
+}
+
+.note--edit .custom-details {
+  gap: var(--space-xs);
+}
+
+/* ---------- The field editor sheet ---------- */
+
+.field-types {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+
+@media (min-width: 560px) {
+  .field-types {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.field-type {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 1px;
+  align-items: center;
+  min-height: 58px;
+  padding: 10px 12px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.field-type:active:not([aria-disabled="true"]) {
+  transform: scale(0.98);
+}
+
+.field-type:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .field-type:not([aria-checked="true"], [aria-disabled="true"]):hover {
+    border-color: var(--line-strong);
+  }
+}
+
+.field-type__icon {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.field-type__icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.field-type__label {
+  min-width: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.field-type__hint {
+  min-width: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-type[aria-checked="true"] {
+  border-color: color-mix(in oklch, var(--accent) 45%, transparent);
+  background: var(--accent-wash);
+}
+
+.field-type[aria-checked="true"] .field-type__icon {
+  background: var(--surface);
+  color: var(--accent-ink);
+}
+
+.field-type[aria-checked="true"] .field-type__label {
+  color: var(--accent-ink);
+}
+
+.field-type[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.field-types__hint {
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-3);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.field-types__hint[hidden] {
+  display: none;
+}
+
+.field-types__hint.is-flash {
+  color: var(--ink);
+}
+
+/* Options: one editable line each, then a line to add another. */
+.prop--option {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 46px;
+}
+
+.prop--option .prop__control {
+  flex-wrap: nowrap;
+}
+
+.field-option__remove {
+  color: var(--ink-3);
+}
+
+.field-editor .loop-sheet > section[hidden],
+.field-editor .loop-sheet > .card[hidden] {
+  display: none;
+}
+
+/* ---------- Settings ---------- */
+
+/* A list page, as wide as To do, Reading and the weekly review. */
+.settings {
+  max-width: var(--page-narrow);
+  gap: var(--space-lg);
+}
+
+.settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.settings__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.settings__heading svg {
+  width: 20px;
+  height: 20px;
+  color: var(--ink-3);
+}
+
+.settings__lede {
+  max-width: 62ch;
+  margin-top: calc(-1 * var(--space-2xs));
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* The kinds: the Library's segmented control, kept on desktop too (there's no sidebar list of them). */
+.settings__kinds {
+  margin-top: var(--space-2xs);
+}
+
+@media (min-width: 1024px) {
+  .settings .segmented.settings__kinds {
+    display: flex;
+  }
+}
+
+.segmented__count {
+  margin-left: 6px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings__fields,
+.settings__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.settings__row {
+  align-items: center;
+}
+
+.settings__row .row__meta {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings__move {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.settings__move .icon-btn:disabled {
+  opacity: 0.3;
+}
+
+.settings__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.settings__empty {
+  padding-block: var(--space-xl);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
+.settings__note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.settings__note svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.settings__link {
+  color: var(--accent-ink);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--accent-ink) 35%, transparent);
+  text-underline-offset: 3px;
+}
+
+/* Settings → Voice: the ElevenLabs card (components/voice-connection.ts) under the heading. */
+.settings__voice {
+  padding-top: var(--space-sm);
+}
+
+/* ---------- Settings sections: a nav on desktop, a list then a page on a phone ---------- */
+
+.settings__layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+/* A narrow column beside the 200px section rail. */
+.settings--split {
+  max-width: calc(200px + var(--space-xl) + var(--page-narrow));
+}
+
+.settings__nav {
+  position: sticky;
+  top: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings__nav-label {
+  padding: var(--space-md) 12px 4px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.settings__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.settings__nav-item svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-3);
+}
+
+@media (hover: hover) {
+  .settings__nav-item:hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+}
+
+.settings__nav-item[aria-current="page"] {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-weight: var(--weight-semibold);
+}
+
+.settings__nav-item[aria-current="page"] svg {
+  color: var(--accent-ink);
+}
+
+.settings__index .row__meta {
+  white-space: normal;
+}
+
+/* A section on its own page (phone): a way back, then the section, its heading as the title. */
+.settings__page-head {
+  padding-top: calc(var(--safe-top) + var(--space-xs));
+}
+
+.settings__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: -6px;
+  padding: 6px 8px 6px 2px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+.settings__back svg {
+  width: 20px;
+  height: 20px;
+}
+
+.settings--page .settings__heading {
+  font-size: var(--text-heading);
+  letter-spacing: -0.022em;
+}
+
+.settings--page .settings__heading svg {
+  display: none;
+}
+
+/* ---------- The owner's own kinds of record (a type like Wines) ---------- */
+
+/* A record's notes: the note editor in a quiet card; its toolbar shows while writing. */
+.record-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: 4px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.record-notes:focus-within {
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--line));
+}
+
+.record-notes .editor__content {
+  min-height: 84px;
+  padding-block: 10px;
+}
+
+.record-notes .note__body--preview {
+  min-height: 84px;
+  padding-block: 10px;
+  color: var(--ink-2);
+}
+
+.record-notes__toolbar {
+  display: none;
+  padding-top: 6px;
+}
+
+.record-notes:focus-within .record-notes__toolbar {
+  display: block;
+}
+
+.record-notes__toolbar .toolbar {
+  border-color: transparent;
+  background: var(--sunken);
+}
+
+/* A kind with no fields yet: one quiet line with a way to add some. */
+.record-nofields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.record-nofields[hidden] {
+  display: none;
+}
+
+.record-nofields .link-btn {
+  color: var(--accent-ink);
+}
+
+.records__fields svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* The kind editor: its icon picker and its fields. */
+.kind-icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+}
+
+.kind-icon {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.kind-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.kind-icon:active {
+  transform: scale(0.94);
+}
+
+.kind-icon:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .kind-icon:not([aria-checked="true"]):hover {
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+}
+
+.kind-icon[aria-checked="true"] {
+  border-color: color-mix(in oklch, var(--accent) 45%, transparent);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.kind-fields__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 12px 12px 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.kind-fields__names {
+  min-width: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+/* An empty kind: add the first record, or its fields first. */
+.empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+/* Watch & read rows: a finished item's stars on the right; an unfinished one's under its line. */
+.row__rating {
+  display: inline-flex;
+  padding-left: var(--space-sm);
+}
+
+.row__stars {
+  display: block;
+  margin-top: 2px;
+}
+
+/* ---------- Dates, times and choices that read as words (components/fields.ts) ---------- */
+
+/* "Tuesday 10 November", with the native picker lying unseen over the words. */
+.prop__picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  margin-left: -10px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.prop__picker--time {
+  flex: 0 1 auto;
+  min-width: 96px;
+}
+
+.prop__picker-text {
+  overflow: hidden;
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.prop__picker-text.is-empty {
+  color: var(--ink-3);
+}
+
+.prop__control > .prop__picker-native.prop__input,
+.prop__picker-native.prop__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.prop__picker-native::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  cursor: pointer;
+}
+
+.prop__picker:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+@media (hover: hover) {
+  .prop__picker:hover {
+    background-color: var(--sunken);
+  }
+}
+
+/* A chosen value as words; tap to bring back the chips. */
+.prop__folded {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.prop__folded > [hidden] {
+  display: none;
+}
+
+.prop__shown {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  margin-left: -10px;
+  padding: 0 10px;
+  border-radius: var(--radius-xs);
+  font-size: var(--text-body);
+  color: var(--ink);
+  text-align: left;
+  overflow-wrap: anywhere;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.prop__shown.is-empty {
+  color: var(--ink-3);
+}
+
+.prop__shown:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+@media (hover: hover) {
+  .prop__shown:hover {
+    background-color: var(--sunken);
+  }
+}
+
+.prop__folded > .chip-row {
+  animation: folded-open var(--dur-fast) var(--ease-out);
+}
+
+/* Keep the edge fade (components.css, "Chips") alongside the opening. */
+@supports (animation-timeline: scroll()) {
+  .prop__folded > .chip-row {
+    animation-name: folded-open, edge-start, edge-end;
+    animation-duration: var(--dur-fast), auto, auto;
+    animation-timing-function: var(--ease-out), var(--ease-linear), var(--ease-linear);
+    animation-fill-mode: none, both, both;
+    animation-timeline: auto, scroll(self inline), scroll(self inline);
+  }
+}
+
+@keyframes folded-open {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prop__folded > .chip-row {
+    animation: none;
+  }
+
+  /* The edge fade follows the scroll, so it isn't motion: it stays. */
+  @supports (animation-timeline: scroll()) {
+    .prop__folded > .chip-row {
+      animation-name: edge-start, edge-end;
+      animation-duration: auto;
+      animation-timing-function: var(--ease-linear);
+      animation-fill-mode: both;
+      animation-timeline: scroll(self inline);
+    }
+  }
+}

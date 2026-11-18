@@ -1,0 +1,7 @@
+/* Import your iPlayer history (components/iplayer-import.ts): the shared
+   flow (download-import.css) in pink into violet. */
+
+.dlimp--iplayer {
+  --dl-tint: var(--ctx-pink);
+  --dl-tint-2: var(--ctx-violet);
+}

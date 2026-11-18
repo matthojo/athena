@@ -1,0 +1,768 @@
+/*
+ * Settings → Sources (components/connector-settings.ts), and Sources'
+ * "needs you" line in the status card and menu (components/status.ts).
+ *
+ * Quiet when fine: healthy rows carry no badge, the health line is a grey
+ * panel. A problem is a white card with its fix as the button; amber marks
+ * it (a dot, a hairline), never red. Status is never colour alone.
+ */
+
+/* ---------- Page head ---------- */
+
+.src-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 34px;
+}
+
+/* Add an account sits at the top on desktop, at the bottom on a phone. */
+.src-add-top {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .src-add-top:not([hidden]) {
+    display: inline-flex;
+  }
+
+  .src-actions {
+    display: none;
+  }
+}
+
+.src {
+  container: sources / inline-size;
+  gap: var(--space-md);
+}
+
+/* ---------- Health line ---------- */
+
+.src-health {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.src-health[hidden] {
+  display: none;
+}
+
+.src-health__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--good);
+}
+
+.src-health--warn .src-health__dot {
+  background: var(--warn);
+}
+
+.src-health--running .src-health__dot {
+  background: var(--accent);
+  animation: src-pulse var(--dur-pulse) var(--ease-in-out) infinite;
+}
+
+.src-health--stale .src-health__dot {
+  background: var(--ink-3);
+  opacity: 0.6;
+}
+
+.src-health__text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-sm);
+  row-gap: 2px;
+  min-width: 0;
+}
+
+.src-health__line {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.src-health__sub {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* Phones: the quieter half goes under the line. */
+@container sources (max-width: 559px) {
+  .src-health__text {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Offline: the last known line, greyed and dated. */
+.src-health--stale .src-health__line {
+  color: var(--ink-3);
+  font-weight: var(--weight-medium);
+}
+
+.src-health--loading {
+  min-height: 46px;
+  align-items: center;
+}
+
+@keyframes src-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ---------- Needs you: one card per problem ---------- */
+
+.src-problems {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.src-problems[hidden] {
+  display: none;
+}
+
+
+.src-problem {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.src-problem__inner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 12px var(--space-sm) 12px var(--space-md);
+  min-height: 68px;
+}
+
+.src-problem__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.src-problem__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.src-problem__line {
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/* A server setting's name, with Copy beside it, under the words. */
+.src-problem__setting {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: 6px 6px 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.src-problem__code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.src-problem--setting .src-problem__inner {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.src-problem__btn {
+  flex: none;
+  padding-inline: 14px;
+}
+
+.src-problem__btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* "2 more need you": the rest of a long list, folded so the page stays calm. */
+.src-problems__more {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 var(--space-2xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+}
+
+/* Something Athena is waiting out (a server that's down): grey, no button. */
+.src-problem--info {
+  border-color: var(--line);
+  background: var(--sunken);
+  box-shadow: none;
+}
+
+.src-problem--info .src-problem__inner {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.src-tile {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+/* A fixed card folds up; a new one settles in. */
+.src-problem.is-leaving {
+  transition: height var(--dur-fast) var(--ease-out-expo), opacity var(--dur-instant) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  opacity: 0;
+}
+
+.src-problem.is-fading {
+  transition: opacity var(--dur-fast) var(--ease-out);
+  opacity: 0;
+}
+
+.src-problem.is-new {
+  animation: src-in var(--dur-base) var(--ease-out-expo);
+}
+
+@keyframes src-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .src-problem.is-new {
+    animation: src-fade var(--dur-base) var(--ease-linear);
+  }
+
+  .src-health--running .src-health__dot,
+  .src-word--running .src-word__dot {
+    animation: none;
+  }
+}
+
+@keyframes src-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- Collecting and Accounts ---------- */
+
+.src-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+  margin-top: var(--space-2xs);
+}
+
+@container sources (min-width: 640px) {
+  .src-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+}
+
+.src-group__count {
+  font-weight: var(--weight-medium);
+  letter-spacing: 0;
+}
+
+.src-list {
+  padding-block: var(--space-3xs) 0;
+}
+
+.src-list > .src-row + .src-row::before,
+.src-list > .src-row-wrap + .src-row-wrap::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 64px;
+  right: var(--space-md);
+  height: 1px;
+  background: var(--line);
+}
+
+.src-row-wrap {
+  position: relative;
+}
+
+.src-row {
+  align-items: center;
+  min-height: 60px;
+}
+
+@media (hover: hover) {
+  .src-row:hover {
+    background: var(--sunken);
+  }
+}
+
+/* Meta wraps to a second line rather than cut a name off. */
+.src-row .row__meta {
+  display: -webkit-box;
+  margin-top: 2px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.src-row .row__trail {
+  flex: none;
+}
+
+/* "Nothing new for 2 weeks": a quiet second line, not a problem. */
+.src-row__quiet {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.src-row.is-paused .row__title {
+  color: var(--ink-2);
+}
+
+/* "Use it" on an unused account: its own button, 44px tall, over the row's trail. */
+.src-use {
+  position: absolute;
+  top: 50%;
+  right: 34px;
+  transform: translateY(-50%);
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+}
+
+@media (hover: hover) {
+  .src-use:hover {
+    background: var(--accent-wash);
+  }
+}
+
+.src-use-gap {
+  display: inline-block;
+  width: 52px;
+}
+
+/* One status word with a dot. */
+.src-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.src-word__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  opacity: 0.6;
+}
+
+.src-word--good .src-word__dot {
+  background: var(--good);
+  opacity: 1;
+}
+
+.src-word--warn {
+  color: var(--warn);
+}
+
+.src-word--warn .src-word__dot {
+  background: var(--warn);
+  opacity: 1;
+}
+
+.src-word--running {
+  color: var(--accent-ink);
+}
+
+.src-word--running .src-word__dot {
+  background: var(--accent);
+  opacity: 1;
+  animation: src-pulse var(--dur-pulse) var(--ease-in-out) infinite;
+}
+
+/* "+ Start collecting", "Show all 11 accounts": the last line of a list. */
+.src-more {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-md);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+  text-align: left;
+}
+
+.src-more svg {
+  width: 16px;
+  height: 16px;
+}
+
+.src-more--center {
+  justify-content: center;
+}
+
+@media (hover: hover) {
+  .src-more:hover {
+    background: var(--sunken);
+  }
+}
+
+.src-list > .src-more:last-child {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.src-card--empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-md) 0 0;
+  overflow: hidden;
+}
+
+.src-card--empty > :not(.src-more) {
+  padding-inline: var(--space-md);
+}
+
+.src-card__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.src-card__sub {
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+/* ---------- First run ---------- */
+
+.src-starters {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+@container sources (min-width: 640px) {
+  .src-starters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.src-starter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 92px;
+  padding: var(--space-md);
+  text-align: left;
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .src-starter:not(:disabled):hover {
+    border-color: var(--line-strong);
+  }
+}
+
+.src-starter:not(:disabled):active {
+  transform: scale(0.99);
+}
+
+.src-starter:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.src-starter__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.src-starter__title {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.src-starter__line {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.src-starter__logos {
+  display: flex;
+  gap: 6px;
+  margin-top: var(--space-xs);
+}
+
+.src-browse {
+  align-self: center;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+}
+
+@media (hover: hover) {
+  .src-browse:hover {
+    background: var(--accent-wash);
+  }
+}
+
+.src-note {
+  font-size: var(--text-meta);
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.src--first .src-foot {
+  margin-top: var(--space-lg);
+}
+
+/* ---------- Footer, empty states ---------- */
+
+.src-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.src-foot svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.src-empty .btn {
+  margin-top: var(--space-sm);
+}
+
+/* ---------- The count pill: Settings row, desktop nav ---------- */
+
+.src-pill {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background: var(--warn-wash);
+  color: var(--warn);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings__nav-pill {
+  display: inline-flex;
+  margin-left: auto;
+}
+
+.settings__nav-pill:empty {
+  display: none;
+}
+
+.src-row-meta--warn {
+  color: var(--warn);
+  font-weight: var(--weight-medium);
+}
+
+/* ---------- Status card and menu (components/status.ts) ---------- */
+
+.status-dot[data-state="attention"] {
+  background: var(--warn);
+}
+
+.status-dot[data-state="stale"] {
+  background: var(--ink-3);
+  opacity: 0.6;
+}
+
+.status-card__needs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-inline: -4px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--warn-wash);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.status-card__needs.is-stale {
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .status-card__needs:hover {
+    background: color-mix(in oklch, var(--warn-wash) 80%, var(--warn));
+  }
+
+  .status-card__needs.is-stale:hover {
+    background: var(--sunken-strong);
+  }
+}
+
+.status-card__needs-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.status-card__needs-sub,
+.status-card__needs-link {
+  padding-left: 16px;
+  font-size: var(--text-meta);
+}
+
+.status-card__needs-sub {
+  color: var(--ink-2);
+}
+
+.status-card__needs-link {
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+}
+
+.menu__item.menu__needs {
+  align-items: flex-start;
+  height: auto;
+  min-height: 44px;
+  padding: 10px 12px;
+  background: var(--warn-wash);
+  text-align: left;
+}
+
+.menu__item.menu__needs.is-stale {
+  background: var(--sunken);
+}
+
+.menu__needs .status-dot {
+  margin-top: 6px;
+}
+
+.menu__needs-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.menu__needs-title {
+  font-weight: var(--weight-semibold);
+}
+
+.menu__needs-sub {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-regular);
+  color: var(--ink-2);
+}
+
+.menu__needs-link {
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+}
+
+/* The connected sheet's "what it saves" lines, now from collection-words.ts: a title and a quieter line. */
+.acct-saves__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.acct-saves__title {
+  color: var(--ink);
+}
+
+.acct-saves__item--never .acct-saves__title {
+  color: inherit;
+}
+
+.acct-saves__sub {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* ---------- Voice (F27): the floating tab bar never covers Connect ---------- */
+
+/* Tapping the key field scrolls far enough to show the button above the tab bar, and the
+   page ends with room to spare. Phones only: desktop has no tab bar. */
+@media (max-width: 1023px) {
+  .voice-form--clear {
+    padding-bottom: var(--space-sm);
+    scroll-margin-bottom: calc(var(--dock-height) + var(--safe-bottom) + var(--space-md));
+  }
+
+  .voice-form--clear .prop__input {
+    scroll-margin-bottom: calc(44px + 2 * var(--space-sm) + var(--dock-height) + var(--safe-bottom) + var(--space-xl) + var(--space-sm));
+  }
+}
+
+.src-needs[hidden] {
+  display: none;
+}

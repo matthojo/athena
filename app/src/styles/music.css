@@ -1,0 +1,759 @@
+/*
+ * Music (views/music.ts). House's cards and headline (house.css) carry the
+ * page; this adds the period row, ranked bars, the cover grid, the day list
+ * and the artist sheet. Tokens only, both themes; series 1 for plays.
+ */
+
+.mu-periods {
+  margin-bottom: var(--space-sm);
+}
+
+.mu-periods .segmented__item[aria-checked="true"] {
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+
+@media (hover: hover) {
+  .mu-periods .segmented__item:not([aria-checked="true"]):hover {
+    color: var(--ink);
+  }
+}
+
+.mu-page {
+  max-width: 1040px;
+}
+
+.mu-page.is-entering .mu-grid {
+  animation: mu-in var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes mu-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mu-page.is-entering .mu-grid {
+    animation: none;
+  }
+}
+
+.mu-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.mu-col {
+  display: contents;
+}
+
+.mu-card--artists { order: 1; }
+.mu-card--albums { order: 2; }
+.mu-card--new { order: 3; }
+.mu-card--recent { order: 4; }
+.mu-card--playlists { order: 5; }
+
+.mu-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.mu-signin {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.mu-pl-cover {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  font: var(--weight-semibold) var(--text-heading) / 1 var(--font-display, var(--font-ui));
+  letter-spacing: 0.02em;
+}
+
+.mu-sheet__art.mu-pl-cover {
+  font-size: var(--text-ui);
+}
+
+.mu-pl-artists {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mu-pl-artist {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  font-size: var(--text-small);
+}
+
+.mu-pl-artist__n {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.mu-pl-tracks {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mu-pl-track {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: 6px 0;
+}
+
+.mu-pl-track + .mu-pl-track {
+  border-top: 1px solid var(--line);
+}
+
+.mu-pl-track__n {
+  flex: none;
+  width: 2em;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mu-pl-track__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mu-pl-track__name {
+  overflow: hidden;
+  font-size: var(--text-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mu-pl-track__by {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  .mu-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    min-width: 0;
+  }
+  .mu-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-lg);
+    align-items: start;
+  }
+  .mu-hero,
+  .mu-timeline,
+  .mu-when,
+  .mu-genres {
+    grid-column: 1 / -1;
+  }
+}
+
+.mu-ico {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.mu-ico--lg {
+  width: 26px;
+  height: 26px;
+}
+
+/* ---------- The headline ---------- */
+
+.mu-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-2xs) 0 var(--space-xs);
+}
+
+.mu-hero__line {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  text-wrap: pretty;
+}
+
+.mu-hero__note {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.mu-chip {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklch, var(--chart-1) 12%, var(--surface));
+  color: color-mix(in oklch, var(--chart-1) 78%, var(--ink));
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mu-chip.is-same {
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+/* ---------- Top artists: ranked bars ---------- */
+
+.mu-ranks {
+  display: flex;
+  flex-direction: column;
+  margin: 0 calc(-1 * var(--space-xs));
+  padding: 0;
+  list-style: none;
+}
+
+.mu-rank {
+  display: grid;
+  grid-template-columns: 1.5em 40px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 52px;
+  padding: 6px var(--space-xs);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  color: inherit;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .mu-rank:hover {
+    background: var(--sunken);
+  }
+}
+
+.mu-rank:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.mu-rank__n {
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mu-rank__art {
+  width: 40px;
+  border-radius: var(--radius-xs);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.mu-rank__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mu-rank__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.mu-rank__name {
+  overflow: hidden;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mu-rank__plays {
+  flex: none;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mu-rank__track {
+  display: block;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.mu-rank__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--chart-1);
+}
+
+.mu-rank:not(:first-child) .mu-rank__fill,
+li:not(:first-child) > .mu-rank .mu-rank__fill {
+  background: color-mix(in oklch, var(--chart-1) 62%, var(--surface));
+}
+
+/* ---------- Top albums: a cover grid ---------- */
+
+.mu-albums {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md) var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 560px) {
+  .mu-albums {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .mu-albums {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.mu-album {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  color: inherit;
+}
+
+.mu-album__art,
+.mu-sheet__album-art {
+  width: 100%;
+  margin-bottom: 6px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--line), 0 10px 22px -14px oklch(0.2 0.03 264 / 0.5);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .mu-album:hover .mu-album__art {
+    transform: translateY(-2px);
+  }
+}
+
+.mu-album:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.mu-album__title {
+  overflow: hidden;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mu-album__plays {
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.mu-more {
+  align-self: flex-start;
+  margin: calc(-1 * var(--space-2xs)) 0 0 calc(-1 * var(--space-xs));
+}
+
+.mu-album__sub {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- New this period ---------- */
+
+.mu-new {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  margin: 0 calc(-1 * var(--space-xs));
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 560px) and (max-width: 899px) {
+  .mu-new {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mu-new__item,
+.mu-day {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 52px;
+  padding: 6px var(--space-xs);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .mu-new__item:hover,
+  .mu-day:hover {
+    background: var(--sunken);
+  }
+}
+
+.mu-new__item:focus-visible,
+.mu-day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.mu-new__art,
+.mu-day__art {
+  width: 40px;
+  flex: none;
+  border-radius: var(--radius-xs);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.mu-new__body,
+.mu-day__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mu-new__name,
+.mu-day__when {
+  overflow: hidden;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mu-new__meta,
+.mu-day__who {
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Recently played ---------- */
+
+.mu-days {
+  display: flex;
+  flex-direction: column;
+  margin: 0 calc(-1 * var(--space-xs));
+  padding: 0;
+  list-style: none;
+}
+
+.mu-days > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.mu-day__plays {
+  flex: none;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.mu-day__go {
+  color: var(--ink-3);
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Empty and loading ---------- */
+
+.mu-empty {
+  max-width: 560px;
+}
+
+.mu-empty__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-sm);
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.mu-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mu-sk {
+  display: block;
+  border-radius: var(--radius-lg);
+}
+
+.mu-sk--hero {
+  height: 96px;
+  max-width: 420px;
+}
+
+.mu-sk--card {
+  height: 220px;
+}
+
+.mu-sk--sheet {
+  height: 240px;
+}
+
+/* ---------- The artist sheet ---------- */
+
+.mu-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.mu-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.mu-sheet__art {
+  width: 72px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--line), 0 10px 22px -14px oklch(0.2 0.03 264 / 0.5);
+}
+
+.mu-sheet__words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mu-sheet__big {
+  margin: 0;
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mu-sheet__meta {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.mu-sheet__facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.mu-sheet__facts > div {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.mu-sheet__facts dt {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.mu-sheet__facts dd {
+  margin: 2px 0 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.mu-sheet__sub {
+  margin: 0 0 calc(-1 * var(--space-xs));
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.mu-sheet__chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.mu-sheet__albums {
+  display: flex;
+  gap: var(--space-sm);
+  margin: 0 calc(-1 * var(--space-md));
+  padding: 0 var(--space-md) var(--space-2xs);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.mu-sheet__album {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  width: 96px;
+  scroll-snap-align: start;
+}
+
+.mu-sheet__ask {
+  align-self: flex-start;
+}
+
+/* ---------- To listen: the albums, songs and sets saved to get to (it was Watch & read's Music shelf) ---------- */
+
+.mu-listen-slot:empty {
+  display: none;
+}
+
+.mu-listen-slot {
+  margin-bottom: var(--space-md);
+}
+
+.mu-listen__count {
+  margin-left: var(--space-xs);
+  color: var(--ink-3);
+  font: var(--weight-regular) var(--text-small) / 1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The shelf runs to the card's edges, as Watch & read's run to the page's. */
+.mu-listen__rail {
+  margin-bottom: calc(-1 * var(--space-xs));
+}
+
+/* For the season: Watch & read's tinted shelf (watch.css), as a card on this page. */
+.mu-listen-slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mu-season.watch-season {
+  margin-inline: 0;
+  padding: var(--space-md);
+  border-color: color-mix(in oklch, var(--season) 16%, transparent);
+  box-shadow: none;
+}
+
+.mu-season .watch-season__line {
+  margin-top: calc(-1 * var(--space-2xs));
+}
+
+.mu-season .watch-rail {
+  margin-inline: calc(-1 * var(--space-md));
+}
+
+.mu-season.watch-season {
+  background: color-mix(in oklch, var(--season) 9%, var(--surface));
+}
+
+/* A playlist on the season's shelf is the size of the sleeves beside it. */
+.mu-season__rail > li:not(.watch-card) {
+  flex: none;
+  width: 148px;
+  scroll-snap-align: start;
+}
+
+@media (max-width: 639.98px) {
+  .mu-season__rail > li:not(.watch-card) {
+    width: 128px;
+  }
+}
+
+/* Music videos and Listened: sleeves in a wrapped grid, at the foot of the page. */
+.mu-foot-slot {
+  margin-top: var(--space-md);
+  margin-bottom: 0;
+}
+
+.mu-sleeves {
+  --gw: 148px;
+  justify-content: flex-start;
+  gap: var(--space-md);
+}
+
+@media (max-width: 639.98px) {
+  .mu-sleeves {
+    --gw: 128px;
+  }
+}
+
+/* ---------- Genres: a radar, kept to a readable size on a wide page ---------- */
+
+.mu-genres .hc-radar-wrap,
+.mu-genres > .hc {
+  width: 100%;
+  max-width: 460px;
+  margin-inline: auto;
+}
+
+.mu-genres__note {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  text-align: center;
+}

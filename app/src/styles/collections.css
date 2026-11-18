@@ -1,0 +1,1243 @@
+/**
+ * Collections: the recipe picker, the sentence form and the detail with its
+ * diary (components/collection-form.ts, components/collection-detail.ts).
+ * Everything here is prefixed cl- so it never meets the older conn-* and cf-*
+ * rules in components.css.
+ */
+
+/* ---------- Shared ---------- */
+
+.cl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.cl-tile {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(150deg, var(--accent-wash), var(--sunken));
+  color: var(--accent-ink);
+}
+
+.cl-tile svg {
+  width: 19px;
+  height: 19px;
+}
+
+.cl-tile--lg {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+}
+
+.cl-tile--lg svg {
+  width: 26px;
+  height: 26px;
+}
+
+.cl-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .cl-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.cl-mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.cl-warn-text {
+  color: var(--warn);
+}
+
+/* ---------- 1. Recipe picker ---------- */
+
+.cl-lede {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  text-wrap: pretty;
+}
+
+.cl-recipes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.cl-recipe {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: start;
+  width: 100%;
+  padding: 14px var(--space-md);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform var(--dur-instant) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.cl-recipe:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) {
+  .cl-recipe:hover {
+    border-color: var(--line-strong);
+  }
+}
+
+.cl-recipe:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cl-recipe__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cl-recipe__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.cl-recipe__line {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.cl-recipe__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cl-recipe__meta svg {
+  width: 13px;
+  height: 13px;
+}
+
+.cl-recipe__meta--ready {
+  color: var(--good);
+  font-weight: var(--weight-medium);
+}
+
+.cl-recipe__meta--warn {
+  color: var(--warn);
+  font-weight: var(--weight-medium);
+}
+
+.cl-recipe__chev {
+  align-self: center;
+  color: var(--ink-3);
+}
+
+.cl-recipe__chev svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- 2. The sentence form ---------- */
+
+.cl-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.cl-formhead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.cl-sentence-card {
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+}
+
+.cl-sentence__line {
+  font-size: var(--text-body);
+  line-height: 2.35;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+/* A blue word: the picker sits invisibly on top, so a tap opens the phone's own wheel. */
+.cl-pick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 34px;
+  padding: 0 8px 0 10px;
+  margin-block: 2px;
+  vertical-align: middle;
+  border-radius: var(--radius-xs);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+/* Taller hit area without a taller pill. */
+.cl-pick::after {
+  content: "";
+  position: absolute;
+  inset: -5px -2px;
+}
+
+@media (hover: hover) {
+  .cl-pick:hover {
+    background: color-mix(in oklch, var(--accent-wash) 70%, var(--accent) 12%);
+  }
+}
+
+.cl-pick:focus-within,
+.cl-pick--button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cl-pick__caret {
+  display: inline-grid;
+  opacity: 0.7;
+}
+
+.cl-pick__caret svg {
+  width: 14px;
+  height: 14px;
+}
+
+.cl-pick__native {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: var(--text-body); /* iOS won't zoom on focus */
+  appearance: none;
+}
+
+.cl-pick--button[aria-expanded="true"] .cl-pick__caret {
+  transform: rotate(180deg);
+}
+
+.cl-pick--empty {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px
+    color-mix(in oklch, var(--accent) 55%, transparent);
+  font-weight: var(--weight-medium);
+}
+
+.cl-pick--warn {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.cl-pick--input {
+  padding: 0;
+  cursor: text;
+}
+
+.cl-pick--input input {
+  min-width: 4ch;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  font-size: max(var(--text-body), 1em);
+  outline: none;
+}
+
+.cl-pick--input input::placeholder {
+  color: color-mix(in oklch, var(--accent-ink) 55%, transparent);
+  font-weight: var(--weight-medium);
+}
+
+.cl-sentence__hint {
+  margin-top: var(--space-2xs);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cl-sentence__hint--warn {
+  color: var(--warn);
+  font-weight: var(--weight-medium);
+}
+
+/* The account list that opens under the sentence. */
+.cl-accounts {
+  margin: var(--space-xs) calc(-1 * var(--space-md)) var(--space-2xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--line);
+  animation: cl-drop var(--dur-fast) var(--ease-out-expo);
+}
+
+.cl-accounts__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cl-accounts__others {
+  border-top: 1px solid var(--line);
+}
+
+.cl-accounts__note {
+  padding: var(--space-sm) var(--space-md) 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cl-accounts__more {
+  padding-inline: var(--space-md);
+}
+
+.cl-account {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+  min-height: 56px;
+  padding: var(--space-xs) var(--space-md);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.cl-account:active {
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .cl-account:hover {
+    background: color-mix(in oklch, var(--sunken) 55%, var(--surface));
+  }
+}
+
+.cl-account__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cl-account__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-account__meta {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cl-account--warn .cl-account__meta {
+  color: var(--warn);
+}
+
+/* A round check, like Reminders. */
+.cl-check {
+  flex: none;
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  appearance: none;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.cl-check::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 3.5px;
+  width: 6px;
+  height: 11px;
+  border: solid var(--on-ink);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0.6);
+  opacity: 0;
+  transition:
+    transform var(--dur-fast) var(--ease-out-expo),
+    opacity var(--dur-instant) var(--ease-out);
+}
+
+.cl-check:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.cl-check:checked::after {
+  opacity: 1;
+  transform: rotate(45deg) scale(1);
+}
+
+.cl-check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* No account fits yet (an empty Life log). */
+.cl-needs {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.cl-needs__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+.cl-needs__icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.cl-needs__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.cl-needs__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.cl-needs__sub {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.cl-needs .btn {
+  margin-top: var(--space-sm);
+}
+
+/* What it saves */
+.cl-saves {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cl-saves__row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+.cl-saves__row--never {
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--line);
+}
+
+.cl-saves__mark {
+  display: grid;
+  place-items: center;
+  height: 20px;
+}
+
+.cl-saves__mark svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2.2;
+}
+
+.cl-saves__mark--yes {
+  color: var(--good);
+}
+
+.cl-saves__mark--no {
+  color: var(--ink-3);
+}
+
+.cl-saves__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cl-saves__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+.cl-saves__sub {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+/* Custom collections: what to look for */
+.cl-instructions {
+  padding: var(--space-sm) var(--space-md);
+}
+
+.cl-textarea {
+  display: block;
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  outline: none;
+}
+
+.cl-textarea::placeholder {
+  color: var(--ink-3);
+}
+
+.cl-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.cl-field:focus-within,
+.cl-instructions:focus-within {
+  border-color: var(--accent);
+}
+
+.cl-field__label {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+}
+
+/* More options */
+.cl-more {
+  border-top: 1px solid var(--line);
+}
+
+.cl-more__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-sm);
+  align-items: center;
+  min-height: 56px;
+  padding-block: var(--space-xs);
+  list-style: none;
+  cursor: pointer;
+}
+
+.cl-more__summary::-webkit-details-marker {
+  display: none;
+}
+
+.cl-more__summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.cl-more__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+}
+
+.cl-more__sub {
+  grid-column: 1;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cl-more__chev {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  color: var(--ink-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.cl-more__chev svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cl-more[open] .cl-more__chev {
+  transform: rotate(180deg);
+}
+
+.cl-more__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-bottom: var(--space-xs);
+  animation: cl-drop var(--dur-fast) var(--ease-out-expo);
+}
+
+.cl-more__body > .card + .form__hint,
+.cl-more__body > .form__hint + .card,
+.cl-more__body > .form__hint + .cl-field,
+.cl-more__body > .cl-field + .card {
+  margin-top: var(--space-2xs);
+}
+
+.cl-submit {
+  height: 52px;
+  font-size: var(--text-ui);
+}
+
+.cl-form .form__error:empty {
+  display: none;
+}
+
+.cl-foot {
+  margin-top: calc(-1 * var(--space-sm));
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.cl-foot:empty {
+  display: none;
+}
+
+/* ---------- 3. The detail ---------- */
+
+.cl-detail {
+  gap: var(--space-lg);
+}
+
+.conn-sheet .cl-detail {
+  padding-top: var(--space-2xs);
+}
+
+.cl-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+}
+
+.cl-hero .cl-tile {
+  margin-bottom: var(--space-sm);
+}
+
+.cl-hero__title {
+  padding-top: 0;
+  text-wrap: balance;
+}
+
+.cl-hero__sentence {
+  color: var(--ink-2);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  text-wrap: pretty;
+}
+
+.cl-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-2xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.cl-state:empty {
+  display: none;
+}
+
+.cl-state__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cl-state--running {
+  color: var(--accent-ink);
+}
+
+.cl-state--running .cl-state__dot {
+  animation: cl-pulse var(--dur-pulse) var(--ease-in-out) infinite;
+}
+
+.cl-state--off {
+  color: var(--ink-3);
+}
+
+.cl-state--off .cl-state__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+/* The one thing that needs you. Amber, never red: nothing is lost. */
+.cl-problem-slot:empty {
+  display: none;
+}
+
+.cl-problem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 14px var(--space-md);
+  border-radius: var(--radius-md);
+  animation: cl-drop var(--dur-base) var(--ease-out-expo);
+}
+
+.cl-problem--warn {
+  background: var(--warn-wash);
+}
+
+.cl-problem--quiet {
+  background: var(--sunken);
+}
+
+.cl-problem__body {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cl-problem__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.cl-problem--warn .cl-problem__title {
+  color: color-mix(in oklch, var(--warn) 78%, var(--ink));
+}
+
+.cl-problem__sub {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.cl-problem__btn {
+  flex: none;
+  height: 38px;
+  padding-inline: var(--space-md);
+  font-size: var(--text-small);
+}
+
+/* Run now and On */
+.cl-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.cl-run {
+  flex: 1;
+  height: 48px;
+  font-size: var(--text-ui);
+}
+
+.cl-run.is-running svg {
+  animation: cl-spin calc(var(--dur-spin) * 1.375) var(--ease-linear) infinite;
+}
+
+.cl-run:disabled {
+  opacity: 1;
+  color: var(--ink-2);
+}
+
+.cl-on {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.cl-on__label {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+}
+
+/* The diary: one grid, so every time lines up. */
+.cl-diary {
+  display: grid;
+  grid-template-columns: max-content 8px minmax(0, 1fr) auto;
+  column-gap: var(--space-sm);
+  padding: var(--space-2xs) var(--space-md) var(--space-xs);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.cl-day {
+  display: contents;
+}
+
+.cl-day__label {
+  grid-column: 1 / -1;
+  padding: var(--space-sm) 0 0;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.cl-day + .cl-day .cl-day__label {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.cl-entry,
+.cl-entry__toggle {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+}
+
+.cl-entry {
+  padding-block: 6px;
+}
+
+.cl-entry--saved {
+  padding-block: 0;
+}
+
+.cl-entry__toggle {
+  width: 100%;
+  min-height: 44px;
+  padding-block: 6px;
+  margin-inline: calc(-1 * var(--space-xs));
+  padding-inline: var(--space-xs);
+  width: calc(100% + 2 * var(--space-xs));
+  border-radius: var(--radius-xs);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .cl-entry__toggle:hover {
+    background: color-mix(in oklch, var(--sunken) 60%, var(--surface));
+  }
+}
+
+.cl-entry__toggle:active {
+  background: var(--sunken);
+}
+
+.cl-entry__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.cl-entry__time {
+  grid-column: 1;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cl-entry__dot {
+  grid-column: 2;
+  align-self: start;
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 50%;
+}
+
+.cl-entry__dot--saved {
+  background: var(--good);
+}
+
+.cl-entry__dot--nothing {
+  box-shadow: inset 0 0 0 1.5px var(--ink-3);
+}
+
+.cl-entry__dot--didnt {
+  background: var(--warn);
+}
+
+.cl-entry__dot--running {
+  background: var(--accent);
+  animation: cl-pulse var(--dur-pulse) var(--ease-in-out) infinite;
+}
+
+.cl-entry__body {
+  grid-column: 3;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cl-entry__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.cl-entry--nothing .cl-entry__title {
+  font-weight: var(--weight-regular);
+  color: var(--ink-2);
+}
+
+.cl-entry__sub {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.cl-entry--didnt .cl-entry__sub {
+  color: var(--ink-2);
+}
+
+.cl-entry__by {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cl-entry__chev {
+  grid-column: 4;
+  align-self: center;
+  color: var(--ink-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.cl-entry__chev svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cl-entry.is-open .cl-entry__chev {
+  transform: rotate(180deg);
+}
+
+/* What a run saved: links to each thing, then See all. */
+.cl-items {
+  grid-column: 3 / -1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-xs);
+  animation: cl-drop var(--dur-fast) var(--ease-out-expo);
+}
+
+.cl-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-xs);
+  align-items: center;
+  min-height: 40px;
+  color: var(--ink);
+  font-size: var(--text-small);
+  text-decoration: none;
+  border-radius: var(--radius-xs);
+}
+
+.cl-item + .cl-item {
+  border-top: 1px solid var(--line);
+}
+
+@media (hover: hover) {
+  .cl-item:hover .cl-item__title {
+    color: var(--accent-ink);
+  }
+}
+
+.cl-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cl-item__icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.cl-item__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.cl-item__title {
+  padding-block: 6px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.35;
+  font-weight: var(--weight-medium);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.cl-item--archived .cl-item__title {
+  color: var(--ink-3);
+}
+
+.cl-item__tag {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cl-items__all {
+  align-self: flex-start;
+  min-height: 40px;
+}
+
+.cl-items__all::after {
+  content: " ›";
+  white-space: pre;
+}
+
+.cl-items__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-block: var(--space-xs);
+}
+
+.cl-items__loading .skeleton {
+  height: 12px;
+  width: 70%;
+}
+
+.cl-items__loading .skeleton + .skeleton {
+  width: 50%;
+}
+
+.cl-diary__more {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.cl-entry--loading {
+  padding-block: var(--space-sm);
+  align-items: center;
+}
+
+.cl-skel-time {
+  grid-column: 1;
+  width: 36px;
+  height: 10px;
+}
+
+.cl-skel-dot {
+  grid-column: 2;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cl-skel-line {
+  grid-column: 3;
+  width: 60%;
+  height: 12px;
+}
+
+.cl-empty {
+  grid-column: 1 / -1;
+  padding: var(--space-md) 0 var(--space-sm);
+}
+
+.cl-empty__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.cl-empty__sub {
+  margin-top: 2px;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+/* Settings and details */
+.cl-details {
+  animation: cl-drop var(--dur-base) var(--ease-out-expo);
+}
+
+.cl-details__gap {
+  margin-top: var(--space-sm);
+}
+
+.cl-instructions-view {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  line-height: var(--leading-body);
+  white-space: pre-wrap;
+}
+
+.cl-details__notes {
+  margin-top: var(--space-2xs);
+}
+
+/* Quiet footer: Edit · Settings and details · Delete */
+.cl-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2xs);
+  margin-top: calc(-1 * var(--space-xs));
+}
+
+.cl-foot-link {
+  min-height: 44px;
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  border-radius: var(--radius-xs);
+}
+
+.cl-foot-link:first-child {
+  margin-left: calc(-1 * var(--space-2xs));
+}
+
+@media (hover: hover) {
+  .cl-foot-link:hover {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .cl-foot-link--danger:hover {
+    color: var(--bad);
+  }
+}
+
+.cl-foot-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.cl-foot-link--danger {
+  color: var(--ink-3);
+}
+
+.cl-footer__sep {
+  color: var(--ink-3);
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes cl-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes cl-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes cl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-accounts,
+  .cl-more__body,
+  .cl-problem,
+  .cl-items,
+  .cl-details {
+    animation: cl-fade var(--dur-fast) var(--ease-linear);
+  }
+
+  .cl-state--running .cl-state__dot,
+  .cl-entry__dot--running,
+  .cl-run.is-running svg {
+    animation: none;
+  }
+}
+
+@keyframes cl-fade {
+  from {
+    opacity: 0;
+  }
+}

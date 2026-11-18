@@ -1,0 +1,305 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  font-kerning: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  text-align: inherit;
+  /* A long press on a button is a tap, not a text selection (iOS shows Copy / Look Up otherwise). */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+::selection {
+  background: var(--accent-wash);
+  color: var(--ink);
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/* Component display rules (grid/flex) would otherwise beat the UA's
+   [hidden] { display: none } and leave "hidden" elements visible. */
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Atmosphere: the aurora haze from the references ---------- */
+
+.aurora {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 420px;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.aurora span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  will-change: transform;
+  /* A change of daypart drifts in over a few seconds, never a cut. */
+  transition: background-color calc(var(--dur-drift) / 5) var(--ease-in-out);
+}
+
+/* The aurora follows the time of day (lib/format.ts followDayPart). */
+:root[data-daypart="morning"] {
+  --aurora-a: var(--aurora-a-morning);
+}
+
+:root[data-daypart="evening"] {
+  --aurora-a: var(--aurora-a-evening);
+}
+
+.aurora span:nth-child(1) {
+  width: 340px;
+  height: 260px;
+  top: -140px;
+  left: -60px;
+  background: var(--aurora-a);
+  animation: aurora-drift-a calc(var(--dur-drift) * 0.85) var(--ease-in-out) infinite alternate;
+}
+
+.aurora span:nth-child(2) {
+  width: 300px;
+  height: 240px;
+  top: -120px;
+  left: 42%;
+  background: var(--aurora-b);
+  animation: aurora-drift-b calc(var(--dur-drift) * 1.05) var(--ease-in-out) infinite alternate;
+}
+
+@keyframes aurora-drift-a {
+  to {
+    transform: translate(60px, 30px) scale(1.12);
+  }
+}
+
+@keyframes aurora-drift-b {
+  to {
+    transform: translate(-70px, 20px) scale(0.92);
+  }
+}
+
+/* ---------- Shell ---------- */
+
+.shell {
+  min-height: 100dvh;
+}
+
+.sidebar {
+  display: none;
+}
+
+.main {
+  min-width: 0;
+  padding: calc(var(--safe-top) + var(--space-md)) calc(var(--space-md) + var(--safe-right))
+    calc(var(--safe-bottom) + var(--dock-height) + var(--space-2xl)) calc(var(--space-md) + var(--safe-left));
+}
+
+.view {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+@media (min-width: 640px) {
+  .main {
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .sidebar {
+    display: flex;
+  }
+
+  /* One gutter after the sidebar; every page is left-aligned to it, at
+     one of two widths (tokens.css, "Page frame"). */
+  .main {
+    height: 100dvh;
+    overflow-y: auto;
+    padding: var(--space-xl) var(--page-gutter) var(--space-2xl);
+    scroll-padding-top: var(--space-lg);
+  }
+
+  .view {
+    max-width: var(--page-wide);
+    margin-inline: 0;
+  }
+
+  .aurora {
+    left: var(--sidebar-width);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 160px);
+    mask-image: linear-gradient(to right, transparent, #000 160px);
+  }
+}
+
+/* ---------- Motion ---------- */
+
+.reveal {
+  animation: rise var(--dur-slow) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger));
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Tab switches cross-fade with a short lift; the dock and sidebar are named so
+   they stay put instead of fading with the page. */
+.dock {
+  view-transition-name: dock;
+}
+
+.sidebar {
+  view-transition-name: sidebar;
+}
+
+::view-transition-old(root) {
+  animation: var(--dur-instant) var(--ease-in) both vt-out;
+}
+
+::view-transition-new(root) {
+  animation: var(--dur-base) var(--ease-out) both vt-in;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

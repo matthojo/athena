@@ -1,0 +1,662 @@
+/* Pictures in Ask and assistant chats (components/ask-picture.ts), and the "Answered with" line. */
+
+.pics {
+  display: grid;
+  /* minmax(0, …) and min-width: 0 let a long note name shrink inside the bubble rather than widen it. */
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-sm);
+}
+
+@media (min-width: 720px) {
+  .pics[data-count="2"] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.pic {
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-xs);
+  /* A picture reads at its size on a wide screen and fills the bubble on a phone. */
+  max-width: min(100%, 440px);
+}
+
+.pics[data-count="2"] .pic {
+  max-width: 100%;
+}
+
+.pic__frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--sunken);
+  cursor: zoom-in;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.pic__frame:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .pic__frame:hover {
+    border-color: var(--line-strong);
+  }
+}
+
+.pic__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.015);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out-expo);
+}
+
+.pic__frame.is-made .pic__img {
+  opacity: 1;
+  transform: none;
+}
+
+/* The "open" mark: only where a pointer can hover; a tap needs no hint. */
+.pic__zoom {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: oklch(0.21 0.012 264 / 0.55);
+  color: oklch(0.985 0.003 264);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+  pointer-events: none;
+}
+
+.pic__zoom svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (hover: hover) {
+  .pic__frame:hover .pic__zoom,
+  .pic__frame:focus-visible .pic__zoom {
+    opacity: 1;
+  }
+}
+
+.pic__frame--missing {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-lg);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  text-align: center;
+  cursor: default;
+}
+
+/* Under the picture: which model made it, then what you can do with it. */
+.pic__bar {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs) var(--space-sm);
+}
+
+.pic__made {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-width: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.pic__made svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.pic__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The app's small soft buttons (components.css .btn--sm): 34px to look at, 44px to tap. */
+.pic__btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.pic__btn::after {
+  content: "";
+  position: absolute;
+  inset: -5px -2px;
+}
+
+.pic__btn svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+@media (hover: hover) {
+  .pic__btn:hover:not(:disabled) {
+    background: var(--sunken-strong);
+  }
+}
+
+.pic__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pic__btn:disabled {
+  color: var(--ink-3);
+  cursor: default;
+}
+
+.pic__btn--icon {
+  width: 34px;
+  padding: 0;
+}
+
+.pic__btn--quiet {
+  background: transparent;
+  color: var(--ink-2);
+}
+
+/* A long note name gives way: the chip shrinks and ends in "…", the buttons beside it never wrap. */
+.pic__btn--saved {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 220px;
+  background: var(--mint-wash);
+  color: var(--ink);
+}
+
+.pic__btn--saved svg {
+  color: var(--good);
+}
+
+.pic__btn-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Undone: archived. A small quiet row in the picture's place: its own thumbnail, faded, and Restore. */
+.pic--archived {
+  animation: pic-settle var(--dur-base) var(--ease-out-expo) both;
+}
+
+.pic__archived {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 56px;
+  padding: 8px 8px 8px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.pic__ghost {
+  flex: none;
+  display: block;
+  height: 40px;
+  max-width: 64px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--sunken-strong);
+}
+
+.pic__ghost-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+  filter: saturate(0.4);
+}
+
+.pic__archived-what {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.pic__archived-title {
+  overflow: hidden;
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-small);
+  font-weight: 500;
+}
+
+.pic__archived .pic__btn {
+  flex: none;
+  background: var(--surface);
+}
+
+@keyframes pic-settle {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pic--archived {
+    animation: none;
+  }
+}
+
+/* Deleted for good: the picture's place, dashed, as a deleted file shows. */
+.pic--removed .pic__gone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.pic--removed svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- While it's made ---------- */
+
+.pics-live {
+  display: grid;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.pics-live[hidden] {
+  display: none;
+}
+
+.pic--slot {
+  gap: var(--space-2xs);
+}
+
+.pic-slot__frame {
+  --pic-shine: oklch(1 0 0 / 0.42);
+  cursor: default;
+  border-style: solid;
+  background:
+    radial-gradient(120% 90% at 20% 15%, var(--accent-wash), transparent 60%),
+    radial-gradient(90% 80% at 85% 90%, var(--mint-wash), transparent 65%),
+    var(--sunken);
+}
+
+/* A slow wash of light across the frame: something is happening, without hurry. */
+.pic-slot__wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, var(--pic-shine) 50%, transparent 70%);
+  background-size: 250% 100%;
+  animation: pic-wash calc(var(--dur-pulse) * 1.75) var(--ease-in-out) infinite;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* A faint sheen on a dark panel, not a white bar. */
+  .pic-slot__frame {
+    --pic-shine: oklch(1 0 0 / 0.06);
+  }
+}
+
+.pic-slot__mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  opacity: 0.55;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.pic-slot__mark svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* Once the picture is in, the placeholder's sheen and mark go. (The dark sheen is set above.) */
+.pic-slot__frame.is-made .pic-slot__wash,
+.pic-slot__frame.is-made .pic-slot__mark {
+  opacity: 0;
+  animation: none;
+}
+
+.pic-slot__frame .pic__img {
+  position: absolute;
+  inset: 0;
+}
+
+.pic-slot__line {
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+@keyframes pic-wash {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pic-slot__wash {
+    animation: none;
+    opacity: 0;
+  }
+  .pic__img {
+    transition: opacity var(--dur-fast) var(--ease-linear);
+    transform: none;
+  }
+}
+
+/* ---------- Save to a note ---------- */
+
+.pic-save {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.pic-save__preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.pic-save__thumb {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: var(--radius-xs);
+  object-fit: cover;
+  background: var(--sunken-strong);
+}
+
+.pic-save__what {
+  min-width: 0;
+}
+
+.pic-save__name {
+  margin: 0;
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pic-save__meta {
+  margin: 2px 0 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.pic-save__search {
+  width: 100%;
+}
+
+.pic-save__list {
+  display: grid;
+  gap: 2px;
+}
+
+.pic-save__list[aria-busy="true"] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.pic-save__label {
+  margin: var(--space-xs) 0 var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.pic-save__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-2xs) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .pic-save__row:hover {
+    background: var(--sunken);
+  }
+}
+
+.pic-save__row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.pic-save__row--new .tile {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.pic-save__row-body {
+  display: grid;
+  min-width: 0;
+}
+
+.pic-save__row-title {
+  font-size: var(--text-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pic-save__row-detail {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.pic-save__none {
+  margin: var(--space-xs) var(--space-xs) 0;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+/* ---------- Which model answered ---------- */
+
+.answer__model {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.answer__model svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+/* ---------- A photo for a model that can't see it (views/ask.ts, lib/vision-warning.ts) ---------- */
+
+/* Above the box, where the "About" chips sit: a calm card, not an alarm. The choice is the owner's. */
+.vision-warn {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  column-gap: 10px;
+  row-gap: 10px;
+  flex: 1 1 100%;
+  width: 100%;
+  padding: 12px 8px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+  animation: vision-rise var(--dur-base) var(--ease-out-expo) both;
+}
+
+.vision-warn__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.vision-warn__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.vision-warn__text {
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.vision-warn__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.vision-warn__body {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: 1.4;
+}
+
+.vision-warn__close {
+  margin: -4px 0 0;
+}
+
+.vision-warn__actions {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 2 / -1;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.vision-warn__actions .btn {
+  min-height: 40px;
+}
+
+/* A phone: the two choices full width, the one that sees first. */
+@media (max-width: 560px) {
+  .vision-warn__actions {
+    grid-column: 1 / -1;
+    flex-direction: column;
+    padding-right: 4px;
+  }
+
+  .vision-warn__actions .btn {
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@keyframes vision-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vision-warn {
+    animation: none;
+  }
+}
+
+/* ---------- On the Archived page (views/archived.ts) ---------- */
+
+.archived__pic {
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  cursor: zoom-in;
+}
+
+.archived__pic-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.archived__pic:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

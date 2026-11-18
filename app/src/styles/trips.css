@@ -1,0 +1,998 @@
+/* =========================================================================
+   Trips and Purchases (views/trips.ts, views/purchases.ts). Loaded with
+   those views on first visit, like graph.css. Built from the app's own
+   pieces (rows, cards, facts, profile heroes); what's new here is the date
+   tile, a booking's journey, and the delivery tracker.
+   ========================================================================= */
+
+@media (min-width: 1024px) {
+  .main[data-view="trips"],
+  .main[data-view="purchases"] {
+    overflow: hidden;
+    padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--page-gutter);
+  }
+}
+
+.empty--inline {
+  padding: var(--space-md);
+}
+
+.group__hint {
+  padding: var(--space-xs) var(--space-2xs) 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.badge--muted {
+  background: var(--sunken-strong);
+  color: var(--ink-2);
+}
+
+/* ---------- Trip rows: a small calendar page, then where and when ---------- */
+
+.date-tile {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  text-align: center;
+}
+
+.date-tile__month {
+  height: 12px;
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  line-height: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.date-tile__day {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.group--done .date-tile__month {
+  background: var(--sunken-strong);
+  color: var(--ink-3);
+}
+
+.trip-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.trip-row__kinds {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-3);
+}
+
+.trip-row__kinds svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ---------- A trip: its itinerary, day by day ---------- */
+
+.itinerary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.itinerary__day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.itinerary__label {
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.itinerary__day[data-past] .booking {
+  opacity: 0.72;
+}
+
+/* ---------- A booking ---------- */
+
+.booking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md);
+}
+
+.booking__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.booking__title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.booking__title-line .badge {
+  flex: none;
+}
+
+.booking__icon {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.booking[data-kind="hotel"] .booking__icon,
+.booking[data-kind="car"] .booking__icon,
+.booking[data-kind="event"] .booking__icon {
+  background: var(--mint-wash);
+  color: oklch(0.45 0.09 170);
+}
+
+@media (prefers-color-scheme: dark) {
+  .booking[data-kind="hotel"] .booking__icon,
+  .booking[data-kind="car"] .booking__icon,
+  .booking[data-kind="event"] .booking__icon {
+    color: oklch(0.82 0.08 170);
+  }
+}
+
+.booking__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.booking__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.booking__sub {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* When: two ends with the journey between, or check in and check out. */
+.leg {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(48px, 1fr) minmax(0, max-content);
+  align-items: start;
+  gap: var(--space-xs);
+  margin-right: var(--space-2xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.leg--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.leg__end {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.leg__end--to {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.leg__label {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.leg__clock {
+  margin-block: 1px 2px;
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.leg__city {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.leg__place {
+  font-size: var(--text-meta);
+  line-height: 1.35;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+.leg__between {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 24px;
+  color: var(--ink-3);
+}
+
+.leg__line {
+  position: absolute;
+  top: 33px;
+  left: 2px;
+  right: 2px;
+  border-top: 1.5px dashed var(--line-strong);
+}
+
+.leg__between svg {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: content-box;
+  background: var(--sunken);
+  color: var(--accent-ink);
+}
+
+.booking[data-kind="flight"] .leg__between svg {
+  transform: rotate(45deg);
+}
+
+/* A stay or a hire: the nights sit on the line between check in and check out. */
+.leg:not(.leg--journey) .leg__between {
+  padding-top: 25px;
+}
+
+.leg:not(.leg--journey) .leg__span {
+  position: relative;
+  padding: 0 6px;
+  background: var(--sunken);
+}
+
+.booking__place {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: calc(var(--space-2xs) * -1);
+  font-size: var(--text-small);
+  line-height: 1.4;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.booking__place svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--accent-ink);
+}
+
+@media (hover: hover) {
+  .booking__place:hover span {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.leg__span {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.booking__was {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: calc(var(--space-2xs) * -1);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--warn);
+}
+
+.booking__was--cancelled {
+  color: var(--ink-2);
+}
+
+.booking__was svg {
+  width: 15px;
+  height: 15px;
+}
+
+.booking__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.ticket-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.ticket-chip__label {
+  font-weight: var(--weight-regular);
+  color: var(--ink-3);
+  letter-spacing: 0;
+}
+
+.ticket-chip--button {
+  cursor: copy;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.ticket-chip--button svg {
+  width: 13px;
+  height: 13px;
+  color: var(--ink-3);
+}
+
+.ticket-chip--button:active {
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .ticket-chip--button:hover {
+    border-color: var(--line-strong);
+  }
+}
+
+.booking__details {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.booking__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--line);
+}
+
+.booking__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+
+.booking__link svg {
+  width: 15px;
+  height: 15px;
+}
+
+.booking[data-status="cancelled"] .booking__title {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+
+.booking[data-status="cancelled"] .leg,
+.booking[data-status="cancelled"] .booking__meta {
+  opacity: 0.5;
+}
+
+/* ---------- Purchases ---------- */
+
+.purchase-row .tile[data-status="out_for_delivery"],
+.update-row .tile[data-status="out_for_delivery"] {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.purchase-row .tile[data-status="delivered"],
+.update-row .tile[data-status="delivered"] {
+  background: var(--mint-wash);
+  color: var(--good);
+}
+
+.purchase-row .tile[data-status="delayed"],
+.update-row .tile[data-status="delayed"] {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.list--quiet .row__title {
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+}
+
+/* A slim four-step bar under an order on its way. */
+.track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px;
+  width: min(168px, 100%);
+  margin-top: 8px;
+}
+
+.track__step {
+  height: 3px;
+  border-radius: var(--radius-3xs);
+  background: var(--sunken-strong);
+}
+
+.track__step[data-done] {
+  background: var(--accent);
+}
+
+.track[data-status="delayed"] .track__step[data-done] {
+  background: var(--warn);
+}
+
+/* The tracker in a purchase: four steps, joined, each with when it happened. */
+.tracker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: calc(var(--space-xs) * -1) 0 0;
+  padding: var(--space-md) var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  list-style: none;
+}
+
+.tracker[hidden] {
+  display: none;
+}
+
+.tracker__step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding-inline: 2px;
+  text-align: center;
+}
+
+.tracker__step + .tracker__step::before {
+  content: "";
+  position: absolute;
+  top: 11px;
+  left: calc(-50% + 16px);
+  right: calc(50% + 16px);
+  height: 2px;
+  border-radius: var(--radius-3xs);
+  background: var(--line-strong);
+}
+
+.tracker__step[data-done]::before {
+  background: var(--accent);
+}
+
+.tracker__dot {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-bottom: 2px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+  color: var(--surface);
+}
+
+.tracker__dot svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.4;
+}
+
+.tracker__step[data-done] .tracker__dot {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+.tracker__step[data-current] .tracker__dot {
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.tracker__step[data-late] .tracker__dot {
+  background: var(--warn);
+  box-shadow: 0 0 0 4px var(--warn-wash);
+}
+
+.tracker__step[data-late]::before {
+  background: var(--warn);
+}
+
+.tracker__label {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  line-height: 1.25;
+  color: var(--ink-3);
+}
+
+.tracker__step[data-done] .tracker__label {
+  color: var(--ink);
+}
+
+.tracker__when {
+  font-size: var(--text-meta);
+  line-height: 1.3;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A purchase's read-only rows (Shop, Items): as tall and as large as its inputs. Scoped, since
+   this file stays loaded once Trips or Purchases has been opened and .prop__value is shared. */
+.purchase-detail .prop__value {
+  min-height: 40px;
+  font-size: var(--text-body);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.prop__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-block: 8px;
+}
+
+.update-row {
+  align-items: start;
+}
+
+/* ---------- Adding and editing your own (views/trip-forms.ts) ---------- */
+
+.trips .empty__actions,
+.purchases .empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+/* The booking form: kind chips, then where and when, then the booking. */
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.booking-form__label {
+  margin: var(--space-2xs) 0 calc(var(--space-2xs) * -1);
+  padding-inline: var(--space-2xs);
+}
+
+.booking-form .booking-form__label:first-of-type {
+  margin-top: 0;
+}
+
+.booking-form__kinds.choice,
+.booking-form__kinds {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin: 0 calc(var(--space-md) * -1);
+  padding: 2px var(--space-md);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.booking-form__kinds::-webkit-scrollbar {
+  display: none;
+}
+
+.booking-form__kinds .chip {
+  flex: none;
+  height: 36px;
+  padding: 0 12px;
+  gap: 6px;
+}
+
+.booking-form__kinds .chip svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* A day, a time and the zone they're in. */
+.prop--when {
+  align-items: start;
+}
+
+.prop--when .prop__label {
+  padding-top: 15px;
+}
+
+.when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  padding-block: 2px;
+}
+
+.when > .prop__input {
+  width: calc(100% + 10px);
+  margin-left: -10px;
+}
+
+.when__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  margin-left: -10px;
+}
+
+.when__row .when__time {
+  flex: 0 0 auto;
+  width: 132px;
+}
+
+.when__zone {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.when__zone svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+.tz-pick {
+  appearance: none;
+  max-width: 220px;
+  height: 28px;
+  padding: 0 18px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: calc(100% - 8px) 13px, calc(100% - 4px) 13px;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+}
+
+/* A bigger target than it looks: the whole pill. */
+.when__zone::after {
+  content: "";
+  position: absolute;
+  inset: -8px -4px;
+}
+
+.tz-pick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-2xs);
+}
+
+/* In these forms an empty field reads as empty, not as a value. */
+.logi-form .prop__input::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+/* Where Track goes, said as you type. */
+.track-hint {
+  margin-top: calc(var(--space-sm) * -1);
+}
+
+.track-hint--ready {
+  color: var(--accent-ink);
+}
+
+/* An empty itinerary: the first booking, one tap away. */
+.kind-pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
+.kind-pick__lede {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.kind-pick__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: var(--space-xs);
+}
+
+.kind-pick__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 76px;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.kind-pick__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink-2);
+}
+
+.kind-pick__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (hover: hover) {
+  .kind-pick__item:hover {
+    background: var(--sunken-strong);
+  }
+}
+
+.kind-pick__item:active {
+  transform: scale(0.97);
+}
+
+.kind-pick__item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.itinerary__add {
+  display: flex;
+  padding-top: var(--space-sm);
+}
+
+/* A tracking number, with a copy button beside it. */
+.prop__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.prop__copy > .prop__mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kind-pick__item {
+    transition: none;
+  }
+}
+
+/* A day with no time (a stay's check-in day): a date, set smaller than a clock so it stays on one line. */
+.leg__clock--day {
+  font-size: var(--text-title);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+/* ---------- A train's live times (netlify/lib/live-travel.ts) ----------
+   One chip at the front of the ticket row: a small dot that breathes while
+   it's live, how the train's running, and the platform. Its colour is the
+   status token (good, warn, bad) over a wash of the same hue, so it reads in
+   both modes. It settles in once the board answers; nothing moves under
+   prefers-reduced-motion. */
+
+.live-slot {
+  display: inline-flex;
+}
+
+.live-slot[hidden] {
+  display: none;
+}
+
+.live-chip {
+  --tone: var(--good);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border: 1px solid color-mix(in oklch, var(--tone) 32%, var(--line));
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklch, var(--tone) 9%, var(--surface));
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  animation: live-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.live-chip[data-tone="warn"] {
+  --tone: var(--warn);
+  background: var(--warn-wash);
+}
+
+.live-chip[data-tone="bad"] {
+  --tone: var(--bad);
+}
+
+/* A flight that's departed or landed: settled, not a warning. */
+.live-chip[data-tone="calm"] {
+  --tone: var(--ink-3);
+  background: var(--sunken);
+}
+
+.live-chip[data-tone="calm"] .live-chip__dot::after {
+  animation: none;
+}
+
+.live-chip__dot {
+  position: relative;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+/* The breath: a soft ring that grows and fades, every few seconds. */
+.live-chip__dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid var(--tone);
+  opacity: 0;
+  animation: live-breathe calc(var(--dur-pulse) * 1.75) var(--ease-out) var(--dur-hold) infinite;
+}
+
+.live-chip[data-tone="bad"] .live-chip__dot::after {
+  animation: none;
+}
+
+.live-chip__state {
+  color: color-mix(in oklch, var(--tone) 70%, var(--ink));
+}
+
+.live-chip__platform {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-left: 9px;
+  border-left: 1px solid color-mix(in oklch, var(--tone) 28%, var(--line));
+}
+
+.live-chip__label {
+  font-weight: var(--weight-regular);
+  color: var(--ink-3);
+}
+
+/* The time it's now expected, under the booked one. */
+.leg__expected {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
+  animation: live-in var(--dur-base) var(--ease-out-expo) calc(var(--dur-stagger) * 2) both;
+}
+
+.booking[data-live="late"] .leg__end:first-child .leg__clock,
+.booking[data-live="delayed"] .leg__end:first-child .leg__clock {
+  color: var(--ink-2);
+}
+
+.booking[data-live="cancelled"] .leg__end:first-child .leg__clock {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+.live-reason {
+  margin-top: calc(var(--space-2xs) * -1);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+  animation: live-in var(--dur-base) var(--ease-out-expo) var(--dur-instant) both;
+}
+
+@keyframes live-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px) scale(0.97);
+  }
+}
+
+@keyframes live-breathe {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-chip,
+  .leg__expected,
+  .live-reason {
+    animation: none;
+  }
+  .live-chip__dot::after {
+    animation: none;
+    opacity: 0;
+  }
+}

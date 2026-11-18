@@ -1,0 +1,18 @@
+/* Backfill imports (components/backfill-import.ts, backfill-marks.ts) and their
+   cards in Sources. The sheet shares the YouTube, Goodreads and Netflix
+   imports' styles; only the hero, the marks and the Sources rows live here. */
+
+.bfimp-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.bfimp-hero .ytimp__lede {
+  margin: 0;
+}
+
+/* Sources: the files you've imported, one row each. */
+.src-files .row__meta {
+  font-variant-numeric: tabular-nums;
+}

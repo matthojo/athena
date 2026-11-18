@@ -1,0 +1,611 @@
+/* ---------- Ask, team-aware (components/ask-who.ts, views/ask.ts, views/home.ts) ----------
+   Who you're talking to: marks, the picker, an assistant's reply lead with its
+   status pill, and "Checked with <Name>". Neutral surfaces; the characters
+   bring the colour. */
+
+.who-mark {
+  --who-size: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--who-size);
+  height: var(--who-size);
+  border-radius: 50%;
+}
+
+/* An assistant: the kit's tile (renderAvatarTile) draws its size, shape and tint. */
+.who-mark.kit-tile {
+  width: var(--kit-s);
+  height: var(--kit-s);
+  border-radius: var(--kit-r);
+}
+
+/* ---------- The picker ---------- */
+
+.who-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.who-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 56px;
+  padding: 8px var(--space-sm) 8px 8px;
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.who-row:active {
+  transform: scale(0.98);
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .who-row:hover {
+    background: var(--sunken);
+  }
+}
+
+.who-row[aria-checked="true"] {
+  background: var(--sunken);
+}
+
+.who-row__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.who-row__name {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.who-row__status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.who-row__check {
+  color: var(--accent);
+}
+
+.who-row__check svg {
+  width: 20px;
+  height: 20px;
+}
+
+.who-picker__team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  margin-top: var(--space-2xs);
+  padding: 0 var(--space-sm);
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.who-picker__team svg {
+  width: 16px;
+  height: 16px;
+}
+
+.who-pop {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: 320px;
+  padding: 6px;
+  animation: pop-in var(--dur-base) var(--ease-out-expo);
+}
+
+/* ---------- Ask's header: who you're talking to ---------- */
+
+.ask-who {
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 10px 4px 6px;
+  border-radius: var(--radius-pill);
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.ask-who:active {
+  transform: scale(0.97);
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .ask-who:hover {
+    background: var(--sunken);
+  }
+}
+
+.ask-who__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.ask-who__name {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.ask-who__name svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.ask-who__status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-micro);
+  color: var(--ink-3);
+  animation: fade-in var(--dur-base) var(--ease-out-expo);
+}
+
+/* While it works the head says just "Working", with the breathing dot in its own colour (styles/team-pulse.css); the pill by the reply has the step. */
+.ask-who__status.is-working {
+  color: var(--ink-2);
+}
+
+.ask-who__dot {
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+
+/* The header stays in view on a fresh Ask: it's how you pick who to ask. */
+.ask.ask--fresh .ask__head {
+  visibility: visible;
+}
+
+.ask.ask--fresh .ask__head > :not(.ask-who) {
+  visibility: hidden;
+}
+
+/* Wide screens hide the head (the rail has its buttons); who you're talking to stays, on its own line. */
+@media (min-width: 1200px) {
+  .ask .ask__head {
+    display: flex;
+    justify-content: flex-start;
+    margin: 0 0 calc(-1 * var(--space-sm));
+    padding: 0;
+    position: static;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .ask .ask__head::after,
+  .ask .ask__head > :not(.ask-who) {
+    display: none;
+  }
+
+  .ask .ask-who {
+    margin-left: -6px;
+  }
+}
+
+/* A fresh conversation with an assistant: its character, not the orb. */
+.ask__intro-who {
+  display: grid;
+  place-items: center;
+}
+
+.ask__intro-who .who-mark:not(.kit-tile) {
+  box-shadow: none;
+}
+
+/* ---------- An assistant's reply: its avatar and status pill ---------- */
+
+.who-lead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.who-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 10px;
+  /* Round on one line; a soft card when a long step takes a second (it's never cut short). */
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: var(--text-micro);
+  line-height: 1.4;
+  transition: box-shadow var(--dur-base) var(--ease-out);
+}
+
+.who-pill.is-working {
+  box-shadow: var(--shadow-card);
+}
+
+.who-pill__name {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.who-pill__step {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  color: var(--ink-3);
+}
+
+.who-pill__step::after {
+  content: "…";
+}
+
+.who-pill__step.is-new {
+  animation: fade-in var(--dur-base) var(--ease-out-expo);
+}
+
+/* ---------- "Checked with <Name>" ---------- */
+
+.checked-with {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 var(--space-xs);
+}
+
+.checked-with__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px 4px 5px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+/* 44px to tap, though it reads as a small chip. */
+.checked-with__btn {
+  position: relative;
+}
+
+.checked-with__btn::before {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+
+.checked-with__btn:active {
+  transform: scale(0.97);
+}
+
+.checked-with__btn:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.checked-with__btn > svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+.checked-with__btn[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+
+.checked-with__said {
+  max-width: 60ch;
+  padding: var(--space-xs) var(--space-sm);
+  border-left: 0;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  white-space: pre-line;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .who-pop,
+  .ask-who__status,
+  .who-pill__step.is-new {
+    animation: none;
+  }
+}
+
+/* ---------- The list's filter: Athena, then each assistant ---------- */
+
+.who-filter {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px var(--space-2xs) var(--space-xs);
+  margin-inline: calc(-1 * var(--space-2xs));
+}
+
+.who-filter::-webkit-scrollbar {
+  display: none;
+}
+
+.who-filter__chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding-left: 6px;
+}
+
+.who-filter__chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.who-filter-slot:empty {
+  display: none;
+}
+
+/* An assistant's reply: the lead sits above the bubble, in the reply's own column. */
+.msg--who {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Athena's orb gives way to the assistant's own avatar in the lead. */
+.msg--who > .orb {
+  display: none;
+}
+
+/* While it works, the pill above says the current step, so the step card doesn't say it again.
+   Its words still land in a bubble as they're written; the finished reply keeps its steps. */
+.msg--who > .steps-bubble {
+  display: none;
+}
+
+.msg--who > .bubble,
+.msg--who > .assist {
+  align-self: stretch;
+  max-width: 600px;
+}
+
+/* The rail is narrow: the filter wraps rather than hiding names off its edge. */
+.ask__rail .who-filter {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+/* An assistant as an answer's source: its head in place of the kind's icon. */
+.source__icon .who-mark--avatar svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* What set off a Team run ("New gift idea: “…”", "Run now"): not the owner's
+   words, so a quiet centred line between hairlines, not their bubble. */
+.msg--run {
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.msg--run::before,
+.msg--run::after {
+  content: "";
+  flex: 1;
+  max-width: 72px;
+  border-top: 1px solid var(--line);
+}
+
+.msg__run {
+  margin: 0;
+  max-width: min(82%, 480px);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Present, working, gone (review, 15 Nov) ---------- */
+
+.checked-with__words {
+  margin: 0;
+}
+
+.checked-with__talk {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  min-height: 32px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.checked-with__talk svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Handing over from Home: this face is the one that was in Home's box. */
+.ask-who__mark {
+  view-transition-name: who-handoff;
+}
+
+/* Working: the head tilts (the kit's thinking mood) and a ring breathes round it. */
+.who-mark.is-working {
+  position: relative;
+  overflow: visible;
+}
+
+.who-mark.is-working::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: var(--kit-ring-r, 50%);
+  border: 1.5px solid color-mix(in oklch, var(--who, var(--accent)) 70%, transparent);
+  animation: team-ring var(--dur-pulse) var(--ease-in-out) infinite alternate;
+}
+
+.who-row__status[data-working] {
+  color: var(--accent-ink);
+}
+
+/* An assistant whose face isn't known on this device: a plain disc with the team mark, never Athena's orb. */
+.who-mark--blank {
+  color: var(--ink-3);
+}
+
+.who-mark--blank svg {
+  width: 55%;
+  height: 55%;
+}
+
+/* No longer on the team: their face, faded. */
+.who-mark--gone > svg {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+/* Ask, with one who has left: a quiet line where the box was, and the way on. */
+.who-gone {
+  position: sticky;
+  bottom: calc(var(--safe-bottom) + var(--dock-height) + 24px);
+  z-index: var(--z-sticky);
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 56px;
+  padding: 8px 8px 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-float);
+}
+
+.who-gone[hidden] {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .who-gone {
+    bottom: var(--space-lg);
+  }
+}
+
+.who-gone__text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+/* A fresh conversation with an assistant: what it's been doing lately. */
+.who-recent {
+  width: min(100%, 420px);
+  margin: var(--space-md) auto 0;
+  text-align: start;
+}
+
+.who-recent__title {
+  margin: 0 0 6px 4px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.who-recent__list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.who-recent__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  text-align: start;
+  color: var(--ink);
+  font-size: var(--text-small);
+  line-height: 1.4;
+}
+
+@media (hover: hover) {
+  button.who-recent__item:hover {
+    background: var(--sunken);
+  }
+}
+
+.who-recent__when {
+  flex: none;
+  min-width: 4.5em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.who-recent__item[data-working] .who-recent__when {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: start;
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.who-recent__item[data-working] .who-recent__said {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .who-mark.is-working::after {
+    animation: none;
+    opacity: 0.8;
+  }
+}

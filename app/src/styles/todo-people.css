@@ -1,0 +1,101 @@
+/* "Link to Priya Shah": the person an unlinked to-do names (components/person-suggestion.ts). */
+
+.suggest-person {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* Under a to-do's row, in line with its title. */
+.loop > .suggest-person {
+  grid-column: 2;
+  padding-bottom: 10px;
+  margin-top: -4px;
+}
+
+.suggest-person__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 30px;
+  padding: 0 10px 0 3px;
+  border-radius: var(--radius-pill);
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.suggest-person__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggest-person__no {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--ink-3);
+}
+
+/* A full-size target on touch without a bigger mark. */
+.suggest-person__chip,
+.suggest-person__no {
+  position: relative;
+}
+
+.suggest-person__chip::after,
+.suggest-person__no::after {
+  content: "";
+  position: absolute;
+  inset: -7px -2px;
+}
+
+.suggest-person__no::after {
+  inset: -9px;
+}
+
+.suggest-person__no svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: hover) {
+  .suggest-person__chip:hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+
+  .suggest-person__no:hover {
+    background: var(--sunken-strong);
+    color: var(--ink);
+  }
+}
+
+/* In the to-do's sheet it sits under the With field. */
+.prop__control > .suggest-person {
+  flex-basis: 100%;
+}
+
+.suggest-person__slot {
+  flex-basis: 100%;
+}
+
+.suggest-person__slot:empty {
+  display: none;
+}
+
+.suggest-person__slot > .suggest-person {
+  padding: 2px 0 8px;
+}

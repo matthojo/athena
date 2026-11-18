@@ -1,0 +1,1447 @@
+/**
+ * House (views/house.ts) and its charts (components/house-charts.ts).
+ * Colours are tokens only, so dark mode is the tokens' own dark steps:
+ * electricity is --chart-1 (cobalt), gas --chart-2 (mint), the heatmap one
+ * hue of --chart-1 from faint to full. Mark spec as charts.css.
+ */
+
+.house {
+  gap: var(--space-2xl);
+}
+
+.house-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.house-sec > .life-section-title,
+.house-sec .regular__head {
+  margin-bottom: 0;
+}
+
+.house-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+
+.house-card__title {
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.house-card__title--next {
+  margin-top: var(--space-sm);
+}
+
+.house-card__take {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.house-card__aside {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.house-note .btn {
+  align-self: flex-start;
+}
+
+/* ---------- Legend ---------- */
+
+.house-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.house-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.house-legend__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-3xs);
+  background: var(--chart-1);
+  flex: none;
+}
+
+.house-legend__swatch.is-gas {
+  background: var(--chart-2);
+}
+
+.house-legend__swatch.is-usual {
+  height: 2px;
+  border-radius: var(--radius-3xs);
+  background: var(--ink-3);
+}
+
+.house-legend__swatch.is-cheap {
+  background: var(--sunken-strong);
+}
+
+/* ---------- Charts ---------- */
+
+.hc {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-xs);
+  touch-action: pan-y;
+}
+
+.hc:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.hc svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.hc__grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.hc__band {
+  fill: var(--sunken);
+}
+
+.hc__bar {
+  fill: var(--chart-1);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.hc__bar.is-gas {
+  fill: var(--chart-2);
+}
+
+.hc__group.is-faint .hc__bar {
+  opacity: 0.3;
+}
+
+.hc.is-hovering .hc__group:not(.is-current) .hc__bar {
+  opacity: 0.45;
+}
+
+.hc__group.is-selected .hc__bar {
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.hc__usual {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.hc__marker {
+  stroke: var(--ink-2);
+  stroke-width: 1;
+}
+
+.hc__marker-text,
+.hc__tick {
+  fill: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-micro);
+  font-variant-numeric: tabular-nums;
+}
+
+.hc__marker-text {
+  fill: var(--ink-2);
+  font-weight: var(--weight-semibold);
+}
+
+.hc__hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.hc__line {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.hc__area {
+  fill: var(--chart-1);
+  opacity: 0.1;
+}
+
+.hc__line.is-gas {
+  stroke: var(--chart-2);
+}
+
+.hc__area.is-gas {
+  fill: var(--chart-2);
+}
+
+.hc__dot {
+  fill: var(--chart-1);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.hc__dot.is-gas {
+  fill: var(--chart-2);
+}
+
+.hc__dot.is-current {
+  r: 5;
+}
+
+/* The heatmap: one hue, six steps from faint to full. */
+.hc__cell,
+.hc-scale__step {
+  fill: var(--chart-1);
+  background: var(--chart-1);
+}
+
+.hc__cell--0 { fill-opacity: 0.06; }
+.hc__cell--1 { fill-opacity: 0.2; }
+.hc__cell--2 { fill-opacity: 0.36; }
+.hc__cell--3 { fill-opacity: 0.54; }
+.hc__cell--4 { fill-opacity: 0.74; }
+.hc__cell--5 { fill-opacity: 1; }
+
+.hc-scale__step.hc__cell--0 { background: color-mix(in oklch, var(--chart-1) 6%, var(--surface)); }
+.hc-scale__step.hc__cell--1 { background: color-mix(in oklch, var(--chart-1) 20%, var(--surface)); }
+.hc-scale__step.hc__cell--2 { background: color-mix(in oklch, var(--chart-1) 36%, var(--surface)); }
+.hc-scale__step.hc__cell--3 { background: color-mix(in oklch, var(--chart-1) 54%, var(--surface)); }
+.hc-scale__step.hc__cell--4 { background: color-mix(in oklch, var(--chart-1) 74%, var(--surface)); }
+.hc-scale__step.hc__cell--5 { background: var(--chart-1); }
+
+.hc__cell.is-current {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.hc__tick--row {
+  fill: var(--ink-2);
+}
+
+.hc-heat-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.hc-scale {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  align-self: flex-end;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.hc-scale__step {
+  width: 14px;
+  height: 10px;
+  border-radius: var(--radius-3xs);
+}
+
+.hc-scale__step:first-of-type {
+  margin-left: 4px;
+}
+
+.hc-scale__step:last-of-type {
+  margin-right: 4px;
+}
+
+/* Tooltip, as charts.css's. */
+.hc__tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  padding: 6px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+  box-shadow: var(--shadow-float);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.hc.is-hovering .hc__tip {
+  opacity: 1;
+}
+
+.hc__tip-title {
+  font-weight: var(--weight-semibold);
+}
+
+.hc__tip-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hc__tip-row--muted {
+  color: color-mix(in oklch, var(--on-ink) 70%, var(--ink));
+}
+
+.hc__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-3xs);
+  background: var(--chart-1);
+}
+
+.hc__swatch.is-gas {
+  background: var(--chart-2);
+}
+
+/* ---------- The day, tapped ---------- */
+
+.house-detail {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.house-detail__title {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.house-detail__total {
+  font-variant-numeric: tabular-nums;
+}
+
+.house-detail__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin: 0 0 var(--space-xs);
+  padding: 0;
+  list-style: none;
+}
+
+.house-detail__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: baseline;
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.house-detail__kwh {
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+.house-detail__cost {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-weight: var(--weight-semibold);
+}
+
+.house-detail__sub {
+  white-space: nowrap;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-regular);
+}
+
+/* ---------- By month ---------- */
+
+.house-mini {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.house-mini + .house-mini {
+  margin-top: var(--space-sm);
+}
+
+.house-mini__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-meta);
+}
+
+.house-mini__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+  font-weight: var(--weight-semibold);
+}
+
+/* ---------- Trends ---------- */
+
+/*
+ * One grid for every row, so Now, Before and Change sit in the same columns
+ * all the way down. Phone: the label on its own line, then the figures.
+ * Wider: label first. The forecast's two comparisons share its figure on a
+ * subgrid of the Before and Change columns.
+ */
+.house-trends__seg {
+  align-self: stretch;
+}
+
+.house-trends__seg .house-legend__swatch {
+  display: inline-block;
+  vertical-align: 1px;
+}
+
+.house-trends__fuel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.house-trends__head,
+.house-trend {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 8.5rem;
+  column-gap: var(--space-sm);
+}
+
+.house-trends__head {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.house-trends__head > span:first-child {
+  display: none;
+}
+
+.house-trends__head > span,
+.house-trend__val,
+.house-trend__change {
+  text-align: right;
+}
+
+.house-trends {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.house-trend {
+  row-gap: 2px;
+  padding: var(--space-xs) 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.house-trend__label {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-xs);
+  margin-bottom: 2px;
+}
+
+.house-trend__name {
+  font-weight: var(--weight-semibold);
+}
+
+.house-trend__val,
+.house-trend__change {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.house-trend__val.is-this {
+  grid-column: 1;
+}
+
+.house-trend__vs {
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  row-gap: var(--space-xs);
+}
+
+.house-trend__val.is-other .house-trend__kwh {
+  color: var(--ink-2);
+}
+
+.house-trend__word {
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.house-trend__arrow {
+  color: var(--ink-3);
+}
+
+.house-trend__sub {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.house-trend__adj {
+  grid-column: 1 / -1;
+  text-align: right;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+@media (min-width: 720px) {
+  .house-trends__head,
+  .house-trend {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) 9.5rem;
+  }
+
+  .house-trends__head > span:first-child {
+    display: block;
+  }
+
+  .house-trend__label {
+    grid-column: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 0;
+  }
+
+  .house-trend__val.is-this {
+    grid-column: 2;
+  }
+
+  .house-trend__vs {
+    grid-column: 3 / -1;
+  }
+}
+
+/* ---------- Trends, drawn (components/trends-charts.ts) ---------- */
+
+/*
+ * One card: the fuel as a small pill switch beside the title, the views as
+ * underlined tabs, then one panel. The panel keeps a steady height so
+ * switching views doesn't jolt the page, and fades in (not with reduced
+ * motion).
+ */
+.tc-card {
+  gap: var(--space-md);
+}
+
+.tc-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 40px;
+}
+
+.tc-fuels {
+  flex: none;
+  grid-auto-columns: auto;
+}
+
+.tc-fuels .seg__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+}
+
+.tc-views {
+  gap: var(--space-md);
+  margin-top: calc(var(--space-xs) * -1);
+}
+
+.tc-views .segmented__item {
+  font-size: var(--text-small);
+}
+
+.tc-views .segmented__item[aria-selected="true"] {
+  background: none;
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+
+@media (hover: hover) {
+  .tc-views .segmented__item:not([aria-selected="true"]):hover {
+    color: var(--ink);
+  }
+}
+
+.tc-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-height: 27rem;
+  border-radius: var(--radius-xs);
+}
+
+.tc-panel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.tc-panel.is-entering {
+  animation: tc-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes tc-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-panel.is-entering {
+    animation: none;
+  }
+}
+
+@media (min-width: 720px) {
+  .tc-panel {
+    min-height: 24rem;
+  }
+
+  .tc-views {
+    gap: var(--space-lg);
+  }
+}
+
+/* The headline: a small line, one large figure, its unit, a chip. */
+.tc-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tc-headline__eyebrow {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+.tc-headline__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--space-xs);
+  margin: 0;
+}
+
+.tc-headline__big {
+  font-size: var(--text-display);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-headline__big.is-words {
+  font-size: var(--text-heading);
+  letter-spacing: 0;
+}
+
+.tc-headline__unit {
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+}
+
+.tc-headline__row .tc-chip {
+  align-self: center;
+}
+
+.tc-take {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.tc-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* The month bar. */
+.tc-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.tc-progress svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.tc-progress__track {
+  fill: var(--sunken);
+}
+
+.tc-progress__now {
+  fill: var(--chart-1);
+}
+
+.tc-progress__now.is-gas {
+  fill: var(--chart-2);
+}
+
+/* Faint parts are mixed with the surface, not see-through, so they read in both themes. */
+.tc-progress__rest {
+  fill: color-mix(in srgb, var(--chart-1) 38%, var(--surface));
+}
+
+.tc-progress__rest.is-gas {
+  fill: color-mix(in srgb, var(--chart-2) 38%, var(--surface));
+}
+
+.tc-progress__tick {
+  stroke: var(--ink-2);
+  stroke-width: 1.5;
+}
+
+.tc-progress__label {
+  fill: var(--ink-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-md);
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.tc-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tc-key {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-3xs);
+  background: var(--chart-1);
+}
+
+.tc-key.is-gas {
+  background: var(--chart-2);
+}
+
+.tc-key--rest {
+  background: color-mix(in srgb, var(--chart-1) 38%, var(--surface));
+}
+
+.tc-key--rest.is-gas {
+  background: color-mix(in srgb, var(--chart-2) 38%, var(--surface));
+}
+
+.tc-key--dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chart-2);
+  opacity: 0.35;
+}
+
+.tc-key--dot.is-now {
+  opacity: 1;
+}
+
+.tc-key--line {
+  width: 14px;
+  height: 2px;
+  border-radius: var(--radius-3xs);
+  background: var(--ink-2);
+}
+
+/* A change, worded: less use is good, more is a warning, under 3% is the same. */
+.tc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-chip.is-good {
+  color: var(--good);
+  background: color-mix(in srgb, var(--good) 13%, var(--surface));
+}
+
+.tc-chip.is-warn {
+  color: var(--warn);
+  background: var(--warn-wash);
+}
+
+.tc-chip.is-same {
+  color: var(--ink-2);
+  background: var(--sunken);
+}
+
+/* Paired bars: now solid, before faint, every bar in the view on one scale. */
+.tc-cmps {
+  display: flex;
+  flex-direction: column;
+}
+
+.tc-cmp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--line);
+}
+
+.tc-cmp:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* The title and its chip on one line; what's compared under it, the full width. */
+.tc-cmp__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.tc-cmp__name {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.tc-cmp__sub,
+.tc-cmp__cost {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.tc-cmp__sub {
+  margin-top: -4px;
+}
+
+.tc-cmp__cost {
+  text-align: right;
+}
+
+.tc-cmp__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tc-bar {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.tc-bar__who {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.tc-bar__track {
+  position: relative;
+  height: 24px;
+}
+
+.tc-bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 0 var(--radius-2xs) var(--radius-2xs) 0;
+  background: var(--chart-1);
+}
+
+.tc-bar__fill.is-gas {
+  background: var(--chart-2);
+}
+
+.tc-bar.is-before .tc-bar__fill {
+  background: color-mix(in srgb, var(--chart-1) 38%, var(--surface));
+}
+
+.tc-bar.is-before .tc-bar__fill.is-gas {
+  background: color-mix(in srgb, var(--chart-2) 38%, var(--surface));
+}
+
+.tc-bar__val {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tc-bar.is-before .tc-bar__val {
+  color: var(--ink-2);
+  font-weight: var(--weight-medium);
+}
+
+/* 12 months: the two windows shaded, each average dashed. */
+/* The 12 before in plain grey, the last 12 in a wash of the fuel's colour: different in both themes. */
+.tc-roll__window.is-before {
+  fill: var(--sunken-strong);
+  opacity: 0.55;
+}
+
+.tc-roll__window.is-now {
+  fill: color-mix(in srgb, var(--chart-1) 18%, var(--surface));
+}
+
+.tc-roll__window.is-now.is-gas {
+  fill: color-mix(in srgb, var(--chart-2) 18%, var(--surface));
+}
+
+.tc-roll__grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+  stroke-dasharray: 1 3;
+}
+
+.tc-roll__tick {
+  stroke: var(--chart-axis);
+  stroke-width: 1;
+}
+
+.tc-roll__year {
+  fill: var(--ink-2);
+  font-weight: var(--weight-semibold);
+}
+
+/* Text over a chart: a halo in the card's colour, so no line runs through it. */
+.tc-halo,
+.tc-roll__grid-text {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.tc-roll__window-text {
+  fill: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-medium);
+}
+
+.tc-roll__avg {
+  stroke: var(--ink-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.tc-roll__window-avg {
+  fill: var(--ink);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Weather: gas against the day's temperature. */
+.tc-weather {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.tc-scatter__grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+  stroke-opacity: 0.6;
+}
+
+.tc-scatter__dot {
+  fill: var(--chart-2);
+  opacity: 0.28;
+}
+
+.tc-scatter__dot.is-now {
+  opacity: 1;
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.tc-scatter__fit {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.tc-weather__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.tc-weather__label {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.tc-weather__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.tc-weather__temp {
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 720px) {
+  .tc-weather {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-lg);
+  }
+}
+
+/* A view the readings can't support yet: said in its place. */
+.tc-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 14rem;
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  text-align: center;
+}
+
+.tc-empty__title {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.tc-empty__text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+/* The view's numbers, folded away, straight under the chart; any spare height falls below. */
+.tc-figures > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.tc-figures[open] > summary {
+  margin-bottom: var(--space-xs);
+}
+
+/* ---------- Always on, and when ---------- */
+
+.house-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-md);
+}
+
+.house-figure__big {
+  margin: 0;
+  font-size: var(--text-hero);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-tight);
+}
+
+.house-figure__unit {
+  color: var(--ink-3);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-regular);
+}
+
+.house-share {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.house-share__label {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.house-share__pct {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.house-share__track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.house-share__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--chart-1);
+}
+
+.house-share__fill.is-gas {
+  background: var(--chart-2);
+}
+
+/* ---------- Prices ---------- */
+
+.house-rates,
+.house-months,
+.house-bills {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.house-rate,
+.house-month {
+  display: grid;
+  gap: 2px var(--space-sm);
+  padding: var(--space-xs) 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.house-rate:first-child,
+.house-month:first-child {
+  border-top: 0;
+}
+
+.house-rate {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.house-rate__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: var(--weight-semibold);
+}
+
+.house-rate__tag {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+.house-rate__unit {
+  color: var(--ink-2);
+}
+
+.house-rate__standing {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.house-month {
+  grid-template-columns: 1fr auto;
+}
+
+.house-month__split {
+  grid-row: 2;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.house-month__total {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  font-weight: var(--weight-semibold);
+}
+
+/* ---------- Bills ---------- */
+
+.house-bills {
+  gap: 0;
+  padding: var(--space-2xs) var(--space-md);
+}
+
+.house-bill {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: var(--space-xs) 0;
+  border-top: 1px solid var(--line);
+}
+
+.house-bill:first-child {
+  border-top: 0;
+}
+
+.house-bill__words,
+.house-bill__amount {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.house-bill__name {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.house-bill__meta,
+.house-bill__per {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.house-bill__amount {
+  align-items: flex-end;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.house-bill.is-missed .house-bill__meta {
+  color: var(--warn);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hc__bar,
+  .hc__tip {
+    transition: none;
+  }
+}
+
+/* ---------- Appliances: a name, the last programme, and what it's doing now ---------- */
+
+.house-appliance__now {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-xs);
+  max-width: 50%;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  text-align: right;
+}
+
+.house-appliance.is-running .house-appliance__now {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+/* Running: the one mark of colour in the list. */
+.house-appliance__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+
+/* ---------- Radar (a mix) ---------- */
+
+.hc__ring {
+  fill: none;
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.hc__ring.is-outer {
+  stroke: var(--chart-axis);
+}
+
+.hc__spoke {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.hc__spoke.is-current {
+  stroke: var(--chart-axis);
+}
+
+.hc__radar-area {
+  fill: var(--chart-1);
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.hc__radar-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.hc__radar-line.is-subject {
+  stroke: var(--chart-1);
+}
+
+/* What it's compared with: emphasis's de-emphasis grey, behind the subject. */
+.hc__radar-line.is-before {
+  stroke: var(--ink-3);
+  opacity: 0.6;
+}
+
+.hc__radar-dot {
+  stroke: var(--surface);
+  stroke-width: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.hc__radar-dot.is-subject {
+  fill: var(--chart-1);
+}
+
+.hc__radar-dot.is-before {
+  fill: var(--ink-3);
+}
+
+.hc.is-hovering .hc__radar-dot.is-current {
+  opacity: 1;
+}
+
+.hc__radar-name {
+  fill: var(--ink-2);
+}
+
+.hc__radar-name.is-current {
+  fill: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.hc__swatch.is-before {
+  background: var(--ink-3);
+}
+
+.hc-radar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.hc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs) var(--space-md);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+}
+
+.hc-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hc-legend__key {
+  width: 14px;
+  height: 0;
+  border-top: 2px solid var(--chart-1);
+  border-radius: var(--radius-3xs);
+}
+
+.hc-legend__key.is-before {
+  border-top-color: var(--ink-3);
+}

@@ -1,0 +1,43 @@
+/* Loading an account's history (components/history-load.ts). Built on the
+   account rows in accounts.css. */
+
+.hist-row .row__body {
+  min-width: 0;
+}
+
+/* The count and the month are the point: let the line wrap rather than clip. */
+.hist-row .row__title,
+.hist-row .row__meta {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.hist-row__takeout {
+  margin-top: 2px;
+}
+
+/* While it loads, the clock's tile breathes; nothing moves with reduced motion. */
+.hist-row--busy .hist-row__tile {
+  animation: hist-breathe var(--dur-pulse) var(--ease-out-expo) infinite alternate;
+}
+
+@keyframes hist-breathe {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hist-row--busy .hist-row__tile {
+    animation: none;
+  }
+}
+
+/* The connected sheet: the row in its own soft card under the hero. */
+.acct-done .hist-card {
+  margin: 0 0 16px;
+}

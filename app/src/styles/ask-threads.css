@@ -1,0 +1,487 @@
+/* ---------- Ask: every chat kept (views/ask.ts) ----------
+   A quiet head (Chats, the chat's name, New), day dividers in the
+   conversation, and the chat list: a sheet on a phone, a column beside the
+   conversation on a wide screen. */
+
+.ask {
+  gap: 0;
+}
+
+.ask__col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Head: sticky, frosted like Notes' head; the name sits between the buttons. */
+.ask__head {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: calc(-1 * (var(--safe-top) + var(--space-md))) calc(-1 * var(--space-md)) calc(-1 * var(--space-xs));
+  padding: calc(var(--safe-top) + var(--space-xs)) var(--space-sm) var(--space-xs);
+  background: color-mix(in oklch, var(--canvas) 90%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+
+/* A soft edge under the head, so the conversation fades out beneath it instead of being cut. */
+.ask__head::after {
+  content: "";
+  position: absolute;
+  inset: 100% 0 auto;
+  height: 18px;
+  background: linear-gradient(to bottom, color-mix(in oklch, var(--canvas) 90%, transparent), transparent);
+  pointer-events: none;
+}
+
+.ask--empty .ask__head::after {
+  display: none;
+}
+
+.ask--fresh .ask__head {
+  visibility: hidden;
+}
+
+.ask--empty .ask__head {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.ask__chats-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px 0 12px;
+  border-radius: var(--radius-pill);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.ask__chats-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ask__chats-btn:active {
+  transform: scale(0.96);
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .ask__chats-btn:hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+}
+
+.ask__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  animation: fade-in var(--dur-base) var(--ease-out);
+}
+
+/* The New button keeps its place when hidden, so the name stays centred. */
+.ask__new[hidden] {
+  display: grid;
+  visibility: hidden;
+}
+
+/* Day dividers: "Today 09:12", quiet, centred. */
+.thread__day {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: var(--space-xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+  animation: fade-in var(--dur-base) var(--ease-out);
+}
+
+.thread__day:first-child {
+  margin-top: 0;
+}
+
+.thread__time {
+  font-weight: var(--weight-regular, 400);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Switching chats: the conversation settles in rather than jumping. */
+.thread.is-entering {
+  animation: chat-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* A reopened answer, loading what it found. */
+.bubble--loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-block: 16px;
+}
+
+.skeleton-line {
+  display: block;
+  height: 10px;
+  width: 78%;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(90deg, var(--sunken) 25%, var(--sunken-strong) 50%, var(--sunken) 75%);
+  background-size: 200% 100%;
+  animation: shimmer var(--dur-pulse) var(--ease-in-out) infinite;
+}
+
+.skeleton-line--short {
+  width: 46%;
+}
+
+/* ---------- The chat list ---------- */
+
+.chats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.chats__new svg {
+  width: 18px;
+  height: 18px;
+}
+
+.chats__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chats__group {
+  padding: var(--space-sm) var(--space-sm) var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.chats__group:first-child {
+  padding-top: 0;
+}
+
+.chats__empty {
+  padding: var(--space-lg) var(--space-sm);
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.chat-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  animation: rise var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger) / 2);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.chat-row.is-current {
+  background: var(--sunken);
+}
+
+.chat-row__main {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 4px 12px var(--space-sm);
+  text-align: left;
+  border-radius: inherit;
+}
+
+.chat-row__title {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: var(--text-ui);
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.chat-row.is-current .chat-row__title {
+  font-weight: var(--weight-semibold);
+}
+
+/* A search result: the name, the line that matched, then when. */
+.chat-row__main--found {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.chat-row__snippet {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--text-small);
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.chat-row__snippet mark,
+.chat-row__title mark {
+  border-radius: var(--radius-3xs);
+}
+
+/* The list's search box: smaller than the page search, inside the sheet or column. */
+.chats__search {
+  height: 40px;
+  padding-left: var(--space-sm);
+  background: var(--sunken);
+  border-color: transparent;
+}
+
+.chats__search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: var(--text-body);
+}
+
+.chats__search[hidden] {
+  display: none;
+}
+
+.chat-row__time {
+  flex: none;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-row__more {
+  margin-right: 4px;
+  color: var(--ink-3);
+}
+
+.chat-row__input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  margin: -6px 0;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  font-size: var(--text-ui);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+.chat-row.is-renaming .chat-row__time,
+.chat-row.is-renaming .chat-row__more {
+  visibility: hidden;
+}
+
+.chat-row:active:not(.is-renaming) {
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .chat-row:hover {
+    background: var(--sunken);
+  }
+
+  /* With a pointer, ⋯ shows on the row you're on (and stays reachable by keyboard). */
+  .chat-row__more {
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+
+  .chat-row:hover .chat-row__more,
+  .chat-row.is-current .chat-row__more,
+  .chat-row__more:focus-visible,
+  .chat-row__more:popover-open,
+  .chat-row:focus-within .chat-row__more {
+    opacity: 1;
+  }
+}
+
+.menu.chat-menu[popover] {
+  width: 200px;
+}
+
+/* ---------- The column beside the conversation (wide screens) ---------- */
+
+.ask__rail {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .ask__head {
+    margin-inline: calc(-1 * var(--space-lg));
+    padding-inline: var(--space-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  /* .main scrolls here and sticky keeps its padding, so the head reaches up into it. */
+  .ask__head {
+    top: calc(-1 * var(--space-xl));
+    margin: calc(-1 * var(--space-xl)) 0 calc(-1 * var(--space-xs));
+    padding: var(--space-md) 0 var(--space-xs);
+  }
+}
+
+@media (min-width: 1200px) {
+  /* The page head across the top, then the rail and the conversation, left-aligned to the gutter like every page. */
+  .ask {
+    --ask-head: calc(var(--page-top) - var(--space-xl) + var(--text-heading) * var(--leading-tight) + var(--space-xs) + var(--space-xl));
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: 272px minmax(0, 720px);
+    justify-content: start;
+    align-items: start;
+    gap: var(--space-xl);
+  }
+
+  .ask__page-head {
+    grid-column: 1 / -1;
+  }
+
+  /* Fill the screen exactly (the page's padding is 32px above, 48px below, and the head above), so nothing scrolls until there's something to scroll. */
+  .ask {
+    min-height: calc(100dvh - var(--space-xl) - var(--space-2xl));
+  }
+
+  .ask__col {
+    min-height: calc(100dvh - var(--space-xl) - var(--space-2xl) - var(--ask-head));
+  }
+
+  .ask__rail {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    max-height: calc(100dvh - var(--space-xl) - var(--space-2xl) - var(--ask-head));
+    padding: var(--space-md) var(--space-xs) 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .ask__rail-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+    padding: 0 var(--space-2xs) 0 var(--space-sm);
+  }
+
+  .ask__rail-title {
+    font-family: var(--font-display);
+    font-size: var(--text-title);
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.015em;
+  }
+
+  .ask__rail .chats__search {
+    flex: none;
+    margin-inline: var(--space-2xs);
+    height: 36px;
+  }
+
+  .ask__rail .chats__search input {
+    font-size: var(--text-small);
+  }
+
+  .ask__rail-list {
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: var(--space-md);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+    margin-inline: calc(-1 * var(--space-2xs));
+    padding-inline: var(--space-2xs);
+  }
+
+  /* Narrow column: the name gets the width, the time sits under it. */
+  .ask__rail .chat-row__main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-height: 40px;
+    padding-block: 9px;
+  }
+
+  .ask__rail .chat-row__title {
+    font-size: var(--text-small);
+  }
+
+  .ask__rail .chats__empty {
+    text-align: left;
+  }
+
+  /* The list is beside the conversation (the open chat marked in it), so there's no head. */
+  .ask__head {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thread.is-entering,
+  .chat-row,
+  .ask__title,
+  .thread__day {
+    animation: none;
+  }
+}
+
+/* On a wide screen the page scrolls inside .main, and a sticky box is held clear of that scroller's bottom
+   padding as well as its own offset: it sits 24px higher than where it falls in the column, which closed the gap
+   under the last reply. This gives the column that 24px back, so the last reply clears the box (owner, 12 Nov 2026). */
+@media (min-width: 1024px) {
+  .ask__col {
+    padding-bottom: var(--space-lg);
+  }
+}

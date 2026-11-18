@@ -1,0 +1,171 @@
+/* The flow the Apple Music and iPlayer imports share (components/download-
+   import.ts). Built on the Amazon import's tiles, chips and summary
+   (amazon-import.css); what's here is the ranked list with bars, a tint per
+   service, and a touch of give on the tiles. Each service sets --dl-tint
+   and --dl-tint-2 in its own stylesheet. */
+
+.dlimp {
+  --dl-tint: var(--accent);
+  --dl-tint-2: var(--accent);
+}
+
+/* ----- Tiles: the service's colour, and a little lift under the pointer ----- */
+
+.dlimp-kind {
+  --tint: var(--dl-tint);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.dlimp-kind--hours {
+  --tint: var(--dl-tint-2);
+}
+
+.dlimp-kind--artists,
+.dlimp-kind--programmes {
+  --tint: color-mix(in srgb, var(--dl-tint) 55%, var(--dl-tint-2));
+}
+
+@media (hover: hover) {
+  .dlimp-kind:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--tint) 28%, var(--line)),
+      var(--shadow-card);
+  }
+}
+
+/* Three tiles two across: the third takes the whole row rather than sitting alone. */
+.dlimp-kinds > .dlimp-kind:nth-child(3):last-child {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 760px) {
+  .dlimp-kinds > .dlimp-kind:nth-child(3):last-child {
+    grid-column: auto;
+  }
+}
+
+/* ----- A ranked list: top artists, what you watched most ----- */
+
+.dlimp-rank {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.dlimp-rank__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-md);
+  list-style: none;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.dlimp-rank__item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: var(--space-sm);
+  animation: amzimp-rise var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--dur-fast) + var(--i, 0) * var(--dur-stagger));
+}
+
+.dlimp-rank__pos {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  background: var(--sunken);
+}
+
+.dlimp-rank__item:first-child .dlimp-rank__pos {
+  color: var(--surface);
+  background: linear-gradient(135deg, var(--dl-tint), var(--dl-tint-2));
+}
+
+.dlimp-rank__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  min-width: 0;
+}
+
+.dlimp-rank__name {
+  overflow: hidden;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dlimp-rank__name small {
+  margin-left: var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-regular);
+  color: var(--ink-3);
+}
+
+.dlimp-rank__track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.dlimp-rank__bar {
+  display: block;
+  width: var(--w);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--dl-tint), var(--dl-tint-2));
+  transform-origin: left;
+  animation: dlimp-grow var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--dur-base) + var(--i, 0) * var(--dur-stagger));
+}
+
+.dlimp-rank__n {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink-2);
+}
+
+/* ----- The summary's mark takes the service's colour ----- */
+
+.dlimp-end .ytimp-end__mark--good {
+  color: var(--surface);
+  background: linear-gradient(135deg, var(--dl-tint), var(--dl-tint-2));
+}
+
+@keyframes dlimp-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dlimp-kind,
+  .dlimp-rank__item,
+  .dlimp-rank__bar {
+    animation: none;
+    transition: none;
+  }
+
+  .dlimp-kind:hover {
+    transform: none;
+  }
+}

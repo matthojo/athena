@@ -1,0 +1,276 @@
+/* Team character kit: moods and motion. Durations and easings are the app's tokens. */
+
+.kit-avatar {
+  display: block;
+  overflow: visible;
+  flex: none;
+}
+
+.kit-avatar .kit-eye,
+.kit-avatar .kit-pupil,
+.kit-avatar .kit-cheek {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.kit-avatar .kit-head {
+  transform-box: view-box;
+  transform-origin: 60px 92px;
+}
+
+/* Idle: a quick blink, scheduled at random by render.ts. */
+.kit-avatar.kit-blinking .kit-eye:not(.kit-eye-still) {
+  animation: kit-blink var(--dur-fast) var(--ease-in-out);
+}
+
+@keyframes kit-blink {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  45%,
+  55% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* Thinking: eyes up, and a slow head tilt that holds and drifts back. */
+.kit-avatar .kit-pupil,
+.kit-avatar .kit-eyes {
+  transition: transform var(--dur-base) var(--ease-out-expo);
+}
+
+.kit-avatar[data-mood="thinking"] .kit-pupil {
+  transform: translateY(-1.8px);
+}
+
+.kit-avatar[data-mood="thinking"] .kit-eyes {
+  transform: translateY(-1px);
+}
+
+.kit-avatar.kit-animate[data-mood="thinking"] .kit-head {
+  animation: kit-think calc(var(--dur-slow) * 6) var(--ease-in-out) infinite alternate;
+}
+
+.kit-avatar:not(.kit-animate)[data-mood="thinking"] .kit-head {
+  transform: rotate(-5deg);
+}
+
+@keyframes kit-think {
+  0% {
+    transform: rotate(-1deg);
+  }
+  100% {
+    transform: rotate(-7deg);
+  }
+}
+
+/* Happy: the cheeks flush. */
+.kit-avatar .kit-cheek {
+  opacity: 0.62;
+  transition:
+    opacity var(--dur-base) var(--ease-out-expo),
+    transform var(--dur-base) var(--ease-out-expo);
+}
+
+.kit-avatar[data-mood="happy"] .kit-cheek {
+  opacity: 1;
+  transform: scale(1.18);
+}
+
+/* Happy: a calm resting mouth opens into a grin. The big grin is the happy mood's, not the resting face's. */
+.kit-avatar[data-mood="happy"] .kit-mouth-calm {
+  visibility: hidden;
+}
+
+.kit-avatar[data-mood="happy"] .kit-grin {
+  visibility: visible;
+}
+
+/* Happy: eyes that can blink smile instead (^ ^). */
+.kit-avatar[data-mood="happy"] .kit-eye:not(.kit-eye-still) > :not(.kit-joy) {
+  opacity: 0;
+}
+
+.kit-avatar[data-mood="happy"] .kit-joy {
+  visibility: visible;
+}
+
+/* Working: eyes down at a laptop held at the chest; the paws type in turn. */
+.kit-avatar[data-mood="working"] .kit-laptop {
+  visibility: visible;
+}
+
+.kit-avatar[data-mood="working"] .kit-eyes {
+  transform: translateY(2px);
+}
+
+.kit-avatar[data-mood="working"] .kit-pupil {
+  transform: translateY(1.6px);
+}
+
+.kit-avatar .kit-paw {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.kit-avatar.kit-animate[data-mood="working"] .kit-paw-l {
+  animation: kit-type calc(var(--dur-slow) * 1.5) var(--ease-in-out) infinite alternate;
+}
+
+.kit-avatar.kit-animate[data-mood="working"] .kit-paw-r {
+  animation: kit-type calc(var(--dur-slow) * 1.5) var(--ease-in-out) calc(var(--dur-slow) * -0.75) infinite alternate;
+}
+
+.kit-avatar.kit-animate[data-mood="working"] .kit-head {
+  animation: kit-focus calc(var(--dur-slow) * 8) var(--ease-in-out) infinite alternate;
+}
+
+@keyframes kit-type {
+  from {
+    transform: translateY(-1.4px);
+  }
+  to {
+    transform: translateY(0.6px);
+  }
+}
+
+@keyframes kit-focus {
+  from {
+    transform: rotate(0deg) translateY(0.6px);
+  }
+  to {
+    transform: rotate(2deg) translateY(1.2px);
+  }
+}
+
+/* Dark mode: each coloured fill and stroke carries its dark value (--kd, --ks, from palette.ts darkFill). */
+@media (prefers-color-scheme: dark) {
+  .kit-avatar [style*="--kd"] {
+    fill: var(--kd);
+  }
+
+  .kit-avatar [style*="--ks"] {
+    stroke: var(--ks);
+  }
+
+  .kit-avatar .kit-cheek {
+    opacity: 0.5;
+  }
+}
+
+/* The setup reveal: settle in from 0.92 and fade. Add .kit-enter to use it. */
+.kit-avatar.kit-enter {
+  animation: kit-enter var(--dur-base) var(--ease-out-expo) both;
+}
+
+@keyframes kit-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-avatar,
+  .kit-avatar * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .kit-avatar:not(.kit-animate)[data-mood="thinking"] .kit-head {
+    transform: none;
+  }
+}
+
+/*
+ * The tile (render.ts renderAvatarTile): a rounded square tinted from the coat.
+ * Below 72px the character sits fully inside. From 72px it fills the tile and
+ * anything above the head (ears, antennae, a hat) draws past the top edge; the
+ * clip stays open above the tile and follows its rounded bottom corners.
+ */
+.kit-tile {
+  /* The size: the screen's --kit-size if it sets one, else the size it was drawn at. */
+  --kit-s: var(--kit-size, var(--kit-px));
+  /* Rounder, relative to size, at chip sizes: a 24px tile reads as a soft face, not an app icon. */
+  --kit-r: calc(4px + var(--kit-s) * 0.18);
+  /* A working ring 3px out from the tile keeps its shape. */
+  --kit-ring-r: calc(var(--kit-r) + 3px);
+  position: relative;
+  display: block;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--kit-s);
+  height: var(--kit-s);
+  border-radius: var(--kit-r);
+  background: var(--kit-tint);
+  /* A faint edge, so a pale coat's tile (snow, cream) still reads on the page. Under the art. */
+  box-shadow: inset 0 0 0 1px var(--kit-line);
+  --kit-line: color-mix(in oklch, var(--ink, #22262e) 7%, transparent);
+}
+
+.kit-tile > .kit-avatar {
+  width: 100%;
+  height: 100%;
+  clip-path: inset(0 round var(--kit-r));
+}
+
+/*
+ * The rise covers the tallest thing in the kit (a party hat on a monster): 22 of the crop's 94 units.
+ * A screen that shrinks a rising tile below 72px (hiring's docked badge) sets --kit-fit: 1 with its
+ * --kit-size: the art moves down 18 units, to the plain tile's crop, and the clip closes over the top.
+ */
+.kit-tile-rise {
+  --kit-rise: calc(var(--kit-s) * 22 / 94);
+  --kit-drop: calc(var(--kit-fit, 0) * var(--kit-s) * 18 / 94);
+  margin-top: calc((1 - var(--kit-fit, 0)) * var(--kit-rise));
+}
+
+/*
+ * The clip, as one polygon so it can ease between the two crops: open above the tile and,
+ * down to the neck (58 of 94 units), a little past its sides, so whiskers and a fox's ruff
+ * show as in the frame sheet; below the neck it follows the tile's rounded bottom corners.
+ * With --kit-fit: 1 the sides close and the top corners round: the plain tile.
+ * Generated: five points per corner.
+ */
+.kit-tile-rise > .kit-avatar {
+  --kit-side: calc((1 - var(--kit-fit, 0)) * var(--kit-s) * 0.1);
+  --kit-top: calc((1 - var(--kit-fit, 0)) * (-1px - var(--kit-rise)) - var(--kit-drop));
+  --kit-top-r: calc(var(--kit-fit, 0) * var(--kit-r));
+  --kit-bottom: calc(100% - var(--kit-drop));
+  --kit-neck: calc(var(--kit-s) * 58 / 94 - var(--kit-drop));
+  clip-path: polygon(
+    calc(var(--kit-top-r) * 0.0 - var(--kit-side)) calc(var(--kit-top) + var(--kit-top-r) * 1.0),
+    calc(var(--kit-top-r) * 0.0761 - var(--kit-side)) calc(var(--kit-top) + var(--kit-top-r) * 0.6173),
+    calc(var(--kit-top-r) * 0.2929 - var(--kit-side)) calc(var(--kit-top) + var(--kit-top-r) * 0.2929),
+    calc(var(--kit-top-r) * 0.6173 - var(--kit-side)) calc(var(--kit-top) + var(--kit-top-r) * 0.0761),
+    calc(var(--kit-top-r) * 1.0 - var(--kit-side)) calc(var(--kit-top) + var(--kit-top-r) * 0.0),
+    calc(100% + var(--kit-side) - var(--kit-top-r) * 1.0) calc(var(--kit-top) + var(--kit-top-r) * 0.0),
+    calc(100% + var(--kit-side) - var(--kit-top-r) * 0.6173) calc(var(--kit-top) + var(--kit-top-r) * 0.0761),
+    calc(100% + var(--kit-side) - var(--kit-top-r) * 0.2929) calc(var(--kit-top) + var(--kit-top-r) * 0.2929),
+    calc(100% + var(--kit-side) - var(--kit-top-r) * 0.0761) calc(var(--kit-top) + var(--kit-top-r) * 0.6173),
+    calc(100% + var(--kit-side) - var(--kit-top-r) * 0.0) calc(var(--kit-top) + var(--kit-top-r) * 1.0),
+    calc(100% + var(--kit-side)) var(--kit-neck),
+    100% var(--kit-neck),
+    calc(100% - var(--kit-r) * 0.0) calc(var(--kit-bottom) - var(--kit-r) * 1.0),
+    calc(100% - var(--kit-r) * 0.0761) calc(var(--kit-bottom) - var(--kit-r) * 0.6173),
+    calc(100% - var(--kit-r) * 0.2929) calc(var(--kit-bottom) - var(--kit-r) * 0.2929),
+    calc(100% - var(--kit-r) * 0.6173) calc(var(--kit-bottom) - var(--kit-r) * 0.0761),
+    calc(100% - var(--kit-r) * 1.0) calc(var(--kit-bottom) - var(--kit-r) * 0.0),
+    calc(var(--kit-r) * 1.0) calc(var(--kit-bottom) - var(--kit-r) * 0.0),
+    calc(var(--kit-r) * 0.6173) calc(var(--kit-bottom) - var(--kit-r) * 0.0761),
+    calc(var(--kit-r) * 0.2929) calc(var(--kit-bottom) - var(--kit-r) * 0.2929),
+    calc(var(--kit-r) * 0.0761) calc(var(--kit-bottom) - var(--kit-r) * 0.6173),
+    calc(var(--kit-r) * 0.0) calc(var(--kit-bottom) - var(--kit-r) * 1.0),
+    0 var(--kit-neck),
+    calc(0px - var(--kit-side)) var(--kit-neck)
+  );
+  transform: translateY(var(--kit-drop));
+}
+
+/* Dark mode: a monster's antenna stalks take the coat's shade, so they read on a dark tile. */
+@media (prefers-color-scheme: dark) {
+  .kit-avatar .kit-stalk {
+    stroke: var(--kstalk);
+  }
+}

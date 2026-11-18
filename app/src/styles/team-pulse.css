@@ -1,0 +1,74 @@
+/* The team's working signal, shared by every Team surface (team/page-pulse.ts):
+   the Team page's desks and Recent runs, the sidebar's Team entry, Home's
+   Team button, chips and card, Ask's head and an assistant's page.
+
+   One look: a 6px dot that breathes (opacity 1 to 0.35, --dur-pulse), and,
+   round a face, a thin ring that breathes with it. With reduced motion both
+   hold still. Loaded with the pulse, so Home doesn't carry the Team page's
+   stylesheet.
+
+   Whose colour: where the dot belongs to one assistant, the element that
+   holds it is painted with that character's colour (team/dot-colour.ts
+   paintWho: .has-who, --who-light, --who-dark) and --who follows the theme.
+   Where it stands for the whole team (the sidebar, Home's Team button) it
+   stays the accent. */
+
+:root {
+  --team-dot: 6px;
+}
+
+.has-who {
+  --who: var(--who-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  .has-who {
+    --who: var(--who-dark);
+  }
+}
+
+@keyframes team-breathe {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.35;
+  }
+}
+
+/* Round a working face: the ring breathes on the same beat as the dot. */
+@keyframes team-ring {
+  from {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+}
+
+/* The dot. The sidebar's Team entry wears it after the name while anyone works, in the accent. */
+.team-dot,
+.side-item.is-working .side-item__label::after {
+  display: inline-block;
+  flex: none;
+  width: var(--team-dot);
+  height: var(--team-dot);
+  border-radius: 50%;
+  background: var(--who, var(--accent));
+  animation: team-breathe var(--dur-pulse) var(--ease-in-out) infinite alternate;
+}
+
+.side-item.is-working .side-item__label::after {
+  content: "";
+  margin-left: 8px;
+  vertical-align: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-dot,
+  .side-item.is-working .side-item__label::after {
+    animation: none;
+  }
+}

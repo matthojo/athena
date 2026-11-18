@@ -1,0 +1,94 @@
+/* What Ask saved from an answer (components/ask-answer.ts foundEl): the assistant's change rows, inside the answer's bubble. */
+.found {
+  margin-top: 16px;
+}
+
+.found .answers__label {
+  margin-top: 0;
+}
+
+.found__list {
+  margin-top: 8px;
+}
+
+/* A link, not a button: the same hover and press as the assistant's rows. */
+.found .change__main {
+  color: inherit;
+  text-decoration: none;
+}
+
+.found .change:has(a.change__main:active) {
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .found .change:has(a.change__main:hover) {
+    background: color-mix(in oklch, var(--sunken) 55%, var(--surface));
+  }
+}
+
+.found__saving svg {
+  animation: found-pulse var(--dur-pulse) var(--ease-out) infinite;
+}
+
+@keyframes found-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .found__saving svg {
+    animation: none;
+  }
+}
+
+/*
+ * What a reply did (views/ask.ts withActs): the receipts, in the bubble under the words. Rows sized like the
+ * source chips beside them, so a phone shows the whole receipt with its Undo on one line.
+ */
+.acted {
+  margin-top: 14px;
+}
+
+.acted .found__list {
+  margin-top: 0;
+}
+
+.acted .changes {
+  box-shadow: none;
+  border-radius: var(--radius-sm);
+}
+
+.acted .change {
+  padding-right: 8px;
+}
+
+.acted .change__main {
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 0 8px 10px;
+}
+
+.acted .change__title {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.acted .change__detail {
+  font-size: var(--text-meta);
+}
+
+.acted .change + .change::before {
+  left: calc(10px + 34px + 10px);
+  right: 10px;
+}
+
+.acted + .sources {
+  margin-top: 10px;
+}
+
+/* A reply that only did something has nothing under its words to label: its foot is just Try again and Pin. */
+.bubble__foot--bare:empty {
+  display: none;
+}

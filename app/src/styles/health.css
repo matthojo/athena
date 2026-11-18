@@ -1,0 +1,593 @@
+/*
+ * The Library's Health page (views/health.ts), its charts
+ * (components/health-chart.ts) and Settings → Health
+ * (components/health-sources.ts).
+ */
+
+/* ---------- Page ---------- */
+
+.health.lists {
+  max-width: var(--page-wide);
+}
+
+.health .notes__title-row {
+  flex-wrap: wrap;
+  row-gap: var(--space-xs);
+}
+
+.health__range {
+  flex-wrap: nowrap;
+}
+
+.health__range .chip {
+  height: 32px;
+  padding: 0 12px;
+}
+
+.health__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.health__body[aria-busy="true"] {
+  min-height: 60vh;
+}
+
+.health__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+@media (min-width: 900px) {
+  .health__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+/* The last day, in the Life log's words. */
+.health__latest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  background: var(--sunken);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.health__latest-day {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.health__latest-line {
+  font-size: var(--text-ui);
+  line-height: 1.5;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.health__part {
+  white-space: nowrap;
+}
+
+.health__dot {
+  color: var(--ink-3);
+}
+
+.health__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+
+.health__card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.health__card-title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.health__source {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.health__figure {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: var(--space-2xs);
+}
+
+.health__value {
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.health__unit {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.health__sub {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.health__empty {
+  padding: var(--space-lg) 0;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.health__card .hchart {
+  margin-top: var(--space-sm);
+}
+
+/* Latest workouts, under the chart. */
+.health__recent {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--line);
+}
+
+.health__minor {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+  margin-bottom: var(--space-2xs);
+}
+
+.health__workouts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.health__workout {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 52px;
+  padding: var(--space-2xs) 0;
+}
+
+.health__route {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink-3);
+}
+
+.health__route--none svg {
+  width: 18px;
+  height: 18px;
+}
+
+.route__line {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.route__start {
+  fill: var(--chart-1);
+  stroke: var(--sunken);
+  stroke-width: 1.5;
+}
+
+.health__workout-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.health__workout-title {
+  font-size: var(--text-ui);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.health__workout-title::first-letter {
+  text-transform: uppercase;
+}
+
+.health__workout-meta {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.health__choose {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 52px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  text-align: left;
+}
+
+.health__choose > span:nth-child(2) {
+  flex: 1;
+}
+
+.health__choose svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (hover: hover) {
+  .health__choose:hover {
+    color: var(--ink);
+    background: var(--sunken);
+  }
+}
+
+.health__first-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+/* ---------- Charts ---------- */
+
+.hchart {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-xs);
+  touch-action: pan-y;
+}
+
+.hchart:focus-visible {
+  outline-offset: 4px;
+}
+
+.hchart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.hchart__grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.hchart__ref {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.hchart__ref,
+.hchart__tick {
+  font-family: inherit;
+  font-size: var(--text-micro);
+  fill: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.hchart__bar {
+  fill: var(--chart-1);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.hchart.is-hovering .hchart__bar:not(.is-current) {
+  opacity: 0.45;
+}
+
+.hchart__line {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.hchart__dot {
+  fill: var(--chart-1);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.hchart__dot.is-current {
+  r: 5;
+}
+
+.hchart__cross {
+  stroke: var(--chart-axis);
+  stroke-width: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.hchart--bars .hchart__cross {
+  display: none;
+}
+
+.hchart.is-hovering .hchart__cross {
+  opacity: 1;
+}
+
+.hchart__hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.hchart__tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  pointer-events: none;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  box-shadow: var(--shadow-float);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.hchart__tip .meta {
+  margin-left: 6px;
+  font-weight: var(--weight-regular);
+  color: color-mix(in oklch, var(--on-ink) 70%, var(--ink));
+}
+
+.hchart.is-hovering .hchart__tip {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hchart__bar,
+  .hchart__cross,
+  .hchart__tip {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .hchart__bar,
+  .hchart__dot {
+    fill: CanvasText;
+  }
+
+  .hchart__line,
+  .route__line {
+    stroke: CanvasText;
+  }
+}
+
+/* ---------- Settings → Health ---------- */
+
+.hsrc {
+  display: flex;
+  flex-direction: column;
+}
+
+.hsrc[aria-busy="true"] {
+  min-height: 240px;
+}
+
+.hsrc__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+}
+
+.hsrc__row + .hsrc__row {
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 720px) {
+  .hsrc__row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+  }
+
+  .hsrc__choices {
+    flex: none;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  .hsrc__label {
+    flex: 1;
+  }
+}
+
+.hsrc__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hsrc__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.hsrc__hint {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.hsrc__choices {
+  gap: 6px;
+}
+
+.hsrc__chip {
+  height: 36px;
+  gap: 6px;
+  padding: 0 12px 0 5px;
+  font-size: var(--text-small);
+}
+
+.hsrc__chip .logo {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  /* A light tile in both themes, like Apple Health's: dark marks (Whoop, Withings, Oura) stay visible on a dark chip. */
+  background: oklch(1 0 0);
+}
+
+.hsrc__only .hsrc__chip {
+  pointer-events: none;
+}
+
+.hsrc__apple {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: oklch(1 0 0);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: oklch(0.63 0.22 18);
+}
+
+.hsrc__apple svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  stroke: none;
+}
+
+.hsrc__none {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.hsrc__error {
+  padding: var(--space-md);
+}
+
+.hsrc__foot {
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+/* A phone: names alone, so three apps fit one line. */
+@media (max-width: 480px) {
+  .hsrc__choices .hsrc__chip {
+    padding: 0 14px;
+  }
+
+  .hsrc__choices .hsrc__chip .logo,
+  .hsrc__choices .hsrc__apple {
+    display: none;
+  }
+}
+
+/* ---------- Sleep stages ---------- */
+.hchart__bar--stack {
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.hchart.is-hovering .hchart__bar--stack:not(.is-current) {
+  opacity: 0.45;
+}
+
+.hchart__tip-parts {
+  font-weight: var(--weight-regular);
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.hchart__tip-part {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.hchart__swatch {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-3xs);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--surface) 60%, transparent);
+}
+
+@media (forced-colors: active) {
+  .hchart__part { fill: CanvasText; }
+}
+
+.health__night {
+  display: grid;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.health__night-label {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.health__night-line {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.health__stages-avg {
+  margin-top: var(--space-xs);
+}
+
+
+.health__minor-note {
+  margin-top: 4px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}

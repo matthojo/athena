@@ -1,0 +1,825 @@
+/* Check-ins: the flow (components/checkin-flow.ts), the scale (scale-slider.ts),
+   Today's card (checkin-entry.ts), the day's answers (checkin-day.ts) and
+   Settings → Check-ins (checkin-settings.ts). Athena's tokens only. */
+
+/* ---------- the sheet: full screen on a phone, a tall panel on a wide screen ---------- */
+
+@media (max-width: 639px) {
+  dialog.checkin-sheet .sheet__panel {
+    height: calc(100dvh - var(--kb, 0px));
+    max-height: none;
+    border-radius: 0;
+    padding-top: var(--safe-top);
+  }
+
+  dialog.checkin-sheet .sheet__grip {
+    visibility: hidden;
+  }
+}
+
+@media (min-width: 640px) {
+  dialog.checkin-sheet .sheet__panel {
+    max-width: 600px;
+  }
+}
+
+dialog.checkin-sheet .sheet__scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.checkin {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100%;
+}
+
+.checkin__screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: var(--space-lg);
+  animation: checkin-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes checkin-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkin__screen {
+    animation: none;
+  }
+}
+
+.checkin__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.checkin__dots {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checkin__dot {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken-strong);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.checkin__dot[data-state="done"] {
+  background: color-mix(in oklch, var(--accent) 45%, var(--sunken-strong));
+}
+
+.checkin__dot[data-state="now"] {
+  background: var(--accent);
+}
+
+.checkin__q {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.checkin__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.checkin__screen--scale .checkin__body {
+  justify-content: center;
+}
+
+.checkin__lede {
+  max-width: 44ch;
+  color: var(--ink-2);
+}
+
+.checkin__queued {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.checkin__foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-inline: calc(-1 * var(--space-md));
+  padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+}
+
+.checkin__spacer {
+  flex: 1;
+}
+
+/* The round Next. */
+.checkin__next {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--on-ink);
+  transition:
+    transform var(--dur-instant) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.checkin__next svg {
+  width: 24px;
+  height: 24px;
+}
+
+.checkin__next:active {
+  transform: scale(0.94);
+}
+
+.checkin__next:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.checkin__done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  flex: 1;
+  gap: var(--space-sm);
+  padding-block: var(--space-xl);
+}
+
+.checkin__done .tile {
+  color: var(--accent-ink);
+  background: var(--accent-wash);
+}
+
+.checkin__done .btn {
+  margin-top: var(--space-sm);
+}
+
+/* ---------- the scale ---------- */
+
+.scale {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding-block: var(--space-lg);
+}
+
+.scale__sentence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-height: 5.5em;
+  justify-content: flex-end;
+  font-family: var(--font-display);
+  text-align: center;
+}
+
+.scale__lead {
+  font-size: var(--text-title);
+  color: var(--ink-2);
+}
+
+.scale__level {
+  font-size: var(--text-hero);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.scale__track {
+  padding-inline: 14px;
+}
+
+.scale__input {
+  --fill: 50%;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.scale__input::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--sunken-strong) var(--fill));
+}
+
+.scale__input::-moz-range-track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--sunken-strong) var(--fill));
+}
+
+.scale__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 32px;
+  height: 32px;
+  margin-top: -12px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--shadow-float);
+}
+
+.scale__input::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--shadow-float);
+}
+
+.scale__input:focus-visible {
+  outline: none;
+}
+
+.scale__input:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px var(--accent-wash), var(--shadow-float);
+}
+
+.scale__input:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px var(--accent-wash), var(--shadow-float);
+}
+
+.scale__ends {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+/* ---------- words and areas ---------- */
+
+.checkin-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.checkin-words,
+.checkin-areas {
+  display: grid;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.checkin-words {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.checkin-areas {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.checkin-word,
+.checkin-area {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.checkin-word {
+  min-height: 52px;
+  padding: var(--space-xs) var(--space-md);
+}
+
+.checkin-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 92px;
+  padding: var(--space-sm) var(--space-2xs);
+}
+
+.checkin-area__icon svg {
+  width: 24px;
+  height: 24px;
+  color: var(--ink-2);
+}
+
+.checkin-area__name {
+  font-size: var(--text-small);
+  text-align: center;
+}
+
+.checkin-word:active,
+.checkin-area:active {
+  transform: scale(0.97);
+}
+
+.checkin-word[aria-pressed="true"],
+.checkin-area[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.checkin-area[aria-pressed="true"] .checkin-area__icon svg {
+  color: var(--accent-ink);
+}
+
+.checkin-word:focus-visible,
+.checkin-area:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- written ---------- */
+
+.checkin-written {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.checkin-text {
+  height: auto;
+  min-height: 12rem;
+  padding: var(--space-sm) 14px;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  resize: vertical;
+}
+
+.checkin-text--follow {
+  min-height: 7rem;
+  background: var(--surface);
+}
+
+.checkin-deeper {
+  width: 100%;
+}
+
+.checkin-deeper:empty {
+  display: none;
+}
+
+.checkin-deeper__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--accent-wash);
+}
+
+.checkin-deeper__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+.checkin-deeper__label svg {
+  width: 14px;
+  height: 14px;
+}
+
+.checkin-deeper__q {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.checkin-deeper__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.checkin-deeper__go .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin var(--dur-spin) var(--ease-linear) infinite;
+}
+
+/* ---------- Today's card ---------- */
+
+.checkin-entry[hidden] {
+  display: none;
+}
+
+.checkin-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+button.checkin-card:active {
+  transform: scale(0.99);
+}
+
+.checkin-card .tile {
+  color: var(--accent-ink);
+  background: var(--accent-wash);
+}
+
+.checkin-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.checkin-card__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.checkin-card__meta {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.checkin-card__go {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  flex: none;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+.checkin-card__go svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Both routines on: two cards in one row, each standing up (tile, name, what's left, go).
+   Two fit from about 232px of width, so a 320px phone keeps one row; narrower than that they stack. */
+.checkin-entry--two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: var(--space-xs);
+}
+
+.checkin-entry--two .checkin-card {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  height: 100%;
+  padding: var(--space-sm);
+}
+
+.checkin-entry--two .checkin-card__body {
+  flex: 1;
+}
+
+.checkin-card--done .tile {
+  color: var(--good);
+  background: var(--mint-wash);
+}
+
+.checkin-card--done .checkin-card__go {
+  color: var(--ink-2);
+}
+
+.checkin-card--offer {
+  flex-wrap: wrap;
+}
+
+.checkin-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-basis: 100%;
+  gap: var(--space-xs);
+}
+
+/* ---------- the day's answers ---------- */
+
+.checkin-day__block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.checkin-day__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.checkin-day__kind {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.checkin-day__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.checkin-day__list dt {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.checkin-day__list dd {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-ui);
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.checkin-day__list dd:last-child {
+  margin-bottom: 0;
+}
+
+.checkin-day__list dt.checkin-day__deeper {
+  padding-left: var(--space-sm);
+  border-left: 2px solid var(--line-strong);
+}
+
+/* ---------- Settings → Check-ins ---------- */
+
+.checkin-set {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.checkin-set__routine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.checkin-set__routine.is-off .checkin-set__perday,
+.checkin-set__routine.is-off .checkin-set__list {
+  opacity: 0.6;
+}
+
+.checkin-set__switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.checkin-set__words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkin-set__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.checkin-set__sub,
+.checkin-set__hint {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.checkin-set__perday {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--line);
+}
+
+.checkin-set__perday-label {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.checkin-set__stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+}
+
+.checkin-set__count {
+  min-width: 2ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+.checkin-set__row .row__title {
+  white-space: normal;
+}
+
+.checkin-set__tools {
+  display: inline-flex;
+  flex: none;
+  gap: 0;
+}
+
+.checkin-set__pin[aria-pressed="true"] {
+  color: var(--accent-ink);
+  background: var(--accent-wash);
+}
+
+.checkin-set__own {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.checkin-set__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+}
+
+/* On a phone the tools take their own line under the question. */
+@media (max-width: 639px) {
+  div.checkin-set__row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  div.checkin-set__row .checkin-set__tools {
+    grid-column: 2;
+    justify-content: flex-start;
+    margin-left: calc(-1 * var(--space-xs));
+  }
+}
+
+/* The question editor. */
+.checkin-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-sm);
+}
+
+.checkin-edit__field,
+.checkin-edit__levels,
+.checkin-edit__kinds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.checkin-edit__levels {
+  gap: var(--space-xs);
+}
+
+.checkin-edit__kinds {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.checkin-edit__kinds legend {
+  width: 100%;
+  margin-bottom: var(--space-2xs);
+}
+
+.checkin-edit__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.checkin-edit__check {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.checkin-edit__type-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.checkin-edit__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.checkin-edit__lines {
+  height: auto;
+  padding-block: var(--space-sm);
+  line-height: var(--leading-body);
+}
+
+.checkin-edit__types {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+
+.checkin-edit__type {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-sm) var(--space-2xs);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.checkin-edit__type svg {
+  width: 20px;
+  height: 20px;
+}
+
+.checkin-edit__type[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.checkin-edit__foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-inline: calc(-1 * var(--space-md));
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}

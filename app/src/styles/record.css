@@ -1,0 +1,654 @@
+/**
+ * Record pages: a person, place, organisation or event
+ * (components/record-profile.ts) and one of the owner's own records, a wine
+ * say (components/custom-record-profile.ts). Pages about someone or
+ * somewhere, not forms: a hero that fits the kind, the story ("Together",
+ * "Visits", drawn with Week in review's wr- rows), and Details folded at
+ * the end (docs/notes/night-d1.md).
+ *
+ * The shared profile frame (.profile__hero, .fact, .tile--hero) stays in
+ * components.css: Trips, Purchases and the connector pages use it too.
+ * Everything here is only on record pages. Motion uses the tokens and stops
+ * under prefers-reduced-motion.
+ */
+
+/* ---------- Heroes ---------- */
+
+/* A person: a larger avatar inside a soft ring of the accent wash. */
+.avatar--hero {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(150deg, oklch(0.955 0.035 var(--h)), oklch(0.87 0.075 var(--h)));
+  color: oklch(0.38 0.1 var(--h));
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
+  box-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 0.55),
+    0 12px 28px -16px oklch(0.45 0.12 var(--h) / 0.6);
+}
+
+.avatar--hero svg {
+  width: 30px;
+  height: 30px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .avatar--hero {
+    background: linear-gradient(150deg, oklch(0.42 0.07 var(--h)), oklch(0.3 0.05 var(--h)));
+    color: oklch(0.92 0.05 var(--h));
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.08);
+  }
+}
+
+.avatar--ring {
+  width: 96px;
+  height: 96px;
+  font-size: var(--text-display);
+  box-shadow:
+    0 0 0 6px var(--surface),
+    0 0 0 10px var(--accent-wash),
+    0 18px 36px -20px oklch(0.45 0.12 var(--h) / 0.55);
+  margin: 10px 0 0 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .avatar--ring {
+    box-shadow:
+      0 0 0 6px var(--surface),
+      0 0 0 10px var(--accent-wash),
+      0 18px 36px -20px oklch(0 0 0 / 0.7);
+  }
+}
+
+.avatar--ring svg {
+  width: 38px;
+  height: 38px;
+}
+
+/* An organisation, a birthday, a wine without a label: the icon, calm and a size up. */
+.record-calm {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--accent-wash), color-mix(in oklch, var(--accent-wash) 40%, var(--sunken)));
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent-ink) 10%, transparent);
+}
+
+.record-calm svg {
+  width: 30px;
+  height: 30px;
+}
+
+/* An event: its day, like a page from a desk calendar. */
+.record-date {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 72px;
+  height: 76px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    0 10px 24px -16px oklch(0.25 0.04 264 / 0.35);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.record-date__month {
+  align-self: stretch;
+  padding: 5px 0 4px;
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font: var(--weight-semibold) var(--text-meta) / 1 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.record-date__day {
+  padding-bottom: 6px;
+  font: var(--weight-medium) var(--text-heading) / 1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* One of the owner's own records (a wine): a label, tinted by its name. */
+.record-label {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 96px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(170deg, oklch(0.975 0.02 var(--h, 60)), oklch(0.92 0.045 var(--h, 60)));
+  box-shadow:
+    inset 0 0 0 5px oklch(0.975 0.02 var(--h, 60)),
+    inset 0 0 0 6px oklch(0.6 0.08 var(--h, 60) / 0.35),
+    0 14px 28px -18px oklch(0.4 0.1 var(--h, 60) / 0.6);
+  color: oklch(0.42 0.1 var(--h, 60));
+}
+
+.record-label svg {
+  width: 28px;
+  height: 28px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .record-label {
+    background: linear-gradient(170deg, oklch(0.36 0.05 var(--h, 60)), oklch(0.27 0.04 var(--h, 60)));
+    box-shadow:
+      inset 0 0 0 5px oklch(0.36 0.05 var(--h, 60)),
+      inset 0 0 0 6px oklch(0.8 0.06 var(--h, 60) / 0.3),
+      0 14px 28px -18px oklch(0 0 0 / 0.7);
+    color: oklch(0.9 0.05 var(--h, 60));
+  }
+}
+
+/* A place: a still of the spot across the top. */
+.record-map {
+  margin-bottom: var(--space-sm);
+}
+
+.record-map[hidden] {
+  display: none;
+}
+
+.record-map__frame {
+  position: relative;
+  display: block;
+  height: clamp(150px, 24vw, 220px);
+  border-radius: var(--radius-lg);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+
+.record-map__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.035);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out-expo);
+}
+
+.record-map.is-in .record-map__img {
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: hover) {
+  .record-map__frame:hover .record-map__img {
+    transform: scale(1.01);
+  }
+}
+
+.record-map__frame:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--accent-wash), inset 0 0 0 1px var(--line-strong);
+}
+
+/* With a map, the pin tile steps aside and ··· floats on the map's corner. */
+.profile--mapped .profile__hero {
+  position: relative;
+}
+
+.profile--mapped .profile__top {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  margin: 0;
+}
+
+.profile--mapped .profile__top > .tile--hero {
+  display: none;
+}
+
+.profile--mapped .note__more {
+  background: color-mix(in oklch, var(--surface) 84%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+/* Heroes settle in, once, as the page opens. */
+:is(.profile--person, .profile--place, .profile--organisation, .profile--event, .profile--record) .profile__top > :first-child {
+  animation: record-settle var(--dur-slow) var(--ease-out-expo) both;
+}
+
+@keyframes record-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+/* "Last saw Wednesday, lunch at Dishoom." */
+.profile__last {
+  margin: 2px 0 0;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.profile__last[hidden],
+.profile__primary[hidden] {
+  display: none;
+}
+
+/* The one primary action, under the name. The rest are in the ··· menu. */
+.profile__primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.profile__go svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Section headings: a page about someone, not a form ---------- */
+
+:is(.profile--person, .profile--place, .profile--organisation, .profile--event, .profile--record) .group__label,
+:is(.profile--person, .profile--place, .profile--organisation, .profile--event, .profile--record) .note__links .group__label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin: 0;
+  padding-inline: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+:is(.profile--person, .profile--place, .profile--organisation, .profile--event, .profile--record) .group__label .group__count,
+.record-h__meta {
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+}
+
+:is(.profile--person, .profile--place, .profile--organisation, .profile--event, .profile--record) .profile__section {
+  gap: var(--space-sm);
+}
+
+/* ---------- The story: Together and Visits ---------- */
+
+.story[hidden] {
+  display: none;
+}
+
+.story__list.wr-people,
+.story__list.wr-places {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.story__row {
+  list-style: none;
+}
+
+.story__card,
+.story__line {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+
+button.story__card,
+button.story__line {
+  cursor: pointer;
+  transition:
+    transform var(--dur-instant) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+button.story__card:active,
+button.story__line:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) {
+  button.story__card:hover {
+    box-shadow: var(--wr-shadow), 0 6px 18px -12px oklch(0.25 0.04 264 / 0.3);
+  }
+
+  button.story__line:hover .wr-place__name {
+    color: var(--accent-ink);
+  }
+}
+
+button.story__card:focus-visible,
+button.story__line:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.story--place .story__row:last-child .wr-place {
+  border-bottom: 0;
+}
+
+.story__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-top: var(--space-2xs);
+}
+
+/* The rows arrive in order, once: 40ms apart. */
+.story__list--enter > .story__row,
+.story__row--enter {
+  animation: story-in var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger));
+}
+
+@keyframes story-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ---------- Notes: one quiet line until there's something in it ---------- */
+
+.record-notes-box > .prop__textarea {
+  transition:
+    height var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+/* ---------- Details, folded at the end ---------- */
+
+.record-details__summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-height: 40px;
+  padding: 6px 0;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.record-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.record-details__summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.record-details__preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.record-details[open] .record-details__preview {
+  opacity: 0;
+}
+
+.record-details__chev {
+  display: inline-flex;
+  align-self: center;
+  margin-left: auto;
+  color: var(--ink-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.record-details__chev svg {
+  width: 18px;
+  height: 18px;
+}
+
+.record-details[open] .record-details__chev {
+  transform: rotate(180deg);
+}
+
+.record-details__body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+  padding-top: var(--space-2xs);
+}
+
+.record-details[open] .record-details__body {
+  animation: details-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes details-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.record-details__add {
+  align-self: flex-start;
+}
+
+.record-details__add[hidden],
+.record-details .fields:not(:has(.prop:not([hidden]))) {
+  display: none;
+}
+
+/* The owner's own fields have their own "Add …" row: "Add a detail" covers both. */
+.record-details .fields > .prop--reveal {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.profile--person, .profile--place, .profile--organisation, .profile--event, .profile--record) .profile__top > :first-child,
+  .story__list--enter > .story__row,
+  .story__row--enter,
+  .record-details[open] .record-details__body {
+    animation: none;
+  }
+
+  .record-map__img {
+    transform: none;
+    transition: opacity var(--dur-fast) var(--ease-linear);
+  }
+
+  .record-details__chev,
+  .record-notes-box > .prop__textarea,
+  button.story__card,
+  button.story__line {
+    transition: none;
+  }
+}
+
+/* ---------- A person's to-dos, facts, catch-ups and other names ---------- */
+
+.profile__memory {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.profile__memory:empty {
+  display: none;
+}
+
+.section-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.section-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-small);
+}
+
+.section-add svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Same 96px label column as Details, so the two cards line up; long keys wrap. */
+.facts .prop__label {
+  overflow-wrap: anywhere;
+  line-height: var(--leading-snug);
+}
+
+.prop--add .prop__key {
+  margin-left: -10px;
+  width: calc(100% + 10px);
+  font-size: var(--text-small);
+}
+
+.prop--add .prop__key::placeholder {
+  color: var(--accent-ink);
+}
+
+.prop--add .prop__control .prop__input::placeholder {
+  color: var(--ink-3);
+}
+
+.fact-source {
+  display: inline-flex;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.fact-source svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Logging a catch-up, in place under the quick actions. */
+.log-composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  animation: composer-in var(--dur-base) var(--ease-out-expo);
+}
+
+.log-composer[hidden] {
+  display: none;
+}
+
+@keyframes composer-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.log-composer__title {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.log-composer .chip-row {
+  margin-inline: calc(-1 * var(--space-md));
+}
+
+.log-composer .chip {
+  height: 34px;
+}
+
+.log-composer__text {
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--canvas);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--ink);
+  resize: none;
+}
+
+.log-composer__text:focus {
+  outline: none;
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.log-composer__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.log-composer__date {
+  flex: none;
+  width: auto;
+  margin-left: -10px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.tile--mint {
+  background: var(--mint-wash);
+  color: var(--ink-2);
+}
+
+
+/* Also known as: chips for each identity, then an input to add one. */
+.aka {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.aka__chips {
+  display: contents;
+}
+
+.aka__chip {
+  padding-left: 10px;
+}
+
+.aka__icon {
+  display: inline-flex;
+  color: var(--ink-3);
+}
+
+.aka__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.aka__input {
+  flex: 1 1 200px;
+  margin-left: -10px;
+}
+
+.merge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

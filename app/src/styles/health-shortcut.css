@@ -1,0 +1,373 @@
+/* Settings → From your iPhone: the Siri / Health switch and the Health tab (components/health-shortcut.ts). */
+
+.hs-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.hs-tabs {
+  max-width: 360px;
+}
+
+/* What the Life log gets: a small day note, then whether days are arriving. */
+.hs-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-md);
+}
+
+.hs-preview__label {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.hs-preview__note {
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.hs-preview__day {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.hs-preview__heading {
+  margin-top: var(--space-xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.hs-preview__line {
+  margin-top: var(--space-3xs);
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.hs-preview__part {
+  white-space: nowrap;
+}
+
+.hs-manage {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.hs-manage svg {
+  margin-top: 2px;
+}
+
+.hs-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.hs-state svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.hs-state--ok {
+  color: var(--good);
+}
+
+.hs-state--ok span:first-of-type {
+  color: var(--ink);
+}
+
+.hs-state__more {
+  color: var(--ink-3);
+}
+
+/* The last two weeks: a sentence per figure, then its line. */
+.hs-trends {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+.hs-trend {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label value" "chart chart";
+  align-items: baseline;
+  gap: var(--space-2xs) var(--space-sm);
+}
+
+.hs-trend + .hs-trend {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.hs-trend__label {
+  grid-area: label;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.hs-trend__value {
+  grid-area: value;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.hs-trend__chart {
+  grid-area: chart;
+  margin-top: var(--space-2xs);
+}
+
+/* Setup done: the steps fold away; inside, they lose their own card. */
+.hs-setup__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-xs) var(--space-xs);
+}
+
+.hs-setup__body .shortcut__steps {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  padding-top: 0;
+}
+
+.hs-setup__body .hs-more {
+  background: var(--sunken);
+  border-color: transparent;
+}
+
+.hs-trends .hs-state {
+  margin-top: calc(-1 * var(--space-xs));
+}
+
+/* Steps: a title per step, then what to do. */
+.hs-step__title {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.hs-step > p + p {
+  margin-top: var(--space-3xs);
+}
+
+.hs-fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px var(--space-sm);
+  margin-top: var(--space-xs);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  list-style: none;
+}
+
+.hs-field {
+  display: contents;
+}
+
+.hs-field__name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+  color: var(--ink);
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.hs-field__name svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+@media (hover: hover) {
+  .hs-field__name:hover {
+    box-shadow: 0 0 0 1px var(--line-strong);
+  }
+}
+
+.hs-field__from {
+  align-self: center;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* Workouts, folded away. */
+.hs-more {
+  padding: 0;
+}
+
+.hs-more__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 var(--space-md);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  list-style: none;
+  cursor: pointer;
+}
+
+.hs-more__summary::-webkit-details-marker {
+  display: none;
+}
+
+.hs-more__summary svg {
+  width: 18px;
+  height: 18px;
+  color: var(--ink-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.hs-more[open] .hs-more__summary svg {
+  transform: rotate(180deg);
+}
+
+.hs-more__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: 0 var(--space-md) var(--space-md);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.hs-more__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding-left: 1.4em;
+  list-style: decimal;
+}
+
+.hs-more__steps strong {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-more__summary svg,
+  .hs-field__name {
+    transition: none;
+  }
+}
+
+/* Sleep stages: the Text action's three variables, drawn as Shortcuts draws them. */
+.hs-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-top: var(--space-xs);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.hs-token {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-xs);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-weight: var(--weight-medium);
+}
+
+.hs-field__kind {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: var(--text-meta);
+  line-height: 18px;
+  color: var(--ink-3);
+}
+
+.hs-upgrade {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: flex-start;
+  padding: var(--space-sm);
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.hs-upgrade > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+.hs-upgrade__body {
+  display: grid;
+  gap: var(--space-xs);
+  justify-items: start;
+}
+
+.hs-step--flash {
+  border-radius: var(--radius-sm);
+  animation: hs-flash var(--dur-pulse) var(--ease-out);
+}
+
+@keyframes hs-flash {
+  0%, 40% { background: var(--accent-wash); box-shadow: 0 0 0 6px var(--accent-wash); }
+  100% { background: transparent; box-shadow: 0 0 0 6px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-step--flash { animation: none; }
+}
+
+/* Food, drink and mind: State of Mind's optional step, set apart. */
+.hs-food .hs-fields {
+  margin-top: var(--space-xs);
+}
+
+.hs-food__som {
+  margin: var(--space-sm) 0 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.hs-food__som strong {
+  color: var(--ink);
+}

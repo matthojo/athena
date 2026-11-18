@@ -1,0 +1,193 @@
+/* Where you've been: the Places page card, a Place's visits fact and the
+   Timeline import's extras (components/place-visits.ts, timeline-import.ts).
+   The import sheet itself is built on youtube-import.css. */
+
+/* ----- The Places page card ----- */
+
+.where {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-2xs);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  animation: where-in var(--dur-slow) var(--ease-out-expo) both;
+}
+
+@keyframes where-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.where__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.where__mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.where__mark svg {
+  width: 20px;
+  height: 20px;
+}
+
+.where__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.where__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.where__since {
+  font-weight: var(--weight-regular);
+  color: var(--ink-2);
+}
+
+.where__sub {
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.where__link {
+  color: var(--accent-ink);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.where__link:hover {
+  text-decoration: underline;
+}
+
+.where__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.where__private {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.where__private svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* The intro reads as one block: actions under the text, not beside the mark. */
+.where--wait {
+  min-height: 180px;
+  background: var(--sunken);
+  box-shadow: none;
+  animation: none;
+}
+
+.where:not(:has(.tlimp-example)) .where__head:not(:has(.btn)) {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+/* ----- A day, as the Life log says it ----- */
+
+.tlimp-example {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.tlimp-example__label {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.tlimp-example__line {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.tlimp-example__weather {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.ytimp-end + .tlimp-example--day {
+  margin-top: calc(-1 * var(--space-xs));
+}
+
+/* ----- A Place's visits fact ----- */
+
+.where-fact {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.where-fact__part {
+  white-space: nowrap;
+}
+
+.where-strip {
+  display: grid;
+  grid-template-columns: repeat(12, 4px);
+  align-items: end;
+  gap: 3px;
+  height: 28px;
+  padding-left: var(--space-xs);
+}
+
+.where-strip__bar {
+  height: var(--h);
+  border-radius: var(--radius-3xs);
+  background: var(--chart-1);
+  transform-origin: bottom;
+  animation: where-grow var(--dur-slow) var(--ease-out-expo) both;
+}
+
+@keyframes where-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.where-strip__bar.is-empty {
+  background: var(--chart-axis);
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .where,
+  .where-strip__bar {
+    animation: none;
+  }
+}

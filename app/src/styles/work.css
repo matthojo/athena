@@ -1,0 +1,596 @@
+/*
+ * Work (views/work.ts). House's cards and headline (house.css) carry the
+ * page, as on Music; this adds the period row, the two figures, the year of
+ * days, ranked bars, the two spreads, the notes list, Code and the project
+ * sheet. Tokens only, both themes; series 1 for shipped.
+ */
+
+.wk-periods {
+  margin-bottom: var(--space-sm);
+}
+
+.wk-periods .segmented__item[aria-checked="true"] {
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+
+@media (hover: hover) {
+  .wk-periods .segmented__item:not([aria-checked="true"]):hover {
+    color: var(--ink);
+  }
+}
+
+.wk-page {
+  max-width: 1040px;
+}
+
+.wk-page.is-entering .wk-grid {
+  animation: wk-in var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes wk-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wk-page.is-entering .wk-grid {
+    animation: none;
+  }
+}
+
+.wk-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.wk-col {
+  display: contents;
+}
+
+@media (min-width: 900px) {
+  .wk-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    min-width: 0;
+  }
+  .wk-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-lg);
+    align-items: start;
+  }
+  .wk-hero,
+  .wk-card--year {
+    grid-column: 1 / -1;
+  }
+}
+
+.wk-ico {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.wk-ico--lg {
+  width: 24px;
+  height: 24px;
+}
+
+.wk-mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.92em;
+}
+
+/* ---------- The headline: two figures ---------- */
+
+.wk-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-2xs) 0 var(--space-xs);
+}
+
+.wk-hero .tc-headline__eyebrow {
+  margin: 0;
+}
+
+.wk-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-xl);
+}
+
+.wk-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.wk-hero__line {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  text-wrap: pretty;
+}
+
+.wk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklch, var(--chart-1) 12%, var(--surface));
+  color: color-mix(in oklch, var(--chart-1) 78%, var(--ink));
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-chip.is-same {
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+/* ---------- The year of days ---------- */
+
+.wk-year__cell.is-ahead {
+  fill: var(--sunken);
+}
+
+.wk-year .hc__cell--0 {
+  fill: var(--sunken-strong, var(--sunken));
+  fill-opacity: 1;
+}
+
+.wk-year .hc__cell.is-current,
+.wk-year__cell.is-current {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.wk-card--year .hc-scale .hc__cell--0 {
+  background: var(--sunken-strong, var(--sunken));
+}
+
+/* ---------- By project: ranked bars ---------- */
+
+.wk-ranks {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * var(--space-2xs)) calc(-1 * var(--space-xs)) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wk-rank {
+  display: grid;
+  grid-template-columns: 1.5em minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 52px;
+  padding: 6px var(--space-xs);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  color: inherit;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .wk-rank:hover {
+    background: var(--sunken);
+  }
+}
+
+.wk-rank:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.wk-rank__n {
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.wk-rank__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wk-rank__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.wk-rank__name {
+  overflow: hidden;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wk-rank__count {
+  flex: none;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-rank__points {
+  color: var(--ink-3);
+  font-weight: var(--weight-regular);
+}
+
+.wk-rank__track,
+.wk-bin__track {
+  display: block;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.wk-rank__fill,
+.wk-bin__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--chart-1);
+}
+
+li:not(:first-child) > .wk-rank .wk-rank__fill {
+  background: color-mix(in oklch, var(--chart-1) 62%, var(--surface));
+}
+
+.wk-rank__go,
+.wk-note__go {
+  color: var(--ink-3);
+}
+
+/* ---------- How long things take ---------- */
+
+.wk-spreads {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+}
+
+@media (min-width: 560px) and (max-width: 899px) {
+  .wk-spreads {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.wk-spread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.wk-spread__title {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.wk-spread__median {
+  margin: 0 0 var(--space-2xs);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+}
+
+.wk-spread__big {
+  color: var(--ink);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-bins {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wk-bin {
+  display: grid;
+  grid-template-columns: 9.5em minmax(0, 1fr) 2.5em;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-meta);
+}
+
+.wk-bin__label {
+  overflow: hidden;
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wk-bin__n {
+  color: var(--ink-2);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---------- Shipped, decided, stuck ---------- */
+
+.wk-notes {
+  display: flex;
+  flex-direction: column;
+  margin: 0 calc(-1 * var(--space-xs));
+  padding: 0;
+  list-style: none;
+}
+
+.wk-notes > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.wk-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 48px;
+  padding: 6px var(--space-xs);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .wk-note:hover {
+    background: var(--sunken);
+  }
+}
+
+.wk-note:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.wk-note__title {
+  overflow: hidden;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wk-note__when {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+
+.wk-tag {
+  display: inline-block;
+  min-width: 5.6em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-micro, var(--text-meta));
+  font-weight: var(--weight-semibold);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.wk-tag--shipped {
+  background: color-mix(in oklch, var(--chart-2) 14%, var(--surface));
+  color: color-mix(in oklch, var(--chart-2) 70%, var(--ink));
+}
+
+.wk-tag--decided {
+  background: color-mix(in oklch, var(--chart-1) 12%, var(--surface));
+  color: color-mix(in oklch, var(--chart-1) 72%, var(--ink));
+}
+
+.wk-note.is-open .wk-tag {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+/* ---------- Code ---------- */
+
+.wk-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.wk-stat,
+.wk-facts > div {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.wk-stat dt,
+.wk-facts dt {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.wk-stat dd {
+  margin: 2px 0 0;
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-repos {
+  margin-top: var(--space-2xs);
+}
+
+.wk-repos .wk-bin {
+  grid-template-columns: minmax(6em, 11em) minmax(0, 1fr) 2.5em;
+}
+
+/* ---------- The empty state and loading ---------- */
+
+.wk-empty {
+  max-width: 560px;
+}
+
+.wk-empty__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-sm);
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.wk-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.wk-sk {
+  display: block;
+  border-radius: var(--radius-lg);
+}
+
+.wk-sk--hero {
+  height: 96px;
+  max-width: 420px;
+}
+
+.wk-sk--card {
+  height: 220px;
+}
+
+.wk-sk--sheet {
+  height: 240px;
+}
+
+/* ---------- The project sheet ---------- */
+
+.wk-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.wk-sheet__big {
+  margin: 0;
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-sheet__meta {
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-regular);
+}
+
+.wk-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5em, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.wk-facts dd {
+  margin: 2px 0 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.wk-sheet__sub {
+  margin: 0 0 calc(-1 * var(--space-xs));
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.wk-sheet__chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.wk-issues {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wk-issues > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.wk-issue {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: 10px 0;
+  color: inherit;
+  text-decoration: none;
+  font-size: var(--text-small);
+}
+
+a.wk-issue:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  a.wk-issue:hover .wk-issue__title {
+    text-decoration: underline;
+  }
+}
+
+.wk-issue__id,
+.wk-issue__when {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+
+.wk-issue__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wk-sheet__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}

@@ -1,0 +1,613 @@
+/* Navigation, arranged by rhythm (docs/notes/ia-review.md): the five-place
+   dock, the sidebar with Archived and Settings always in view, the Library's
+   way back and across inside a section, the Library index, and ⌘K.
+   components/nav.ts, components/library-nav.ts, views/library.ts, components/jump.ts. */
+
+/* ---------- Dock: Home · Days · Ask · To do · Library ---------- */
+
+/* Five places and no + beside it (a new note and Team start from Home on a
+   phone). The orb sits at the centre with two tabs either side. Tabs give way
+   down to the 44px target on a 320px phone. */
+.dock__bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0;
+  width: min(calc(100vw - 24px), 440px);
+}
+
+.dock__side {
+  display: flex;
+  min-width: 0;
+  gap: 2px;
+}
+
+.dock__item {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 44px;
+}
+
+.dock__orb {
+  width: 56px;
+}
+
+/* Tabs with one drawing (Days, To do, Library): a heavier stroke when current. */
+.dock__item .icon-bold {
+  stroke-width: 2.3;
+}
+
+/* ---------- Sidebar: the daily places stay put, the Library scrolls, the foot stays put ---------- */
+
+@media (min-width: 1024px) {
+  .sidebar {
+    overflow: hidden;
+  }
+}
+
+.sidebar__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-inline: calc(var(--space-2xs) * -1);
+  padding-inline: var(--space-2xs);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  /* Keyboard focus and scrollIntoView stop short of the faded edges. */
+  scroll-padding-block: var(--space-lg) var(--space-2xl);
+}
+
+/* Home, Days, To do, Ask, then Inbox and This week: never scrolled away. */
+.side-nav--pinned {
+  flex: none;
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--line);
+}
+
+.side-nav--pinned .side-item {
+  height: 36px;
+}
+
+.side-nav__gap {
+  height: var(--space-2xs);
+}
+
+.side-nav--foot {
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--line);
+}
+
+.side-label--link {
+  display: flex;
+  width: 100%;
+  text-align: left;
+  border-radius: var(--radius-xs);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.side-label--link[aria-current] {
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  .side-label--link:hover {
+    color: var(--ink);
+  }
+}
+
+/* ---------- Inside a Library section, on a phone ---------- */
+
+.lib-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+}
+
+.lib-nav > .segmented {
+  align-self: stretch;
+}
+
+.lib-nav__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  margin: calc(var(--space-xs) * -1) 0 calc(var(--space-2xs) * -1) -6px;
+  padding: 0 10px 0 2px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+.lib-nav__back svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Sections to switch between: back and the sections share one line. */
+.lib-nav--row {
+  flex-direction: row;
+  align-items: center;
+}
+
+.lib-nav--row > .segmented {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-nav--row .lib-nav__back {
+  flex: none;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--sunken);
+}
+
+.lib-nav--row .lib-nav__back svg {
+  margin-left: -2px;
+}
+
+.lib-nav--row .lib-nav__word {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .lib-nav--row .lib-nav__back:hover {
+    background: var(--sunken-strong);
+  }
+}
+
+@media (min-width: 1024px) {
+  .lib-nav {
+    display: none;
+  }
+}
+
+/* ---------- Library index ---------- */
+
+.lib-groups {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.lib-group__label {
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lib-ink, var(--ink-3));
+}
+
+.lib-group,
+.side-group {
+  --lib-wash: var(--sunken);
+  --lib-ink: var(--ink-3);
+  --lib-icon: var(--ink-2);
+}
+
+/* What you write and who you know in cobalt; the running of your life in mint. */
+.lib-group[data-group="notes"],
+.side-group[data-group="notes"],
+.lib-group[data-group="people"],
+.side-group[data-group="people"] {
+  --lib-wash: var(--accent-wash);
+  --lib-ink: var(--accent-ink);
+  --lib-icon: var(--accent-ink);
+}
+
+.lib-group[data-group="home"],
+.side-group[data-group="home"],
+.lib-group[data-group="you"],
+.side-group[data-group="you"] {
+  --lib-wash: var(--mint-wash);
+  --lib-ink: oklch(0.45 0.09 170);
+  --lib-icon: oklch(0.45 0.09 170);
+}
+
+@media (prefers-color-scheme: dark) {
+  .lib-group[data-group="home"],
+  .side-group[data-group="home"],
+  .lib-group[data-group="you"],
+  .side-group[data-group="you"] {
+    --lib-ink: oklch(0.8 0.08 170);
+    --lib-icon: oklch(0.8 0.08 170);
+  }
+}
+
+.lib-group[data-group="kinds"],
+.side-group[data-group="kinds"] {
+  --lib-wash: var(--sunken);
+  --lib-ink: var(--ink-2);
+  --lib-icon: var(--ink-2);
+}
+
+.lib-row {
+  align-items: center;
+}
+
+.lib-row__tile {
+  background: var(--lib-wash);
+  color: var(--lib-icon);
+}
+
+.lib-row .row__meta {
+  margin-top: 0;
+}
+
+.lib-row__live {
+  color: var(--ink-2);
+}
+
+.lib-row--empty .row__title {
+  color: var(--ink-2);
+}
+
+@media (min-width: 1024px) {
+  .lib-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--space-xl) var(--space-lg);
+  }
+}
+
+/* ---------- ⌘K: search or jump to ---------- */
+
+dialog.jump {
+  width: min(560px, calc(100vw - 2 * var(--space-md)));
+  max-height: min(520px, 70dvh);
+  margin: 12vh auto auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sheet);
+  overflow: hidden;
+  animation: jump-in var(--dur-base) var(--ease-out);
+}
+
+dialog.jump:not([open]) {
+  display: none;
+}
+
+dialog.jump::backdrop {
+  background: var(--scrim);
+  animation: fade-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes jump-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+}
+
+.jump__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--space-md);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-3);
+}
+
+.jump__field svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.jump__input {
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-body);
+  color: var(--ink);
+  outline: none;
+}
+
+.jump__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.jump__list {
+  overflow-y: auto;
+  padding: var(--space-2xs) var(--space-xs) var(--space-xs);
+}
+
+.jump__head {
+  padding: var(--space-xs) 10px 4px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.jump__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+  cursor: pointer;
+}
+
+.jump__row[aria-selected="true"] {
+  background: var(--sunken);
+}
+
+.jump__icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.jump__row[aria-selected="true"] .jump__icon {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.jump__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.jump__icon .orb {
+  --size: 16px;
+}
+
+.jump__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--weight-medium);
+}
+
+.jump__where {
+  margin-left: auto;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.jump,
+  dialog.jump::backdrop {
+    animation: none;
+  }
+}
+
+/* The sidebar's middle is denser than the rest and fades at its lower edge when there's more below. */
+.sidebar__scroll .side-item {
+  height: 34px;
+}
+
+
+.sidebar__scroll {
+  padding-bottom: 20px;
+}
+
+.sidebar__scroll .side-label--link {
+  padding-top: var(--space-sm);
+}
+
+.sidebar__scroll.is-more-below {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+
+.sidebar__scroll.is-more-above {
+  -webkit-mask-image: linear-gradient(to top, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(to top, #000 calc(100% - 16px), transparent);
+}
+
+.sidebar__scroll.is-more-above.is-more-below {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 16px, #000 calc(100% - 28px), transparent);
+}
+
+/* ---------- The Library in the sidebar: its index's groups, each a fold ----------
+   Opening eases the rows down (grid rows 0fr to 1fr) while they fade in and
+   settle 4px; the chevron turns with them. Quiet enough to use all day. */
+
+.side-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+}
+
+.side-group__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  height: 30px;
+  margin-top: var(--space-2xs);
+  padding: 0 10px;
+  border-radius: var(--radius-xs);
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .side-group__head:hover {
+    color: var(--ink);
+  }
+
+  .side-group__head:hover .side-group__chev {
+    color: var(--ink-2);
+  }
+}
+
+.side-group__head:active .side-group__chev {
+  transform: rotate(90deg) scale(0.86);
+}
+
+.side-group__dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lib-icon);
+  opacity: 0.55;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.side-group__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-group__count {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  transform: translateX(4px);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+
+.side-group__chev {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--ink-3);
+  stroke-width: 2.2;
+  transform: rotate(90deg);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.side-group__body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--dur-base) var(--ease-out);
+}
+
+.side-group__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  min-height: 0;
+  overflow: hidden;
+  /* Room for the current item's border and shadow inside the clip. */
+  margin: 0 calc(var(--space-2xs) * -1);
+  padding: var(--space-3xs) var(--space-2xs) var(--space-2xs);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+
+.side-group[data-open="false"] .side-group__body {
+  grid-template-rows: 0fr;
+}
+
+.side-group[data-open="false"] .side-group__inner {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.side-group[data-open="false"] .side-group__chev {
+  transform: rotate(0deg);
+}
+
+.side-group[data-open="false"] .side-group__head:active .side-group__chev {
+  transform: rotate(0deg) scale(0.86);
+}
+
+.side-group[data-open="false"] .side-group__count {
+  opacity: 1;
+  transform: none;
+}
+
+/* Folded around the page you're on: the dot comes up to full colour with a soft halo. */
+.side-group.has-current[data-open="false"] .side-group__head {
+  color: var(--ink-2);
+}
+
+.side-group.has-current[data-open="false"] .side-group__dot {
+  opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--lib-icon) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-group__head,
+  .side-group__dot,
+  .side-group__count,
+  .side-group__chev,
+  .side-group__body,
+  .side-group__inner {
+    transition: none;
+  }
+}
+
+/* ---------- Settings: Reminders, one step in from Notifications ---------- */
+
+.settings__sub {
+  margin-top: var(--space-md);
+}
+
+.settings__reminders > .view {
+  max-width: none;
+}
+
+.settings--split .settings__reminders .page-title {
+  font-size: var(--text-heading);
+}
+
+/* Archived and Settings share one row, so the Library above gets the room. */
+.side-nav--foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+
+/* The section tabs fade at an edge with more beyond it. */
+.lib-nav > .segmented.is-more-right {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+
+.lib-nav > .segmented.is-more-left {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent);
+}
+
+.lib-nav > .segmented.is-more-left.is-more-right {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+}

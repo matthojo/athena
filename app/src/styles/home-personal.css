@@ -1,0 +1,522 @@
+/* Home's personal half (components/home-personal.ts): your people, each as
+   a sentence with their name as a chip, and one line on a goal. Phone: one
+   column. Desktop: people and the goal side by side, Recent below. */
+
+/* Home's bento without the old metric pair (components.css still names
+   "meet" and "done"): coming up, to do and the latest note. */
+.home .bento {
+  grid-template-areas:
+    "catch catch"
+    "todo todo"
+    "latest latest";
+}
+
+.home-personal {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.home-personal[hidden] {
+  display: none;
+}
+
+.home-people__list {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2xs);
+}
+
+.home-person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 60px;
+  padding: 10px var(--space-sm);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  color: var(--ink);
+  transition:
+    transform var(--dur-instant) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+  animation: rise var(--dur-slow) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger) * 1.5);
+}
+
+.home-person + .home-person {
+  position: relative;
+}
+
+/* A hairline between people that stops short of the edges, like list rows. */
+.home-person + .home-person::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--space-sm) auto calc(var(--space-sm) + 34px + var(--space-sm));
+  border-top: 1px solid var(--line);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.home-person:not(:disabled):active {
+  transform: scale(0.99);
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .home-person:not(:disabled):hover {
+    background: color-mix(in oklch, var(--sunken) 70%, transparent);
+  }
+
+  .home-person:hover::before,
+  .home-person:hover + .home-person::before {
+    opacity: 0;
+  }
+}
+
+.home-person:disabled {
+  cursor: default;
+}
+
+.home-person__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.home-person__line {
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+/* The name as a small chip on the accent wash, like a mention in a note. */
+.home-person__chip {
+  display: inline-block;
+  padding: 0 7px;
+  border-radius: var(--radius-xs);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-weight: var(--weight-medium);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .home-person:not(:disabled):hover .home-person__chip {
+    background: color-mix(in oklch, var(--accent-wash) 70%, var(--accent) 12%);
+  }
+}
+
+.home-person__sub {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.home-person__gift {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+/* The gift tile lifts once, as the row arrives: a nudge, not a show. */
+.home-person__gift svg {
+  animation: gift-lift var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger) * 1.5 + var(--dur-base) * 0.8);
+}
+
+@keyframes gift-lift {
+  40% {
+    transform: translateY(-2px) rotate(-6deg);
+  }
+}
+
+.home-person__chevron {
+  flex: none;
+  display: grid;
+  color: var(--ink-3);
+  opacity: 0.6;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.home-person__chevron svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (hover: hover) {
+  .home-person:hover .home-person__chevron {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+}
+
+/* ---------- The goal ---------- */
+
+.home-goal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.home-goal__tile {
+  background: var(--mint-wash);
+  color: var(--good);
+}
+
+.home-goal__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.home-goal__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+  line-height: var(--leading-snug);
+}
+
+.home-goal__line {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.home-goal__bar {
+  display: block;
+  height: 6px;
+  margin-top: var(--space-xs);
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+/* Fills from nothing to where you are, once, when the line arrives. */
+.home-goal__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--good);
+  transform: scaleX(var(--to, 0));
+  transform-origin: left;
+  animation: goal-fill calc(var(--dur-slow) * 2) var(--ease-out-expo) both;
+  animation-delay: var(--dur-fast);
+}
+
+@keyframes goal-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (min-width: 1024px) {
+  .home .bento {
+    grid-template-areas:
+      "todo todo catch"
+      "latest latest catch";
+  }
+
+  /* One column now: the personal pair, then Recent, each full width. */
+  .home .home-lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-personal {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+    gap: var(--space-md);
+  }
+
+  .home-personal:has(> .home-people[hidden]),
+  .home-personal:has(> .home-goal-section[hidden]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-goal {
+    padding: var(--space-lg);
+  }
+}
+
+/* ---------- Thinking of them: the birthday sheet (openThinkingOf) ---------- */
+
+.moment {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-xs);
+}
+
+.moment__wait {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0 var(--space-lg);
+}
+
+.moment__wait .skeleton {
+  height: 14px;
+}
+
+.moment__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  animation: rise var(--dur-base) var(--ease-out-expo) both;
+}
+
+/* Their initials, warm and large, with a small gift resting on the corner. */
+.moment__avatar {
+  --h: 264;
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: oklch(0.93 0.04 var(--h));
+  color: oklch(0.42 0.09 var(--h));
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.moment__badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.moment__badge svg {
+  width: 13px;
+  height: 13px;
+  animation: gift-lift var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: var(--dur-base);
+}
+
+.moment__heading {
+  min-width: 0;
+}
+
+.moment__date {
+  margin: 0 0 var(--space-3xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+
+.moment__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+  line-height: var(--leading-snug);
+  text-wrap: balance;
+}
+
+.moment__lines {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--space-2xs) var(--space-sm);
+  list-style: none;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+/* Each line settles in a beat after the one before. */
+.moment__line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  animation: rise var(--dur-base) var(--ease-out-expo) both;
+  animation-delay: calc(var(--dur-stagger) * 2 + var(--i, 0) * var(--dur-stagger) * 1.5);
+}
+
+.moment__line + .moment__line {
+  border-top: 1px solid var(--line);
+}
+
+.moment__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--accent-ink);
+}
+
+.moment__icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.moment__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  min-width: 0;
+  padding-top: var(--space-3xs);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.moment__sub {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.moment__key {
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+}
+
+.moment__key::after {
+  content: " ·";
+  color: var(--ink-3);
+}
+
+.moment__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-xs);
+  animation: rise var(--dur-base) var(--ease-out-expo) both;
+  animation-delay: calc(var(--dur-stagger) * 3 + var(--i, 0) * var(--dur-stagger) * 1.5);
+}
+
+.moment__btn {
+  justify-content: center;
+}
+
+.moment__open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  align-self: center;
+  color: var(--ink-2);
+}
+
+.moment__open svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .moment__open:hover svg {
+    transform: translateX(2px);
+  }
+}
+
+/* ---------- On the day: one line at the top of Home ---------- */
+
+.home-birthdays {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.home-birthdays[hidden] {
+  display: none;
+}
+
+.home-birthday {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-2xs) var(--space-2xs) var(--space-xs);
+  background: linear-gradient(120deg, var(--accent-wash), var(--surface) 70%);
+  animation: rise var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger) * 2);
+}
+
+.home-birthday__open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 48px;
+  padding: var(--space-2xs);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  color: var(--ink);
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.home-birthday__open:active {
+  transform: scale(0.99);
+}
+
+.home-birthday__tile {
+  background: var(--surface);
+  color: var(--accent-ink);
+}
+
+.home-birthday__tile svg {
+  animation: gift-lift var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: var(--dur-base);
+}
+
+.home-birthday__line {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+  line-height: var(--leading-snug);
+}
+
+.home-birthday__line .home-person__chip {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+}
+
+.home-birthday__close {
+  flex: none;
+  color: var(--ink-3);
+}
+
+/* Dismissed: it folds away rather than vanishing. */
+.home-birthday.is-leaving {
+  animation: birthday-leave var(--dur-base) var(--ease-in-out) both;
+  pointer-events: none;
+}
+
+@keyframes birthday-leave {
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .moment__avatar {
+    background: oklch(0.33 0.05 var(--h));
+    color: oklch(0.87 0.07 var(--h));
+  }
+}
+
+@media (min-width: 1024px) {
+  /* A line, not a card in the grid: it spans the row above the banners. */
+  .home-birthdays {
+    grid-column: 1 / -1;
+  }
+}

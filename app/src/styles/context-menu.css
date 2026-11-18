@@ -1,0 +1,521 @@
+/**
+ * Context menu (components/context-menu.ts): one menu for the whole app.
+ * Two layouts: "popover" at the pointer on a desk, and "lift" on a phone,
+ * where the preview rises over a blurred, dimmed page with the actions below.
+ * Everything is prefixed cm-. Built on tokens.css; the few new values are the
+ * --cm-* properties below.
+ */
+
+:root {
+  --cm-surface: oklch(0.995 0.002 264 / 0.86);
+  --cm-hair: oklch(0.25 0.02 264 / 0.1);
+  --cm-wash: oklch(0.25 0.02 264 / 0.06);
+  --cm-press: oklch(0.25 0.02 264 / 0.09);
+  --cm-scrim: oklch(0.22 0.02 264 / 0.16);
+  --cm-shadow: 0 0 0 0.5px oklch(0.25 0.02 264 / 0.16), 0 2px 4px oklch(0.25 0.02 264 / 0.05), 0 12px 28px -8px oklch(0.25 0.03 264 / 0.18), 0 32px 64px -24px oklch(0.25 0.04 264 / 0.3);
+  --cm-spring: var(--ease-spring);
+  --cm-spring-dur: var(--dur-spring);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cm-surface: oklch(0.255 0.012 264 / 0.84);
+    --cm-hair: oklch(1 0 0 / 0.09);
+    --cm-wash: oklch(1 0 0 / 0.07);
+    --cm-press: oklch(1 0 0 / 0.1);
+    --cm-scrim: oklch(0.08 0.01 264 / 0.42);
+    --cm-shadow: 0 0 0 0.5px oklch(1 0 0 / 0.14), inset 0 1px 0 oklch(1 0 0 / 0.05), 0 12px 28px -8px oklch(0 0 0 / 0.6), 0 32px 64px -24px oklch(0 0 0 / 0.8);
+  }
+}
+
+/* ---------- Layer ---------- */
+
+.cm-layer {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-popover) + 50);
+}
+
+.cm-backdrop {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.cm-layer--lift .cm-backdrop,
+.cm-static--lift .cm-backdrop {
+  background: var(--cm-scrim);
+  -webkit-backdrop-filter: blur(16px) saturate(1.25);
+  backdrop-filter: blur(16px) saturate(1.25);
+}
+
+.cm-layer--lift .cm-backdrop {
+  animation: cm-fade var(--dur-fast) var(--ease-out) both;
+}
+
+.cm-layer.is-leaving {
+  animation: cm-out var(--dur-instant) var(--ease-in) forwards;
+}
+
+.cm-layer--lift.is-leaving .cm-stack {
+  transition: transform var(--dur-instant) var(--ease-in);
+  transform: scale(0.97);
+}
+
+@keyframes cm-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes cm-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* While a finger is held on something, it sinks a little before the menu lifts it. */
+.cm-hold {
+  transform: scale(0.97);
+  transition: transform var(--dur-base) var(--ease-out) var(--dur-instant);
+}
+
+/* ---------- Menu ---------- */
+
+.cm-menu {
+  position: absolute;
+  min-width: 236px;
+  max-width: min(300px, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  border-radius: var(--radius-sm);
+  background: var(--cm-surface);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow: var(--cm-shadow);
+  color: var(--ink);
+  font: 400 var(--text-small)/1.25 var(--font-ui);
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .cm-menu {
+    background: var(--surface);
+  }
+}
+
+.cm-menu[hidden] {
+  display: none;
+}
+
+.cm-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.cm-sep {
+  height: 1px;
+  margin: 5px 9px;
+  background: var(--cm-hair);
+}
+
+/* ---------- Action ---------- */
+
+.cm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 5px 10px 5px 8px;
+  border-radius: var(--radius-xs);
+  cursor: default;
+  outline: none;
+}
+
+.cm-ico {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--ink-2);
+}
+
+.cm-ico--blank {
+  display: inline-block;
+}
+
+.cm-item__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cm-item__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-item__hint {
+  margin-top: 1px;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.cm-item__kbd {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  margin-left: 18px;
+  color: var(--ink-3);
+  font: 400 var(--text-meta)/1 var(--font-ui);
+  letter-spacing: 0.04em;
+}
+
+.cm-item__chev {
+  width: 14px;
+  height: 14px;
+  margin-right: -3px;
+  color: var(--ink-3);
+}
+
+.cm-item--danger,
+.cm-item--danger .cm-ico {
+  color: var(--bad);
+}
+
+.cm-item[aria-disabled="true"] .cm-item__label,
+.cm-item[aria-disabled="true"] .cm-ico {
+  opacity: 0.45;
+}
+
+/* Focus is the highlight: the pointer moves it, and so do the keys. */
+.cm-item:focus,
+.cm-item.is-focus,
+.cm-item[aria-expanded="true"] {
+  background: var(--accent);
+  color: oklch(0.99 0 0);
+}
+
+.cm-item:focus :is(.cm-ico, .cm-item__hint, .cm-item__kbd, .cm-item__chev),
+.cm-item.is-focus :is(.cm-ico, .cm-item__hint, .cm-item__kbd, .cm-item__chev),
+.cm-item[aria-expanded="true"] :is(.cm-ico, .cm-item__hint, .cm-item__kbd, .cm-item__chev) {
+  color: oklch(0.99 0 0 / 0.85);
+}
+
+.cm-item--danger:focus,
+.cm-item--danger.is-focus {
+  background: var(--bad);
+}
+
+.cm-item[aria-disabled="true"]:focus,
+.cm-item[aria-disabled="true"].is-focus {
+  background: var(--cm-wash);
+  color: var(--ink);
+}
+
+.cm-item[aria-disabled="true"]:focus :is(.cm-ico, .cm-item__hint),
+.cm-item[aria-disabled="true"].is-focus :is(.cm-ico, .cm-item__hint) {
+  color: var(--ink-3);
+}
+
+.cm-item[aria-disabled="true"]:focus-visible,
+.cm-item[aria-disabled="true"].is-focus {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* ---------- Segmented choice ---------- */
+
+.cm-choice {
+  padding: 3px 3px 5px;
+}
+
+.cm-choice__label {
+  padding: 3px 6px 7px;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: 500;
+}
+
+.cm-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--cm-wash);
+}
+
+.cm-seg__opt {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 7px 4px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: 500;
+  cursor: default;
+  outline: none;
+  transition: background-color var(--dur-instant) var(--ease-out), color var(--dur-instant) var(--ease-out);
+}
+
+.cm-seg__opt .cm-ico {
+  color: inherit;
+}
+
+.cm-seg__opt:focus,
+.cm-seg__opt.is-focus {
+  background: var(--cm-press);
+  color: var(--ink);
+}
+
+.cm-seg__opt[aria-checked="true"] {
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.12);
+}
+
+.cm-seg__opt:focus-visible,
+.cm-seg__opt.is-focus {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.cm-seg__opt[aria-checked="true"]:focus-visible,
+.cm-seg__opt[aria-checked="true"].is-focus {
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3.5px var(--surface);
+}
+
+.cm-seg__opt[aria-disabled="true"] {
+  opacity: 0.4;
+}
+
+.cm-seg__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Preview ---------- */
+
+.cm-preview {
+  position: absolute;
+  width: 300px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  box-shadow: var(--cm-shadow);
+  pointer-events: none;
+}
+
+.cm-layer--popover .cm-preview {
+  animation: cm-preview-in var(--cm-spring-dur) var(--cm-spring) both;
+}
+
+@keyframes cm-preview-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* A submenu takes the preview's place beside the menu. */
+.cm-layer--popover.has-sub .cm-preview {
+  opacity: 0;
+  transition: opacity var(--dur-instant) var(--ease-linear);
+}
+
+/* Too tall to fit with the actions: cut it off softly. */
+.cm-preview[style*="max-height"] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+
+/* ---------- Lift (phone) ---------- */
+
+.cm-stack {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cm-stack[data-align="end"] {
+  align-items: flex-end;
+}
+
+.cm-stack .cm-preview {
+  position: relative;
+  align-self: stretch;
+  width: auto;
+  box-shadow: 0 0 0 0.5px var(--cm-hair), 0 18px 48px -16px oklch(0 0 0 / 0.35);
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-menu {
+  position: relative;
+  width: 254px;
+  min-width: 0;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body);
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-sep {
+  height: 7px;
+  margin: 0;
+  background: var(--cm-wash);
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-item {
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 0;
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-group > .cm-item + .cm-item {
+  box-shadow: inset 0 0.5px 0 var(--cm-hair);
+}
+
+/* Label first, icon at the end, as on iOS. The back row keeps its arrow first. */
+:is(.cm-layer--lift, .cm-static--lift) .cm-item:not(.cm-item--back) > .cm-ico:first-child {
+  order: 2;
+  width: 18px;
+  height: 18px;
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-item__kbd {
+  display: none;
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-item:focus,
+:is(.cm-layer--lift, .cm-static--lift) .cm-item.is-focus {
+  background: var(--cm-press);
+  color: var(--ink);
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-item:focus :is(.cm-ico, .cm-item__hint),
+:is(.cm-layer--lift, .cm-static--lift) .cm-item.is-focus :is(.cm-ico, .cm-item__hint) {
+  color: var(--ink-2);
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-item--danger:focus,
+:is(.cm-layer--lift, .cm-static--lift) .cm-item--danger:focus .cm-ico {
+  color: var(--bad);
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-item--back {
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-item--back .cm-ico {
+  color: inherit;
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-choice {
+  padding: 10px 10px 12px;
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-choice__label {
+  padding: 0 6px 8px;
+  font-size: var(--text-small);
+}
+
+:is(.cm-layer--lift, .cm-static--lift) .cm-seg__opt {
+  padding: 9px 4px 8px;
+  font-size: var(--text-meta);
+}
+
+/* ---------- Drawn, not live (staticContextMenu) ---------- */
+
+.cm-static {
+  position: relative;
+  pointer-events: none;
+}
+
+.cm-static .cm-menu {
+  position: relative;
+}
+
+.cm-static--popover {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cm-static__menus {
+  display: flex;
+  align-items: flex-start;
+}
+
+.cm-static__menus .cm-menu--sub {
+  z-index: 1;
+  margin-left: -6px;
+}
+
+.cm-static--popover .cm-preview {
+  position: relative;
+  width: 280px;
+}
+
+.cm-static--lift {
+  width: 300px;
+  height: 600px;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--bg, var(--surface));
+  box-shadow: 0 0 0 1px var(--line), 0 0 0 7px var(--surface), 0 0 0 8px var(--line-strong), 0 24px 60px -24px oklch(0.2 0.02 264 / 0.4);
+}
+
+.cm-static__behind {
+  position: absolute;
+  inset: 0;
+  padding: 56px 20px 20px;
+}
+
+.cm-static--lift .cm-backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.cm-static--lift .cm-stack {
+  top: 92px;
+  right: 16px;
+  left: 16px;
+}
+
+/* ---------- Reduced motion: fades only ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-hold {
+    transform: none;
+  }
+
+  .cm-layer--popover .cm-preview,
+  .cm-layer--lift .cm-backdrop {
+    animation: cm-fade var(--dur-instant) var(--ease-linear) both;
+  }
+
+  .cm-layer--lift.is-leaving .cm-stack {
+    transform: none;
+  }
+
+  .cm-seg__opt {
+    transition: none;
+  }
+}

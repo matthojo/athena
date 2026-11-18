@@ -1,0 +1,384 @@
+/* Import watch history (components/youtube-import.ts). Built on the shared
+   steps, rows, meter and buttons; only what's new lives here. */
+
+.ytimp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding-bottom: var(--space-md);
+}
+
+.ytimp__lede {
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.ytimp__privacy,
+.ytimp__keep {
+  margin-top: calc(-1 * var(--space-sm));
+}
+
+.ytimp__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.ytimp__again {
+  text-align: center;
+}
+
+/* ----- Picker ----- */
+
+.ytimp-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-lg) var(--space-md);
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  text-align: center;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.ytimp-drop.is-over {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.ytimp-drop__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--space-2xs);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.ytimp-drop__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ytimp-drop__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.ytimp-drop__sub {
+  max-width: 30ch;
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+.ytimp-drop__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ytimp-drop.has-problem {
+  border-color: color-mix(in oklch, var(--warn) 55%, var(--line-strong));
+}
+
+.ytimp-problem {
+  display: flex;
+  max-width: 44ch;
+  margin-bottom: var(--space-sm);
+  text-align: left;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--warn-wash);
+  color: var(--ink);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.ytimp-problem svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  color: var(--warn);
+}
+
+/* ----- Reading ----- */
+
+.ytimp-busy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-2xl) 0;
+}
+
+.ytimp-busy__line {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.meter--busy .meter__fill {
+  width: 35%;
+  animation: ytimp-slide calc(var(--dur-pulse) * 0.8125) var(--ease-in-out) infinite;
+}
+
+@keyframes ytimp-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+/* ----- What's in it ----- */
+
+.ytimp-found {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-xs);
+}
+
+.ytimp-found__count {
+  font-size: var(--text-display);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.ytimp-found__unit {
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+
+.ytimp-found__sub {
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.ytimp-found__left {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.ytimp-years {
+  margin: var(--space-sm) 0 var(--space-2xs);
+}
+
+.ytimp-years__bars,
+.ytimp-years__labels {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 6px;
+}
+
+.ytimp-years__bars {
+  align-items: end;
+  height: 48px;
+  border-bottom: 1px solid var(--chart-grid);
+}
+
+.ytimp-years__bar {
+  justify-self: center;
+  width: min(100%, 40px);
+  height: var(--h);
+  border-radius: var(--radius-2xs) var(--radius-2xs) 0 0;
+  background: var(--chart-1);
+  transform-origin: bottom;
+  animation: ytimp-grow var(--dur-slow) var(--ease-out-expo) both;
+}
+
+.ytimp-years__labels {
+  padding-top: 6px;
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+@keyframes ytimp-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.ytimp-opts .switch {
+  margin-left: auto;
+}
+
+.ytimp-opts__count {
+  cursor: pointer;
+}
+
+/* ----- Adding ----- */
+
+.ytimp-run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-xl) 0 var(--space-sm);
+}
+
+.ytimp-run__now {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.ytimp-meter {
+  height: 10px;
+}
+
+.ytimp-meter .meter__fill {
+  background: var(--ink);
+  transition: width var(--dur-base) var(--ease-out);
+}
+
+.ytimp-run__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+/* ----- Done, stopped ----- */
+
+.ytimp-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xl) var(--space-md) var(--space-sm);
+  text-align: center;
+}
+
+.ytimp-end__mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-xs);
+  border-radius: 50%;
+  animation: ytimp-pop var(--dur-slow) var(--ease-out-expo) both;
+}
+
+.ytimp-end__mark svg {
+  width: 26px;
+  height: 26px;
+}
+
+.ytimp-end__mark--good {
+  background: color-mix(in oklch, var(--good) 14%, var(--surface));
+  color: var(--good);
+}
+
+.ytimp-end__mark--warn {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.ytimp-end__mark--quiet {
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.ytimp-end__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.ytimp-end__sub {
+  max-width: 34ch;
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.ytimp-end__extra {
+  max-width: 34ch;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-3);
+}
+
+@keyframes ytimp-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+.ytimp-file {
+  white-space: nowrap;
+}
+
+/* The account page's row. */
+.acct-history__btn {
+  flex: none;
+}
+
+@media (min-width: 640px) {
+  .ytimp__actions {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+  }
+
+  .ytimp__actions .btn--block {
+    width: auto;
+    min-width: 160px;
+  }
+
+  .ytimp__actions .ytimp__again {
+    align-self: center;
+    margin-right: auto;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meter--busy .meter__fill {
+    width: 100%;
+    animation: none;
+    opacity: 0.4;
+  }
+
+  .ytimp-years__bar,
+  .ytimp-end__mark {
+    animation: none;
+  }
+
+  .ytimp-meter .meter__fill {
+    transition: none;
+  }
+}

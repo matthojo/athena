@@ -1,0 +1,462 @@
+/* Travelling today (components/travel-today.ts): the day's legs, each with
+   its time, route, how it's running and its reference. A hairline thread
+   joins the legs' tiles, solid behind you and faint ahead. Colour only
+   where it means something: the chip's tone and the Tube line's dot. */
+
+.travel {
+  --tile: 36px;
+  position: relative;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.travel[hidden] {
+  display: none;
+}
+
+.travel--home {
+  margin-bottom: var(--space-sm);
+}
+
+.travel--enter {
+  animation: travel-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.travel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 2px;
+}
+
+.travel__kicker {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.travel__fresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.travel__pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--good);
+}
+
+.travel__legs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---------- a leg ---------- */
+
+.tleg {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--tile) minmax(0, 1fr);
+  grid-template-areas: "tile open" ". foot";
+  column-gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+}
+
+/* The thread to the next leg's tile. */
+.tleg:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--tile) / 2 - 0.5px);
+  top: calc(var(--space-sm) + var(--tile) + 4px);
+  bottom: calc(-1 * var(--space-sm) + 4px);
+  width: 1px;
+  background: var(--line-strong);
+}
+
+.tleg[data-past]:not(:last-child)::before {
+  background: var(--ink-3);
+  opacity: 0.45;
+}
+
+.tleg__tile {
+  grid-area: tile;
+  display: grid;
+  place-items: center;
+  width: var(--tile);
+  height: var(--tile);
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.tleg__tile svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tleg[data-tone="warn"] .tleg__tile,
+.tleg[data-tone="bad"] .tleg__tile {
+  background: color-mix(in oklch, var(--tone, var(--warn)) 12%, var(--surface));
+  color: color-mix(in oklch, var(--tone, var(--warn)) 75%, var(--ink));
+}
+
+.tleg[data-tone="warn"] {
+  --tone: var(--warn);
+}
+
+.tleg[data-tone="bad"] {
+  --tone: var(--bad);
+}
+
+.tleg__open {
+  grid-area: open;
+  display: grid;
+  grid-template-columns: 3.4rem minmax(0, 1fr);
+  column-gap: var(--space-xs);
+  align-items: start;
+  min-height: 44px;
+  margin: -6px -8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .tleg__open:hover {
+    background: var(--sunken);
+  }
+}
+
+.tleg__time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 1px;
+}
+
+.tleg__clock {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.tleg__expected {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--warn);
+  white-space: nowrap;
+}
+
+.tleg:has(.tleg__expected) .tleg__clock {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.tleg__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tleg__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.tleg__route {
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-3);
+}
+
+.tleg__arrow {
+  color: var(--ink-3);
+}
+
+.tleg__foot {
+  grid-area: foot;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: var(--space-xs);
+}
+
+.tleg__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.tleg__where {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.tleg__note {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+/* The chip: how it's running. */
+.tchip {
+  --tone: var(--good);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px 0 9px;
+  border: 1px solid color-mix(in oklch, var(--tone) 30%, var(--line));
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklch, var(--tone) 9%, var(--surface));
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: color-mix(in oklch, var(--tone) 72%, var(--ink));
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tchip[data-tone="warn"] {
+  --tone: var(--warn);
+  background: var(--warn-wash);
+}
+
+.tchip[data-tone="bad"] {
+  --tone: var(--bad);
+}
+
+.tchip[data-tone="calm"] {
+  --tone: var(--ink-3);
+  background: var(--sunken);
+  border-color: var(--line);
+  color: var(--ink-2);
+}
+
+.tchip__dot {
+  position: relative;
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+.tchip[data-tone="good"] .tchip__dot::after,
+.tchip[data-tone="warn"] .tchip__dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid var(--tone);
+  opacity: 0;
+  animation: travel-breathe calc(var(--dur-pulse) * 1.75) var(--ease-out) var(--dur-hold) infinite;
+}
+
+/* The reference, to copy at the desk. */
+.tleg__ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+/* A 44px target around the 28px pill. */
+.tleg__ref::after {
+  content: "";
+  position: absolute;
+  inset: -8px -4px;
+}
+
+.tleg__ref svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+@media (hover: hover) {
+  .tleg__ref:hover {
+    background: var(--sunken-strong);
+    color: var(--ink);
+  }
+}
+
+/* Over: arrived, picked up, checked in. */
+.tleg[data-past] .tleg__open,
+.tleg[data-past] .tleg__ref {
+  opacity: 0.58;
+}
+
+.tleg[data-past] .tleg__tile {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--ink-3);
+}
+
+.tleg[data-cancelled] .tleg__clock,
+.tleg[data-cancelled] .tleg__title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  color: var(--ink-3);
+}
+
+/* ---------- the Tube, and the day's summary ---------- */
+
+.travel__tube {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.travel__tube-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+  transform: translateY(-1px);
+}
+
+.travel[data-phase="travelled"] {
+  padding: var(--space-md);
+  background: var(--sunken);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.travel__line {
+  margin-top: 6px;
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+/* ---------- wider ---------- */
+
+@media (min-width: 560px) {
+  .travel {
+    padding: var(--space-md) var(--space-lg) var(--space-sm);
+  }
+
+  /* Room enough: the status lines up under the title, the reference at the row's end. */
+  .tleg__foot {
+    margin-left: calc(3.4rem + var(--space-xs));
+  }
+
+  .tleg__ref {
+    margin-left: auto;
+  }
+}
+
+/* Home on a wide screen: the legs side by side, the thread running across. */
+@media (min-width: 1024px) {
+  .travel--home .travel__legs {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    column-gap: var(--space-lg);
+    padding-top: var(--space-xs);
+  }
+
+  .travel--home .tleg {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "tile" "open" "foot";
+    row-gap: var(--space-sm);
+    align-content: start;
+  }
+
+  .travel--home .tleg:not(:last-child)::before {
+    left: calc(var(--tile) + 8px);
+    right: calc(-1 * var(--space-lg) + 8px);
+    top: calc(var(--space-sm) + var(--tile) / 2 - 0.5px);
+    bottom: auto;
+    width: auto;
+    height: 1px;
+  }
+
+  .travel--home .tleg__open {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 4px;
+  }
+
+  .travel--home .tleg__time {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-xs);
+  }
+
+  .travel--home .tleg__foot {
+    margin: 0;
+  }
+
+  .travel--home .tleg__ref {
+    margin-left: 0;
+  }
+}
+
+@keyframes travel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes travel-breathe {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travel--enter,
+  .tchip__dot::after {
+    animation: none !important;
+  }
+
+  .tleg__open,
+  .tleg__ref {
+    transition: none;
+  }
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<opml version="1.0">
+  <head><title>Overcast Podcast Subscriptions</title></head>
+  <body>
+    <outline text="playlists"><outline type="podcast-playlist" text="All episodes" title="All episodes"/></outline>
+    <outline text="feeds">
+      <outline type="rss" overcastId="101" text="The Rest Is History" title="The Rest Is History" xmlUrl="https://feeds.example.com/trih" htmlUrl="https://example.com/trih" subscribed="1">
+        <outline overcastId="9001" pubDate="2026-10-30T05:00:00-04:00" title="The Fall of Rome &amp; After" url="https://example.com/trih/1" overcastUrl="https://overcast.fm/+AAAA1" enclosureUrl="https://cdn.example.com/trih1.mp3" userUpdatedDate="2026-11-02T23:30:00+00:00" played="1" type="podcast-episode"/>
+        <outline overcastId="9002" pubDate="2026-11-02T05:00:00-04:00" title="Napoleon, part 2" url="https://example.com/trih/2" overcastUrl="https://overcast.fm/+AAAA2" enclosureUrl="https://cdn.example.com/trih2.mp3" userUpdatedDate="2026-11-03T08:10:00+00:00" progress="1500" type="podcast-episode"/>
+        <outline overcastId="9003" pubDate="2026-11-03T05:00:00-04:00" title="Unplayed" enclosureUrl="https://cdn.example.com/trih3.mp3" userUpdatedDate="2026-11-03T08:10:00+00:00" type="podcast-episode"/>
+      </outline>
+      <outline type="rss" overcastId="102" text="Desert Island Discs" title="Desert Island Discs" xmlUrl="https://feeds.example.com/did" subscribed="0">
+        <outline overcastId="9101" title="A guest · with a dot" overcastUrl="https://overcast.fm/+BBBB1" enclosureUrl="https://cdn.example.com/did1.mp3" userUpdatedDate="2026-11-03T21:05:00+00:00" played="1" userDeleted="1" type="podcast-episode"/>
+      </outline>
+    </outline>
+  </body>
+</opml>

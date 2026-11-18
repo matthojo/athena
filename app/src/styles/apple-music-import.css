@@ -1,0 +1,7 @@
+/* Import your Apple Music history (components/apple-music-import.ts): the
+   shared flow (download-import.css) in a warm rose to coral. */
+
+.dlimp--apple_music {
+  --dl-tint: var(--ctx-pink);
+  --dl-tint-2: var(--ctx-red);
+}

@@ -1,0 +1,14 @@
+-- Athena — OAuth settings for custom MCP servers that don't follow the MCP
+-- authorization spec to the letter: servers that don't publish OAuth
+-- metadata (so their authorization and token URLs are entered by hand), and
+-- machine-to-machine servers that use the client-credentials grant instead
+-- of a browser sign-in. Nothing here is secret; the client secret stays
+-- sealed in `credentials`.
+-- Shape (every key optional; empty means "discover it"):
+--   { grant: 'authorization_code' | 'client_credentials',
+--     authorization_endpoint, token_endpoint,
+--     token_auth: 'client_secret_basic' | 'client_secret_post',
+--     audience }
+-- See lib/connector-presets.ts ConnectorOAuthSettings.
+-- Additive only. Mirrored for reference at db/schema.sql.
+ALTER TABLE connectors ADD COLUMN oauth JSONB NOT NULL DEFAULT '{}';

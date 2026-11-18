@@ -1,0 +1,313 @@
+/* To-do contexts: row tags, To do's filter bar, the sheet's pickers, Settings → To do. */
+
+.ctx-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ctx-grey);
+}
+[data-colour="blue"] > .ctx-dot, .ctx-dot[data-colour="blue"] { background: var(--ctx-blue); }
+[data-colour="teal"] > .ctx-dot, .ctx-dot[data-colour="teal"] { background: var(--ctx-teal); }
+[data-colour="green"] > .ctx-dot, .ctx-dot[data-colour="green"] { background: var(--ctx-green); }
+[data-colour="amber"] > .ctx-dot, .ctx-dot[data-colour="amber"] { background: var(--ctx-amber); }
+[data-colour="orange"] > .ctx-dot, .ctx-dot[data-colour="orange"] { background: var(--ctx-orange); }
+[data-colour="red"] > .ctx-dot, .ctx-dot[data-colour="red"] { background: var(--ctx-red); }
+[data-colour="pink"] > .ctx-dot, .ctx-dot[data-colour="pink"] { background: var(--ctx-pink); }
+[data-colour="violet"] > .ctx-dot, .ctx-dot[data-colour="violet"] { background: var(--ctx-violet); }
+
+.ctx-dot--none {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+
+/* ---------- a row's tags: quiet, the dot carries the colour ---------- */
+
+.ctx-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  color: var(--ink-3);
+}
+
+.ctx-tag .ctx-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.ctx-tag svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ---------- To do: filter and group ---------- */
+
+.loops__ctx {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--space-md));
+  padding: 2px var(--space-md) 0;
+}
+
+.loops__ctx::-webkit-scrollbar {
+  display: none;
+}
+
+.loops__ctx[hidden] {
+  display: none;
+}
+
+.ctx-menu-wrap {
+  display: contents;
+}
+
+.chip--menu {
+  height: 30px;
+  padding: 0 8px 0 11px;
+  gap: 6px;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+  background: transparent;
+  border-color: var(--line);
+}
+
+.chip--menu > svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.chip--menu > svg:last-child {
+  width: 12px;
+  height: 12px;
+  margin-left: -1px;
+}
+
+.chip--menu[data-active="true"] {
+  background: var(--surface);
+  border-color: var(--ink-3);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+}
+
+.loops__clear {
+  flex: none;
+  font-size: var(--text-meta);
+  padding: 0 4px;
+  min-height: 30px;
+}
+
+.loops__clear[hidden] {
+  display: none;
+}
+
+.ctx-menu {
+  min-width: 220px;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+}
+
+.ctx-menu .menu__item {
+  justify-content: flex-start;
+}
+
+.ctx-menu .menu__item .ctx-dot {
+  width: 9px;
+  height: 9px;
+  margin-inline: 4.5px;
+}
+
+.ctx-menu .menu__label {
+  flex: 1;
+  text-align: left;
+}
+
+.ctx-menu .menu__item > svg:last-child {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.ctx-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* ---------- the sheet's pickers ---------- */
+
+.ctx-picker {
+  margin-block: -4px;
+}
+
+.ctx-chip svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+}
+
+.ctx-chip[aria-checked="true"] {
+  background: color-mix(in oklch, var(--chip-hue, var(--ink)) 13%, var(--surface));
+  border-color: color-mix(in oklch, var(--chip-hue, var(--ink)) 45%, transparent);
+  color: var(--ink);
+}
+
+.ctx-chip[aria-checked="true"] svg {
+  color: var(--chip-hue, var(--ink));
+}
+
+.ctx-chip[data-colour="grey"] { --chip-hue: var(--ctx-grey); }
+.ctx-chip[data-colour="blue"] { --chip-hue: var(--ctx-blue); }
+.ctx-chip[data-colour="teal"] { --chip-hue: var(--ctx-teal); }
+.ctx-chip[data-colour="green"] { --chip-hue: var(--ctx-green); }
+.ctx-chip[data-colour="amber"] { --chip-hue: var(--ctx-amber); }
+.ctx-chip[data-colour="orange"] { --chip-hue: var(--ctx-orange); }
+.ctx-chip[data-colour="red"] { --chip-hue: var(--ctx-red); }
+.ctx-chip[data-colour="pink"] { --chip-hue: var(--ctx-pink); }
+.ctx-chip[data-colour="violet"] { --chip-hue: var(--ctx-violet); }
+
+.ctx-picker__empty {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.ctx-by-athena {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.ctx-by-athena svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ctx-group svg {
+  width: 14px;
+  height: 14px;
+}
+
+.prop--ctx .prop__control {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding-block: 4px;
+}
+
+/* The chips wrap rather than scroll, so every context is visible at once. */
+.prop--ctx .ctx-picker {
+  flex-wrap: wrap;
+  overflow: visible;
+  margin: 0;
+  padding: 3px 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.prop--ctx .ctx-by-athena:not([hidden]) {
+  padding-top: 2px;
+}
+
+/* At phone width each label in the to-do sheet sits above its control, as in the habit sheet. */
+@media (max-width: 600px) {
+  .loop-sheet .prop {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    min-height: 0;
+    gap: 6px;
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+  }
+
+  .loop-sheet .fields .prop .prop__label {
+    display: block;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    line-height: var(--leading-snug);
+  }
+}
+
+/* ---------- Settings → To do ---------- */
+
+.tile.ctx-tile {
+  --chip-hue: var(--ctx-grey);
+  background: color-mix(in oklch, var(--chip-hue) 14%, var(--surface));
+  color: color-mix(in oklch, var(--chip-hue) 80%, var(--ink));
+  border-color: transparent;
+}
+
+.ctx-tile[data-colour="blue"] { --chip-hue: var(--ctx-blue); }
+.ctx-tile[data-colour="teal"] { --chip-hue: var(--ctx-teal); }
+.ctx-tile[data-colour="green"] { --chip-hue: var(--ctx-green); }
+.ctx-tile[data-colour="amber"] { --chip-hue: var(--ctx-amber); }
+.ctx-tile[data-colour="orange"] { --chip-hue: var(--ctx-orange); }
+.ctx-tile[data-colour="red"] { --chip-hue: var(--ctx-red); }
+.ctx-tile[data-colour="pink"] { --chip-hue: var(--ctx-pink); }
+.ctx-tile[data-colour="violet"] { --chip-hue: var(--ctx-violet); }
+
+.ctx-settings__block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.ctx-settings__block + .ctx-settings__block {
+  margin-top: var(--space-lg);
+}
+
+.ctx-settings__label {
+  margin: 0;
+}
+
+.ctx-settings__lede,
+.ctx-settings__empty {
+  margin: -4px 0 var(--space-2xs);
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.ctx-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.ctx-swatch {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+
+.ctx-swatch .ctx-dot {
+  width: 20px;
+  height: 20px;
+}
+
+.ctx-swatch:active {
+  transform: scale(0.94);
+}
+
+.ctx-swatch[aria-checked="true"] {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3.5px var(--ink);
+}
+
+/* The last bit of a to-do's meta and its "from Athena" sparkle wrap as one (components/loop-row.ts). */
+.loop__tail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}

@@ -1,0 +1,1453 @@
+/*
+ * Team setup (team/setup.ts): a full-screen sheet on phones, a centred 560px
+ * panel on desktop. The character stays pinned at the top; one question
+ * below it; the main action at the bottom.
+ */
+
+/* ---------- the sheet ---------- */
+
+.team-setup-sheet .sheet__panel {
+  height: calc(100dvh - var(--safe-top) - 8px - var(--kb, 0px));
+  max-width: none;
+  padding-bottom: 0;
+}
+
+.team-setup-sheet .sheet__head {
+  padding-bottom: 0;
+}
+
+.team-setup-sheet .sheet__title {
+  font-family: var(--font-ui);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+
+/* The character and the foot stay put; only the question scrolls (.ts-view). */
+.team-setup-sheet .sheet__scroll {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .team-setup-sheet .sheet__panel {
+    top: 0;
+    bottom: 0;
+    margin-block: auto;
+    width: min(560px, calc(100vw - 48px));
+    height: min(780px, calc(100dvh - 64px));
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-float);
+    animation: pop-in var(--dur-base) var(--ease-out-expo);
+  }
+
+  .team-setup-sheet.is-closing .sheet__panel {
+    animation: pop-out var(--dur-fast) var(--ease-in) forwards;
+  }
+
+  .team-setup-sheet .sheet__grip {
+    visibility: hidden;
+    margin-block: 4px 0;
+  }
+}
+
+/* ---------- layout ---------- */
+
+.ts {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-width: 480px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* ---------- the pinned character ---------- */
+
+.ts-stage {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-2xs) 0 var(--space-md);
+  transition: padding var(--dur-base) var(--ease-out-expo);
+}
+
+/* Scrolled, or with the keyboard up: the character steps back to a badge. */
+.ts-stage.is-compact,
+.kb-open .ts-stage {
+  gap: var(--space-2xs);
+  padding-bottom: var(--space-xs);
+}
+
+.ts-stage.is-compact .ts-disc,
+.kb-open .ts-stage .ts-disc {
+  --disc: 56px;
+  --kit-fit: 1;
+}
+
+.ts-stage.is-compact .ts-plate,
+.kb-open .ts-stage .ts-plate {
+  width: auto;
+  margin-top: -6px;
+  padding: 3px 12px 4px;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.ts-stage.is-compact .ts-plate__name,
+.kb-open .ts-stage .ts-plate__name {
+  font-size: var(--text-ui);
+}
+
+.ts-stage.is-compact .ts-plate__status,
+.ts-stage.is-compact .ts-bubble,
+.kb-open .ts-stage .ts-plate__status,
+.kb-open .ts-stage .ts-bubble {
+  display: none !important;
+}
+
+.ts-figure {
+  display: grid;
+  justify-items: center;
+}
+
+/* The character's tile (kit renderAvatarTile). From 72px its ears rise past the top; below that (--kit-fit) they tuck in. */
+.ts-disc {
+  --disc: 104px;
+  --kit-size: var(--disc);
+  transition: width var(--dur-slow) var(--ease-out-expo), height var(--dur-slow) var(--ease-out-expo), margin var(--dur-slow) var(--ease-out-expo), background-color var(--dur-slow) var(--ease-out-expo);
+}
+
+/* Before it has a job, the character is a soft shape waiting to be filled in. */
+.ts-stage.is-silhouette .ts-disc .kit-avatar {
+  filter: brightness(0);
+  opacity: 0.1;
+}
+
+.ts-stage.is-thinking .ts-disc .kit-avatar {
+  opacity: 0.22;
+}
+
+/* The name plate sits over the disc's lower edge, like a badge on a card. */
+.ts-plate {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  width: min(100%, 320px);
+  margin-top: -6px;
+  padding: 8px 18px 9px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card), 0 0 0 1px var(--line);
+  text-align: center;
+}
+
+.ts-plate__name {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+
+.ts-plate__status {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts-stage.is-thinking .ts-plate__status {
+  color: var(--ink-2);
+}
+
+/* The greeting: a chat bubble in the character's own words. Shown on the reveal only. */
+.ts-bubble {
+  display: none;
+  max-width: min(100%, 340px);
+  margin: var(--space-2xs) 0 0;
+  padding: 12px 18px;
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-xs);
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--leading-snug);
+}
+
+.ts-stage.is-meet .ts-bubble:not(:empty) {
+  display: block;
+  animation: ts-bubble-in var(--dur-base) var(--ease-out-expo) calc(var(--dur-stagger) * 4) both;
+}
+
+@keyframes ts-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ---------- a step ---------- */
+
+.ts-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  align-content: start;
+  margin-inline: calc(var(--space-md) * -1);
+  padding: 2px var(--space-md) 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid transparent;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.ts-stage.is-compact + .ts-view {
+  border-top-color: var(--line);
+}
+
+.ts-step {
+  grid-area: 1 / 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding-bottom: var(--space-lg);
+}
+
+.ts-step.is-entering-fwd {
+  animation: ts-in-fwd var(--dur-base) var(--ease-out-expo) both;
+}
+
+.ts-step.is-entering-back {
+  animation: ts-in-back var(--dur-base) var(--ease-out-expo) both;
+}
+
+.ts-step.is-leaving-fwd {
+  animation: ts-out-fwd var(--dur-fast) var(--ease-in) both;
+  pointer-events: none;
+}
+
+.ts-step.is-leaving-back {
+  animation: ts-out-back var(--dur-fast) var(--ease-in) both;
+  pointer-events: none;
+}
+
+@keyframes ts-in-fwd {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+@keyframes ts-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+
+@keyframes ts-out-fwd {
+  to {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+
+@keyframes ts-out-back {
+  to {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+.ts-q {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.ts-q:focus {
+  outline: none;
+}
+
+.ts-lede {
+  margin: -4px 0 var(--space-xs);
+  color: var(--ink-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.ts-label {
+  margin: var(--space-xs) 0 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+.ts-fine {
+  margin: var(--space-xs) 0 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+/* Step 1: one large field. */
+.ts-ask {
+  width: 100%;
+  min-height: 112px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-title);
+  line-height: var(--leading-snug);
+  resize: none;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.ts-ask::placeholder {
+  color: var(--ink-3);
+}
+
+.ts-ask:focus-visible,
+.ts-ask:focus {
+  outline: none;
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.ts-ask[readonly] {
+  color: var(--ink-2);
+}
+
+.ts-examples {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.ts-example {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-ui);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.ts-example:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) {
+  .ts-example:hover {
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+}
+
+/* Step 3: switches in plain words. */
+.ts-allows {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.ts-allow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 60px;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.ts-allow + .ts-allow {
+  border-top: 1px solid var(--line);
+}
+
+.ts-allow__text {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ts-allow__label {
+  color: var(--ink);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+}
+
+.ts-allow__detail {
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+/* Step 4: the reveal. */
+.ts-tone {
+  margin: -6px 0 var(--space-xs);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  text-align: center;
+}
+
+.ts-name-row {
+  display: grid;
+  gap: 6px;
+}
+
+.ts-name-row .ts-label {
+  margin: 0;
+}
+
+.ts-name-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ts-name {
+  width: 100%;
+  height: 52px;
+  padding: 0 44px 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+}
+
+.ts-name:focus {
+  outline: none;
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.ts-name-wrap svg {
+  position: absolute;
+  right: 16px;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.ts-locks {
+  display: grid;
+  gap: 8px;
+}
+
+.ts-locks .ts-label {
+  margin: 0;
+}
+
+.ts-locks__row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.ts-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-small);
+  cursor: pointer;
+  position: relative;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+/* A taller hit area than the pill shows (44px). */
+.ts-lock::after {
+  content: "";
+  position: absolute;
+  inset: -6px -2px;
+}
+
+.ts-lock::before {
+  content: "";
+  width: 10px;
+  height: 12px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'%3E%3Cpath d='M2 5V3.5a3 3 0 0 1 6 0V5' fill='none' stroke='black' stroke-width='1.5'/%3E%3Crect x='0.5' y='5' width='9' height='6.5' rx='1.8'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'%3E%3Cpath d='M2 5V3.5a3 3 0 0 1 6 0V5' fill='none' stroke='black' stroke-width='1.5'/%3E%3Crect x='0.5' y='5' width='9' height='6.5' rx='1.8'/%3E%3C/svg%3E") center / contain no-repeat;
+  opacity: 0;
+  margin-left: -16px;
+  transition: opacity var(--dur-fast) var(--ease-out), margin var(--dur-fast) var(--ease-out-expo);
+}
+
+.ts-lock[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.ts-lock[aria-pressed="true"]::before {
+  opacity: 1;
+  margin-left: 0;
+}
+
+.ts-wardrobe {
+  padding-bottom: var(--space-md);
+}
+
+/* ---------- the foot ---------- */
+
+.ts-error {
+  margin: 0 0 var(--space-xs);
+  color: var(--bad);
+  font-size: var(--text-small);
+}
+
+.ts-foot {
+  flex: none;
+  border-top: 1px solid transparent;
+  transition: border-color var(--dur-fast) var(--ease-out);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0 calc(var(--safe-bottom) + var(--space-md));
+}
+
+.ts-foot.is-raised {
+  border-top-color: var(--line);
+}
+
+.kb-open .ts-foot {
+  padding-bottom: var(--space-sm);
+}
+
+.ts-primary {
+  min-height: 52px;
+  padding-inline: 26px;
+  font-size: var(--text-ui);
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.ts-primary[aria-disabled="true"] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ts-primary.is-waiting {
+  opacity: 0.6;
+}
+
+.ts-hint {
+  order: 2;
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  letter-spacing: 0.04em;
+}
+
+.ts-hint:empty {
+  display: none;
+}
+
+/* No keys to press: a touch screen, or a phone's width. */
+@media (hover: none), (pointer: coarse), (max-width: 639px) {
+  .ts-hint {
+    display: none;
+  }
+}
+
+.ts-primary {
+  order: 3;
+}
+
+@media (max-width: 639px) {
+  .ts-primary {
+    flex: 1;
+  }
+
+  .ts-over:not([hidden]) + .ts-hint + .ts-primary {
+    flex: 1;
+  }
+}
+
+.ts--full {
+  justify-content: start;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ts-stage.is-silhouette .ts-disc .kit-avatar {
+    filter: brightness(0) invert(1);
+    opacity: 0.12;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-step,
+  .ts-bubble,
+  .ts-disc,
+  .ts-disc .kit-avatar,
+  .ts-lock::before {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* The wardrobe in this sheet: swatches fill whole rows (no lone swatch at 390px), and the picked species reads in dark mode. */
+.ts-wardrobe .kit-wr-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  justify-items: center;
+  gap: var(--space-2xs) 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ts-wardrobe .kit-wr-seg button[aria-checked="true"] {
+    background: var(--sunken-strong);
+    box-shadow: 0 0 0 1.5px var(--ink-2);
+  }
+}
+
+/* ---------- hiring as a conversation (setup-talk.ts) ---------- */
+
+/* The name plate is a button once there's someone to dress: it opens Name and look. */
+button.ts-plate {
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+button.ts-plate:disabled {
+  cursor: default;
+}
+
+button.ts-plate:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  button.ts-plate:not(:disabled):hover {
+    box-shadow: var(--shadow-card), 0 0 0 1px var(--line-strong);
+  }
+}
+
+button.ts-plate:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* In the talk the character stays smaller, so the conversation has the room. */
+.ts-stage.is-talk .ts-disc {
+  --disc: 88px;
+}
+
+.ts-stage.is-talk {
+  padding-bottom: var(--space-sm);
+}
+
+.ts-stage.is-talk .ts-plate {
+  width: auto;
+  min-width: 200px;
+  max-width: min(100%, 340px);
+}
+
+.ts-talk {
+  display: grid;
+  gap: 6px;
+  padding-top: var(--space-2xs);
+}
+
+.ts-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.ts-msg--you {
+  align-items: flex-end;
+}
+
+/* A new speaker leaves a little air above. */
+.ts-msg--them + .ts-msg--you,
+.ts-msg--you + .ts-msg--them,
+.ts-msg--you + .ts-typing {
+  margin-top: var(--space-xs);
+}
+
+.ts-said {
+  max-width: 86%;
+  margin: 0;
+  padding: 10px 15px 11px;
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-2xs);
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+/* Lines in a row from the same speaker sit as one group: only the last keeps its tail. */
+.ts-msg--them:has(+ .ts-msg--them:not(.is-pending)) .ts-said {
+  border-bottom-left-radius: var(--radius-md);
+}
+
+.ts-msg--you .ts-said {
+  border-radius: var(--radius-md) var(--radius-md) var(--radius-2xs) var(--radius-md);
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+/* Your answer, as a bubble you can tap to change. */
+.ts-said--btn {
+  border: 0;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.ts-said--btn:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  .ts-said--btn:hover {
+    opacity: 0.86;
+  }
+}
+
+.ts-said--btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ts-msg--you.is-quiet .ts-said {
+  background: transparent;
+  color: var(--ink-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.ts-msg.is-pending {
+  display: none;
+}
+
+.ts-msg.is-new {
+  animation: ts-msg-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.ts-msg--them.is-new {
+  transform-origin: 0 100%;
+}
+
+.ts-msg--you.is-new {
+  transform-origin: 100% 100%;
+}
+
+@keyframes ts-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+
+/* Typing: three soft dots, before each line it says. */
+.ts-typing .ts-said {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  padding-inline: 16px;
+}
+
+.ts-typing .ts-said span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  animation: ts-dot calc(var(--dur-slow) * 3) var(--ease-in-out) infinite;
+}
+
+.ts-typing .ts-said span:nth-child(2) {
+  animation-delay: calc(var(--dur-slow) * 0.5);
+}
+
+.ts-typing .ts-said span:nth-child(3) {
+  animation-delay: var(--dur-slow);
+}
+
+@keyframes ts-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+/* Under its promise: ask for someone else, or change its name and look. */
+.ts-moves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ts-move {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 13px 0 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-small);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.ts-move::after {
+  content: "";
+  position: absolute;
+  inset: -5px -2px;
+}
+
+.ts-move svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ts-move:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .ts-move:hover {
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+}
+
+/* Its questions: answers to tap sit on your side, under the question. */
+.ts-replies {
+  display: grid;
+  gap: 8px;
+  align-self: stretch;
+  margin-top: 10px;
+}
+
+.ts-replies__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ts-reply {
+  position: relative;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-ui);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.ts-reply::after {
+  content: "";
+  position: absolute;
+  inset: -3px -2px;
+}
+
+.ts-reply:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .ts-reply:hover {
+    border-color: var(--ink-3);
+  }
+}
+
+.ts-reply[aria-checked="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.ts-reply:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ts-replies__own {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+  width: min(100%, 360px);
+  padding: 4px 4px 4px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}
+
+.ts-replies__own:focus-within {
+  border-color: var(--ink-3);
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.ts-replies__field {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-ui);
+  outline: none;
+}
+
+.ts-replies__send {
+  flex: none;
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+/* "Picked up where you left off. Start over" */
+.ts-note {
+  justify-self: center;
+  margin: 0 0 var(--space-xs);
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  text-align: center;
+}
+
+.ts-note__btn {
+  min-height: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* How it'll work: one card at the end of the talk. */
+.ts-msg--card {
+  align-items: stretch;
+  margin-top: var(--space-xs);
+}
+
+.ts-terms {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.ts-term {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 14px 12px 14px 16px;
+}
+
+.ts-term + .ts-term,
+.ts-term__editor + .ts-term {
+  border-top: 1px solid var(--line);
+}
+
+.ts-term__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.ts-term__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ts-term__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.ts-term__k {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+.ts-term__v {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+}
+
+.ts-term__hint {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.ts-term__edit {
+  margin: -4px 0;
+}
+
+/* Online (team/setup-talk.ts): proposed when the job needs it, switched on; the whole row toggles. */
+.ts-term--web {
+  cursor: pointer;
+}
+
+.ts-term--web.is-blocked {
+  cursor: default;
+}
+
+.ts-term--web .ts-term__v {
+  text-wrap: pretty;
+}
+
+.ts-term--web .switch {
+  margin-top: 3px;
+}
+
+.ts-term--web:has(.switch:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.ts-term--web .switch:focus-visible {
+  outline: none;
+}
+
+.ts-term__editor {
+  padding: 0 12px 14px;
+}
+
+.ts-terms .ts-allows {
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--line);
+  margin-inline: 16px;
+}
+
+.ts-terms .ts-allow {
+  padding-inline: 0;
+  min-height: 56px;
+}
+
+.ts-terms .ts-fine {
+  margin: 0;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--sunken);
+}
+
+/* The foot while it's asking: one quiet way past the questions. */
+.ts-skip {
+  order: 1;
+  min-height: 48px;
+}
+
+@media (max-width: 639px) {
+  .ts-skip {
+    flex: 1;
+  }
+}
+
+@media (min-width: 640px) {
+  .ts-skip {
+    margin-left: auto;
+  }
+}
+
+/* ---------- Name and look ---------- */
+
+.ts.is-look .ts-view {
+  padding-top: var(--space-xs);
+}
+
+.ts-step--look {
+  gap: var(--space-md);
+}
+
+.ts-who {
+  display: grid;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--line);
+}
+
+.ts-who .ts-tone {
+  margin: -4px 0 0;
+  text-align: start;
+}
+
+/* Locks read as locks before they're on: an open lock, filled once kept. */
+.ts-lock::before {
+  opacity: 0.55;
+  margin-left: 0;
+}
+
+.ts-lock[aria-pressed="true"]::before {
+  opacity: 1;
+}
+
+/* ---------- the first day (setup-first-day.ts) ---------- */
+
+.ts-q--center {
+  text-align: center;
+}
+
+.ts-step--day {
+  gap: var(--space-md);
+}
+
+.ts-bubble.is-new {
+  animation: ts-bubble-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.ts-day {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.ts-day__label {
+  margin: 0;
+}
+
+.ts-day__list {
+  display: grid;
+  margin: 0;
+  padding: 4px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  list-style: none;
+}
+
+.ts-day__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  color: var(--ink);
+  font-size: var(--text-ui);
+}
+
+.ts-day__item[hidden] {
+  display: none;
+}
+
+.ts-day__item + .ts-day__item {
+  border-top: 1px solid var(--line);
+}
+
+.ts-day__mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  transition: background-color var(--dur-base) var(--ease-out-expo), box-shadow var(--dur-base) var(--ease-out-expo);
+}
+
+.ts-day__mark svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ts-day__item[data-state="done"] .ts-day__mark {
+  background: var(--ink);
+  box-shadow: none;
+  color: var(--on-ink);
+  animation: ts-tick var(--dur-base) var(--ease-out-expo);
+}
+
+.ts-day__item[data-state="doing"] {
+  color: var(--ink-2);
+}
+
+/* Working on it: the ring fills in and fades, slowly. */
+.ts-day__item[data-state="doing"] .ts-day__mark {
+  animation: ts-doing calc(var(--dur-slow) * 4) var(--ease-in-out) infinite;
+}
+
+/* A run going: the team's working dot, breathing, as every Team screen shows it (team-pulse.css). */
+.ts-day__item[data-state="working"] {
+  color: var(--ink-2);
+}
+
+.ts-day__item[data-state="working"] .ts-day__mark {
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--who, var(--accent)) 45%, var(--line));
+}
+
+/* Live: it's watching, or waiting for its time. */
+.ts-day__item[data-state="live"] .ts-day__mark {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.ts-day__item[data-state="live"] .ts-day__mark::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.ts-day__item[data-state="failed"] .ts-day__mark {
+  box-shadow: inset 0 0 0 1.5px var(--bad);
+  color: var(--bad);
+}
+
+@keyframes ts-tick {
+  from {
+    transform: scale(0.6);
+  }
+}
+
+@keyframes ts-doing {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  }
+  50% {
+    box-shadow: inset 0 0 0 6px var(--sunken-strong);
+  }
+}
+
+.ts-day__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+}
+
+.ts-day__btn {
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+.ts-day__btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.ts-day__fine {
+  margin: 0;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* What "Check now" does, on its own line above where it all lives. */
+.ts-day__hint {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-msg,
+  .ts-typing .ts-said span,
+  .ts-day__mark,
+  .ts-reply,
+  .ts-move,
+  button.ts-plate {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Docked: once the talk outgrows the screen, the character sits in a small header beside its name. */
+.ts-stage.is-docked {
+  padding: 2px 0 var(--space-xs);
+}
+
+.ts-stage.is-docked .ts-figure {
+  grid-auto-flow: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.ts-stage.is-docked .ts-disc {
+  --disc: 48px;
+  --kit-fit: 1;
+}
+
+.ts-stage.is-docked .ts-plate,
+.ts-stage.is-talk.is-docked .ts-plate {
+  min-width: 0;
+  width: auto;
+  max-width: 260px;
+  margin: 0;
+  padding: 4px 10px;
+  justify-items: start;
+  background: none;
+  box-shadow: none;
+  text-align: start;
+}
+
+.ts-stage.is-docked .ts-plate__name {
+  font-size: var(--text-title);
+}
+
+.ts-stage.is-docked + .ts-view {
+  border-top-color: var(--line);
+}
+
+/* The first day: the face, what it says, and the heading carry the name, so the plate steps aside. */
+.ts-stage.is-meet .ts-plate {
+  display: none;
+}
+
+.ts-stage.is-meet .ts-disc {
+  --disc: 136px;
+}
+
+.ts-stage.is-meet .ts-bubble {
+  margin-top: var(--space-xs);
+}
+
+.ts-step--day .ts-q {
+  margin-top: var(--space-2xs);
+}
+
+@media (min-width: 640px) {
+  .ts-primary {
+    margin-left: auto;
+  }
+
+  .ts-hint:not(:empty) + .ts-primary {
+    margin-left: 0;
+  }
+}
+
+.ts-disc .kit-avatar {
+  transition: filter var(--dur-slow) var(--ease-out-expo), opacity var(--dur-slow) var(--ease-out-expo), transform var(--dur-slow) var(--ease-out-expo), clip-path var(--dur-slow) var(--ease-out-expo);
+}
+
+/* The first day's list arrives one line at a time. */
+.ts-day__item {
+  animation: ts-msg-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.ts-day__item:nth-child(2) {
+  animation-delay: calc(var(--dur-stagger) * 3);
+}
+
+.ts-day__item:nth-child(3) {
+  animation-delay: calc(var(--dur-stagger) * 6);
+}
+
+.ts-day__item:nth-child(4) {
+  animation-delay: calc(var(--dur-stagger) * 9);
+}
+
+.ts-day__item:nth-child(5) {
+  animation-delay: calc(var(--dur-stagger) * 12);
+}
+
+/* Live: a slow ring, the way a light shows something's on. */
+.ts-day__item[data-state="live"] .ts-day__mark {
+  position: relative;
+}
+
+.ts-day__item[data-state="live"] .ts-day__mark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent) 35%, transparent);
+  animation: ts-live calc(var(--dur-slow) * 6) var(--ease-out) infinite;
+}
+
+@keyframes ts-live {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent) 35%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-day__item,
+  .ts-day__item .ts-day__mark::before,
+  .ts-day__item .ts-day__mark::after {
+    animation: none !important;
+  }
+}
+
+.ts-terms:focus {
+  outline: none;
+}
+
+.ts-terms:focus-visible {
+  box-shadow: var(--shadow-card), 0 0 0 2px var(--accent);
+}

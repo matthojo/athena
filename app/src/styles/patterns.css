@@ -1,0 +1,425 @@
+/*
+ * Patterns (components/patterns-block.ts). Each card takes its outcome's colour from the validated chart and stage
+ * tokens (sleep cobalt, deep sleep deep blue, steps mint, heart the awake orange) and mood's from Today's morning
+ * apricot. Colour is only in the soft tint, the icon and the marks; every word stays in ink, so text contrast is the
+ * page's own. Dark steps come from the tokens themselves.
+ */
+
+.pcard {
+  --p-accent: var(--chart-1);
+  --p-tint: 8%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in oklch, var(--p-accent) 16%, var(--line));
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in oklch, var(--p-accent) calc(var(--p-tint) + 6%), transparent), transparent 70%),
+    color-mix(in oklch, var(--p-accent) var(--p-tint), var(--surface));
+}
+
+.pcard--deep { --p-accent: var(--stage-deep); }
+.pcard--steps { --p-accent: var(--chart-2); }
+.pcard--resting_hr { --p-accent: var(--stage-awake); }
+.pcard--mood { --p-accent: oklch(0.68 0.14 52); }
+
+@media (prefers-color-scheme: dark) {
+  .pcard { --p-tint: 13%; }
+  .pcard--mood { --p-accent: oklch(0.74 0.13 58); }
+}
+
+.pcard__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.pcard__icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--p-accent);
+  background: color-mix(in oklch, var(--p-accent) 18%, var(--surface));
+}
+
+.pcard__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pcard__kind {
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.pcard__factor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-width: 0;
+  margin-left: auto;
+  padding: 2px var(--space-xs) 2px 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklch, var(--surface) 70%, transparent);
+  border: 1px solid color-mix(in oklch, var(--p-accent) 14%, var(--line));
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pcard__factor-icon svg {
+  display: block;
+  width: 13px;
+  height: 13px;
+}
+
+.pcard__hero {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 var(--space-xs);
+  margin: var(--space-2xs) 0 0;
+}
+
+.pcard__figure {
+  font-size: var(--text-display);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.pcard__unit {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+}
+
+.pcard__line {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/* With against without, on one scale. */
+.pcmp {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px var(--space-sm);
+  margin-top: var(--space-2xs);
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.pcmp__title {
+  grid-column: 1 / -1;
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.pcmp__row {
+  display: contents;
+}
+
+.pcmp__label {
+  white-space: nowrap;
+}
+
+.pcmp__row.is-with .pcmp__label,
+.pcmp__row.is-with .pcmp__value {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.pcmp__track {
+  position: relative;
+  height: 14px;
+  min-width: 48px;
+}
+
+.pcmp__track::before {
+  content: "";
+  position: absolute;
+  inset: 6px 0;
+  border-radius: var(--radius-3xs);
+  background: color-mix(in oklch, var(--p-accent) 20%, var(--line));
+}
+
+.pcmp__dot {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--surface);
+  border: 2px solid var(--ink-3);
+}
+
+.is-with .pcmp__dot {
+  background: var(--p-accent);
+  border-color: var(--p-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--p-accent) 22%, transparent);
+}
+
+.pcmp__track--bar::before {
+  inset: 3px 0;
+  border-radius: var(--radius-pill);
+}
+
+.pcmp__fill {
+  position: absolute;
+  inset: 3px auto 3px 0;
+  border-radius: var(--radius-pill);
+  background: var(--ink-3);
+}
+
+.is-with .pcmp__fill {
+  background: var(--p-accent);
+}
+
+.pcmp__value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The days it held, and how sure. */
+.pcard__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid color-mix(in oklch, var(--p-accent) 14%, var(--line));
+}
+
+.ptally {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.ptally__dots {
+  display: inline-grid;
+  grid-template-columns: repeat(10, 7px);
+  gap: 3px;
+}
+
+.ptally__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--p-accent) 22%, var(--line));
+}
+
+.ptally__dot.is-on {
+  background: var(--p-accent);
+}
+
+.ptally__text {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.psure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.psure__bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.psure__bar {
+  width: 4px;
+  border-radius: var(--radius-3xs);
+  background: var(--line-strong);
+}
+
+.psure__bar:nth-child(1) { height: 6px; }
+.psure__bar:nth-child(2) { height: 9px; }
+.psure__bar:nth-child(3) { height: 12px; }
+
+.psure__bar.is-on {
+  background: var(--ink-2);
+}
+
+/* Compact: a day, a Health card, an answer. Icon beside the words; no factor chip or tally row header. */
+.pcard--compact {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-sm);
+  row-gap: 6px;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.pcard--compact .pcard__head {
+  display: contents;
+}
+
+.pcard--compact .pcard__icon {
+  grid-row: 1 / span 3;
+  align-self: start;
+  width: 28px;
+  height: 28px;
+}
+
+.pcard--compact .pcard__kind {
+  grid-column: 2;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.pcard--compact .pcard__factor {
+  display: none;
+}
+
+.pcard--compact .pcard__hero {
+  grid-column: 2;
+  margin: 0;
+}
+
+.pcard--compact .pcard__figure {
+  font-size: var(--text-title);
+}
+
+.pcard--compact .pcard__line,
+.pcard--compact .pcmp,
+.pcard--compact .pcard__foot {
+  grid-column: 2;
+}
+
+.pcard--compact .pcmp {
+  margin: 0;
+  max-width: 440px;
+}
+
+.pcard--compact .pcard__foot {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  /* Dots and how sure stay on one line, even in a narrow answer bubble. */
+  flex-wrap: nowrap;
+}
+
+.pcard--compact {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.pcard--compact .pcard__foot {
+  gap: var(--space-xs);
+}
+
+.pcard--compact .ptally {
+  flex-shrink: 1;
+  gap: 6px;
+}
+
+.pcard--compact .ptally__dots {
+  grid-template-columns: repeat(10, 5px);
+  gap: 2px;
+}
+
+.pcard--compact .ptally__dot {
+  width: 5px;
+  height: 5px;
+}
+
+/* Long group names ("Lots of watching") give way before the figures do. */
+.pcard--compact .pcmp {
+  grid-template-columns: minmax(0, max-content) minmax(32px, 1fr) auto;
+}
+
+.pcard--compact .pcmp__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The review block: a row to swipe on a phone, side by side when there's room. */
+.patterns__row {
+  display: flex;
+  gap: var(--space-sm);
+  margin: 0 calc(var(--space-md) * -1);
+  padding: 2px var(--space-md) var(--space-2xs);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 var(--space-md);
+  scrollbar-width: none;
+}
+
+.patterns__row::-webkit-scrollbar {
+  display: none;
+}
+
+.patterns__item {
+  display: flex;
+  flex: 0 0 min(84%, 320px);
+  scroll-snap-align: start;
+}
+
+.patterns__item > .pcard {
+  flex: 1;
+}
+
+@media (min-width: 720px) {
+  .patterns__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+}
+
+.patterns__note {
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.pattern-slot[hidden] {
+  display: none;
+}
+
+.health__card .pattern-slot {
+  margin-top: var(--space-xs);
+}
+
+/* Inside an answer bubble. */
+.answer-patterns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}

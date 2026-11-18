@@ -1,0 +1,41 @@
+/* The Health page's Food and drink and Mind cards (views/health.ts foodAndMind). */
+
+.health__card--mind .hchart__bar {
+  fill: var(--chart-2);
+}
+
+.hfood__facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-2xs) var(--space-md);
+  margin: var(--space-sm) 0 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.hfood__facts dt {
+  color: var(--ink-3);
+}
+
+.hfood__facts dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+.hfood__mood {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  margin: var(--space-sm) 0 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.hfood__mood-label {
+  color: var(--ink-3);
+}

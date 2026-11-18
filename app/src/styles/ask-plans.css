@@ -1,0 +1,341 @@
+/* Ask's plans (views/ask.ts planEl), tonight's picks (picksEl), and Settings → Ask (components/ask-settings.ts). */
+
+.plan {
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  animation: rise var(--dur-base) var(--ease-out) both;
+}
+
+.plan__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.plan__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.plan__head svg {
+  width: 16px;
+  height: 16px;
+}
+
+.plan__steps {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.plan__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-sm);
+  min-height: 48px;
+  padding: var(--space-sm) var(--space-sm);
+  animation: rise var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger) * 1.75);
+}
+
+label.plan__step {
+  cursor: pointer;
+}
+
+.plan__step + .plan__step::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(var(--space-sm) + 24px + var(--space-sm));
+  right: var(--space-sm);
+  height: 1px;
+  background: var(--line);
+}
+
+.plan__tick {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+.plan__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+label.plan__step:has(.plan__tick:not(:checked)) .plan__label {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--line-strong);
+}
+
+.plan__state {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.plan__mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+.plan__mark svg {
+  width: 14px;
+  height: 14px;
+}
+
+.plan__step--done .plan__mark {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.plan__step--failed .plan__state {
+  color: var(--bad);
+}
+
+.plan__step--skipped .plan__label {
+  color: var(--ink-3);
+}
+
+.plan__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.plan__note {
+  margin: 0;
+  flex: 1 1 12rem;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.plan__go {
+  min-height: 44px;
+  min-width: 96px;
+}
+
+/* Tonight's picks */
+
+.picks__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out);
+  animation: rise var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger) * 1.75);
+}
+
+.picks__row + .picks__row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(var(--space-md) + 34px + var(--space-sm));
+  right: var(--space-md);
+  height: 1px;
+  background: var(--line);
+}
+
+.picks__row:active {
+  background: var(--sunken);
+}
+
+@media (hover: hover) {
+  .picks__row:hover {
+    background: color-mix(in oklch, var(--sunken) 55%, var(--surface));
+  }
+}
+
+.picks__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.picks__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.picks__why {
+  font-size: var(--text-small);
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.picks__from {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* Settings → Ask: routines and What Ask did */
+
+.routine-row__body,
+.activity-row__body {
+  min-width: 0;
+}
+
+.routine-row .row__meta.is-paused {
+  color: var(--ink-3);
+}
+
+.routine-row__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.routine-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.routine-form__days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.routine-form__day {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.routine-form__day[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.activity-day {
+  margin: var(--space-lg) 0 var(--space-xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  min-height: 64px;
+}
+
+.activity-row + .activity-row {
+  border-top: 1px solid var(--line);
+}
+
+.activity-row__title {
+  display: block;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+.activity-row__detail,
+.activity-row__meta {
+  display: block;
+  font-size: var(--text-small);
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.activity-row__meta {
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+.activity-row__meta a {
+  color: inherit;
+}
+
+.activity-row__trail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.activity-row.is-undone .activity-row__title {
+  color: var(--ink-3);
+}
+
+.activity-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.activity-state svg {
+  width: 14px;
+  height: 14px;
+}
+
+.activity-state--failed {
+  color: var(--bad);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan,
+  .plan__step,
+  .picks__row {
+    animation: none;
+  }
+}
+
+.routine-form__label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+/* Settings → Ask: "Let Ask search the web" (components/ask-web-setting.ts). */
+.ask-web-card {
+  padding: 0 var(--space-md);
+}

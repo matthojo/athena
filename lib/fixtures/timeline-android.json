@@ -1,0 +1,21 @@
+{
+  "semanticSegments": [
+    { "startTime": "2026-11-03T00:00:00.000+00:00", "endTime": "2026-11-03T08:40:00.000+00:00", "startTimeTimezoneUtcOffsetMinutes": 0,
+      "visit": { "hierarchyLevel": 0, "probability": 0.94, "topCandidate": { "placeId": "ChIJhome0000000000001", "semanticType": "HOME", "probability": 0.9, "placeLocation": { "latLng": "51.5560000°, -0.1470000°" } } } },
+    { "startTime": "2026-11-03T08:40:00.000+00:00", "endTime": "2026-11-03T09:20:00.000+00:00",
+      "activity": { "start": { "latLng": "51.556°, -0.147°" }, "end": { "latLng": "51.5136°, -0.1366°" }, "distanceMeters": 5200, "topCandidate": { "type": "IN_SUBWAY" } } },
+    { "startTime": "2026-11-03T09:20:00.000+00:00", "endTime": "2026-11-03T12:45:00.000+00:00",
+      "visit": { "hierarchyLevel": 0, "probability": 0.88, "topCandidate": { "placeId": "ChIJwork0000000000001", "semanticType": "INFERRED_WORK", "probability": 0.8, "placeLocation": { "latLng": "51.5136000°, -0.1366000°" } } } },
+    { "startTime": "2026-11-03T13:00:00.000+00:00", "endTime": "2026-11-03T14:05:00.000+00:00",
+      "visit": { "hierarchyLevel": 0, "probability": 0.7, "topCandidate": { "placeId": "ChIJdishoom0000000001", "semanticType": "UNKNOWN", "probability": 0.6, "placeLocation": { "latLng": "51.5124000°, -0.1270000°" } } } },
+    { "startTime": "2026-11-03T13:10:00.000+00:00", "endTime": "2026-11-03T13:50:00.000+00:00",
+      "visit": { "hierarchyLevel": 1, "probability": 0.4, "topCandidate": { "placeId": "ChIJinside00000000001", "semanticType": "UNKNOWN", "placeLocation": { "latLng": "51.5124100°, -0.1270100°" } } } },
+    { "startTime": "2026-11-03T15:30:00.000+00:00", "endTime": "2026-11-03T15:33:00.000+00:00",
+      "visit": { "hierarchyLevel": 0, "topCandidate": { "placeId": "ChIJblink00000000001", "semanticType": "UNKNOWN", "placeLocation": { "latLng": "51.52°, -0.13°" } } } },
+    { "startTime": "2026-11-03T16:10:00.000+00:00", "endTime": "2026-11-03T17:40:00.000+00:00",
+      "visit": { "hierarchyLevel": 0, "probability": 0.81, "topCandidate": { "placeId": "ChIJheath00000000001", "semanticType": "UNKNOWN", "placeLocation": { "latLng": "51.5608000°, -0.1636000°" } } } },
+    { "startTime": "2026-11-03T16:00:00.000+00:00", "endTime": "2026-11-03T18:00:00.000+00:00", "timelinePath": [{ "point": "51.56°, -0.16°", "time": "2026-11-03T16:00:00.000+00:00" }] }
+  ],
+  "rawSignals": [{ "position": { "LatLng": "51.5°, -0.1°" } }],
+  "userLocationProfile": { "frequentPlaces": [] }
+}

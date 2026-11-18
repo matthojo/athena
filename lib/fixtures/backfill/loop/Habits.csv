@@ -1,0 +1,4 @@
+Position,Name,Type,Question,Description,FrequencyNumerator,FrequencyDenominator,Color,Unit,Target Type,Target Value,Archived?
+001,Meditate,YES_NO,Did you meditate today?,,1,1,#4CAF50,,,,false
+002,Read,YES_NO,Did you read?,,1,1,#2196F3,,,,false
+003,Run,NUMERICAL,How far did you run?,,1,1,#FF5722,km,AT_LEAST,5,false

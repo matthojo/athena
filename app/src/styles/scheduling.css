@@ -1,0 +1,585 @@
+/* Finding a time (components/slot-card.ts): the slot card, the move sheet and its receipt. */
+
+.slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  animation: rise var(--dur-base) var(--ease-out) both;
+}
+
+.slots__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.slots__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.slots__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.005em;
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+.slots__meta {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Whose calendars were checked: quiet lines, a tick for seen, an open circle for not. */
+.slots__people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slots__person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.slots__person svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.slots__person.is-seen svg {
+  color: var(--good);
+}
+
+.slots__list {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.slot {
+  position: relative;
+  animation: rise var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger) * 1.75 + var(--dur-stagger) * 2);
+}
+
+.slot + .slot::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--space-md);
+  right: var(--space-md);
+  height: 1px;
+  background: var(--line);
+}
+
+.slot__pick {
+  display: grid;
+  grid-template-columns: minmax(6.5em, max-content) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-xs) var(--space-md);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.slot__pick:active {
+  background: var(--sunken-strong);
+}
+
+@media (hover: hover) {
+  .slot__pick:hover {
+    background: color-mix(in oklch, var(--sunken-strong) 55%, var(--sunken));
+  }
+}
+
+.slot__pick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.slot__day {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.slot__time {
+  font-size: var(--text-ui);
+  color: var(--ink-2);
+}
+
+.slot__chev {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.slot__chev svg {
+  width: 16px;
+  height: 16px;
+}
+
+.slot.is-open::before,
+.slot.is-open + .slot::before {
+  display: none;
+}
+
+.slot.is-open .slot__chev {
+  transform: rotate(180deg);
+}
+
+.slot.is-open .slot__pick {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.slot__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md) var(--space-sm);
+  background: var(--surface);
+  box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line);
+  animation: rise var(--dur-fast) var(--ease-out) both;
+}
+
+.slot:last-child .slot__actions {
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.slot__actions .btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.slots__empty,
+.slots__why {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.slots__why {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: flex-start;
+}
+
+.slots__why svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 3px;
+  color: var(--ink-3);
+}
+
+.slots__receipt:empty {
+  display: none;
+}
+
+.slots--move .slots__head .btn {
+  white-space: nowrap;
+}
+
+.move-receipts {
+  box-shadow: none;
+}
+
+.move-receipt__tile {
+  background: var(--mint-wash);
+  color: var(--good);
+}
+
+/* The confirm sheet: the question, then where it is and where it goes. */
+.move-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-sm);
+}
+
+.move-sheet__ask {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.move-sheet__sub {
+  margin: calc(var(--space-xs) * -1) 0 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.move-sheet__path {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.move-sheet__when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  font-variant-numeric: tabular-nums;
+}
+
+.move-sheet__when.is-new {
+  background: var(--accent-wash);
+}
+
+.move-sheet__label {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.move-sheet__when.is-new .move-sheet__label {
+  color: var(--accent-ink);
+}
+
+.move-sheet__day {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.move-sheet__time {
+  font-size: var(--text-ui);
+  color: var(--ink-2);
+}
+
+.move-sheet__when:not(.is-new) .move-sheet__day,
+.move-sheet__when:not(.is-new) .move-sheet__time {
+  color: var(--ink-3);
+}
+
+.move-sheet__arrow {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+
+.move-sheet__arrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+.move-sheet__error {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--bad);
+}
+
+.move-sheet__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+}
+
+/* Check in's sheet while it looks. */
+.times-sheet {
+  min-height: 180px;
+  padding-bottom: var(--space-sm);
+}
+
+.times-sheet .slots {
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.times-sheet__loading,
+.times-sheet__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.times-sheet__loading .orb {
+  width: 22px;
+  height: 22px;
+}
+
+/* Settings → Days: working hours. */
+.hours__days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.hours__day {
+  min-width: 44px;
+  height: 44px;
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.hours__day[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.hours__day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.hours__times {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.hours__times input,
+.hours select {
+  height: 44px;
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slots,
+  .slot,
+  .slot__actions {
+    animation: none;
+  }
+  .slot__chev {
+    transition: none;
+  }
+}
+
+.hours select {
+  appearance: none;
+  padding-right: var(--space-lg);
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* The account page's switch: its title is the whole sentence, so it wraps. */
+.row__title.row__title--wrap {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Check in: "Suggest times" leads on the left, and takes its own line on a phone. */
+.suggestion__actions:has(.suggestion__times) {
+  flex-wrap: wrap;
+}
+
+.suggestion__times {
+  margin-right: auto;
+}
+
+@media (max-width: 560px) {
+  .suggestion__times {
+    flex: 1 0 100%;
+    margin-right: 0;
+  }
+}
+
+/* ---------- Adding an event (create-sheet.ts) ---------- */
+
+/* Who gets an invite: the sentence, then a chip per guest. */
+.create-sheet__invite {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.create-sheet__invite svg,
+.create-sheet__note svg,
+.slots__invite svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+}
+
+.create-sheet__who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: calc(var(--space-xs) * -1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.create-sheet__guest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.create-sheet__guest svg {
+  width: 14px;
+  height: 14px;
+}
+
+.create-sheet__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.create-sheet__fields {
+  box-shadow: none;
+}
+
+/* Starts and Ends share a line on a wide sheet, and stack on a phone. */
+.create-sheet__times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.create-sheet__times > .prop + .prop::before {
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  height: auto;
+}
+
+.create-sheet__times + .prop::before,
+.prop + .create-sheet__times::before {
+  content: "";
+}
+
+.create-sheet__times {
+  position: relative;
+}
+
+.prop + .create-sheet__times::before,
+.create-sheet__times + .prop::before {
+  position: absolute;
+  top: 0;
+  left: var(--space-md);
+  right: 0;
+  height: 1px;
+  background: var(--line);
+}
+
+@media (max-width: 479px) {
+  .create-sheet__times {
+    grid-template-columns: 1fr;
+  }
+
+  .create-sheet__times > .prop + .prop::before {
+    top: 0;
+    bottom: auto;
+    left: var(--space-md);
+    width: auto;
+    height: 1px;
+  }
+}
+
+.create-sheet__done {
+  display: grid;
+}
+
+/* The receipt: Open in calendar and Undo side by side; under the event on a phone. */
+.create-receipt__actions {
+  display: inline-flex;
+  gap: var(--space-2xs, 4px);
+}
+
+.create-receipt__actions .btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 479px) {
+  .change.create-receipt {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: var(--space-sm);
+  }
+
+  .create-receipt__actions {
+    padding-left: var(--space-md);
+  }
+}
+
+/* Ask's card: who gets an invite, under the event. */
+.slots__invite {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+/* The to-do sheet's "Block time for this". */
+.loop-sheet__block {
+  align-self: flex-start;
+}
+
+/* The title wraps onto a second line instead of being cut off. */
+.create-sheet__title {
+  resize: none;
+  overflow: hidden;
+  line-height: var(--leading-snug, 1.35);
+  padding-block: 9px;
+}
+
+/* The question names the title in full, wrapping long words. */
+.create-sheet .move-sheet__ask {
+  overflow-wrap: anywhere;
+}

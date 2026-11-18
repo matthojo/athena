@@ -1,0 +1,77 @@
+/* Ask: "Remembered · Undo", one line in the assistant's bubble for a detail it remembered (views/ask.ts rememberedLine). */
+
+.remembered {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 2px;
+  margin: var(--space-xs) 0 0;
+  font-size: var(--text-meta);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+.remembered > svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--accent);
+}
+
+.remembered > span:first-of-type {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.remembered__dot {
+  color: var(--ink-3);
+}
+
+/* A 44px target that reads as a word in the line. */
+.remembered__undo {
+  min-height: 44px;
+  margin: -12px -8px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.remembered__undo:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.remembered__undo:disabled {
+  color: var(--ink-3);
+  cursor: default;
+  text-decoration: none;
+}
+
+.remembered__what {
+  flex-basis: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.remembered__what:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.remembered.is-undone,
+.remembered.is-undone > span:first-of-type {
+  color: var(--ink-3);
+  font-weight: var(--weight-regular, 400);
+}
+
+.remembered.is-undone > svg {
+  color: var(--ink-3);
+}

@@ -1,0 +1,276 @@
+/* "Emails Athena reads" (components/mail-rules.ts): one Gmail or Outlook account's rules. */
+
+.mail-rules__status {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.mail-rules__week {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.mail-rules__week svg {
+  inline-size: 16px;
+  block-size: 16px;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.mail-rules__inbox .row__title,
+.mail-rules__inbox .row__meta {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* ----- the 24-hour preview ----- */
+
+.mail-preview {
+  margin-top: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.mail-preview__line {
+  margin: 0;
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.mail-preview__line strong {
+  font-weight: var(--weight-semibold);
+}
+
+.mail-preview--counting .mail-preview__line,
+.mail-preview--counting .mail-preview__suggest {
+  opacity: 0.55;
+}
+
+.mail-preview__skel {
+  display: block;
+  inline-size: 78%;
+  block-size: 1.1em;
+  border-radius: var(--radius-2xs);
+}
+
+.mail-preview__bar {
+  block-size: 6px;
+  margin-top: var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklch, var(--ink) 9%, transparent);
+  overflow: hidden;
+}
+
+.mail-preview__fill {
+  display: block;
+  block-size: 100%;
+  inline-size: 0;
+  border-radius: inherit;
+  background: color-mix(in oklch, var(--ink) 72%, transparent);
+  transition: inline-size var(--dur-slow) var(--ease-out-expo);
+}
+
+.mail-preview__label {
+  margin: var(--space-md) 0 0;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.mail-preview__suggest > .btn {
+  margin-top: var(--space-sm);
+}
+
+.mail-suggest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 56px;
+  padding-block: var(--space-xs);
+}
+
+.mail-suggest + .mail-suggest {
+  border-top: 1px solid var(--line);
+}
+
+.mail-suggest__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mail-suggest__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.mail-suggest__meta {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.mail-suggest > .btn {
+  flex: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+/* ----- senders, subjects, labels ----- */
+
+.mail-rules__lists {
+  display: grid;
+  gap: var(--space-lg);
+  margin-top: var(--space-sm);
+}
+
+.mail-list__title {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.mail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.mail-chips__empty {
+  font-size: var(--text-small);
+  line-height: 32px;
+  color: var(--ink-3);
+}
+
+.mail-chip {
+  height: 32px;
+  padding: 0 4px 0 12px;
+  gap: 2px;
+  color: var(--ink);
+}
+
+/* The chip itself isn't a button: its hit area would cover the remove button's. */
+.mail-chip::after {
+  content: none;
+}
+
+.mail-chip__text {
+  max-inline-size: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mail-chip__x {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: 50%;
+  color: var(--ink-3);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+/* A 44px target around the small circle. */
+.mail-chip__x::after {
+  content: "";
+  position: absolute;
+  inset: -9px -9px -9px -4px;
+}
+
+.mail-chip__x svg {
+  inline-size: 14px;
+  block-size: 14px;
+}
+
+@media (hover: hover) {
+  .mail-chip__x:hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+}
+
+.mail-add {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.mail-add__input {
+  border-color: var(--line);
+  background: var(--canvas);
+}
+
+.mail-add__input::placeholder {
+  color: var(--ink-3);
+}
+
+.mail-add__input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.mail-add__input[aria-invalid="true"] {
+  border-color: var(--warn);
+}
+
+.mail-add > .btn {
+  flex: none;
+  align-self: center;
+}
+
+.mail-add__hint {
+  margin: 6px 0 0;
+  font-size: var(--text-meta);
+  color: var(--warn);
+}
+
+.mail-label {
+  height: 32px;
+  padding: 0 12px;
+}
+
+.mail-label svg {
+  inline-size: 14px;
+  block-size: 14px;
+  margin-inline-start: -2px;
+}
+
+.mail-label[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.mail-rules__only {
+  margin-top: var(--space-sm);
+}
+
+.mail-rules__only-body {
+  padding-top: var(--space-xs);
+}
+
+.mail-rules__only-body .form__hint {
+  margin: 0 0 var(--space-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mail-preview__fill {
+    transition: none;
+  }
+}

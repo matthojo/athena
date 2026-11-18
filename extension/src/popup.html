@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Save to Athena</title>
+    <link rel="stylesheet" href="ui.css" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="top">
+        <img src="icons/icon-32.png" alt="" width="20" height="20" />
+        <span>Save to Athena</span>
+        <button class="btn btn-quiet settings" id="settings" type="button">Settings</button>
+      </header>
+
+      <section class="page sunken" id="page">
+        <b id="page-title"></b>
+        <span class="meta" id="page-host"></span>
+      </section>
+
+      <p class="status busy" id="status" role="status" aria-live="polite"></p>
+
+      <form id="note-form" class="note" hidden>
+        <label for="note" class="sr">Note</label>
+        <textarea id="note" rows="3" placeholder="Add a note (optional)" maxlength="2000"></textarea>
+        <div class="row">
+          <span class="meta" id="note-hint">Ctrl+Enter adds it</span>
+          <button class="btn btn-primary" type="submit" id="note-save">Add note</button>
+        </div>
+      </form>
+
+      <section id="outbox-wrap" class="outbox-wrap" hidden>
+        <div class="row">
+          <b id="outbox-count"></b>
+          <button class="btn btn-quiet" id="retry-all" type="button">Retry now</button>
+        </div>
+        <ul class="outbox" id="outbox"></ul>
+      </section>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

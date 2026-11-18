@@ -1,0 +1,308 @@
+/* Nudges Athena starts (components/nudge-card.ts): Home's cards, "Why am I seeing this?", and Ask opened on one. */
+
+.nudge-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.nudge-cards__list {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 900px) {
+  .nudge-cards__list {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+.nudge-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.nudge-card.is-leaving {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.nudge-card__open {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: 0;
+  padding-right: 36px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nudge-card__open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.nudge-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  min-width: 0;
+}
+
+.nudge-card__eyebrow {
+  font-size: var(--text-micro);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.nudge-card__title {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.nudge-card__body {
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.nudge-card__close {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+}
+
+.nudge-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-left: calc(34px + var(--space-sm));
+}
+
+.nudge-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-left: calc(34px + var(--space-sm));
+}
+
+.nudge-card__action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.nudge-card__action .btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.nudge-card__part {
+  display: flex;
+  gap: var(--space-xs);
+  min-width: 0;
+  font-size: var(--text-small);
+}
+
+.nudge-card__part-day {
+  flex: none;
+  width: 6.5em;
+  color: var(--ink-3);
+}
+
+.nudge-card__part-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+
+.nudge-card__action.is-applied .nudge-card__part-title {
+  color: var(--ink-3);
+}
+
+@media (max-width: 420px) {
+  .nudge-card__foot,
+  .nudge-card__actions {
+    padding-left: 0;
+  }
+}
+
+/* ---------- Why am I seeing this? ---------- */
+
+.why {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.why__lede {
+  color: var(--ink-2);
+  line-height: var(--leading-body);
+}
+
+.why__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.why__list li {
+  padding: var(--space-sm) var(--space-md);
+  line-height: var(--leading-body);
+  color: var(--ink);
+}
+
+.why__list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.why__note {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  line-height: var(--leading-body);
+}
+
+.why__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+/* ---------- Ask, opened on a nudge ---------- */
+
+.ask-nudge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.ask-nudge__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.ask-nudge__head .orb {
+  width: 14px;
+  height: 14px;
+}
+
+.ask-nudge__title {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.ask-nudge__context {
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.ask-nudge__why {
+  align-self: flex-start;
+}
+
+/* While a nudge's card heads a new chat, Ask's own intro steps aside. */
+.ask:has(.ask-nudge) .ask__intro {
+  display: none;
+}
+
+/* ---------- The nudges after the first: short rows in one card ---------- */
+
+.nudge-rows {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+}
+
+.nudge-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-xs) var(--space-2xs) 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.nudge-row + .nudge-row {
+  border-top: 1px solid var(--line);
+}
+
+.nudge-row.is-leaving {
+  opacity: 0;
+}
+
+.nudge-row__open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 56px;
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-md);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nudge-row__open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+.nudge-row__open .nudge-card__text {
+  flex: 1;
+}
+
+.nudge-row__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.nudge-row__open .row__chevron {
+  flex: none;
+  color: var(--ink-3);
+}
+
+@media (hover: hover) {
+  .nudge-row__open:hover .nudge-row__title {
+    color: var(--accent-ink);
+  }
+}

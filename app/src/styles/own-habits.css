@@ -1,0 +1,605 @@
+/* The owner's own habits: the tick (Today, the Habits page, a day), its stepper, the edit sheet and Settings' Habits tab. */
+
+/* ---------- the disc: icon, a ring for a target, a tick when done ---------- */
+
+.habit-disc {
+  --share: 0;
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--ink-2);
+  background:
+    radial-gradient(closest-side, var(--surface) calc(100% - 2.5px), transparent calc(100% - 2px)),
+    conic-gradient(var(--accent) calc(var(--share) * 360deg), var(--line-strong) 0);
+  transition: background var(--dur-base) var(--ease-out);
+}
+
+.habit-disc svg {
+  width: 15px;
+  height: 15px;
+}
+
+.habit-disc--done {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.habit-disc--done svg {
+  stroke-width: 2.6;
+}
+
+/* ---------- the tick ---------- */
+
+.habit-tick {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.habit-tick__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 14px 6px 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.habit-tick__btn:hover {
+  border-color: var(--line-strong);
+}
+
+.habit-tick__btn:active {
+  transform: scale(0.97);
+}
+
+.habit-tick__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.habit-tick.is-done .habit-tick__btn {
+  border-color: transparent;
+  background: var(--accent-wash);
+}
+
+.habit-tick__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: var(--leading-snug);
+}
+
+.habit-tick__name {
+  overflow: hidden;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.habit-tick.is-done .habit-tick__name {
+  color: var(--accent-ink);
+}
+
+.habit-tick__aside {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+
+.habit-tick__count {
+  margin-left: 2px;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.habit-tick.is-done .habit-tick__count {
+  color: var(--accent-ink);
+}
+
+/* On a day page and a habit card: chip-sized. */
+.habit-tick--chip .habit-tick__btn {
+  gap: 7px;
+  min-height: 36px;
+  padding: 3px 12px 3px 3px;
+}
+
+.habit-tick--chip .habit-disc {
+  width: 28px;
+  height: 28px;
+}
+
+.habit-tick--chip .habit-disc svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ---------- the stepper (long press) ---------- */
+
+.habit-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 48px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+  animation: habit-step-in var(--dur-base) var(--ease-out-expo);
+}
+
+.habit-tick--chip .habit-step {
+  min-height: 36px;
+  padding: 2px;
+}
+
+.habit-step__name {
+  max-width: 9em;
+  overflow: hidden;
+  padding: 0 6px 0 10px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.habit-step__btn,
+.habit-step__done {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-title);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.habit-tick--chip .habit-step__btn,
+.habit-tick--chip .habit-step__done {
+  width: 30px;
+  height: 30px;
+}
+
+.habit-step__btn svg,
+.habit-step__done svg {
+  width: 16px;
+  height: 16px;
+}
+
+.habit-step__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.habit-step__done {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.habit-step__value {
+  min-width: 4.5em;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+@keyframes habit-step-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .habit-step {
+    animation: none;
+  }
+  .habit-tick__btn,
+  .habit-disc {
+    transition: none;
+  }
+}
+
+/* ---------- Today ---------- */
+
+.today-habits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.today-habits[hidden] {
+  display: none;
+}
+
+.today-habits__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.today-habits__head .today__label {
+  margin: 0;
+}
+
+.today-habits__count {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.today-habits__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+/* ---------- a day's chips ---------- */
+
+.habit-day-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.habit-day-group__label {
+  margin: 0 0 6px;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.habit-day__item {
+  display: inline-flex;
+}
+
+/* ---------- the Habits page ---------- */
+
+.habit-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.habit-group__label {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.habit-card__head--own {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.habit-card__title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.habit-card__edit {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 2px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  text-align: left;
+  cursor: pointer;
+}
+
+.habit-card__edit svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+}
+
+.habit-card__edit:hover svg {
+  color: var(--ink);
+}
+
+.habit-card--own .habit-card__source {
+  white-space: normal;
+}
+
+.habit-card--archived {
+  opacity: 0.72;
+}
+
+.habit-archived .habit-cards {
+  margin-top: var(--space-sm);
+}
+
+.habit-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  max-width: 560px;
+}
+
+.habit-empty .tile {
+  margin-bottom: var(--space-xs);
+}
+
+.habit-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.habit-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-md);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+}
+
+.habit-invite__text {
+  flex: 1 1 260px;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.habit-invite__text strong {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+/* ---------- the sheet ---------- */
+
+.habit-sheet__days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.habit-days {
+  display: flex;
+  gap: 6px;
+}
+
+.habit-days[hidden],
+.habit-week-n[hidden] {
+  display: none;
+}
+
+.habit-day {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.habit-day[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.habit-week-n {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.habit-week-n__value {
+  min-width: 5em;
+}
+
+.habit-week-n__hint,
+.habit-sheet__summary {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.habit-target {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.habit-target__n {
+  width: 7.5em;
+}
+
+.habit-target__unit {
+  flex: 1 1 8em;
+  min-width: 0;
+}
+
+.habit-target__unit[hidden] {
+  display: none;
+}
+
+.habit-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.habit-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.habit-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.habit-icon[aria-checked="true"] {
+  border-color: transparent;
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.habit-icon:focus-visible,
+.habit-day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* On a habit card: the disc alone is today's tick. */
+.habit-tick--disc .habit-tick__btn {
+  min-height: 44px;
+  padding: 7px;
+  border: 0;
+  background: transparent;
+}
+
+.habit-tick--disc.is-done .habit-tick__btn {
+  background: transparent;
+}
+
+.habit-tick--disc .habit-disc {
+  width: 32px;
+  height: 32px;
+}
+
+.habit-tick--disc .habit-step__name {
+  display: none;
+}
+
+.habit-card__head--own {
+  gap: var(--space-xs);
+  margin-left: -7px;
+}
+
+.habit-card__today {
+  flex: none;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.habit-sheet__days .choice {
+  gap: 6px;
+}
+
+.habit-sheet__days .chip {
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+/* At phone width each label sits above its control, so the day chips and icons get the whole row. */
+@media (max-width: 600px) {
+  .habit-sheet .prop {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+  }
+
+  .habit-sheet .prop__label {
+    padding-top: 0;
+  }
+
+  .habit-sheet .habit-days {
+    justify-content: space-between;
+  }
+
+  .habit-sheet .habit-day {
+    width: 40px;
+    height: 40px;
+  }
+
+  .habit-sheet .habit-icons {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    justify-items: start;
+    gap: 8px;
+  }
+
+  .habit-sheet .habit-icon {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 600px) {
+  .habit-sheet .habit-target__n {
+    width: 4.5em;
+  }
+
+  .habit-sheet .habit-icons {
+    justify-items: center;
+  }
+}
+
+/* The count and its unit read as two small fields side by side. */
+.habit-target .prop__input {
+  min-height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.habit-target .habit-target__n {
+  width: 5.5em;
+}

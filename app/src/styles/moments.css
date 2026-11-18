@@ -1,0 +1,229 @@
+/* ==========================================================================
+   Night F1: the evening hands the day back, and a morning hello in a voice
+   (docs/notes/affection-2026-11.md, moments 1 and 4; docs/notes/night-f1.md).
+   Home's evening headline and voiced briefing card, the Today block's
+   evening (mood and the line first, habits folded), and the "Kept" toast's
+   quote. Tokens only; every movement has a reduced-motion cut.
+   ========================================================================== */
+
+/* ---------- Home: the day handed back ---------- */
+
+/* The day's sentence settles in, a breath after the greeting. */
+.headline__day {
+  display: inline;
+  color: var(--ink);
+  animation: moment-settle var(--dur-slow) var(--ease-out) both;
+}
+
+@keyframes moment-settle {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+/* ---------- Home: the briefing in its own voice ---------- */
+
+.briefing--voice {
+  align-items: start;
+}
+
+.briefing--voice .tile {
+  margin-top: var(--space-3xs);
+}
+
+.briefing__eyebrow {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.briefing__voice {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  line-height: 1.35;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.briefing--voice .briefing__chevron {
+  align-self: center;
+}
+
+@media (min-width: 640px) {
+  .briefing__voice {
+    font-size: var(--text-title);
+    line-height: 1.3;
+  }
+}
+
+/* ---------- Today, in the evening ---------- */
+
+/* The owner's line, once kept, takes the title's place. */
+.today__title.is-kept {
+  animation: moment-settle var(--dur-slow) var(--ease-out) both;
+}
+
+/* The day in a sentence under the question: who, then where. */
+.today__day {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-style: italic;
+  color: var(--ink-2);
+}
+
+.today__feel {
+  margin-top: var(--space-2xs);
+}
+
+.today__line {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-2xs);
+}
+
+/* One line, in the display face: the owner's own words read like a diary, the run's wait in grey. */
+.journal__text--line {
+  min-height: 52px;
+  padding-bottom: var(--space-2xs);
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.journal__text--line::placeholder {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.today__line .journal__foot {
+  min-height: 22px;
+}
+
+/* Habits, folded into one line that opens. Their own head (and its count) stays inside. */
+.today--evening .today__side > .today-habits {
+  display: none;
+}
+
+.today-fold {
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--sunken) 70%, transparent);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.today-fold[open] {
+  background: var(--sunken);
+}
+
+.today-fold__sum {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  list-style: none;
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.today-fold__sum::-webkit-details-marker {
+  display: none;
+}
+
+.today-fold__sum:active {
+  transform: scale(0.99);
+}
+
+.today-fold__sum:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.today-fold__line {
+  overflow: hidden;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.today-fold__chev {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+
+.today-fold__chev svg {
+  width: 16px;
+  height: 16px;
+}
+
+.today-fold[open] .today-fold__chev {
+  transform: rotate(90deg);
+}
+
+.today-fold__body {
+  padding: 0 var(--space-sm) var(--space-sm);
+}
+
+.today-fold[open] .today-fold__body {
+  animation: moment-unfold var(--dur-base) var(--ease-out) both;
+}
+
+/* No tallies in the evening: the fold's head and each habit's "0 of 3 this week" stay out. */
+.today-fold .today-habits__head,
+.today-fold .habit-tick__aside {
+  display: none;
+}
+
+@keyframes moment-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* On Home's wide page the evening's right column is the day in words, art and habits. */
+@media (min-width: 1024px) {
+  .today--home.today--evening .today__side {
+    gap: var(--space-md);
+  }
+}
+
+/* ---------- The "Kept" toast: the owner's own words ---------- */
+
+.toast--quote {
+  border-radius: var(--radius-md);
+  text-wrap: pretty;
+}
+
+.toast__quote {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .headline__day,
+  .today__title.is-kept,
+  .today-fold[open] .today-fold__body {
+    animation: none;
+  }
+  .today-fold__sum,
+  .today-fold__chev {
+    transition: none;
+  }
+}

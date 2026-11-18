@@ -1,0 +1,225 @@
+/* The wardrobe editor. Quiet chrome; the character carries the colour. */
+
+.kit-wardrobe {
+  display: grid;
+  gap: var(--space-lg, 24px);
+  font-family: var(--font-ui, system-ui, sans-serif);
+  color: var(--ink);
+}
+
+.kit-wr-stage {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm, 12px);
+  padding: var(--space-md, 16px) 0 0;
+}
+
+.kit-wr-shuffle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+  min-height: 44px;
+  padding: 0 var(--space-md, 16px);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-ui, 15px);
+  cursor: pointer;
+}
+
+.kit-wr-shuffle svg,
+.kit-wr-lock svg {
+  width: 20px;
+  height: 20px;
+}
+
+.kit-wr-groups {
+  display: grid;
+  gap: var(--space-lg, 24px);
+}
+
+.kit-wr-section {
+  display: grid;
+  gap: var(--space-xs, 8px);
+}
+
+.kit-wr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+}
+
+.kit-wr-head h3 {
+  margin: 0;
+  font-size: var(--text-small, 14px);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.kit-wr-hint {
+  margin: 0;
+  font-size: var(--text-meta, 12px);
+  color: var(--ink-3);
+}
+
+.kit-wr-lock {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.kit-wr-lock[aria-pressed="false"] .kit-lock-shackle {
+  transform: translate(3px, -1.5px);
+}
+
+.kit-wr-lock[aria-pressed="true"] {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.kit-wr-radios,
+.kit-wr-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs, 8px);
+}
+
+.kit-wardrobe button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.kit-wardrobe button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Species: a segmented row. */
+.kit-wr-seg {
+  flex-wrap: nowrap;
+  gap: 0;
+  padding: var(--space-3xs, 2px);
+  border-radius: calc(var(--radius-md, 18px) + 2px);
+  background: var(--sunken);
+}
+
+.kit-wr-seg button {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-height: 56px;
+  padding: var(--space-2xs, 4px) var(--space-3xs, 2px);
+  border: 0;
+  border-radius: var(--radius-md, 18px);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-meta, 12px);
+  cursor: pointer;
+}
+
+.kit-wr-seg button svg {
+  width: 28px;
+  height: 28px;
+}
+
+.kit-wardrobe button .kit-avatar {
+  overflow: hidden;
+}
+
+.kit-wr-seg button[aria-checked="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+/* Colour swatches. */
+.kit-wr-swatches button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.kit-wr-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sw);
+  box-shadow: inset 0 0 0 1.5px #22262e;
+}
+
+/* Swatches show the colour the character wears in this theme (palette.ts darkFill). */
+@media (prefers-color-scheme: dark) {
+  .kit-wr-swatch {
+    background: var(--sw-dark, var(--sw));
+  }
+}
+
+.kit-wr-swatches button[aria-checked="true"] {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* Mini-preview grids: eyes, mouths, outfits, accessories. */
+.kit-wr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: var(--space-xs, 8px);
+}
+
+.kit-wr-grid button {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  aspect-ratio: 8 / 5;
+  padding: var(--space-2xs, 4px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 12px);
+  background: var(--surface);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.kit-wr-tray button {
+  aspect-ratio: 1;
+}
+
+.kit-wr-grid button svg {
+  display: block;
+  max-width: 100%;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.kit-wr-grid button[aria-checked="true"],
+.kit-wr-tray button[aria-pressed="true"] {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+  background: var(--sunken);
+}
+
+/* Crops that would catch the edge of a neighbouring part draw without it. */
+.kit-wr-mouths .kit-eyes,
+.kit-wr-outfits .kit-head {
+  display: none;
+}

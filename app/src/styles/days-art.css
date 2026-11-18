@@ -1,0 +1,778 @@
+/* Artwork, day maps and Settings → Maps and artwork (components/art-img.ts, day-map.ts, maps-art-settings.ts). */
+
+/* ---------- Art ---------- */
+
+.art-img {
+  position: relative;
+  display: block;
+  flex: none;
+  overflow: hidden;
+  aspect-ratio: var(--art-ratio, 0.6667);
+  border-radius: var(--radius-xs);
+  /* The image's own colour while it loads, softened toward the page so a red poster isn't a red brick. */
+  background: color-mix(in oklch, var(--art-tone, var(--sunken-strong)) 62%, var(--sunken));
+  isolation: isolate;
+}
+
+/* A hairline, so a white cover still has an edge on a white card. */
+.art-img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px oklch(0.2 0.02 264 / 0.08);
+  pointer-events: none;
+}
+
+.art-img__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.art-img--in .art-img__img {
+  opacity: 1;
+}
+
+.art-img--loading {
+  background-image: linear-gradient(100deg, transparent 30%, oklch(1 0 0 / 0.14) 50%, transparent 70%);
+  background-size: 250% 100%;
+  animation: art-img-wait calc(var(--dur-pulse) * 1.125) var(--ease-in-out) infinite;
+}
+
+@keyframes art-img-wait {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+.art-img--none {
+  display: grid;
+  place-items: center;
+  background: var(--sunken);
+  color: var(--ink-3);
+}
+
+.art-img__icon {
+  display: grid;
+  width: 38%;
+  max-width: 40px;
+  aspect-ratio: 1;
+  opacity: 0.7;
+}
+
+.art-img__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* A made cover, for something with no art: its own fill, the kind's mark, and the title once there's room. */
+.art-img--made {
+  --cover-dark: var(--ink);
+  --cover-light: var(--on-ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10% 9% 11%;
+  background:
+    radial-gradient(120% 70% at 20% 0%, oklch(1 0 0 / 0.16), transparent 60%),
+    linear-gradient(180deg, transparent 55%, oklch(0 0 0 / 0.08)),
+    var(--art-fill);
+  container-type: inline-size;
+}
+
+.art-img--ink-dark {
+  color: var(--cover-dark);
+}
+
+.art-img--ink-light {
+  color: var(--cover-light);
+}
+
+/* The two text tokens swap in dark, so "dark text" is --on-ink there. */
+@media (prefers-color-scheme: dark) {
+  .art-img--made {
+    --cover-dark: var(--on-ink);
+    --cover-light: var(--ink);
+  }
+}
+
+.art-img--made .art-img__icon {
+  width: 22%;
+  min-width: 14px;
+  opacity: 0.8;
+}
+
+/* Under 64 px across, the mark sits in the middle and the title (beside it anyway) goes. */
+.art-img__words {
+  display: none;
+}
+
+@container (max-width: 63.98px) {
+  .art-img--made .art-img__icon {
+    width: 44%;
+    margin: auto;
+  }
+}
+
+@container (min-width: 64px) {
+  .art-img__words {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35em;
+    min-width: 0;
+  }
+}
+
+.art-img__title {
+  display: -webkit-box;
+  overflow: hidden;
+  font: var(--weight-semibold) clamp(var(--text-meta), 13cqi, var(--text-heading)) / 1.08 var(--font-display);
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.art-img__by {
+  overflow: hidden;
+  font: var(--weight-medium) clamp(var(--text-meta), 8cqi, var(--text-ui)) / 1.2 var(--font-ui);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+
+/* ---------- Covers you can open: a small lift on hover, a settle on press ---------- */
+
+.cover-lift .art-img,
+.cover-lift .art,
+a.day-link > .art,
+a.album__link > .art {
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .cover-lift:hover .art-img,
+  .cover-lift:hover .art,
+  a.day-link:hover > .art,
+  a.album__link:hover > .art {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-float);
+  }
+}
+
+.cover-lift:active .art-img,
+.cover-lift:active .art,
+a.day-link:active > .art,
+a.album__link:active > .art {
+  transform: translateY(0) scale(0.97);
+  transition-duration: var(--dur-instant);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-lift .art-img,
+  .cover-lift .art,
+  a.day-link > .art,
+  a.album__link > .art {
+    transition: none;
+  }
+  .cover-lift:hover .art-img,
+  .cover-lift:hover .art,
+  .cover-lift:active .art-img,
+  .cover-lift:active .art,
+  a.day-link:hover > .art,
+  a.day-link:active > .art,
+  a.album__link:hover > .art,
+  a.album__link:active > .art {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .art-img__img {
+    transition: none;
+  }
+  .art-img--loading {
+    animation: none;
+  }
+}
+
+/* ---------- The day's map ---------- */
+
+.daymap {
+  position: relative;
+  margin: 0;
+}
+
+.daymap[hidden] {
+  display: none;
+}
+
+.daymap__frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 600 / 320;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  isolation: isolate;
+}
+
+.daymap__frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px oklch(0.2 0.02 264 / 0.07);
+  pointer-events: none;
+}
+
+.daymap__open {
+  padding: 0;
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.daymap__open:active {
+  transform: scale(0.985);
+}
+
+.daymap__open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.daymap__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.daymap--in .daymap__img {
+  animation: daymap-in var(--dur-slow) var(--ease-out-expo);
+}
+
+@keyframes daymap-in {
+  from {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+}
+
+/* A small round button in the corner says "this opens". */
+.daymap__expand {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--surface) 88%, transparent);
+  color: var(--ink);
+  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.12);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .daymap__open:hover .daymap__expand {
+    transform: scale(1.08);
+  }
+}
+
+/* The map's credit, small, under the map: on the map it covered a stop in narrow columns. */
+.daymap__credit {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  line-height: 16px;
+  text-align: right;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The sketch: where a map goes, before there is one. */
+.daymap__sketch {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.daymap__sketch-streets {
+  stroke: color-mix(in oklch, var(--ink) 7%, var(--sunken));
+}
+
+.daymap__sketch-water {
+  fill: color-mix(in oklch, var(--accent) 7%, var(--sunken));
+}
+
+.daymap__sketch-route {
+  stroke: color-mix(in oklch, var(--accent) 45%, var(--sunken));
+}
+
+.daymap__sketch-stops circle {
+  fill: color-mix(in oklch, var(--accent) 50%, var(--sunken));
+  stroke: var(--surface);
+  stroke-width: 5;
+}
+
+.daymap__frame--loading {
+  aspect-ratio: 600 / 320;
+}
+
+.daymap__frame--loading .daymap__sketch {
+  opacity: 0.55;
+  animation: daymap-wait calc(var(--dur-pulse) * 1.125) var(--ease-in-out) infinite alternate;
+}
+
+@keyframes daymap-wait {
+  to {
+    opacity: 0.95;
+  }
+}
+
+/* No key, a refused key, or no map right now: the sketch with a few words over it. */
+.daymap__frame--invite {
+  display: grid;
+  align-items: end;
+}
+
+.daymap__frame--invite .daymap__sketch {
+  opacity: 0.9;
+}
+
+.daymap__invite {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  margin: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--surface) 94%, transparent);
+  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.06), 0 6px 18px -8px oklch(0.2 0.02 264 / 0.18);
+}
+
+.daymap__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.daymap__sub {
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+.daymap__cta {
+  margin-top: var(--space-xs);
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.daymap__frame--warn .daymap__invite {
+  background: color-mix(in oklch, var(--warn-wash) 94%, transparent);
+}
+
+.daymap__frame--quiet .daymap__sketch {
+  opacity: 0.5;
+}
+
+.daymap__frame--quiet .daymap__cta {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+@media (min-width: 720px) {
+  .daymap__invite {
+    max-width: 360px;
+    margin: var(--space-md);
+  }
+}
+
+/* Full screen: the photo viewer's frame (styles/attachments.css), with the map inside. */
+.daymap__stage {
+  touch-action: pinch-zoom;
+}
+
+.daymap__full {
+  width: auto;
+  max-width: min(100%, 1000px);
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  background: oklch(0.25 0.012 264);
+  filter: blur(0.6px);
+  transition: filter var(--dur-base) var(--ease-out);
+}
+
+.daymap__full--sharp {
+  filter: none;
+}
+
+.daymap__viewer-credit {
+  position: absolute;
+  right: calc(var(--safe-right) + 16px);
+  bottom: calc(var(--safe-bottom) + 6px);
+  font-size: var(--text-meta);
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daymap--in .daymap__img,
+  .daymap__frame--loading .daymap__sketch {
+    animation: none;
+  }
+  .daymap__open,
+  .daymap__expand,
+  .daymap__full {
+    transition: none;
+  }
+}
+
+/* ---------- Settings → Maps and artwork ---------- */
+
+.ma {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.ma-card {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.ma-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.ma-card__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.ma-card__sub {
+  margin-top: 2px;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+.ma-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ma-optional {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  vertical-align: 1px;
+}
+
+/* The sample map: what your maps look like with this key, in your theme. */
+.ma-sample {
+  position: relative;
+  aspect-ratio: 600 / 320;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.ma-sample img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ma-sample--new img {
+  animation: daymap-in var(--dur-slow) var(--ease-out-expo);
+}
+
+.ma-sample__tag {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklch, var(--surface) 90%, transparent);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+/* Status: a dot and a few words. */
+.ma-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.ma-status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--good);
+}
+
+.ma-status--warn::before {
+  background: var(--warn);
+}
+
+.ma-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-sm);
+}
+
+.ma-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+/* Which map service: two choices, side by side. */
+.ma-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+}
+
+/* Open maps in: above the cards that need the server, with the same gap. */
+.ma-open-in {
+  margin-bottom: var(--space-lg);
+}
+
+.ma-switch__item {
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  padding: 0 var(--space-sm);
+  text-align: center;
+  border-radius: var(--radius-pill);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.ma-switch__item[aria-checked="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.1);
+}
+
+.ma-switch__item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.ma-steps {
+  display: grid;
+  gap: var(--space-xs);
+  counter-reset: ma-step;
+}
+
+.ma-step {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: baseline;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+.ma-step::before {
+  counter-increment: ma-step;
+  content: counter(ma-step);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  transform: translateY(-1px);
+}
+
+.ma-step a {
+  color: var(--accent-ink);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.ma-form {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.ma-field {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.ma-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-body);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.01em;
+}
+
+.ma-input::placeholder {
+  font-family: var(--font-ui);
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+.ma-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent);
+}
+
+.ma-input[aria-invalid="true"] {
+  border-color: var(--bad);
+}
+
+.ma-field .btn {
+  height: 44px;
+}
+
+.ma-error {
+  font-size: var(--text-small);
+  color: var(--bad);
+}
+
+.ma-error:empty {
+  display: none;
+}
+
+.ma-poster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.ma-poster .art-img {
+  width: 56px;
+}
+
+.ma-note {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.ma-note svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--ink-3);
+}
+
+.ma-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ma-sources span {
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ma-sample--new img {
+    animation: none;
+  }
+}
+
+.ma-rule {
+  height: 1px;
+  margin: var(--space-2xs) 0;
+  border: 0;
+  background: var(--line);
+}
+
+.ma-count {
+  flex: none;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Watch & read: a cover on every row ---------- */
+
+.reading-art {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+}
+
+/* One shape for every row, so the list keeps its rhythm: a wide game header is cropped to its centre. */
+.reading-art .art-img {
+  width: 40px;
+  height: 60px;
+  aspect-ratio: auto;
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-card);
+}

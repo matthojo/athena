@@ -1,0 +1,213 @@
+/* Import your Amazon data (components/amazon-import.ts). Built on the
+   YouTube and Netflix imports' shared styles (picker, meter, end marks,
+   busiest months); what's new here is the preview's tiles, the recent
+   things you bought, and the summary's list. */
+
+/* ----- Preview: the headline ----- */
+
+.amzimp-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.amzimp-hero__mark {
+  flex: none;
+  animation: amzimp-settle var(--dur-slow) var(--ease-out-expo) both;
+}
+
+.amzimp-hero .ytimp-found {
+  min-width: 0;
+}
+
+/* ----- Preview: one tile per kind ----- */
+
+.amzimp-kinds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.amzimp-kind {
+  --tint: var(--accent);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  animation: amzimp-rise var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger));
+}
+
+.amzimp-kind--orders {
+  --tint: var(--ctx-orange);
+}
+.amzimp-kind--returned {
+  --tint: var(--ctx-pink);
+}
+.amzimp-kind--digital {
+  --tint: var(--ctx-violet);
+}
+.amzimp-kind--kindle {
+  --tint: var(--ctx-teal);
+}
+.amzimp-kind--audible {
+  --tint: var(--ctx-amber);
+}
+.amzimp-kind--prime {
+  --tint: var(--ctx-blue);
+}
+
+.amzimp-kind__icon {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  color: var(--tint);
+  background: color-mix(in srgb, var(--tint) 14%, transparent);
+}
+
+.amzimp-kind__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.amzimp-kind__n {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.amzimp-kind__what {
+  min-width: 0;
+  font-size: var(--text-meta);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.amzimp-kind__what small {
+  display: block;
+  font-size: inherit;
+  color: var(--ink-3);
+}
+
+/* ----- Preview: a few things from the file, as proof it's yours ----- */
+
+.amzimp-recent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.amzimp-recent__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.amzimp-recent__item {
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+  background: var(--sunken);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: amzimp-rise var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--dur-fast) + var(--dur-stagger) + var(--i, 0) * var(--dur-stagger));
+}
+
+.amzimp-recent__item--back {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--ink-3) 60%, transparent);
+}
+
+.amzimp-small {
+  font-size: var(--text-meta);
+  line-height: var(--leading-body);
+  color: var(--ink-3);
+  text-wrap: pretty;
+}
+
+/* ----- Summary ----- */
+
+.amzimp-summary {
+  animation: amzimp-rise var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: var(--dur-instant);
+}
+
+.amzimp-summary .row__title {
+  font-variant-numeric: tabular-nums;
+}
+
+.amzimp-undo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+}
+
+.amzimp-undo svg {
+  width: 16px;
+  height: 16px;
+}
+
+.amzimp-sample {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  align-self: center;
+}
+
+.amzimp-sample svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Wide sheets: tiles three across, and the summary sits a little narrower. */
+@media (min-width: 760px) {
+  .amzimp-kinds {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@keyframes amzimp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes amzimp-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.92) rotate(-4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .amzimp-hero__mark,
+  .amzimp-kind,
+  .amzimp-recent__item,
+  .amzimp-summary {
+    animation: none;
+  }
+}

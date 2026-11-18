@@ -1,0 +1,9 @@
+{
+  "timelineObjects": [
+    { "activitySegment": { "startLocation": { "latitudeE7": 515560000, "longitudeE7": -1470000 }, "duration": { "startTimestamp": "2019-07-06T09:00:00Z", "endTimestamp": "2019-07-06T09:30:00Z" }, "activityType": "WALKING" } },
+    { "placeVisit": { "location": { "latitudeE7": 515608000, "longitudeE7": -1636000, "placeId": "ChIJheath00000000001", "address": "Hampstead Heath, London NW3", "name": "Hampstead Heath", "semanticType": "TYPE_SEARCHED_ADDRESS", "locationConfidence": 72.1 },
+        "duration": { "startTimestampMs": "1562403600000", "endTimestampMs": "1562410800000" }, "placeConfidence": "HIGH_CONFIDENCE", "childVisits": [] } },
+    { "placeVisit": { "location": { "latitudeE7": 515560000, "longitudeE7": -1470000, "placeId": "ChIJhome0000000000001", "address": "1 Example Road", "semanticType": "TYPE_HOME" },
+        "duration": { "startTimestamp": "2019-07-06T18:00:00.000Z", "endTimestamp": "2019-07-06T23:00:00.000Z" } } }
+  ]
+}

@@ -1,0 +1,451 @@
+/* Settings → Ask → Skills (components/skills-page.ts), and Ask's skill bits (views/ask.ts): the menu, "/" and the "Used" line. */
+
+.settings--skills .settings__section {
+  max-width: 720px;
+}
+
+.skills__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.skills__label {
+  margin: var(--space-sm) var(--space-2xs) 0;
+}
+
+.skill-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-right: var(--space-sm);
+}
+
+.skill-row + .skill-row {
+  border-top: 1px solid var(--line);
+}
+
+.skill-row__open {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.skill-row__desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--ink-2);
+}
+
+.skill-row__switch {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.skills__rule {
+  display: flex;
+  gap: var(--space-xs);
+  margin: var(--space-md) var(--space-2xs) 0;
+  font-size: var(--text-meta);
+  line-height: var(--leading-body);
+  color: var(--ink-3);
+}
+
+.skills__rule svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+}
+
+.skills__empty .empty__sub {
+  max-width: 34ch;
+}
+
+/* The add sheet, the forms and the preview. */
+
+.skills-add,
+.skills-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.skills-form__label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.skills-form__label + .form__hint {
+  margin-top: -4px;
+}
+
+.skills-form__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.skills-form__caption {
+  margin: var(--space-xs) var(--space-2xs) 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.skills-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  padding-top: var(--space-xs);
+}
+
+.skills-add .skills-form__actions,
+.sheet .skills-form__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.skill-editor__body {
+  min-height: 260px;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  tab-size: 2;
+}
+
+.skill-editor__meta {
+  margin: 0 var(--space-2xs) var(--space-sm);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.skill-editor__downloads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.skills__spacer {
+  flex: 1;
+}
+
+.skills__delete {
+  color: var(--bad);
+}
+
+.skill-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  cursor: pointer;
+}
+
+.skill-switch > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.skill-switch__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.skills-draft-note,
+.skills-error {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.skills-draft-note {
+  background: var(--accent-wash);
+  color: var(--ink);
+}
+
+.skills-error {
+  background: var(--warn-wash);
+  color: var(--ink);
+}
+
+.skills-draft-note svg,
+.skills-error svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.skills-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl) 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.skill-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.skill-preview__source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+.skill-preview__source svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.skill-preview__meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px var(--space-sm);
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  font-size: var(--text-small);
+}
+
+.skill-preview__meta dt {
+  color: var(--ink-3);
+}
+
+.skill-preview__meta dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.skill-pre {
+  margin: 0;
+  padding: var(--space-sm);
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font: 400 var(--text-meta) / var(--leading-body) ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.skill-pre--body {
+  max-height: 44vh;
+}
+
+.skill-files {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: var(--weight-regular);
+}
+
+.skill-file {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.skill-file summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  padding: 0 var(--space-xs) 0 var(--space-sm);
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--text-small);
+  color: var(--ink);
+}
+
+.skill-file summary::-webkit-details-marker {
+  display: none;
+}
+
+.skill-file summary svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+}
+
+.skill-file[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.skill-file .skill-pre {
+  border: 0;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.skill-file__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: var(--text-meta);
+}
+
+.skill-file__size {
+  flex: none;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.skill-skipped {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  list-style: none;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.skill-skipped li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-sm);
+  font-weight: var(--weight-regular);
+}
+
+.skill-skipped .skill-file__name {
+  flex: 0 1 auto;
+  color: var(--ink-2);
+  text-decoration: line-through;
+  text-decoration-color: var(--line-strong);
+}
+
+.skill-skipped__why {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+@media (min-width: 720px) {
+  .skill-editor__body {
+    min-height: 340px;
+  }
+}
+
+/* ---------- Ask ---------- */
+
+.ask__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* The menu stays reachable on a fresh chat, where the head itself is hidden. */
+.ask--fresh .ask__menu-btn {
+  visibility: visible;
+}
+
+.menu.ask-menu[popover] {
+  width: 220px;
+}
+
+/* "Used: Meeting prep", quiet, under an answer that followed a skill. */
+.answer__used {
+  margin: 6px 0 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.answer__used a {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 2px;
+}
+
+.answer__used a:hover {
+  color: var(--accent-ink);
+  text-decoration-color: currentColor;
+}
+
+.ask-skill {
+  background: var(--accent-wash);
+  border-color: transparent;
+}
+
+/* The fields themselves read as text, not as their label. */
+.skills-form__label .field {
+  font-family: var(--font-ui);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+  line-height: var(--leading-body);
+}
+
+.skills-form__label textarea.field {
+  resize: vertical;
+}
+
+.skills-form__label .skill-editor__body {
+  font-size: var(--text-small);
+}
+
+/* A Team assistant's own skill: tagged with the assistant, in place of the switch. */
+.skill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.skill-owned {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}

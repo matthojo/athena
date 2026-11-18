@@ -1,0 +1,126 @@
+/* Import your viewing history (components/netflix-import.ts). Shares the
+   YouTube and Goodreads imports' styles; only the busiest months live here. */
+
+.nfimp-months {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.nfimp-months__list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  list-style: none;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* Each row lines up on the shared grid: month, bar, count. */
+.nfimp-month {
+  display: contents;
+}
+
+.nfimp-month__name {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.nfimp-month__track {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.nfimp-month__bar {
+  display: block;
+  width: var(--w);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--chart-1);
+  transform-origin: left;
+  animation: nfimp-grow var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--i) * var(--dur-stagger));
+}
+
+
+.nfimp-month__n {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+}
+
+@keyframes nfimp-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nfimp-month__bar {
+    animation: none;
+  }
+}
+
+.nfimp-most {
+  margin-top: calc(-1 * var(--space-xs));
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/* Which way round the dates go, asked in dates. */
+.nfimp-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  margin-top: var(--space-2xs);
+}
+
+.nfimp-dates__q {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.nfimp-dates__opts {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.nfimp-choice {
+  min-height: 44px;
+  padding-inline: var(--space-md);
+}
+
+.nfimp-choice[aria-checked="true"] {
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: none;
+}
+
+/* The quiet actions under the main one, side by side. */
+.nfimp-links {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-lg);
+}
+
+.nfimp-links .acct-link {
+  min-height: 44px;
+}
+
+/* "Added 1,510 episodes and 93 films" breaks into even lines, not a stranded word. */
+.nfimp .ytimp-end__title {
+  text-wrap: balance;
+}

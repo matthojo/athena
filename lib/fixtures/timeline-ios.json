@@ -1,0 +1,9 @@
+[
+  { "endTime": "2026-11-04T12:30:00.000+00:00", "startTime": "2026-11-04T08:12:00.000+00:00",
+    "visit": { "hierarchyLevel": "0", "topCandidate": { "probability": "0.85", "semanticType": "Work", "placeID": "ChIJwork0000000000001", "placeLocation": "geo:51.513600,-0.136600" }, "probability": "0.9" } },
+  { "endTime": "2026-11-04T12:50:00.000+00:00", "startTime": "2026-11-04T12:30:00.000+00:00",
+    "activity": { "probability": "0.9", "end": "geo:51.5124,-0.127", "topCandidate": { "type": "walking", "probability": "0.9" }, "distanceMeters": "900", "start": "geo:51.5136,-0.1366" } },
+  { "endTime": "2026-11-04T13:55:00.000+00:00", "startTime": "2026-11-04T12:50:00.000+00:00",
+    "visit": { "hierarchyLevel": "0", "topCandidate": { "probability": "0.6", "semanticType": "Unknown", "placeID": "ChIJdishoom0000000001", "placeLocation": "geo:51.512400,-0.127000" }, "probability": "0.7" } },
+  { "startTime": "2026-11-04T14:00:00.000+00:00", "endTime": "2026-11-04T16:00:00.000+00:00", "timelinePath": [{ "point": "geo:51.51,-0.12", "durationMinutesOffsetFromStartTime": "4" }] }
+]

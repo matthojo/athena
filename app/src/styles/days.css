@@ -1,0 +1,4198 @@
+/* =========================================================================
+   Days: the feed, a day, the calendar, recaps and search.
+   Calm surfaces; the colour comes from artwork, the mood step and the
+   calendar's heat (one cobalt ramp). Mobile first; two columns from 1024px.
+   ========================================================================= */
+
+:root {
+  /* Heat: five fixed steps of the accent over the surface. */
+  /* Heat: soft tints from the neutral surface; the fullest days are clearly
+     there but never a saturated block, so artwork stays the colour. */
+  --heat-0: var(--sunken);
+  --heat-1: color-mix(in oklch, var(--accent) 6%, var(--sunken));
+  --heat-2: color-mix(in oklch, var(--accent) 12%, var(--sunken));
+  --heat-3: color-mix(in oklch, var(--accent) 20%, var(--sunken));
+  --heat-4: color-mix(in oklch, var(--accent) 30%, var(--sunken));
+  --heat-ink-4: var(--ink);
+
+  /* Mood: how full the glyph is, in the accent. */
+  --mood-ink: var(--accent);
+  --mood-ring: var(--line-strong);
+
+  --day-rail: 340px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --heat-0: var(--sunken);
+    --heat-1: color-mix(in oklch, var(--accent) 9%, var(--sunken));
+    --heat-2: color-mix(in oklch, var(--accent) 17%, var(--sunken));
+    --heat-3: color-mix(in oklch, var(--accent) 27%, var(--sunken));
+    --heat-4: color-mix(in oklch, var(--accent) 38%, var(--sunken));
+    --heat-ink-4: var(--ink);
+  }
+}
+
+.days {
+  gap: var(--space-lg);
+  /* Room under the last thing, so the floating tab bar never covers it. */
+  padding-bottom: calc(var(--space-2xl) + var(--safe-bottom));
+}
+
+@media (min-width: 1024px) {
+  .days {
+    max-width: var(--page-wide);
+  }
+  .days--search {
+    max-width: var(--page-narrow);
+  }
+}
+
+/* ---------- Header: Feed · Calendar, search ---------- */
+
+.days__title-row {
+  align-items: center;
+}
+
+.days-tabs {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+}
+
+.days-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.days-tab::after {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
+}
+
+.days-tab svg {
+  width: 16px;
+  height: 16px;
+}
+
+.days-tab[aria-current="page"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+}
+
+@media (max-width: 420px) {
+  .days-tab span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .days-tab {
+    padding: 0 12px;
+  }
+}
+
+.days-search-btn[aria-current="page"] {
+  background: var(--ink);
+  color: var(--on-ink);
+  border-color: var(--ink);
+}
+
+/* ---------- Mood glyph: a small level meter ---------- */
+
+.mood-glyph {
+  --bar: 2px;
+  --gap: 1.5px;
+  --tall: 12px;
+  --on: var(--mood-ink);
+  --off: var(--line-strong);
+  flex: none;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: var(--gap);
+  height: var(--tall);
+}
+
+.mood-glyph__bar {
+  display: block;
+  width: var(--bar);
+  border-radius: var(--radius-3xs);
+  background: var(--off);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.mood-glyph__bar[data-i="1"] { height: 36%; }
+.mood-glyph__bar[data-i="2"] { height: 52%; }
+.mood-glyph__bar[data-i="3"] { height: 68%; }
+.mood-glyph__bar[data-i="4"] { height: 84%; }
+.mood-glyph__bar[data-i="5"] { height: 100%; }
+
+.mood-glyph[data-mood="1"] .mood-glyph__bar[data-i="1"],
+.mood-glyph[data-mood="2"] .mood-glyph__bar:is([data-i="1"], [data-i="2"]),
+.mood-glyph[data-mood="3"] .mood-glyph__bar:is([data-i="1"], [data-i="2"], [data-i="3"]),
+.mood-glyph[data-mood="4"] .mood-glyph__bar:not([data-i="5"]),
+.mood-glyph[data-mood="5"] .mood-glyph__bar {
+  background: var(--on);
+}
+
+.mood-glyph--md {
+  --bar: 4px;
+  --gap: 2.5px;
+  --tall: 22px;
+  --on: var(--ink-3);
+}
+
+/* Moons and Faces: one drawn circle, as wide as it is tall. */
+.mood-glyph:is([data-style="moons"], [data-style="faces"]) {
+  --stroke: 2.4;
+  width: var(--tall);
+  height: var(--tall);
+  min-width: 10px;
+  min-height: 10px;
+}
+
+.mood-glyph__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.mood-glyph__ring {
+  fill: none;
+  stroke: var(--on);
+  stroke-width: var(--stroke);
+}
+
+.mood-glyph__fill {
+  fill: var(--on);
+}
+
+.mood-glyph__eye {
+  fill: var(--on);
+}
+
+.mood-glyph__mouth {
+  fill: none;
+  stroke: var(--on);
+  stroke-width: var(--stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mood-glyph--none {
+  --on: var(--off);
+}
+
+.mood-glyph--md:is([data-style="moons"], [data-style="faces"]) {
+  --stroke: 1.7;
+  --tall: 26px;
+}
+
+.mood-picker--compact .mood-glyph--md:is([data-style="moons"], [data-style="faces"]) {
+  --tall: 24px;
+}
+
+/* An unchosen moon shows its level softly; the chosen one in full. */
+.mood-step:not([aria-checked="true"]) .mood-glyph[data-style="moons"] .mood-glyph__fill {
+  opacity: 0.45;
+}
+
+/* ---------- Mood picker: five steps, one tap ---------- */
+
+.mood-picker {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mood-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 64px;
+  padding: var(--space-xs) 0 6px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-3);
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+
+.mood-step:active {
+  transform: scale(0.94);
+}
+
+.mood-step__word {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.mood-step {
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.mood-step[aria-checked="true"] {
+  background: var(--ink);
+  color: var(--on-ink);
+  box-shadow: none;
+}
+
+.mood-step[aria-checked="true"] .mood-glyph {
+  --on: var(--on-ink);
+  --off: color-mix(in oklch, var(--on-ink) 30%, var(--ink));
+}
+
+@media (hover: hover) {
+  .mood-step:not([aria-checked="true"]):hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+  .mood-step:not([aria-checked="true"]):hover .mood-glyph {
+    --on: var(--ink-2);
+  }
+}
+
+.mood-picker--compact .mood-step {
+  min-height: 58px;
+}
+
+.mood-picker--compact .mood-glyph--md {
+  --tall: 18px;
+}
+
+/* A row of glyphs, one per day. */
+.mood-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mood-row--labelled {
+  gap: var(--space-xs);
+}
+
+.mood-row__day {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mood-row--labelled .mood-glyph {
+  --bar: 3px;
+  --tall: 18px;
+}
+
+.mood-row__dow {
+  font-size: var(--text-micro);
+  color: var(--ink-3);
+  font-weight: var(--weight-medium);
+}
+
+/* ---------- Artwork ---------- */
+
+.art {
+  --tone: var(--sunken-strong);
+  position: relative;
+  flex: none;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--tone);
+  box-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.06);
+}
+
+.art__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.art.is-loaded .art__img {
+  opacity: 1;
+}
+
+.art::after {
+  /* A hairline on top of the image so light covers keep an edge. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.07);
+  pointer-events: none;
+}
+
+.art--none {
+  display: grid;
+  place-items: center;
+  background: var(--sunken);
+  color: var(--ink-3);
+}
+
+.art__initials {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
+}
+
+/* Only whole tiles: the ones that don't fit wrap out of sight, so nothing looks cut off. */
+.art-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  align-content: flex-start;
+  gap: 4px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.art-strip__more {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  padding: 0 8px;
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Today: at the top of Home and the feed ---------- */
+
+.days-feed-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.today {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* A haze in one corner whose colours follow the time of day: peach and
+   apricot in the morning, warm sand and pale sky by day, lilac and dusk
+   indigo in the evening. Complementary to the page's blue and mint aurora,
+   never a repeat of it. The colours are registered so the gradient
+   cross-fades between phases (a cut with reduced motion). */
+@property --haze-a {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --haze-b {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+:root {
+  --today-morning-a: oklch(0.89 0.075 50 / 0.6);
+  --today-morning-b: oklch(0.91 0.08 75 / 0.5);
+  --today-day-a: oklch(0.92 0.06 78 / 0.8);
+  --today-day-b: oklch(0.94 0.03 240 / 0.45);
+  --today-evening-a: oklch(0.87 0.065 310 / 0.55);
+  --today-evening-b: oklch(0.8 0.075 275 / 0.42);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --today-morning-a: oklch(0.52 0.11 42 / 0.42);
+    --today-morning-b: oklch(0.58 0.1 68 / 0.24);
+    --today-day-a: oklch(0.46 0.055 75 / 0.48);
+    --today-day-b: oklch(0.44 0.04 245 / 0.2);
+    --today-evening-a: oklch(0.46 0.1 310 / 0.38);
+    --today-evening-b: oklch(0.38 0.1 275 / 0.36);
+  }
+}
+
+.today {
+  --haze-a: var(--today-day-a);
+  --haze-b: var(--today-day-b);
+  transition: --haze-a var(--dur-slow) var(--ease-out), --haze-b var(--dur-slow) var(--ease-out);
+}
+
+.today[data-phase="morning"] {
+  --haze-a: var(--today-morning-a);
+  --haze-b: var(--today-morning-b);
+}
+
+.today[data-phase="evening"] {
+  --haze-a: var(--today-evening-a);
+  --haze-b: var(--today-evening-b);
+}
+
+.today::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 75% at 100% 0%, var(--haze-a), transparent 72%),
+    radial-gradient(40% 55% at 70% 0%, var(--haze-b), transparent 70%);
+}
+
+/* Wide cards: the haze reaches further across, still from one corner. */
+@media (min-width: 1024px) {
+  .today::before {
+    background:
+      radial-gradient(70% 120% at 100% 0%, var(--haze-a), transparent 72%),
+      radial-gradient(45% 90% at 62% 0%, var(--haze-b), transparent 70%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today {
+    transition: none;
+  }
+}
+
+.today__inner,
+.today__sk {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-md) var(--space-md);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+/* Hold roughly Today's finished height while it loads, so what's below doesn't jump. */
+.today__sk {
+  min-height: 500px;
+}
+
+@media (min-width: 1024px) {
+  .today__sk {
+    min-height: 350px;
+  }
+}
+
+.today__inner.is-fading {
+  opacity: 0;
+}
+
+.today__kicker,
+.day-hero__kicker,
+.today__label {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.today__kicker {
+  color: var(--accent-ink);
+}
+
+.today__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: 1.18;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+
+.today__art {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-2xs);
+}
+
+.today__so-far {
+  margin-top: calc(-1 * var(--space-2xs));
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.today__caption {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.today__words {
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.today__ahead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.today__events {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-ui);
+}
+
+.today__events li {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.today__time {
+  min-width: 44px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+
+
+.today__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.today__write {
+  flex: 1 1 auto;
+}
+
+.today__open svg {
+  width: 16px;
+  height: 16px;
+}
+
+.today__earlier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  margin-top: var(--space-2xs);
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 1023px) {
+  .today__earlier--wide-only {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .today__inner,
+  .today__sk {
+    padding: var(--space-xl) var(--space-lg) var(--space-lg);
+  }
+  .today__title {
+    font-size: var(--text-heading);
+  }
+  .today__write {
+    flex: none;
+  }
+}
+
+.today__main,
+.today__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.today__side {
+  margin-top: var(--space-xs);
+}
+
+@media (min-width: 1024px) {
+  /* On Home's wide page, the day sits beside what you can do with it. */
+  .today--home .today__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    column-gap: var(--space-2xl);
+    align-items: start;
+  }
+  .today--home .today__side {
+    margin-top: 0;
+  }
+  .today--home .today__earlier {
+    border-top: 0;
+    padding-top: var(--space-xs);
+  }
+}
+
+/* ---------- Feed: the rail beside it, from 1024px ---------- */
+
+.days-rail {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .days-feed-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: var(--space-2xl);
+    align-items: start;
+  }
+  .days-rail {
+    position: sticky;
+    top: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+}
+
+.days-rail__sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.days-rail__title {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.days-rail .cal-mini {
+  padding: var(--space-md);
+}
+
+.days-rail .cal-mini__name {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+}
+
+.days-rail__more {
+  align-self: flex-start;
+  margin-left: calc(-1 * var(--space-sm));
+}
+
+.days-rail__more svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- On this day ---------- */
+
+.earlier {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "when line" "when art";
+  column-gap: var(--space-sm);
+  row-gap: 6px;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+
+.earlier:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) {
+  .earlier:hover {
+    background: var(--sunken-strong);
+  }
+}
+
+.earlier__when {
+  grid-area: when;
+  display: flex;
+  flex-direction: column;
+  min-width: 64px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.earlier__year {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.earlier__line {
+  grid-area: line;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+}
+
+.earlier .art-strip {
+  grid-area: art;
+}
+
+/* ---------- The feed ---------- */
+
+.days-feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.days-month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.days-month__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding-inline: var(--space-2xs);
+}
+
+.days-month__name {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+}
+
+.days-month__recap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+.days-month__recap::after {
+  content: "";
+  position: absolute;
+  inset: -12px -8px;
+}
+
+.days-month__recap svg {
+  width: 16px;
+  height: 16px;
+}
+
+.days-month__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.days-month__week {
+  margin: var(--space-2xs) 0 var(--space-md);
+}
+
+/* ---------- A day card ---------- */
+
+.day-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-md) var(--space-md) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur-instant) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.day-card:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) {
+  .day-card:hover {
+    border-color: var(--line-strong);
+  }
+}
+
+.day-card__date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.day-card__dow {
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.day-card__num {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.day-card__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 0;
+}
+
+.day-card__top:empty {
+  display: none;
+}
+
+.day-card__rel {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+}
+
+.day-card__line {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.day-card--bare .day-card__line {
+  color: var(--ink-3);
+  font-weight: var(--weight-medium);
+}
+
+.day-card__figures {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  line-height: var(--leading-snug);
+}
+
+.day-card .art-strip {
+  margin-bottom: 2px;
+}
+
+.day-card__mood {
+  margin-top: 4px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+}
+
+.day-card__mood[data-mood="4"],
+.day-card__mood[data-mood="5"] {
+  color: var(--accent-ink);
+}
+
+/* Skeleton */
+.day-card--skeleton {
+  box-shadow: none;
+}
+
+.day-card__sk-date {
+  width: 32px;
+  height: 44px;
+  margin: 2px auto 0;
+}
+
+.day-card__sk-line {
+  width: 72%;
+  height: 16px;
+}
+
+.day-card__sk-fig {
+  width: 48%;
+  height: 12px;
+}
+
+.day-card__sk-art {
+  width: 60%;
+  height: 52px;
+}
+
+.days-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* ---------- A week, between the weeks of the feed ---------- */
+
+.week-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-sm) var(--space-2xs) var(--space-md);
+  border-bottom: 1px solid var(--line);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.week-card:active {
+  opacity: 0.7;
+}
+
+.week-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.week-card__label {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.week-card__line {
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.week-card__go {
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .week-card:hover .week-card__line {
+    color: var(--ink);
+  }
+}
+
+/* The rail's week keeps a card. */
+.days-rail .week-card {
+  padding: var(--space-md);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+/* ---------- Feed: the end ---------- */
+
+.days-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-bottom: var(--space-lg);
+}
+
+.days-more__note {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.days-more__note:empty {
+  display: none;
+}
+
+.days-empty .btn,
+.days-failed .btn {
+  margin-top: var(--space-xs);
+}
+
+/* ---------- A day: top bar ---------- */
+
+.day-top {
+  padding-bottom: var(--space-2xs);
+}
+
+.day-top__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-inline: calc(-1 * var(--space-xs));
+}
+
+.day-top__spacer {
+  flex: 1;
+}
+
+.day-top__week {
+  position: relative;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+}
+
+a.day-top__week::after {
+  content: "";
+  position: absolute;
+  inset: -12px -6px;
+}
+
+@media (hover: hover) {
+  a.day-top__week:hover {
+    color: var(--ink);
+  }
+}
+
+.icon-btn.is-disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ---------- A day: the page ---------- */
+
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* On a phone, the two columns melt into one, in reading order. */
+.day__main,
+.day__rail {
+  display: contents;
+}
+
+.day > *,
+.day__main > *,
+.day__rail > * {
+  order: var(--order, 50);
+}
+
+.day__loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+@media (min-width: 1024px) {
+  .day {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--day-rail);
+    column-gap: var(--space-2xl);
+    row-gap: var(--space-xl);
+    align-items: start;
+  }
+  .day__main,
+  .day__rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    min-width: 0;
+  }
+  .day__rail {
+    padding-top: var(--space-xs);
+  }
+  .day > *,
+  .day__main > *,
+  .day__rail > * {
+    order: 0;
+  }
+  .day > .day-foot {
+    order: 1;
+    grid-column: 1 / -1;
+  }
+  .day__rail .day-spark {
+    width: 84px;
+  }
+  .day--no-rail {
+    grid-template-columns: minmax(0, 720px);
+    justify-content: center;
+  }
+  .day__loading {
+    grid-column: 1 / -1;
+    max-width: 680px;
+  }
+}
+
+/* ---------- The hero: date, weather, the line ---------- */
+
+.day-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.day-hero__date {
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.026em;
+  outline: none;
+}
+
+.day-hero__weather {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.day-hero__wicon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-3);
+}
+
+.day-line {
+  margin-top: var(--space-xs);
+}
+
+.day-line__show {
+  position: relative;
+  display: inline;
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: 1.25;
+  letter-spacing: -0.014em;
+  color: var(--ink-2);
+  text-wrap: balance;
+  border-radius: var(--radius-xs);
+}
+
+.day-line__show.is-suggested .day-line__text {
+  color: var(--ink-3);
+}
+
+.day-line__pen {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  vertical-align: -4px;
+  border-radius: 50%;
+  color: var(--ink-3);
+  opacity: 0.5;
+  transition: opacity var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.day-line__pen svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (hover: hover) {
+  .day-line__show:hover .day-line__pen {
+    opacity: 1;
+    background: var(--sunken);
+  }
+  .day-line__show:hover .day-line__text {
+    color: var(--ink);
+  }
+}
+
+.day-line__input {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.014em;
+  line-height: 1.25;
+  color: var(--ink);
+  resize: none;
+  overflow: hidden;
+}
+
+.day-line__input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+.day-line__error {
+  margin-top: var(--space-2xs);
+  font-size: var(--text-small);
+  color: var(--bad);
+}
+
+@media (min-width: 640px) {
+  .day-hero__date {
+    font-size: var(--text-hero);
+  }
+  .day-line__show,
+  .day-line__input {
+    font-size: var(--text-heading);
+  }
+}
+
+/* ---------- The shape of the day ---------- */
+
+.ribbon {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.ribbon__track {
+  position: relative;
+  border-bottom: 1px solid var(--line);
+}
+
+.ribbon__tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+  opacity: 0.7;
+}
+
+.ribbon__hour {
+  position: absolute;
+  bottom: -18px;
+  transform: translateX(-50%);
+  font-size: var(--text-micro);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.ribbon__lane {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.ribbon__mark {
+  position: absolute;
+  top: 0;
+  height: 8px;
+  min-width: 4px;
+  border-radius: var(--radius-2xs);
+  background: var(--lane);
+  opacity: 0.85;
+}
+
+.ribbon__lane--media { --lane: var(--chart-1); }
+.ribbon__lane--cal { --lane: var(--ink-3); }
+.ribbon__lane--move { --lane: var(--chart-2); }
+.ribbon figure { margin: 0; }
+
+.ribbon__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-md);
+  margin-top: 20px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.ribbon__key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ribbon__key-item::before {
+  content: "";
+  width: 10px;
+  height: 6px;
+  border-radius: var(--radius-3xs);
+  background: var(--lane);
+}
+
+/* ---------- Your words: mood and journal ---------- */
+
+.day-you {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.day-you__label {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+
+
+.journal {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  transition: box-shadow var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.journal:focus-within {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong), 0 0 0 3px var(--accent-wash);
+}
+
+.journal__text {
+  width: 100%;
+  min-height: 92px;
+  padding: var(--space-sm) var(--space-md) 0;
+  resize: none;
+  background: transparent;
+  border: 0;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.journal__text:focus {
+  outline: none;
+}
+
+.journal__text::placeholder {
+  color: var(--ink-3);
+}
+
+.journal__foot {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 28px;
+  padding: 0 var(--space-md) var(--space-xs);
+}
+
+.journal__status {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.journal__status[data-state="saved"] {
+  color: var(--good);
+}
+
+.journal__status[data-state="failed"] {
+  color: var(--warn);
+}
+
+/* ---------- Sections ---------- */
+
+.day-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.day-sec__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.day-sec__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+  line-height: var(--leading-snug);
+}
+
+.day-sec__sub {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.day-sec__sub:empty {
+  display: none;
+}
+
+.day-sec__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.day-sec__lede {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.day-more {
+  align-self: flex-start;
+  margin-left: calc(-1 * var(--space-sm));
+}
+
+.day-link {
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.day-link:active {
+  transform: scale(0.98);
+}
+
+/* ---------- Photos ---------- */
+
+.photos {
+  display: grid;
+  gap: 4px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.photo {
+  position: relative;
+  display: block;
+  padding: 0;
+  min-height: 0;
+}
+
+.photo .art {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  aspect-ratio: auto !important;
+}
+
+.photos--1 {
+  grid-template-columns: 1fr;
+}
+
+.photos--1 .photo {
+  aspect-ratio: 4 / 3;
+}
+
+.photos--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.photos--2 .photo {
+  aspect-ratio: 3 / 4;
+}
+
+
+.photos--3 {
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.photos--3 .photo:first-child {
+  grid-row: span 2;
+  aspect-ratio: 1;
+}
+
+.photos--4 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.photos--4 .photo {
+  aspect-ratio: 1;
+}
+
+.photo-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 64px;
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+/* With photos, Add floats on the grid's corner. */
+.photos {
+  position: relative;
+}
+
+.photos--1 .photo-add,
+.photos--2 .photo-add,
+.photos--3 .photo-add,
+.photos--4 .photo-add {
+  position: absolute;
+  right: var(--space-sm);
+  bottom: var(--space-sm);
+  min-height: 0;
+  height: 40px;
+  padding: 0 14px 0 12px;
+  flex-direction: row;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklch, var(--surface) 88%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-float);
+  color: var(--ink);
+}
+
+@media (min-width: 1024px) {
+  .photos--2,
+  .photos--4 {
+    grid-auto-rows: 300px;
+  }
+  .photos--3 {
+    grid-template-rows: 210px 210px;
+  }
+  .photos .photo,
+  .photos--3 .photo:first-child {
+    aspect-ratio: auto;
+  }
+  .photos--1 .photo {
+    aspect-ratio: auto;
+    height: 420px;
+  }
+}
+
+.photo-add svg {
+  width: 20px;
+  height: 20px;
+}
+
+.photo-add[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+@media (hover: hover) {
+  .photo-add:hover {
+    background: var(--sunken-strong);
+    color: var(--ink);
+  }
+}
+
+.photos--0 {
+  grid-template-columns: 1fr;
+  background: transparent;
+}
+
+.photo-add--alone {
+  flex-direction: row;
+  min-height: 52px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+}
+
+/* The viewer */
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: calc(var(--safe-top) + var(--space-2xl)) var(--space-md) calc(var(--safe-bottom) + var(--space-md));
+  border: 0;
+  background: oklch(0.12 0.01 264 / 0.96);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  color: oklch(0.96 0.005 264);
+}
+
+.photo-viewer:not([open]) {
+  display: none;
+}
+
+.photo-viewer::backdrop {
+  background: transparent;
+}
+
+.photo-viewer__img {
+  max-width: 100%;
+  max-height: calc(100% - 80px);
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.photo-viewer__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.photo-viewer__count {
+  min-width: 56px;
+  text-align: center;
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.photo-viewer .icon-btn {
+  background: oklch(1 0 0 / 0.1);
+  border-color: transparent;
+  color: inherit;
+}
+
+.photo-viewer__close {
+  position: absolute;
+  top: calc(var(--safe-top) + var(--space-sm));
+  right: var(--space-md);
+}
+
+/* ---------- Where: map and stops ---------- */
+
+.day-places__map {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  aspect-ratio: 2 / 1;
+}
+
+/* The art session's map (components/day-map.ts) brings its own frame. */
+.day-places__map:has(.daymap) {
+  aspect-ratio: auto;
+  border: 0;
+  background: none;
+}
+
+.days-convert-slot:empty {
+  display: none;
+}
+
+.day-map {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.day-map__grid line {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.day-map__route {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1 5;
+  opacity: 0.7;
+}
+
+.day-map__stop {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2.5;
+}
+
+.day-map__stop--home {
+  fill: var(--surface);
+  stroke: var(--ink-3);
+  stroke-width: 2;
+}
+
+.stops {
+  display: flex;
+  flex-direction: column;
+}
+
+.stop {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 34px;
+  position: relative;
+}
+
+.stop:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 22px;
+  bottom: -12px;
+  width: 1.5px;
+  background: var(--line);
+}
+
+.stop__time {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.stop__dot {
+  width: 10px;
+  height: 10px;
+  margin-left: 1px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--surface);
+  position: relative;
+}
+
+.stop--home .stop__dot {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--ink-3), 0 0 0 3px var(--canvas);
+}
+
+.stop__name {
+  font-size: var(--text-ui);
+}
+
+.stop--home .stop__name {
+  color: var(--ink-2);
+}
+
+/* ---------- Body ---------- */
+
+.day-health__list {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.day-health__row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 64px;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
+}
+
+.day-health__row + .day-health__row {
+  border-top: 1px solid var(--line);
+}
+
+.day-health__icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.day-health__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.day-health__icon--route {
+  width: 40px;
+  height: 40px;
+  margin: -2px;
+}
+
+.day-health__icon--route svg {
+  width: 40px;
+  height: 40px;
+}
+
+.day-health__icon .route__line {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.day-health__icon .route__start {
+  fill: var(--chart-1);
+}
+
+.day-health__words {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.day-health__text {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+}
+
+.day-health__aside {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.day-spark {
+  display: block;
+  overflow: visible;
+}
+
+.day-spark__line {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.day-spark__area {
+  fill: var(--chart-1);
+  opacity: 0.1;
+}
+
+.day-spark__usual {
+  stroke: var(--chart-axis);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  opacity: 0.7;
+}
+
+.day-spark__base {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.day-spark__end {
+  fill: var(--chart-1);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+/* A day with only health: it leads, at a larger size. */
+.day-health--hero .day-health__row {
+  min-height: 84px;
+  padding-block: var(--space-md);
+}
+
+.day-health--hero .day-health__text {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+}
+
+.day-health--hero .day-health__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+}
+
+.day-health--hero .day-health__row {
+  grid-template-columns: 44px minmax(0, 1fr);
+  row-gap: var(--space-xs);
+}
+
+.day-health--hero .day-spark-fit {
+  grid-column: 1 / -1;
+  display: block;
+  width: 100%;
+  height: 48px;
+}
+
+.day-quiet {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  text-align: center;
+  padding: 0 var(--space-lg);
+  text-wrap: balance;
+}
+
+@media (max-width: 380px) {
+  .day-health__row .day-spark {
+    width: 84px;
+  }
+}
+
+/* ---------- Watched and Played: a shelf of artwork ---------- */
+
+.shelf {
+  display: flex;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--space-md);
+  margin-inline: calc(-1 * var(--space-md));
+  padding: 2px var(--space-md) var(--space-2xs);
+  scrollbar-width: none;
+}
+
+.shelf::-webkit-scrollbar {
+  display: none;
+}
+
+.shelf__item {
+  flex: none;
+  scroll-snap-align: start;
+  width: 104px;
+}
+
+.shelf--wide .shelf__item {
+  width: 200px;
+}
+
+/* One thing on its own: a compact row, not a big poster. */
+.shelf--single .shelf__item {
+  width: 100%;
+}
+
+.shelf--single .poster {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  grid-auto-rows: min-content;
+  column-gap: var(--space-sm);
+  row-gap: 2px;
+  align-content: center;
+}
+
+.shelf--single.shelf--wide .poster {
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+
+.shelf--single .poster__art {
+  grid-row: 1 / span 4;
+  margin: 0;
+  align-self: center;
+}
+
+.shelf--single .poster__title {
+  align-self: end;
+  font-size: var(--text-ui);
+}
+
+.poster {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.poster__art {
+  width: 100%;
+  border-radius: var(--radius-xs);
+  margin-bottom: 4px;
+  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.08), 0 8px 18px -12px oklch(0.2 0.03 264 / 0.35);
+}
+
+.poster__title {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.poster__sub {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stars {
+  display: inline-flex;
+  gap: 1px;
+  color: var(--ink-2);
+}
+
+.stars svg {
+  width: 12px;
+  height: 12px;
+}
+
+@media (min-width: 1024px) {
+  .shelf {
+    flex-wrap: wrap;
+    overflow: visible;
+    margin-inline: 0;
+    padding-inline: 0;
+    gap: var(--space-md);
+  }
+  .shelf__item {
+    width: 120px;
+  }
+  .shelf--wide .shelf__item {
+    width: 220px;
+  }
+  .shelf--single .shelf__item {
+    width: 100%;
+  }
+}
+
+/* ---------- Listened: albums with their plays ---------- */
+
+.albums {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.album__link {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-2xs);
+  margin-inline: calc(-1 * var(--space-2xs));
+  border-radius: var(--radius-sm);
+}
+
+@media (hover: hover) {
+  a.album__link:hover {
+    background: var(--sunken);
+  }
+}
+
+.album__art {
+  width: 64px;
+  border-radius: var(--radius-xs);
+}
+
+.album__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.album__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.album__by {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.album__tracks {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Read: books and highlights ---------- */
+
+.book {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: start;
+}
+
+.book__art {
+  width: 72px;
+  border-radius: var(--radius-2xs) var(--radius-xs) var(--radius-xs) var(--radius-2xs);
+  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.08), 0 8px 18px -12px oklch(0.2 0.03 264 / 0.35);
+}
+
+.book__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.book__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.book__by {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.book__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.book__bar {
+  flex: 0 1 120px;
+  height: 4px;
+  border-radius: var(--radius-3xs);
+  background: var(--sunken-strong);
+  overflow: hidden;
+}
+
+.book__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink-2);
+}
+
+.book + .quote,
+.quote + .quote {
+  margin-left: calc(72px + var(--space-md));
+}
+
+.quote--loose {
+  margin-left: 0 !important;
+}
+
+.quote {
+  position: relative;
+  margin: 0;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) 40px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.quote p {
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.quote__mark {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  color: var(--ink-3);
+}
+
+.quote__mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+.quote__from {
+  margin-top: 4px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* ---------- Rows: chess, saved, meetings and notes ---------- */
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.rows > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.row-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  a.row-line:hover,
+  .row-line--button:hover {
+    background: var(--sunken);
+  }
+}
+
+.row-line__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.row-line__icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.row-line__time {
+  min-width: 40px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-line__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.row-line__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-line__sub {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-line__go {
+  color: var(--ink-3);
+}
+
+.row-line__go svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Posted ---------- */
+
+.posts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.post {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.post__text {
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  text-wrap: pretty;
+}
+
+.post__meta {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* ---------- Quiet, empty, foot ---------- */
+
+.day-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--line-strong);
+}
+
+.day-empty .tile {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 6px;
+}
+
+.day-empty .tile svg {
+  width: 22px;
+  height: 22px;
+}
+
+.day-empty--plain {
+  align-items: flex-start;
+  text-align: left;
+  padding: 0;
+  border: 0;
+  gap: 2px;
+  margin-top: calc(-1 * var(--space-md));
+}
+
+.day-empty--plain .empty__sub {
+  max-width: 46ch;
+}
+
+.day-otd__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.day-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.day-foot__link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.day-foot__link--next {
+  align-items: flex-end;
+  text-align: right;
+}
+
+@media (hover: hover) {
+  .day-foot__link:hover {
+    background: var(--sunken);
+  }
+}
+
+.day-foot__dir {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+}
+
+.day-foot__dir svg {
+  width: 14px;
+  height: 14px;
+}
+
+.day-foot__date {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+/* Day skeleton */
+.day-sk {
+  display: block;
+}
+
+.day-sk--line {
+  width: 86%;
+  height: 26px;
+}
+
+.day-sk--line2 {
+  width: 54%;
+  height: 26px;
+}
+
+.day-sk--mood {
+  height: 150px;
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-sm);
+}
+
+.day-sk--card {
+  height: 120px;
+  border-radius: var(--radius-md);
+}
+
+.day-sk--shelf {
+  height: 190px;
+  width: 70%;
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Calendar ---------- */
+
+.days-cal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.days-cal__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.days-cal__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+}
+
+.days-cal__spacer {
+  flex: 1;
+}
+
+.days-cal__mode {
+  margin: 0 var(--space-2xs) 0 0;
+  padding: 0;
+  overflow: visible;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.days-cal__mode .chip {
+  height: 34px;
+  padding: 0 12px;
+}
+
+.chip[aria-checked="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.cal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cal__row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cal__dow {
+  padding-bottom: 2px;
+  text-align: center;
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+.cal__dow-rest {
+  display: none;
+}
+
+.cal__cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  aspect-ratio: 1 / 1.08;
+  min-height: 44px;
+  padding: 6px 0 7px;
+  border-radius: var(--radius-sm);
+  background: var(--heat-0);
+  color: var(--ink);
+  transition: transform var(--dur-instant) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+a.cal__cell:active {
+  transform: scale(0.94);
+}
+
+.cal__cell--pad {
+  background: transparent;
+}
+
+.cal__slot {
+  display: grid;
+  min-width: 0;
+}
+
+.cal__cell--h1 { background: var(--heat-1); }
+.cal__cell--h2 { background: var(--heat-2); }
+.cal__cell--h3 { background: var(--heat-3); }
+.cal__cell--h4 { background: var(--heat-4); color: var(--heat-ink-4); }
+
+.cal__cell.is-future {
+  background: transparent;
+  color: var(--ink-3);
+  opacity: 0.6;
+}
+
+.cal__cell.is-today {
+  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 3.5px var(--ink);
+}
+
+.cal__num {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.cal__cell .mood-glyph {
+  --bar: 1.5px;
+  --gap: 1px;
+  --tall: 8px;
+}
+
+.cal__art {
+  display: none;
+}
+
+@media (hover: hover) {
+  a.cal__cell:hover {
+    box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  }
+  a.cal__cell.is-today:hover {
+    box-shadow: 0 0 0 2px var(--canvas), 0 0 0 3.5px var(--ink);
+  }
+}
+
+.cal--loading .cal__cell:not(.cal__cell--pad):not(.is-future) {
+  background: var(--sunken);
+  animation: shimmer var(--dur-pulse) var(--ease-in-out) infinite;
+  background-image: linear-gradient(90deg, var(--sunken) 25%, var(--sunken-strong) 50%, var(--sunken) 75%);
+  background-size: 200% 100%;
+}
+
+@media (min-width: 1024px) {
+  .cal {
+    gap: 6px;
+  }
+  .cal__row {
+    gap: 6px;
+  }
+  .cal__dow {
+    text-align: left;
+    padding-left: 10px;
+  }
+  .cal__dow-rest {
+    display: inline;
+  }
+  .cal__cell {
+    align-items: flex-start;
+    aspect-ratio: 1 / 0.86;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+  }
+  .cal__num {
+    font-size: var(--text-ui);
+  }
+  .cal__cell .mood-glyph {
+    --bar: 2px;
+    --gap: 1.5px;
+    --tall: 11px;
+    position: absolute;
+    top: 11px;
+    right: 10px;
+  }
+  /* The day's artwork fills its cell; the number sits on a soft scrim. */
+  .cal__art {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .cal__art .art {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto !important;
+    border-radius: inherit;
+  }
+  .cal__cell:has(.cal__art) {
+    overflow: hidden;
+    color: oklch(0.98 0 0);
+  }
+  .cal__cell:has(.cal__art)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(to bottom, oklch(0.15 0.01 264 / 0.55), transparent 45%);
+    pointer-events: none;
+  }
+  .cal__cell:has(.cal__art) .cal__num,
+  .cal__cell:has(.cal__art) .mood-glyph {
+    position: relative;
+    z-index: 1;
+  }
+  .cal__cell:has(.cal__art) .mood-glyph {
+    position: absolute;
+    --on: oklch(0.98 0 0);
+    --off: oklch(0.98 0 0 / 0.35);
+  }
+}
+
+.days-cal__foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.days-cal__summary {
+  font-size: var(--text-ui);
+  color: var(--ink-2);
+  line-height: var(--leading-body);
+  text-wrap: pretty;
+}
+
+.days-cal__summary--top {
+  margin-top: calc(-1 * var(--space-xs));
+}
+
+.days-cal__recap svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cal-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cal-legend > span:first-child {
+  margin-right: 4px;
+}
+
+.cal-legend > span:last-child {
+  margin-left: 4px;
+}
+
+.cal-legend__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-3xs);
+}
+
+/* Year */
+.cal-year {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+@media (min-width: 560px) {
+  .cal-year {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .cal-year {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+}
+
+.cal-mini {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+
+a.cal-mini:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  a.cal-mini:hover {
+    border-color: var(--line-strong);
+  }
+}
+
+.cal-mini.is-future .cal-mini__grid {
+  opacity: 0.55;
+}
+
+.cal-mini.is-future .cal-mini__name {
+  color: var(--ink-3);
+}
+
+.cal-mini__name {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.cal-mini__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.cal-mini__cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-3xs);
+  background: var(--heat-0);
+}
+
+.cal-mini__cell--pad {
+  background: transparent;
+}
+
+.cal-mini__cell.cal__cell--h1 { background: var(--heat-1); }
+.cal-mini__cell.cal__cell--h2 { background: var(--heat-2); }
+.cal-mini__cell.cal__cell--h3 { background: var(--heat-3); }
+.cal-mini__cell.cal__cell--h4 { background: var(--heat-4); }
+
+.cal-mini__cell.is-future {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.cal-mini__cell.is-today {
+  box-shadow: 0 0 0 1.5px var(--ink);
+}
+
+/* ---------- Recaps ---------- */
+
+.recap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-width: 880px;
+}
+
+.recap-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.recap-hero__line {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  line-height: 1.12;
+  letter-spacing: -0.024em;
+  text-wrap: balance;
+}
+
+.recap-hero .mood-row {
+  flex-wrap: wrap;
+  max-width: 100%;
+  margin-top: var(--space-xs);
+}
+
+.recap-facts {
+  margin-top: calc(-1 * var(--space-md));
+  font-size: var(--text-ui);
+  color: var(--ink-2);
+}
+
+@media (min-width: 640px) {
+  .recap-hero__line {
+    font-size: var(--text-hero);
+  }
+}
+
+/* A justified mosaic of the period's artwork. */
+.mosaic {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mosaic__item {
+  --h: 112px;
+  flex: none;
+  height: var(--h);
+  width: calc(var(--h) * var(--ratio, 1));
+}
+
+.mosaic__item .art {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto !important;
+  border-radius: var(--radius-xs);
+}
+
+@media (min-width: 1024px) {
+  .mosaic__item {
+    --h: 156px;
+  }
+}
+
+.recap-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-xl);
+}
+
+@media (min-width: 900px) {
+  .recap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-2xl);
+  }
+}
+
+.top-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.top-row {
+  display: grid;
+  grid-template-columns: 20px auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.top-row__rank {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.top-row__art {
+  width: 48px;
+}
+
+.top-row {
+  min-height: 72px;
+}
+
+.top-row--unranked {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.recap-body {
+  grid-column: 1 / -1;
+}
+
+.top-row__art--played {
+  width: 78px;
+}
+
+.top-row__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.top-row__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-row__sub {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+/* ---------- Search ---------- */
+
+.days-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.days-search__box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 52px;
+  padding: 0 var(--space-xs) 0 var(--space-md);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  color: var(--ink-3);
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.days-search__box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+.days-search__box > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.days-search__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.days-search__input:focus {
+  outline: none;
+}
+
+.days-search__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.days-search__selects {
+  display: flex;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  margin-inline: calc(-1 * var(--space-md));
+  padding: 4px var(--space-md);
+  scrollbar-width: none;
+}
+
+.days-search__selects::-webkit-scrollbar {
+  display: none;
+}
+
+.days-select {
+  flex: none;
+}
+
+.days-search__selects:empty {
+  display: none;
+}
+
+.days-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 30px 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.days-select::after {
+  content: "";
+  position: absolute;
+  inset: -4px -2px;
+}
+
+.days-select > svg {
+  position: absolute;
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+
+.days-select__label {
+  color: var(--ink-3);
+}
+
+.days-select__control {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  color: var(--ink);
+  max-width: 130px;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.days-select__control:focus {
+  outline: none;
+}
+
+.days-select:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.days-select.is-set {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.days-select.is-set .days-select__label,
+.days-select.is-set > svg {
+  color: color-mix(in oklch, var(--on-ink) 65%, var(--ink));
+}
+
+.days-select.is-set .days-select__control {
+  color: var(--on-ink);
+}
+
+.days-select__control option {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.days-search__status {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  padding-inline: var(--space-2xs);
+  min-height: 1lh;
+}
+
+.days-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.days-results[aria-busy="true"] {
+  opacity: 0.55;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.days-search__hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-2xl) var(--space-md);
+  text-align: center;
+}
+
+.result {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+
+.result:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) {
+  .result:hover {
+    border-color: var(--line-strong);
+  }
+}
+
+.result__ym {
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.result__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.result__line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+}
+
+.result__line .mood-glyph {
+  margin-left: auto;
+}
+
+.result__snippet {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  line-height: var(--leading-body);
+}
+
+.result__entries {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.result__entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.result__entry .art {
+  max-width: 64px;
+}
+
+.result__entry-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.result__entry-title {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result__entry-sub {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Moving between days ---------- */
+
+@keyframes days-in-next {
+  from { opacity: 0; transform: translateX(24px); }
+}
+@keyframes days-in-prev {
+  from { opacity: 0; transform: translateX(-24px); }
+}
+@keyframes days-out-next {
+  to { opacity: 0; transform: translateX(-24px); }
+}
+@keyframes days-out-prev {
+  to { opacity: 0; transform: translateX(24px); }
+}
+
+:root[data-days-dir="next"]::view-transition-new(root) {
+  animation: days-in-next var(--dur-base) var(--ease-out-expo) both;
+}
+:root[data-days-dir="next"]::view-transition-old(root) {
+  animation: days-out-next var(--dur-fast) var(--ease-in) both;
+}
+:root[data-days-dir="prev"]::view-transition-new(root) {
+  animation: days-in-prev var(--dur-base) var(--ease-out-expo) both;
+}
+:root[data-days-dir="prev"]::view-transition-old(root) {
+  animation: days-out-prev var(--dur-fast) var(--ease-in) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .art__img,
+  .mood-glyph__bar {
+    transition: none;
+  }
+  .day-card:active,
+  .week-card:active,
+  .earlier:active,
+  .result:active,
+  a.cal__cell:active,
+  .mood-step:active {
+    transform: none;
+  }
+}
+
+.days-rail .cal-mini__cell.is-future {
+  box-shadow: none;
+  background: transparent;
+}
+
+.days-rail .cal-mini__cell.is-future .cal-mini__n {
+  color: var(--ink-3);
+}
+
+
+/* ---------- Hiding a thing from a day ---------- */
+
+.day-sec__head--edit {
+  position: relative;
+  padding-right: 64px;
+}
+
+.day-sec__edit {
+  position: absolute;
+  top: -4px;
+  right: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
+
+.hideable {
+  position: relative;
+}
+
+.hide-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  box-shadow: var(--shadow-float);
+}
+
+.hide-btn::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+}
+
+.hide-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.is-editing .hide-btn {
+  display: inline-flex;
+}
+
+.is-editing .hideable > a {
+  pointer-events: none;
+}
+
+.album.hideable .hide-btn,
+.rows .hideable .hide-btn,
+.posts .hideable .hide-btn {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* ---------- The day's highlight: the one large piece of art ---------- */
+
+.highlight {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-lg);
+  margin-top: calc(-1 * var(--space-sm));
+}
+
+.highlight__art {
+  width: 128px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 4px oklch(0.2 0.02 264 / 0.1), 0 18px 32px -16px oklch(0.2 0.03 264 / 0.45);
+}
+
+.highlight__art[style*="16 / 9"] {
+  width: 100%;
+}
+
+.highlight:has(.highlight__art[style*="16 / 9"]) {
+  grid-template-columns: 180px minmax(0, 1fr);
+}
+
+.highlight__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.highlight__label {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.highlight__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.highlight__why {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+@media (min-width: 1024px) {
+  .highlight {
+    grid-template-columns: 168px minmax(0, 1fr);
+  }
+  .highlight__art {
+    width: 168px;
+  }
+  .highlight__title {
+    font-size: var(--text-heading);
+  }
+}
+
+/* ---------- Round 3: lighter feed, uniform art, calmer desktop calendar ---------- */
+
+/* The feed's days sit on the canvas between hairlines, not in cards. */
+.days-month__list .day-card {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--space-md) var(--space-2xs);
+}
+
+@media (hover: hover) {
+  .days-month__list .day-card:hover {
+    background: color-mix(in oklch, var(--sunken) 60%, transparent);
+    border-radius: var(--radius-sm);
+    border-bottom-color: transparent;
+  }
+}
+
+.days-month__list {
+  gap: 0;
+}
+
+.days-month__list .day-card .day-card__top .mood-glyph {
+  right: var(--space-2xs);
+}
+
+/* Recap mosaic: one poster shape, an even grid. */
+.mosaic {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 6px;
+}
+
+.mosaic__item {
+  width: auto !important;
+  height: auto !important;
+  aspect-ratio: 3 / 4;
+}
+
+@media (min-width: 1024px) {
+  .mosaic {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  }
+}
+
+/* Search: the match leads; the day's sentence is context. */
+.result__line {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+}
+
+.result__line > span:first-child {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.result__entry-title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+@media (min-width: 1024px) {
+  /* Calendar: the day's art sits inside its cell, below the number; empty days are just an outline. */
+  .cal__art {
+    inset: 36px 10px 10px;
+  }
+  .cal__art .art {
+    border-radius: var(--radius-xs);
+  }
+  .cal__cell:has(.cal__art) {
+    color: var(--ink);
+  }
+  .cal__cell:has(.cal__art)::after {
+    display: none;
+  }
+  .cal__cell:has(.cal__art) .mood-glyph {
+    --on: var(--mood-ink);
+    --off: var(--line-strong);
+  }
+}
+
+.cal__cell--h0:not(.is-future):not(.cal__cell--pad) {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* The shape of the day: a titled block, lanes named in place. */
+.ribbon__head {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.012em;
+}
+
+.ribbon__rows {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  row-gap: 10px;
+  align-items: center;
+}
+
+.ribbon__name {
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.ribbon__row {
+  position: relative;
+  overflow: clip;
+  height: 12px;
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+}
+
+.ribbon__row .ribbon__mark {
+  height: 12px;
+  border-radius: var(--radius-xs);
+  opacity: 1;
+}
+
+/* A mark over one of another colour: a track-coloured gap keeps them apart (the row clips it above and below). */
+.ribbon__row .ribbon__mark.is-over {
+  box-shadow: 0 0 0 2px var(--sunken);
+}
+
+.ribbon__hours {
+  position: relative;
+  height: 14px;
+  grid-column: 2;
+}
+
+.ribbon__hours .ribbon__hour {
+  bottom: 0;
+}
+
+/* The key: one line per coloured row, named and aligned like the rows above. */
+.ribbon__keys {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  row-gap: var(--space-2xs);
+  margin-top: var(--space-sm);
+  font-size: var(--text-meta);
+}
+
+.ribbon__keys .ribbon__key {
+  display: contents;
+}
+
+.ribbon__key-name {
+  color: var(--ink-2);
+}
+
+.ribbon__key-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-md);
+  color: var(--ink-3);
+}
+
+/* Rail calendar: readable, with weekday initials and day numbers. */
+.cal-mini__dow,
+.cal-mini__n {
+  display: none;
+}
+
+.days-rail .cal-mini__dow {
+  display: block;
+  text-align: center;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+}
+
+.days-rail .cal-mini__n {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: var(--text-micro);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.days-rail .cal-mini__cell {
+  border-radius: var(--radius-xs);
+}
+
+.highlight__from {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.highlight__from:empty {
+  display: none;
+}
+
+/* ---------- Round 4 ---------- */
+
+/* The highlight is clearly the day's one big piece of art. */
+.highlight {
+  grid-template-columns: 168px minmax(0, 1fr);
+}
+
+.highlight__art {
+  width: 168px;
+}
+
+@media (min-width: 1024px) {
+  .highlight {
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+  .highlight__art {
+    width: 232px;
+  }
+}
+
+/* One thumbnail size for every media row: 72px wide. */
+.shelf__item {
+  width: 72px;
+}
+
+.shelf--wide .shelf__item {
+  width: 128px;
+}
+
+@media (min-width: 1024px) {
+  .shelf__item {
+    width: 72px;
+  }
+  .shelf--wide .shelf__item {
+    width: 128px;
+  }
+}
+
+.shelf--single .poster {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.shelf--single.shelf--wide .poster {
+  grid-template-columns: 128px minmax(0, 1fr);
+}
+
+.album__link {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.album__art {
+  width: 72px;
+}
+
+.book__art {
+  width: 72px;
+}
+
+.poster__title {
+  font-size: var(--text-meta);
+}
+
+/* Photos never take over a phone screen. */
+@media (max-width: 1023px) {
+  .photos {
+    max-height: 260px;
+  }
+  .photos .photo {
+    aspect-ratio: auto !important;
+    min-height: 0;
+    height: 100%;
+  }
+  .photos--1 .photo,
+  .photos--2 .photo {
+    height: 260px;
+  }
+  .photos--3,
+  .photos--4 {
+    grid-template-rows: 128px 128px;
+  }
+  .photos--4 {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 260px;
+  }
+}
+
+/* Recap: one row of small posters, whole tiles only. */
+.mosaic {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  height: 128px;
+  overflow: hidden;
+}
+
+.mosaic__item {
+  flex: none;
+  height: 128px !important;
+  width: 96px !important;
+  aspect-ratio: auto;
+}
+
+.mosaic__item .art {
+  height: 100%;
+  width: 100%;
+}
+
+/* Calendar: a mood dot, and days with nothing are just a number. */
+.cal__mood {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mood-ink);
+  opacity: calc(0.25 + var(--m, 3) * 0.15);
+}
+
+.cal__mood[data-mood="1"] { --m: 1; }
+.cal__mood[data-mood="2"] { --m: 2; }
+.cal__mood[data-mood="3"] { --m: 3; }
+.cal__mood[data-mood="4"] { --m: 4; }
+.cal__mood[data-mood="5"] { --m: 5; }
+
+@media (min-width: 1024px) {
+  .cal__cell .cal__mood {
+    position: absolute;
+    top: 14px;
+    right: 12px;
+    z-index: 1;
+  }
+}
+
+.cal .cal__cell--h0:not(.is-future):not(.cal__cell--pad) {
+  background: transparent;
+  box-shadow: none;
+}
+
+.result__why {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+/* ---------- Round 5 ---------- */
+
+/* The highlight's words rest on the poster's baseline. */
+.highlight {
+  align-items: end;
+}
+
+.highlight__body {
+  padding-bottom: var(--space-2xs);
+}
+
+/* Calendar: days with nothing recorded are grey numbers; shorter rows on desktop. */
+.cal .cal__cell--h0:not(.is-future):not(.cal__cell--pad) {
+  color: var(--ink-3);
+}
+
+@media (min-width: 1024px) {
+  .cal__cell {
+    aspect-ratio: 1 / 0.72;
+  }
+}
+
+/* Search results sit on the canvas like the feed, and the day's sentence can wrap. */
+.days-results {
+  gap: 0;
+}
+
+.result {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--space-md) var(--space-2xs);
+}
+
+@media (hover: hover) {
+  .result:hover {
+    background: color-mix(in oklch, var(--sunken) 60%, transparent);
+    border-radius: var(--radius-sm);
+    border-bottom-color: transparent;
+  }
+}
+
+.result__line > span:first-child {
+  -webkit-line-clamp: 2;
+}
+
+@media (min-width: 1024px) {
+  .day__rail .book + .quote,
+  .day__rail .quote + .quote {
+    margin-left: 0;
+  }
+}
+
+/* ---------- Round 6 ---------- */
+
+.highlight {
+  align-items: start;
+}
+
+.highlight__body {
+  padding-top: var(--space-xs);
+  padding-bottom: 0;
+}
+
+.highlight__why {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.highlight__stars svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Recap: the poster row runs the full width (one row, whole tiles), and every section sits on one two-column grid. */
+.mosaic {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  grid-template-rows: auto;
+  grid-auto-rows: 0;
+  row-gap: 0;
+  column-gap: 6px;
+  height: auto;
+  overflow: hidden;
+}
+
+.mosaic__item {
+  width: auto !important;
+  height: auto !important;
+  aspect-ratio: 3 / 4;
+}
+
+@media (min-width: 1024px) {
+  .mosaic {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  }
+}
+
+.recap-body {
+  grid-column: auto;
+}
+
+/* ---------- Round 7 ---------- */
+
+/* A day with no artwork is a compact, deliberate row: its words sit level with the date. */
+.day-card--text {
+  align-items: center;
+  padding-block: var(--space-sm);
+}
+
+.day-card--text .day-card__body {
+  justify-content: center;
+}
+
+.day-card--text .day-card__line {
+  color: var(--ink-2);
+  font-weight: var(--weight-regular);
+}
+
+/* Search: matches are emphasised, not painted. */
+.days-results mark {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--accent) 55%, transparent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.result__entry-title {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+/* ---------- Round 8 ---------- */
+
+@media (min-width: 1024px) {
+  .highlight__title {
+    font-size: var(--text-display);
+    line-height: 1.1;
+  }
+  .highlight__body {
+    gap: var(--space-xs);
+    padding-top: var(--space-sm);
+  }
+}
+
+.highlight__note {
+  font-size: var(--text-ui);
+  font-style: italic;
+  color: var(--ink-2);
+  max-width: 36ch;
+}
+
+/* ---------- Round 9 ---------- */
+
+/* One compact poster box for every media row: 72 x 96. */
+.album__art,
+.book__art,
+.shelf .poster__art {
+  width: 72px;
+}
+
+.shelf--wide .shelf__item {
+  width: 72px;
+}
+
+.shelf--single.shelf--wide .poster {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+/* Photos never outweigh the day's highlight. */
+@media (max-width: 1023px) {
+  .photos {
+    max-height: 240px;
+  }
+  .photos--1 .photo,
+  .photos--2 .photo {
+    height: 240px;
+  }
+  .photos--3,
+  .photos--4 {
+    grid-template-rows: 118px 118px;
+  }
+  .photos--4 {
+    grid-template-rows: 240px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .photos {
+    max-height: 340px;
+  }
+  .photos--2,
+  .photos--4 {
+    grid-auto-rows: 340px;
+  }
+  .photos--3 {
+    grid-template-rows: 166px 166px;
+  }
+  .photos--1 .photo {
+    height: 340px;
+  }
+}
+
+/* Search rows share one layout: what matched, then the day's sentence, muted. */
+.result__entries {
+  order: 1;
+}
+
+.result__line {
+  order: 2;
+}
+
+.result__why,
+.result__snippet {
+  order: 3;
+}
+
+.result__entry {
+  gap: var(--space-sm);
+}
+
+.shelf--single.shelf--wide .shelf__item,
+.shelf--single .shelf__item {
+  width: 100%;
+}
+
+/* ---------- Round 10 ---------- */
+
+/* Search: everything in a row starts in the title's column; matches are bold, not links. */
+.result__line,
+.result__why,
+.result__snippet {
+  padding-left: calc(42px + var(--space-sm));
+}
+
+.days-results mark {
+  text-decoration: none;
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+/* A health-only day uses Body's usual rows, given more room. */
+.day-health--hero .day-health__text {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0;
+}
+
+.day-health--hero .day-health__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+}
+
+.day-health--hero .day-health__row {
+  grid-template-columns: 36px minmax(0, 1fr);
+  padding-block: var(--space-md);
+}
+
+/* ---------- Mood styles (owner's choice in Settings) ---------- */
+
+.day-card__mood {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.day-card__mood .mood-glyph {
+  --tall: 11px;
+  --on: currentColor;
+}
+
+.cal__cell .mood-glyph:is([data-style="moons"], [data-style="faces"]) {
+  --tall: 12px;
+  --stroke: 2.4;
+}
+
+@media (min-width: 1024px) {
+  .cal__cell .mood-glyph:is([data-style="moons"], [data-style="faces"]) {
+    --tall: 14px;
+    --stroke: 2.2;
+  }
+}
+
+/* ---------- Settings, Days: the mood style ---------- */
+
+.mood-styles {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.mood-styles__legend {
+  padding: 0;
+  margin-bottom: var(--space-xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.mood-style {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-sm);
+  row-gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.mood-style:has(.mood-style__input:checked) {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.mood-style:has(.mood-style__input:focus-visible) {
+  outline: 2px solid var(--focus, var(--accent));
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .mood-style:not(:has(.mood-style__input:checked)):hover {
+    background: var(--sunken);
+  }
+}
+
+.mood-style__input {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-3);
+  background: transparent;
+}
+
+.mood-style__input::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: scale(0);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.mood-style__input:checked {
+  border-color: var(--ink);
+}
+
+.mood-style__input:checked::before {
+  transform: scale(1);
+}
+
+.mood-style__input:focus-visible {
+  outline: none;
+}
+
+.mood-style__name {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.mood-style__preview {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.mood-style__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+}
+
+.mood-style__step .mood-glyph {
+  --on: var(--ink-2);
+  --off: var(--line-strong);
+}
+
+.mood-style__word {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+}
+
+@media (min-width: 1024px) {
+  .mood-style {
+    grid-template-columns: 20px 88px minmax(0, 1fr);
+  }
+  .mood-style__preview {
+    grid-column: auto;
+    max-width: 380px;
+  }
+}
+
+/* A week's moods beside its label: narrower bars, so the label keeps one line. */
+.week-card__head .mood-glyph[data-style="levels"] {
+  --bar: 1.5px;
+  --gap: 1px;
+}
+
+.week-card__head .mood-row {
+  gap: 4px;
+  flex: none;
+}
+
+/* Sleep stages under "Slept 7h 40m": a slim bar, deep and REM named after it. */
+.day-health__stages {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-xs);
+  min-width: 0;
+  margin-top: -4px;
+}
+
+.day-health__stages > .stagebar__track {
+  flex: none;
+  width: 96px;
+}
+
+.day-health__stage-words {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* Opened from the evening notification (?mood): a soft ring until a mood is chosen. */
+.mood-picker[data-asked] {
+  border-radius: var(--radius-md);
+  outline: 2px solid color-mix(in oklch, var(--accent) 45%, transparent);
+  outline-offset: 6px;
+  transition: outline-color var(--dur-fast) var(--ease-out);
+}

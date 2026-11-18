@@ -1,0 +1,48 @@
+[build]
+  publish = "app/dist"
+  command = "npm run build"
+  functions = "netlify/functions"
+
+# Netlify Server (netlify/server/index.ts) needs Node 24; the build, the
+# functions and the server all run on this major. See docs/netlify-server.md.
+[build.environment]
+  NODE_VERSION = "24"
+
+[functions]
+  node_bundler = "esbuild"
+  # sharp (lib/art.ts, lib/static-map.ts) ships native code, so it isn't bundled.
+  external_node_modules = ["sharp"]
+
+[dev]
+  command = "npm run dev:app"
+  targetPort = 5173
+  port = 8888
+  publish = "app/dist"
+  framework = "#custom"
+
+# Rich links: players load in iframes only from these hosts (lib/embeds.ts
+# EMBED_FRAME_HOSTS), after a tap. 'self' and blob: keep the attachment
+# viewer's PDF frame working. Only frame-src is set here.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "frame-src 'self' blob: https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://open.spotify.com https://embed.music.apple.com https://embed.figma.com https://*.framer.website https://*.framer.app"
+
+# The app routes by hash (/#/days/...), so every deep link is "/", a static
+# file. The old catch-all (/* -> /index.html) is gone: a rule that matches
+# every path is applied before Netlify Server and would take its requests
+# (docs/netlify-server.md). Only the share target still needs the shell.
+[[redirects]]
+  from = "/share-target"
+  to = "/index.html"
+  status = 200
+
+# The "Deploy to Netlify" button (README) asks for these when someone sets up
+# their own copy. The values here are only the labels shown beside each box.
+# ATHENA_DATA_KEY isn't here on purpose: it must be set for production only,
+# so deploy previews can't read their copy of the database (README step 2).
+[template.environment]
+  SITE_PASSWORD = "The password you'll type to open your Athena (choose your own)"
+  SESSION_SECRET = "64 random hex characters: openssl rand -hex 32"
+  MCP_BEARER_TOKEN = "Your master token, 64 random hex characters: openssl rand -hex 32"
+  CONNECTOR_ENCRYPTION_KEY = "Seals your account sign-ins, 64 random hex characters: openssl rand -hex 32"

@@ -1,0 +1,193 @@
+/**
+ * The vehicle card (components/car-card.ts) and the car's group on the
+ * DVLA and DVSA account pages (components/car-vehicles.ts). Tokens only, so
+ * dark mode is the tokens' own dark steps.
+ */
+
+.car-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.car-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+
+.car-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.car-card__name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.car-card__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.car-card__about {
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+/* The registration, set like a plate but in the app's own neutrals. */
+.car-plate {
+  flex: none;
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+  border: 1px solid var(--line-strong);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.car-lines {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  padding: var(--space-2xs) var(--space-md);
+}
+
+.car-line {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  font-size: var(--text-small);
+  min-width: 0;
+}
+
+.car-line + .car-line {
+  border-top: 1px solid var(--line);
+}
+
+.car-line__label {
+  flex: 0 0 5.5rem;
+  color: var(--ink-3);
+}
+
+.car-line__value {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink);
+}
+
+.car-line__value[data-tone="soon"] {
+  color: var(--accent-ink);
+  font-weight: var(--weight-medium);
+}
+
+.car-line__value[data-tone="late"] {
+  color: var(--warn);
+  font-weight: var(--weight-medium);
+}
+
+.car-warn {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: flex-start;
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--warn-wash);
+  color: var(--ink);
+  font-size: var(--text-small);
+}
+
+.car-warn svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--warn);
+}
+
+.car-advice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.car-advice__title {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.car-advice__list {
+  margin: 0;
+  list-style: disc;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.car-advice__note,
+.car-card__foot {
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.car-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 32px;
+}
+
+/* The account page's list of vehicles (components/car-vehicles.ts). */
+.car-add {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.car-add .field {
+  flex: 1;
+  min-width: 0;
+  text-transform: uppercase;
+}
+
+.car-add .field::placeholder {
+  text-transform: none;
+}
+
+/* "Getting there" on an event at a place (components/getting-there.ts). */
+.getting-there {
+  align-items: center;
+}
+
+.getting-there__pick {
+  width: auto;
+  min-width: 140px;
+  height: 44px;
+  margin-left: auto;
+}

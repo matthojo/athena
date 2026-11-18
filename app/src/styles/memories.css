@@ -1,0 +1,139 @@
+/*
+ * Home's memory (components/day-card.ts memoryCard): one sentence, at most
+ * one cover, the owner's words set apart, and "Not this one" under it. It
+ * fades up once when it first appears; with reduced motion it's simply there.
+ */
+
+.memory {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2xs);
+}
+
+.memory__link {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+
+.memory__link:active {
+  transform: scale(0.985);
+}
+
+.memory__link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .memory__link:hover {
+    background: var(--sunken-strong);
+  }
+}
+
+.memory__link .art-strip {
+  flex: none;
+}
+
+.memory__mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.memory__mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+.memory__text {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  text-wrap: pretty;
+}
+
+.memory__quote {
+  display: block;
+  margin-top: var(--space-2xs);
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+  quotes: "\201C" "\201D";
+}
+
+.memory__hide {
+  align-self: flex-end;
+  padding: var(--space-2xs) var(--space-xs);
+  margin-right: var(--space-2xs);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  font: inherit;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.memory__hide:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (hover: hover) {
+  .memory__hide:hover {
+    color: var(--ink);
+    background: var(--sunken);
+  }
+}
+
+/* Fades up once, the first time it's shown. */
+.memory--enter {
+  animation: memory-up var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: var(--dur-fast);
+}
+
+@keyframes memory-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.memory.is-leaving {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory--enter {
+    animation: none;
+  }
+  .memory__link,
+  .memory__hide,
+  .memory.is-leaving {
+    transition: none;
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          { "text": "I'll look that up." },
+          { "functionCall": { "name": "search_athena", "args": { "query": "Lisbon trip" } }, "thoughtSignature": "CiQBVKhc7mVYb2a1bbgGqqbsDC0WEazmbXkxzQzB3eWAt+0XXf0K" },
+          { "functionCall": { "name": "list_todos", "args": { "due": "this week" } } }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": { "promptTokenCount": 1117, "candidatesTokenCount": 40, "totalTokenCount": 1300, "cachedContentTokenCount": 1000, "thoughtsTokenCount": 143, "promptTokensDetails": [{ "modality": "TEXT", "tokenCount": 1117 }] },
+  "modelVersion": "gemini-3.5-flash",
+  "responseId": "rJ2kaPfVK5ur1MkP2Iy4oAk"
+}

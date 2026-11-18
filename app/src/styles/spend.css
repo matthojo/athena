@@ -1,0 +1,681 @@
+/* AI spend: Settings → AI spend (components/spend-settings.ts), an assistant's cap (spend-cap.ts) and the notice
+   in an Ask reply (spend-notice.ts). Words carry every state; colour only repeats them. */
+
+.spend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.spend-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+}
+
+.spend-card__label {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+}
+
+.spend-card__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.spend-card__sub {
+  max-width: 60ch;
+  margin-top: calc(-1 * var(--space-2xs));
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.spend-card__divider {
+  height: 1px;
+  margin: var(--space-xs) 0 var(--space-2xs);
+  background: var(--line);
+}
+
+/* ---------- Today ---------- */
+
+.spend-today__figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-xs);
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-tight);
+}
+
+.spend-today__spent {
+  font-size: var(--text-hero);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.spend-today__of {
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.01em;
+  color: var(--ink-2);
+}
+
+.spend-meter {
+  position: relative;
+  height: 10px;
+  margin-top: var(--space-2xs);
+  border-radius: var(--radius-pill);
+  background: var(--sunken-strong);
+  overflow: hidden;
+}
+
+.spend-meter__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--pct) * 100%);
+  min-width: 10px;
+  border-radius: inherit;
+  background: var(--ink);
+  transform-origin: left;
+  animation: spend-grow var(--dur-slow) var(--ease-out-expo) both;
+}
+
+.spend-meter[data-state="near"] .spend-meter__fill {
+  background: var(--warn);
+}
+
+.spend-meter[data-state="reached"] .spend-meter__fill {
+  background: var(--bad);
+}
+
+/* Where the owner's own budget ends when they allowed more today. */
+.spend-meter__mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--at) * 100%);
+  width: 2px;
+  background: var(--surface);
+}
+
+@keyframes spend-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.spend-today__words {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  max-width: 60ch;
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.spend-today__icon {
+  display: inline-flex;
+  flex: none;
+  margin-top: 1px;
+}
+
+.spend-today__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.spend-today__words[data-state="near"] .spend-today__icon {
+  color: var(--warn);
+}
+
+.spend-today__words[data-state="reached"] .spend-today__icon {
+  color: var(--bad);
+}
+
+.spend-today__extra {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.spend-today__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-2xs);
+}
+
+.spend-more {
+  min-height: 44px;
+}
+
+/* "estimated high": a quiet word beside a figure. */
+.spend-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-xs);
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.spend-tag--hero {
+  align-self: center;
+  margin-left: 0;
+}
+
+/* ---------- The split ---------- */
+
+.spend-split {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spend-split__row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spend-split__line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: var(--text-ui);
+}
+
+.spend-split__name {
+  color: var(--ink);
+}
+
+a.spend-split__name {
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+a.spend-split__name:hover {
+  text-decoration: underline;
+}
+
+.spend-split__amount {
+  display: inline-flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.spend-split__bar {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.spend-split__fill {
+  display: block;
+  height: 100%;
+  width: calc(var(--share) * 100%);
+  border-radius: inherit;
+  background: var(--chart-1);
+  transform-origin: left;
+  animation: spend-grow var(--dur-slow) var(--ease-out-expo) both;
+}
+
+.spend-split__row[data-area="background"] .spend-split__fill,
+.spend-split__row[data-area="pictures"] .spend-split__fill {
+  background: var(--chart-axis);
+}
+
+.spend-split__none {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+/* ---------- The week ---------- */
+
+.spend-week__chart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: var(--space-xs);
+  --plot: 120px;
+}
+
+.spend-week__plot,
+.spend-week__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+
+.spend-week__plot {
+  position: relative;
+  align-items: end;
+  height: calc(var(--plot) + 22px);
+  border-bottom: 1px solid var(--line);
+}
+
+.spend-week__col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.spend-week__amount {
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.spend-week__bar {
+  display: block;
+  width: 100%;
+  max-width: 44px;
+  height: calc(var(--h) * var(--plot));
+  min-height: 3px;
+  border-radius: var(--radius-2xs) var(--radius-2xs) 0 0;
+  background: color-mix(in oklch, var(--chart-1) 42%, var(--sunken));
+  transform-origin: bottom;
+  animation: spend-rise var(--dur-slow) var(--ease-out-expo) both;
+}
+
+.spend-week__col[data-today] .spend-week__bar {
+  background: var(--chart-1);
+}
+
+.spend-week__day {
+  text-align: center;
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.spend-week__day[data-today],
+.spend-week__col[data-today] .spend-week__amount {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+/* The daily budget across the bars: dashed, behind them, named in the line above the chart. */
+.spend-week__budget {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--budget) * var(--plot));
+  border-top: 1.5px dashed var(--ink-3);
+  pointer-events: none;
+}
+
+@keyframes spend-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* ---------- The budget ---------- */
+
+.spend-budget__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-2xs);
+}
+
+.spend-amount {
+  position: relative;
+  max-width: 240px;
+}
+
+.spend-amount__symbol {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  pointer-events: none;
+}
+
+.spend-amount__input {
+  padding-left: 34px;
+  font-variant-numeric: tabular-nums;
+}
+
+.spend-amount__input[aria-invalid="true"] {
+  border-color: var(--bad);
+}
+
+.spend-error {
+  min-height: 1.2em;
+  font-size: var(--text-small);
+  color: var(--bad);
+}
+
+.spend-error:empty {
+  min-height: 0;
+}
+
+.spend-budget__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.spend-budget__actions .btn {
+  min-height: 44px;
+}
+
+.spend-caps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.spend-caps__title {
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.spend-caps__list {
+  margin-top: var(--space-2xs);
+  box-shadow: none;
+}
+
+.spend-caps__row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 56px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.spend-caps__row + .spend-caps__row::before {
+  left: var(--space-md);
+}
+
+.spend-caps__meter {
+  display: block;
+  height: 4px;
+  max-width: 220px;
+  margin-top: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken-strong);
+  overflow: hidden;
+}
+
+.spend-caps__fill {
+  display: block;
+  height: 100%;
+  width: calc(var(--pct) * 100%);
+  border-radius: inherit;
+  background: var(--ink-2);
+}
+
+.spend-caps__row[data-state="near"] .spend-caps__fill {
+  background: var(--warn);
+}
+
+.spend-caps__row[data-state="reached"] .spend-caps__fill {
+  background: var(--bad);
+}
+
+.spend-caps__row[data-state="reached"] .row__meta {
+  color: var(--bad);
+}
+
+.spend-caps__row[data-state="near"] .row__meta {
+  color: var(--warn);
+}
+
+/* ---------- Notes ---------- */
+
+.spend-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.spend-note {
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
+.spend-note svg {
+  margin-top: 2px;
+}
+
+.spend-note[data-stale] {
+  color: var(--ink-2);
+}
+
+.spend-notes code {
+  font-size: 0.92em;
+  padding: 0 4px;
+  border-radius: var(--radius-2xs);
+  background: var(--sunken);
+}
+
+.spend-skeleton {
+  gap: var(--space-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spend-meter__fill,
+  .spend-split__fill,
+  .spend-week__bar {
+    animation: none;
+  }
+}
+
+/* An amount sits over the budget's dashed line when its bar reaches it: lifted onto the card's own surface. */
+.spend-week__amount {
+  position: relative;
+  z-index: 1;
+  padding: 0 3px;
+  border-radius: var(--radius-2xs);
+  background: var(--surface);
+}
+
+/* ---------- An assistant's cap (spend-cap.ts) ---------- */
+
+.spend-cap__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.spend-cap__figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0 6px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.spend-cap__spent {
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.spend-cap__of {
+  font-size: var(--text-ui);
+  color: var(--ink-2);
+}
+
+.spend-meter--sm {
+  height: 6px;
+  margin-top: 0;
+}
+
+.spend-cap__words {
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.spend-cap__words[data-state="reached"] {
+  color: var(--ink);
+}
+
+.spend-cap__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  align-self: flex-start;
+  min-height: 44px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+
+.spend-cap__link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.spend-cap__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- The notice in an Ask reply (spend-notice.ts) ---------- */
+
+.spend-notice {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  animation: spend-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+.spend-notice__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.spend-notice__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.spend-notice[data-allowed] .spend-notice__icon {
+  color: var(--good);
+}
+
+.spend-notice__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.spend-notice__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.spend-notice__sub {
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.spend-notice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.spend-notice__btn {
+  min-height: 44px;
+}
+
+@keyframes spend-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spend-notice {
+    animation: none;
+  }
+}
+
+.spend-notice__actions {
+  align-items: center;
+  column-gap: var(--space-md);
+}
+
+.spend-notice__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+
+.spend-notice__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* An assistant's name in the split opens its page: a 44px target without moving the line. */
+a.spend-split__name {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
+  margin: -10px 0;
+}
+
+.spend-today__words:focus,
+.spend-cap__words:focus {
+  outline: none;
+}

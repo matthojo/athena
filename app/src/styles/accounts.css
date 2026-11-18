@@ -1,0 +1,965 @@
+/*
+ * Accounts in Sources: connecting one (whose it is, setup steps, a key),
+ * the connected sheet with its collection offer, and an account's detail
+ * (problem box, Used by, what Athena can read, quiet footer).
+ * Builds on components.css (cards, props, chips, buttons); only acct-* and
+ * steps* rules live here.
+ */
+
+/* ---------- Small shared bits ---------- */
+
+/* A text button that reads as a link, with a 44px target. */
+.acct-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+.acct-link::after {
+  content: "";
+  position: absolute;
+  inset: -6px -4px;
+}
+
+@media (hover: hover) {
+  .acct-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.acct-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-2xs);
+}
+
+.acct-fold__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.acct-fold__title {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.acct-form {
+  gap: var(--space-lg);
+}
+
+.acct-help {
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+/* ---------- Directory filtered for a recipe ---------- */
+
+.acct-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-md);
+  margin-bottom: var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: var(--accent-wash);
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.acct-filter strong {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+/* ---------- Whose account is it? ---------- */
+
+.acct-whose__chips {
+  overflow: visible;
+  gap: var(--space-xs);
+}
+
+.acct-whose__chip {
+  height: 44px;
+  padding: 0 var(--space-md);
+  font-size: var(--text-ui);
+}
+
+.acct-whose__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.acct-whose__name strong {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.acct-whose__name .acct-link {
+  margin-left: 4px;
+}
+
+.acct-whose [hidden] {
+  display: none;
+}
+
+/* ---------- Setup steps ---------- */
+
+.acct-setup__lede {
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.steps-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.steps {
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2xs) 0;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    var(--shadow-card);
+}
+
+.steps__item {
+  counter-increment: step;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) var(--space-sm) calc(var(--space-md) + 26px + var(--space-sm));
+}
+
+/* The number, in a quiet ring. */
+.steps__item::before {
+  content: counter(step);
+  position: absolute;
+  top: calc(var(--space-sm) + 1px);
+  left: var(--space-md);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A hairline joins one number to the next. */
+.steps__item + .steps__item::after {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--space-sm) + 6px);
+  left: calc(var(--space-md) + 12.5px);
+  width: 1px;
+  height: calc(var(--space-sm) * 2 - 10px);
+  background: var(--line-strong);
+}
+
+.steps__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.steps__text {
+  min-width: 0;
+  padding-top: 3px;
+}
+
+.steps__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.steps__sub {
+  margin-top: 2px;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.steps__btn {
+  flex: none;
+  gap: 6px;
+  min-width: 76px;
+  text-decoration: none;
+}
+
+.steps__btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.steps__btn--done {
+  background: color-mix(in oklch, var(--good) 14%, var(--surface));
+  color: var(--good);
+}
+
+.steps__copy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+}
+
+.steps__code {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: var(--text-meta);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.steps__item > .card {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.steps__note {
+  display: flex;
+  gap: var(--space-xs);
+  padding: 0 var(--space-2xs);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.steps__note svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  color: var(--ink-3);
+}
+
+/* ---------- Reusing a setup ---------- */
+
+.acct-reuse {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--good) 9%, var(--surface));
+}
+
+.acct-reuse__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--good) 18%, transparent);
+  color: var(--good);
+}
+
+.acct-reuse__icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.acct-reuse__text {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+/* ---------- A key, checked as it's pasted ---------- */
+
+.acct-key {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acct-key__state {
+  min-height: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+.acct-key__state:empty {
+  display: none;
+}
+
+.acct-key__state--warn {
+  color: var(--warn);
+}
+
+.acct-key__state--good {
+  color: var(--good);
+}
+
+/* ---------- Custom server: how it signs in ---------- */
+
+.acct-auth {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.acct-auth__label {
+  flex: none;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.acct-auth .seg {
+  flex: 1;
+}
+
+/* ---------- Connected ---------- */
+
+.acct-done {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding-bottom: var(--space-md);
+}
+
+.acct-done__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding-top: var(--space-xs);
+}
+
+.acct-done__logo {
+  position: relative;
+  margin-bottom: var(--space-xs);
+}
+
+.acct-done__badge {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--good);
+  color: var(--on-ink);
+  box-shadow: 0 0 0 3px var(--surface);
+  animation: acct-pop var(--dur-base) var(--ease-out-expo) both;
+}
+
+.acct-done__tick {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.acct-done__tick path {
+  stroke-dasharray: 18;
+  stroke-dashoffset: 18;
+  animation: acct-draw var(--dur-slow) var(--ease-out-expo) var(--dur-instant) forwards;
+}
+
+@keyframes acct-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes acct-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acct-done__badge {
+    animation: acct-fade var(--dur-fast) var(--ease-linear) both;
+  }
+
+  .acct-done__tick path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  @keyframes acct-fade {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+.acct-done__title {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.acct-done__sub {
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.acct-offer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    var(--shadow-card);
+}
+
+.acct-offer--quiet,
+.acct-offer--on {
+  background: var(--sunken);
+  box-shadow: none;
+}
+
+.acct-offer--on {
+  animation: acct-fade-up var(--dur-base) var(--ease-out-expo) both;
+}
+
+@keyframes acct-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acct-offer--on {
+    animation: none;
+  }
+}
+
+.acct-offer__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.acct-offer__sentence {
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.acct-offer > .btn--primary {
+  margin-top: var(--space-xs);
+}
+
+.acct-offer__links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.acct-offer .acct-link {
+  align-self: center;
+}
+
+.acct-saves {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.acct-saves__item {
+  display: flex;
+  gap: var(--space-xs);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink);
+}
+
+.acct-saves__mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--good) 16%, transparent);
+  color: var(--good);
+}
+
+.acct-saves__mark svg {
+  width: 12px;
+  height: 12px;
+}
+
+.acct-saves__item--never {
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+.acct-saves__item--never .acct-saves__mark {
+  background: var(--sunken-strong);
+  color: var(--ink-3);
+}
+
+.acct-saves__item--never strong {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+/* ---------- Account detail ---------- */
+
+.acct-detail .conn-hero .conn-status {
+  margin-top: 4px;
+}
+
+/* The problem, with its fix. Amber, never red: nothing is lost. */
+.acct-problem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-xs) var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--warn-wash);
+}
+
+.acct-problem--info {
+  background: var(--sunken);
+}
+
+.acct-problem__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--warn) 16%, transparent);
+  color: var(--warn);
+}
+
+.acct-problem--info .acct-problem__icon {
+  background: var(--sunken-strong);
+  color: var(--ink-2);
+}
+
+.acct-problem__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.acct-problem__body {
+  align-self: center;
+}
+
+.acct-problem__title {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.acct-problem__line {
+  margin-top: 2px;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.acct-problem__fix {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.acct-problem__fix:empty {
+  display: none;
+}
+
+.acct-problem__fix .steps-block {
+  align-self: stretch;
+}
+
+.acct-problem__btn {
+  height: 40px;
+  padding: 0 var(--space-md);
+  font-size: var(--text-small);
+}
+
+/* Wide enough: the fix sits beside the words when it's one button. */
+@media (min-width: 480px) {
+  .acct-problem:has(.acct-problem__fix > .btn:only-child) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .acct-problem:has(.acct-problem__fix > .btn:only-child) .acct-problem__fix {
+    grid-column: 3;
+    align-self: center;
+  }
+}
+
+/* What Athena can read: one line, opening to the full list. */
+.acct-perms {
+  overflow: hidden;
+}
+
+.acct-perms__summary {
+  cursor: pointer;
+  list-style: none;
+  min-height: 64px;
+}
+
+.acct-perms__summary::-webkit-details-marker {
+  display: none;
+}
+
+.acct-perms__names {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.acct-perms__choose {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+.acct-perms__chev {
+  display: inline-flex;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.acct-perms__chev svg {
+  width: 16px;
+  height: 16px;
+}
+
+.acct-perms[open] .acct-perms__chev {
+  transform: rotate(180deg);
+}
+
+.acct-perms__body {
+  border-top: 1px solid var(--line);
+  padding-bottom: var(--space-2xs);
+}
+
+.acct-perms__label {
+  padding: var(--space-md) var(--space-md) var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.acct-perms__hint {
+  padding: 0 var(--space-md);
+}
+
+.acct-perms .tool-row + .tool-row::before {
+  left: var(--space-md);
+}
+
+.acct-used {
+  min-height: 60px;
+  align-items: center;
+}
+
+.acct-used__cost {
+  color: var(--warn);
+}
+
+/* Quiet footer: Rename · Check connection · Remove. */
+.acct-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0;
+}
+
+.acct-foot__btn {
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+}
+
+.acct-foot__btn + .acct-foot__btn::before {
+  content: "·";
+  margin: 0 var(--space-sm) 0 calc(-1 * var(--space-sm));
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.acct-foot__btn--danger {
+  color: var(--bad);
+}
+
+/* A phone: two to a row, no dots, so a wrapped line never starts with "·". */
+@media (max-width: 480px) {
+  .acct-foot {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 0;
+  }
+
+  .acct-foot__btn {
+    justify-self: center;
+  }
+
+  .acct-foot__btn + .acct-foot__btn::before {
+    content: none;
+  }
+
+  .acct-foot__btn:nth-child(odd):last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.acct-foot__btn:disabled {
+  opacity: 0.5;
+}
+
+@media (hover: hover) {
+  .acct-foot__btn:hover:not(:disabled) {
+    color: var(--ink);
+  }
+
+  .acct-foot__btn--danger:hover:not(:disabled) {
+    color: var(--bad);
+  }
+}
+
+/* A key or secret pasted right in the problem box: the steps take the full width. */
+.acct-problem:has(.steps-block) .acct-problem__fix {
+  grid-column: 1 / -1;
+  align-items: stretch;
+}
+
+.acct-problem .steps {
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--warn) 18%, var(--line));
+}
+
+.acct-problem__save {
+  height: 44px;
+}
+
+.acct-help[hidden],
+.acct-offer [hidden] {
+  display: none;
+}
+
+.acct-problem--info .btn--soft {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* Google Calendar, Outlook and iCloud Calendar: which calendars Athena reads (calendar-picker.ts). */
+.cal-pick__row {
+  cursor: pointer;
+}
+.cal-pick__dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ink) 12%, transparent);
+}
+.cal-pick__loading .row__meta {
+  padding-block: 6px;
+}
+.cal-pick__main {
+  height: 18px;
+  padding-inline: 7px;
+  font-size: var(--text-meta);
+  letter-spacing: 0.01em;
+}
+.cal-pick__row--loading {
+  cursor: default;
+}
+.cal-pick__row--loading .cal-pick__dot {
+  box-shadow: none;
+}
+.cal-pick__bar {
+  display: block;
+  width: 46%;
+  height: 12px;
+}
+.cal-pick__bar--short {
+  width: 64%;
+  height: 10px;
+  margin-top: 8px;
+}
+.cal-pick__knob {
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+}
+.cal-pick__more {
+  width: 100%;
+  text-align: left;
+}
+.cal-pick__more-text {
+  color: var(--accent-ink, var(--accent));
+  font-weight: 500;
+}
+
+/* ---- An address as labelled groups (address-fields.ts): Octopus's meters ---- */
+.af {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.af-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.af-group__title {
+  margin: 0;
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.af-group .prop__input[aria-invalid="true"] {
+  border-color: var(--bad);
+}
+
+.af-error {
+  margin: 0;
+  padding-inline: var(--space-2xs);
+}
+
+.af-toggle {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.af-toggle__label {
+  color: var(--ink);
+  font-size: var(--text-body);
+}
+
+.af-find__state {
+  margin: 0;
+  padding-inline: var(--space-2xs);
+}
+
+.af-find__state:empty {
+  display: none;
+}
+
+.af-find__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.af-find__list:empty {
+  display: none;
+}
+
+.af-find__choice {
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+}
+
+.af-find__choice[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.af-find__choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A quiet note on an account's page: Spotify's "Sign in again to let Athena read your playlists" (connector-detail.ts). */
+.acct-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.acct-note__text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+}
