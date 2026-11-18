@@ -1,6 +1,6 @@
 {
   "name": "athena",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Personal second brain: Netlify DB + MCP server + offline-first PWA.",
   "license": "AGPL-3.0-or-later",
@@ -11,6 +11,8 @@
     "build": "vite build --config app/vite.config.ts",
     "preview": "vite preview --config app/vite.config.ts",
     "export:obsidian": "tsx scripts/export-obsidian.ts",
+    "test": "tsx --test 'lib/**/*.test.ts' 'app/src/**/*.test.ts' 'netlify/**/*.test.ts' 'scripts/**/*.test.ts'",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p app",
     "test:db": "ATHENA_DATA_KEY=2222222222222222222222222222222222222222222222222222222222222222 tsx --test --test-concurrency=1 'lib/*.db.test.ts' 'netlify/**/*.db.test.ts'"
   },
   "dependencies": {

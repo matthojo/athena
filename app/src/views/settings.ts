@@ -26,6 +26,7 @@ import { h } from "../lib/dom";
 import { icons, type IconName } from "../components/icons";
 import { openFieldEditor } from "../components/field-editor";
 import { shareSetting } from "../components/share-setting";
+import { aboutAthenaSection } from "../components/about-settings";
 import { apiKeysSection } from "../components/api-keys";
 import { mapsArtSection } from "../components/maps-art-settings";
 import { notificationsSection } from "../components/notification-settings";
@@ -245,7 +246,7 @@ function fieldsSection(ctx: { go: (view: ViewId) => void }): { el: HTMLElement; 
   };
 }
 
-export type SettingsSection = "about" | "fields" | typeof KIND_WORD.slug | ConnectorSection | "health" | "maps" | "days" | "checkins" | "todo" | "drafts" | "recipes" | "notifications" | "reminders" | "knows" | "api-keys" | "ask" | "ask-activity" | "skills" | "models" | "spend";
+export type SettingsSection = "about" | "fields" | typeof KIND_WORD.slug | ConnectorSection | "health" | "maps" | "days" | "checkins" | "todo" | "drafts" | "recipes" | "notifications" | "reminders" | "knows" | "api-keys" | "ask" | "ask-activity" | "skills" | "models" | "spend" | "athena";
 
 interface SectionInfo {
   id: SettingsSection;
@@ -283,6 +284,7 @@ const GROUPS: Array<{ label: string | null; sections: SectionInfo[] }> = [
   },
   { label: "Talk and capture", sections: TALK_SECTIONS },
   { label: "Access", sections: [{ id: "api-keys", label: "API keys", detail: "For your iPhone's Shortcut, agents or scripts", icon: "key" }] },
+  { label: null, sections: [{ id: "athena", label: "About", detail: "Version, updates, and details for a bug report", icon: "laptop" }] },
 ];
 const SECTIONS: SectionInfo[] = GROUPS.flatMap((g) => g.sections);
 
@@ -321,6 +323,7 @@ function section(id: SettingsSection, ctx: { go: (view: ViewId) => void; open: (
     return a;
   }
   if (id === "knows") return knowsSection();
+  if (id === "athena") return aboutAthenaSection();
   if (id === "ask") return askSettingsSection({ open: ctx.open });
   if (id === "ask-activity") return askActivitySection();
   if (id === "spend") return lazySection(() => import("../components/spend-settings").then((m) => m.spendSettingsSection()));
