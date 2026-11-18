@@ -170,7 +170,7 @@ Each of these is optional:
 ## Updating
 
 New versions come out as [releases](https://github.com/matthojo/athena/releases).
-Settings → About you shows which version you're on, and **Check for updates**
+Settings → About shows which version you're on, and **Check for updates**
 asks GitHub whether there's a newer one.
 
 Your copy updates through a pull request. The **Update Athena** workflow in

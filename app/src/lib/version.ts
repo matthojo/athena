@@ -1,6 +1,6 @@
 /**
  * Which version of Athena this is, and whether a newer release is out
- * (Settings → About you). The build puts the version in from package.json
+ * (Settings → About). The build puts the version in from package.json
  * (app/vite.config.ts). The check is one request to GitHub's public releases
  * API, made only when the owner presses "Check for updates": no account,
  * token or anything else from Athena goes with it.

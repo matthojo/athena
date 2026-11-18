@@ -1,5 +1,5 @@
 /**
- * Settings → About you: which version of Athena this is, and "Check for
+ * Settings → About: which version of Athena this is, and "Check for
  * updates". The check asks GitHub's public releases API for the newest
  * release, only when the owner presses the button (lib/version.ts). Updating
  * itself happens in the owner's own repository: the README's "Updating"

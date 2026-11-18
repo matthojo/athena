@@ -18,4 +18,5 @@ The first public release.
   apart (`SECURITY.md`).
 - A Deploy to Netlify button, and updates through a weekly pull request in
   your own copy (README, "Updating").
-- Settings → About you shows your version and checks for a newer one.
+- Settings → About shows your version, checks for a newer one, and lists
+  the details to copy into a bug report.

@@ -3,7 +3,7 @@ name: Release
 # When main's package.json has a version with no release yet, tag it and
 # publish a GitHub release, with that version's section of CHANGELOG.md as its
 # notes. Copies of Athena find new releases this way (scripts/update-athena.sh,
-# and Settings → About you). Runs only in Athena's own repository.
+# and Settings → About). Runs only in Athena's own repository.
 
 on:
   push:

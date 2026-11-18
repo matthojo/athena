@@ -10,8 +10,12 @@ const { version } = JSON.parse(readFileSync(resolve(__dirname, "../package.json"
 export default defineConfig({
   root: resolve(__dirname),
   publicDir: resolve(__dirname, "public"),
-  // Shown in Settings → About you (components/version-setting.ts).
-  define: { __ATHENA_VERSION__: JSON.stringify(version) },
+  // Shown in Settings → About (components/about-settings.ts).
+  define: {
+    __ATHENA_VERSION__: JSON.stringify(version),
+    __ATHENA_COMMIT__: JSON.stringify(process.env.COMMIT_REF ?? ""),
+    __ATHENA_BUILT_AT__: JSON.stringify(new Date().toISOString()),
+  },
   build: {
     outDir: resolve(__dirname, "dist"),
     emptyOutDir: true,
