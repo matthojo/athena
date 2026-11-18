@@ -315,7 +315,7 @@ export async function syncWork(connectorId: string, opts: WorkSyncOptions): Prom
     if (error instanceof ShapeUnknown) {
       // Nothing from this reply was stored; the account is failed with a plain error until a run reads it cleanly.
       await patchState(connectorId, { streams, lease_until: undefined, error: error.message });
-      console.error(`Athena work sync (${connector.provider}): a reply in a shape Athena doesn't know`);
+      console.error(`Athena work sync (${connector.provider}): a reply in a shape Athena doesn't know${error.detail ? `: ${error.detail}` : ""}`);
       return { ...out, state: "failed", message: error.message };
     }
     const w = error instanceof ConnectorNeedsSignIn ? { ms: 0, status: 401, message: `${connector.name} needs signing in again`, owner: true } : waitAfter(error, connector.name);
