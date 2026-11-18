@@ -26,6 +26,7 @@ import { h } from "../lib/dom";
 import { icons, type IconName } from "../components/icons";
 import { openFieldEditor } from "../components/field-editor";
 import { shareSetting } from "../components/share-setting";
+import { versionSetting } from "../components/version-setting";
 import { apiKeysSection } from "../components/api-keys";
 import { mapsArtSection } from "../components/maps-art-settings";
 import { notificationsSection } from "../components/notification-settings";
@@ -317,7 +318,7 @@ function section(id: SettingsSection, ctx: { go: (view: ViewId) => void; open: (
       h("span", { class: "row__trail" }, h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()))
     );
     entry.addEventListener("click", () => ctx.open("knows"));
-    a.el.querySelector(".settings__actions")?.before(h("div", { class: "card card--flush list settings__sub" }, entry), h("div", { class: "card settings__sub ask-money-card" }, askMoneySetting()), h("div", { class: "card settings__sub ask-money-card" }, shareSetting()));
+    a.el.querySelector(".settings__actions")?.before(h("div", { class: "card card--flush list settings__sub" }, entry), h("div", { class: "card settings__sub ask-money-card" }, askMoneySetting()), h("div", { class: "card settings__sub ask-money-card" }, shareSetting()), h("div", { class: "card settings__sub ask-money-card" }, versionSetting()));
     return a;
   }
   if (id === "knows") return knowsSection();

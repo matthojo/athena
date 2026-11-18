@@ -1,0 +1,40 @@
+name: Update Athena
+
+# Runs in your copy of Athena, not in Athena's own repository. Once a week (or
+# when you press "Run workflow" on the Actions tab) it checks for a newer
+# release and, if there is one, opens a pull request that brings your copy up
+# to it. Netlify builds a deploy preview of that pull request; merge it to
+# update your live site. Setup: the README's "Updating" section.
+
+on:
+  schedule:
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-athena
+
+jobs:
+  update:
+    if: github.repository != 'matthojo/athena'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # A token of your own is only needed when a release changes a file
+          # under .github/workflows, which GitHub's built-in token can't push.
+          token: ${{ secrets.ATHENA_UPDATE_TOKEN || github.token }}
+      - name: Open a pull request for the newest release
+        env:
+          GH_TOKEN: ${{ secrets.ATHENA_UPDATE_TOKEN || github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Run a copy, since the update may replace the script itself.
+          cp scripts/update-athena.sh "$RUNNER_TEMP/update-athena.sh"
+          bash "$RUNNER_TEMP/update-athena.sh"

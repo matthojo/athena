@@ -1,0 +1,42 @@
+name: Release
+
+# When main's package.json has a version with no release yet, tag it and
+# publish a GitHub release, with that version's section of CHANGELOG.md as its
+# notes. Copies of Athena find new releases this way (scripts/update-athena.sh,
+# and Settings → About you). Runs only in Athena's own repository.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+
+jobs:
+  release:
+    if: github.repository == 'matthojo/athena'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish the release if this version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "v$version is already released."
+            exit 0
+          fi
+          awk -v v="$version" '
+            index($0, "## " v) == 1 && (length($0) == length(v) + 3 || substr($0, length(v) + 4, 1) == " ") { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for $version. Add one headed \"## $version\"."
+            exit 1
+          fi
+          gh release create "v$version" --target "$GITHUB_SHA" --title "Athena $version" --notes-file notes.md

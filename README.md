@@ -169,8 +169,39 @@ Each of these is optional:
 
 ## Updating
 
-Pull this repository's `main` branch into your copy. Netlify deploys it and
-applies any new database migrations before the new version goes live.
+New versions come out as [releases](https://github.com/matthojo/athena/releases).
+Settings → About you shows which version you're on, and **Check for updates**
+asks GitHub whether there's a newer one.
+
+Your copy updates through a pull request. The **Update Athena** workflow in
+your repository checks every Monday, and when there's a new release it opens a
+pull request that brings your copy up to it. Netlify builds a deploy preview
+of that pull request against a copy of your database, so any new migrations
+run there before they reach your live site. Merge it, and Netlify updates your
+site.
+
+Set it up once, in your repository on GitHub:
+
+1. **Settings → Actions → General**: under "Workflow permissions", turn on
+   **Allow GitHub Actions to create and approve pull requests**.
+2. To check straight away: **Actions → Update Athena → Run workflow**.
+
+### Details
+
+- **If a release changes a workflow file,** GitHub's built-in token can't push
+  it and the run fails. Add a fine-grained personal access token as a
+  repository secret named `ATHENA_UPDATE_TOKEN`, with read and write access to
+  Contents, Pull requests and Workflows on your repository.
+- **A copy made by the Deploy button has no shared history** with this
+  repository, so the update copies the release's files over yours. If you've
+  changed Athena's own files, the pull request's diff shows what's replaced.
+  A fork or clone shares history, so the release is merged and your changes
+  are kept unless they conflict.
+- **In a public repository, GitHub pauses scheduled workflows** after 60 days
+  without activity. Running it from the Actions tab starts it again.
+- **To do it by hand,** run `scripts/update-athena.sh` in a clone of your copy.
+  It needs the GitHub CLI to open the pull request; with `ATHENA_PUSH=0` it
+  only makes the branch.
 
 ## Use it from Claude
 
@@ -228,22 +259,21 @@ somewhere safe.
   vulnerability
 - [extension/README.md](extension/README.md): the "Save to Athena" browser
   extension
+- [CONTRIBUTING.md](CONTRIBUTING.md): setup, checks, and the rules for
+  changes and releases
+- [CHANGELOG.md](CHANGELOG.md): what changed in each release
 
 ## Contributing
 
 Issues and pull requests are welcome. Please report security problems
 privately, as [SECURITY.md](SECURITY.md) describes, not in a public issue.
 
-Tests use Node's test runner through `tsx`:
+[CONTRIBUTING.md](CONTRIBUTING.md) covers setup, the checks to run and the
+rules every change follows. In short:
 
 ```sh
-npx tsx --test 'lib/*.test.ts' 'app/src/**/*.test.ts' 'netlify/**/*.test.ts'
+npm run typecheck && npm test && npm run build
 ```
-
-Files named `*.db.test.ts` need a Postgres database with the migrations in
-`netlify/database/migrations/` applied. Point `ATHENA_TEST_DB_URL` at it and
-run `npm run test:db`. The browser extension has its own tests:
-`cd extension && npm test`.
 
 ## License
 

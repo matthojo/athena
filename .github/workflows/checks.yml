@@ -1,0 +1,62 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Typecheck, tests and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Database tests (*.db.test.ts) skip themselves without ATHENA_TEST_DB_URL.
+      - run: npm test
+      - run: npm run build
+      - name: Browser extension tests
+        working-directory: extension
+        run: npm test
+
+  migrations:
+    name: Released migrations unchanged
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Every copy of Athena applies netlify/database/migrations in order, and
+      # Netlify refuses a deploy whose applied migrations were edited or
+      # removed. So a pull request may add migrations, never change one.
+      - name: Only new migration files
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          changed="$(git diff --name-status --diff-filter=DMRT "origin/$BASE...HEAD" -- netlify/database/migrations)"
+          if [ -n "$changed" ]; then
+            echo "::error::A released migration was edited, renamed or removed. Add a new migration instead (CONTRIBUTING.md):"
+            echo "$changed"
+            exit 1
+          fi
+
+  secrets:
+    name: No secrets
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
