@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as W from "./fixtures/work-tools";
-import { githubMe, githubMergedBy, githubPrs, githubReviews, linearIssues, linearMe, ShapeUnknown } from "./work-parse";
+import { describeShape, githubMe, githubMergedBy, githubPrs, githubReviews, linearIssues, linearMe, ShapeUnknown } from "./work-parse";
 import { allowsWork, FIRST_DAYS, OVERLAP_MS, readPlan, workSyncLine, workSyncOn } from "./work-sync";
 import { cycleTimes, heatYear, mergeTimes, noteKind, noteOpen, orderNotes, previousSpan, projectDetail, projectsIn, shippedByDay, workPage, workPeriods, type WorkNote } from "../../../lib/work-stats";
 import { ownItem, workKey, type WorkItem } from "../../../lib/work";
@@ -121,6 +121,56 @@ test("GitHub: search as opened keeps the owner's PRs; as reviewed only other peo
 test("GitHub: the minimal list shape (merged_at at the top, a bare list) reads too", () => {
   const r = githubPrs(W.GITHUB_LIST_MINIMAL.replaceAll('"jordanreeve"', `"${W.ME}"`), gh, "opened");
   assert.deepEqual(r.prs.map((p) => [p.id, p.merged]), [["acme/app#211", "2026-11-12T14:55:05.000Z"]]);
+});
+
+test("GitHub: a search with no results reads as none, however the empty list comes back", () => {
+  for (const reply of [{ total_count: 0, incomplete_results: false, items: null }, { total_count: 0, incomplete_results: false }, { total_count: 0, items: [] }, []]) {
+    assert.deepEqual(githubPrs(JSON.stringify(reply), gh, "opened"), { prs: [], read: 0, ...(Array.isArray(reply) ? {} : { total: 0 }) }, JSON.stringify(reply));
+  }
+  // Results counted but no list is still a reply Athena doesn't know.
+  assert.throws(() => githubPrs(JSON.stringify({ total_count: 4, items: null }), gh, "opened"), /items is null/);
+});
+
+test("GitHub: the author and the link read from the other names GitHub's servers use", () => {
+  const base = { number: 7, title: "Tidy the sync", created_at: "2026-11-10T09:00:00Z", updated_at: "2026-11-10T10:00:00Z" };
+  const variants = [
+    { ...base, html_url: "https://github.com/acme/app/pull/7", author: { login: W.ME } },
+    { ...base, html_url: "https://github.com/acme/app/pull/7", author: W.ME },
+    { ...base, html_url: "https://github.com/acme/app/pull/7", user: W.ME },
+    { ...base, url: "https://github.com/acme/app/pull/7", user: { login: W.ME } },
+    { ...base, repository: "acme/app", user: { login: W.ME } },
+    { ...base, repository: { full_name: "acme/app" }, author: { login: W.ME } },
+    { ...base, repository_url: "https://api.github.com/repos/acme/app", user: { login: W.ME } },
+  ];
+  for (const item of variants) {
+    const r = githubPrs(JSON.stringify({ total_count: 1, items: [item] }), gh, "opened");
+    assert.deepEqual(r.prs.map((p) => [p.id, p.url]), [["acme/app#7", "https://github.com/acme/app/pull/7"]], JSON.stringify(item));
+  }
+});
+
+test("GitHub: an unrecognised reply says which fields it had, never what was in them", () => {
+  const item = { number: 7, title: "Private roadmap item", html_url: "https://github.com/acme/secret-repo/pull/7", assignee: { login: "priya-teammate" } };
+  let message = "";
+  try {
+    githubPrs(JSON.stringify({ total_count: 1, items: [item] }), gh, "opened");
+  } catch (error) {
+    assert.ok(error instanceof ShapeUnknown);
+    message = error.message;
+  }
+  assert.match(message, /without an author, with fields: assignee, html_url, number, title/);
+  for (const value of ["Private roadmap", "secret-repo", "priya-teammate"]) assert.ok(!message.includes(value), `no ${value}`);
+  assert.throws(() => githubPrs("3 pull requests found", gh, "opened"), /text that isn't JSON \(21 characters\)/);
+});
+
+test("describeShape: field names and kinds only", () => {
+  assert.equal(describeShape(null), "null");
+  assert.equal(describeShape([]), "an empty list");
+  assert.equal(describeShape("hello"), "a string");
+  assert.equal(describeShape([{ b: 1, a: "x" }, {}]), "a list of 2, the first with fields: a, b");
+  assert.equal(describeShape({ total_count: 0, items: null, incomplete_results: false }), "an object with fields: incomplete_results, items, total_count; items is null");
+  assert.equal(describeShape({ results: [{ id: 1 }] }), "an object with fields: results; results is a list of 1, the first with fields: id");
+  // Keys that look like data (a repo, an email) are counted, not named.
+  assert.equal(describeShape({ "acme/app": [], "sam@example.com": 1, page: 1 }), "an object with fields: page and 2 more");
 });
 
 test("GitHub: an unknown search shape fails", () => {
