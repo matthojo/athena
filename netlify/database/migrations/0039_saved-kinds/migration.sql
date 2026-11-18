@@ -9,7 +9,7 @@
 -- lib/encryption.ts).
 --
 -- filed_at / filed_to: an item moved somewhere by an action ("Move to Watch &
--- read", "Gift idea for Rowan") leaves the main list and shows under Filed.
+-- read", "Gift idea for Sophie") leaves the main list and shows under Filed.
 -- filed_to is sealed JSON: the action, where it went (label and app link) and
 -- how to undo it on the other side.
 --
