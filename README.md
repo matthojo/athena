@@ -18,9 +18,7 @@
   <img src="https://img.shields.io/badge/node-24-2c6be7" alt="Node 24">
 </p>
 
-<p align="center">
-  <img src=".github/readme/home.webp" alt="Athena's Home page on a desktop: a morning greeting, the Ask box, and today's train, flight, car hire and hotel in a row" width="100%">
-</p>
+https://github.com/user-attachments/assets/6e052b08-365c-4757-b731-97812742c83b
 
 Athena keeps your notes, people, to-dos and days in one Postgres database on
 a Netlify site that you own. It collects from the accounts you connect, such
@@ -30,6 +28,10 @@ MCP client.
 
 Each copy belongs to one person and runs on their own Netlify account, so
 the project never sees your data.
+
+<p align="center">
+  <img src=".github/readme/home.webp" alt="Athena's Home page on a desktop: a morning greeting, the Ask box, and today's train, flight, car hire and hotel in a row" width="100%">
+</p>
 
 <p align="center">
   <img src=".github/readme/days.webp" width="31%" alt="Days on a phone: last night's sleep, morning and evening questions, habits and a mood picker">
