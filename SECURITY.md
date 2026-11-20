@@ -2298,6 +2298,18 @@ Function instead.
 - **Words used as labels**: an edge's `relation` ("sister"), a habit
   nudge's key, which includes the habit's name, and `places.name`, which
   after a Timeline or Swarm import is a list of venues visited.
+- **Dismissed flow suggestions** (`flow_suggestion_dismissals`, migration
+  `0082`): one id per suggestion the owner turned down, and when. An id
+  names the kind of habit ("follow-delivery-reminder",
+  "saved-book-watch_read"); one built on the owner's own words (a reminder
+  or to-do they set every week) carries the first 12 hex characters of a
+  SHA-256 of those words, lower-cased and without numbers or punctuation,
+  never the words. A short phrase can be confirmed by guessing it, so the id
+  says no more than "they dismissed a suggestion about putting the bins
+  out" to someone who already guessed that. Suggestions themselves are
+  worked out on each `GET /api/flows/suggestions` from tables already
+  described here (`lib/flow-suggest-store.ts`), are not stored, use no
+  model and send nothing off the site.
 - **What any encryption shows**: roughly how long each value is, which
   fields are empty (empty stays empty), and, from blind indexes, which people
   share a name or email.
