@@ -1719,6 +1719,51 @@ contracts between slices, is `docs/team.md`.
   - **The catalogue** is a separate GitHub repository; Athena only reads
     GitHub links and never publishes.
 
+### Flows
+
+A trigger, then steps with branches, beside Team. A plain flow runs with no
+character and calls no model unless a step needs one; a flow handed to a Team
+assistant runs in its voice, with its memory and allowlist, and can have
+thinking steps. The contract between the engine, triggers, drafting,
+suggestions and the app is `lib/flow-types.ts`.
+
+- **Store** (migration 0080, `lib/flows.ts`). `flows`: the owner's words
+  sealed in `payload`, `trigger_kind` and a word-free `schedule` plain for the
+  jobs, `assistant_id` when handed over. `flow_runs`: label, summary, error
+  and `state` (each step's line, the values steps gave, a stack of where the
+  run is in the tree, what it waits on, the cards it owes) sealed; status,
+  `waits_for`, `resumes_at`, the Ask plan or assignment it waits on, the ids it
+  made and a `version` for compare-and-set plain. Checking a flow against
+  `FLOW_LIMITS` and its chips (each must point at the trigger or a step before
+  it) is `checkSteps`. `createFlowSource()` and `createFlowStarter()` are the
+  ports triggers uses; `triggerGives()` there is a stand-in until triggers'
+  own replaces it.
+- **Catalogue** (`lib/flow-catalog.ts`, `GET /api/flows/catalog`). Ask's own
+  tools, as an allowlist of looks and changes inside Athena, plus Check, Ask
+  me, Wait, Tell me, Think and Start an assignment.
+- **Runner** (`lib/flow-steps.ts` pure, `lib/flow-run.ts`, real effects in
+  `lib/flow-effects.ts`). A run is queued, then claimed once by the
+  background function `netlify/functions/flow-run.ts` (`/api/flow-run`). It
+  walks until it ends or waits: tools through `runAssistantTool`, a change
+  set to ask becomes an Ask plan and the run waits for Go; Ask me waits for
+  an answer; Wait for a time; Start an assignment for its lineup's Go and then
+  its end; Think is `runAssistantTurn` as the flow's assistant. Each step
+  leaves one line from what happened (lib/steps.ts's words), no model.
+  The owner's Go, Skip and answers settle the wait and queue the run again.
+  A dry run uses the last `team_events` row that matched and changes nothing.
+- **The reminders job** (`sweepFlowRuns`, `deliverFlowNotices`) carries Waits
+  on, moves runs on when an assignment ends or a plan ran from Ask, stops runs
+  that waited for the owner 14 days, hands off queued runs a hand-off missed,
+  and sends held cards (rule `team`, key `flow:<run>:…`).
+- **Hand and take back** (`POST /api/flows/:id/hand`, `/take-back`). Sets
+  `assistant_id`; `"new"` makes an assistant from a fresh seed. A run keeps
+  the assistant that started it. An assistant's finished run is also kept as
+  a quiet, finished `team_runs` row, so it shows on Team activity, and sends a
+  "From <Name>" card when it changed something and said nothing else.
+- **Routes** (`netlify/lib/flow-routes.ts`): every `/api/flows` route in the
+  contract except draft and suggestions, which are drafting's and
+  suggestions' own.
+
 ### Skills
 
 Skills are SKILL.md instructions, in the same format as Claude's skills, that

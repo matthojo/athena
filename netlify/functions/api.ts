@@ -86,6 +86,8 @@ import { goPlan, undoPlan } from "../../lib/ask-plans";
 import { logChanges, undoActivity } from "../../lib/ask-activity";
 import { handleAskRoutes } from "../lib/ask-routes";
 import { handleTeamRoutes } from "../lib/team-routes";
+import { handleFlowRoutes } from "../lib/flow-routes";
+import { flowEffects, handOffFlowRun } from "../../lib/flow-effects";
 import { handleModelsRoutes, modelChoiceResponse } from "../lib/models-routes";
 import { messageModel } from "../../lib/models";
 import { handleTeamChatRoutes, type ChatDesk } from "../lib/team-chat-routes";
@@ -1997,6 +1999,14 @@ export default async (req: Request, _context: Context) => {
       }
       // Its routes read the path from "team" on, as its tests call it.
       const handled = await handleTeamRoutes(req, url, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s), _context?.waitUntil?.bind(_context));
+      if (handled) return handled;
+    }
+    // Flows: a trigger, then steps with branches, beside Team (netlify/lib/flow-routes.ts, lib/flow-run.ts).
+    if (first === "flows") {
+      const handled = await handleFlowRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s), {
+        effects: () => flowEffects({ ports: { gmail: mailPort, slack: slackPort, calendar: calendarPort, scheduling: schedulingPort } }),
+        handOff: (runId) => handOffFlowRun(url.origin, runId),
+      });
       if (handled) return handled;
     }
     // AI models: which model does each job, and the owner's agreements (netlify/lib/models-routes.ts, docs/ai-models.md).

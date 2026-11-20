@@ -212,6 +212,9 @@ export const ENCRYPTED: EncryptedTable[] = [
   { table: "team_stages", key: ID, text: ["words"] },
   // Team chat (0076): each post's words.
   { table: "team_posts", key: [["id", "bigint"]], text: ["body"] },
+  // Flows (0080): each flow's words (name, trigger, steps), and each run's label, summary, error and state (lib/flows.ts).
+  { table: "flows", key: ID, text: ["payload"] },
+  { table: "flow_runs", key: ID, text: ["label", "summary", "error", "state"] },
   // Check-ins (0074): each day's plan and answers, one sealed JSON string (lib/checkins.ts).
   {
     table: "checkins",

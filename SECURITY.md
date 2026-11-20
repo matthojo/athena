@@ -1685,6 +1685,56 @@ Design in `docs/team.md` "Assignments"; notes in
   note is kept. A post outside an assignment is swept after 90 days once
   settled.
 
+### Flows (migration `0080`, `lib/flows.ts`, `lib/flow-run.ts`)
+
+A flow is a trigger and steps with branches (contract: `lib/flow-types.ts`).
+It runs unattended, so it is held to the same rules as a Team run and adds
+none of its own.
+
+- **Sealed.** `flows.payload` (name, trigger, steps) and `flow_runs`'
+  `label`, `summary`, `error` and `state` are sealed like other text and are
+  in the key rotation (`lib/encryption.ts`). What the jobs need stays
+  readable: the trigger's kind and a schedule with no words in it, a run's
+  status, times, and ids.
+- **Only Ask's own tools, and never one that leaves Athena.** A tool step runs
+  one of Ask's tools with the same code and checks (`runAssistantTool`, or
+  `ReadTools` for the shared looks). The catalogue (`lib/flow-catalog.ts`) is
+  an allowlist: looks, and changes inside Athena that keep an Undo. Nothing
+  that sends (messages, invite answers, notes to another service), edits a
+  connected account (calendar moves and new events), deletes or archives,
+  reshapes the owner's data (fields, types, mass edits), or only prepares a
+  card for a tap. The store refuses a flow naming any other tool, and the
+  runner checks again before every step.
+- **Changes wait unless the owner said otherwise.** A change set to "Ask me
+  first" is kept as an Ask plan (`ask_plans`, sealed) and nothing is made
+  until Go, which runs it through Ask's plan code, logged in What Ask did
+  with its Undo. Skip and Stop close the plan so it can't run later.
+- **Money.** `money` and `regular_payments` run only while the flow's own
+  switch and Settings' "Let Ask read transactions" are both on; otherwise the
+  step is skipped and no amount reaches anything.
+- **Thinking steps are the assistant's turn.** A Think step is
+  `runAssistantTurn` in run mode: the assistant's persona, memory, allowlist
+  and web switch, the guard on other people's words, its own spend cap. The
+  values earlier steps found reach it quoted as data. Anything outside its
+  allowlist waits for Go. A plain flow has no thinking steps (they're
+  skipped), so it calls no model, apart from an assignment's lineup.
+- **Assignments.** Start an assignment keeps the lineup as a draft; nothing
+  starts until the owner's Go in Team chat.
+- **A try changes nothing.** A dry run runs looks only; every change says
+  what it would do, no card is sent, a thinking step is a read-only check,
+  and the walk ends at a question.
+- **Loops and limits.** A run keeps the ids of the records it changed
+  (`flow_runs.made`, at once, not at its next save) and an event about one of
+  them never starts the same flow again. A trigger's slot starts a flow once
+  (a unique index). `FLOW_LIMITS` holds on save (40 flows, 24 steps, 3 deep,
+  4 choices, 500 characters a piece of text, 60 days a Wait); 50 runs are
+  kept per flow; a run waiting for the owner 14 days is stopped.
+- **Cards.** A Notify step's card, one saying a run waits for the owner, and
+  an assistant's "From <Name>" go through the same gate as every nudge (the
+  Team switch, mutes, quiet hours, the daily cap), sealed in `nudges`.
+- **Routes.** `/api/flows/*` is behind the bearer token like the rest of the
+  API; the background function at `/api/flow-run` checks the same token.
+
 ### Plans, routines and What Ask did (migration `0055`)
 
 - **Plans write nothing until Go.** While Ask works, every tool that could
@@ -2212,6 +2262,8 @@ the status counts and the tests all read it from there.
 | `ask_skills` (migration `0058`) | `payload` |
 | `ask_plans`, `ask_activity` (migration `0055`, §10) | `payload` |
 | `ask_routines` | `payload`, `pending` (a routine's waiting nudge) |
+| `flows` (migration `0080`, §10) | `payload` (a flow's name, its whole trigger with any words it matches, and its steps). `trigger_kind` and `schedule` (days, times, counts and the facets an event filter names, never its words) stay readable |
+| `flow_runs` | `label`, `summary`, `error`, `state` (each step's line, the values steps gave, what it waits on, the cards it owes). Statuses, times and ids (the Ask plan or assignment it waits on, the records it made) stay readable |
 | `note_link_choices` (migration `0059`) | `payload` |
 | `settings` | values inside rows: the car record (`car`, §16), the notification key's private half (`vapid`, §8), the owner's playlists (`music_playlists`), artists' genres (`music_genres`) and what the home's appliances were last seen doing (`appliances`) |
 
