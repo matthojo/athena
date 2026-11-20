@@ -20,6 +20,7 @@
  * Things the owner does (a save, a gift idea, a tagged note) don't wait for
  * the pass (owner, 15 Nov: "Yes, at once for my own actions"): startTeamEvent
  * claims that one event, queues its runs and hands them off straight away.
+ * Flows hear about the same actions through onOwnerEvent (lib/flow-triggers-db.ts).
  * Collected items stay on the pass, where batching matters. Paused assistants and triggers
  * don't fire, nor do triggers on events from before they were made.
  */
@@ -127,7 +128,33 @@ export async function queueTeamRuns(now: Date, tz: string): Promise<TeamRun[]> {
   return queued;
 }
 
-type EventRowRaw = { id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: TeamEventRow["facets"] | null; created_at: string | Date };
+export type EventRowRaw = { id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: TeamEventRow["facets"] | null; created_at: string | Date };
+
+/** A team_events row as the database gives it, made plain. Pure. */
+export function toEventRow(r: EventRowRaw): TeamEventRow {
+  return { id: String(r.id), kind: r.kind, ref_id: r.ref_id, ref_kind: r.ref_kind, facets: r.facets ?? {}, created_at: new Date(r.created_at).toISOString() };
+}
+
+/**
+ * Flows (lib/flow-triggers.ts startFlowEvent) hear about the owner's own events here, so theirs start at once too.
+ * A hook is told the event's id after it's kept, whether or not an assistant waits for it. Returns a function that
+ * removes the hook.
+ */
+export type OwnerEventHook = (eventId: string, kind: EventSource) => Promise<unknown>;
+const ownerEventHooks = new Set<OwnerEventHook>();
+export function onOwnerEvent(hook: OwnerEventHook): () => void {
+  ownerEventHooks.add(hook);
+  return () => void ownerEventHooks.delete(hook);
+}
+async function tellOwnerEventHooks(id: string, kind: EventSource): Promise<void> {
+  for (const hook of ownerEventHooks) {
+    try {
+      await hook(id, kind);
+    } catch (error) {
+      console.error("Athena team: an owner-event hook failed", (error as Error)?.message?.slice(0, 120));
+    }
+  }
+}
 
 /**
  * Something the owner did: keep its event, and if it fires an assistant, run it now rather than at the next pass.
@@ -144,6 +171,7 @@ export async function startTeamEvent(
   opts: { origin?: string; fetchImpl?: typeof fetch } = {},
 ): Promise<TeamRun[]> {
   const id = await emitTeamEvent(kind, refId, refKind, facets);
+  if (id) await tellOwnerEventHooks(id, kind);
   const origin = opts.origin ?? teamOrigin();
   if (!id || !origin || !aiConfigured()) return [];
   let queued: TeamRun[] = [];

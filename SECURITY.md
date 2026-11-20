@@ -1685,6 +1685,24 @@ Design in `docs/team.md` "Assignments"; notes in
   note is kept. A post outside an assignment is swept after 90 days once
   settled.
 
+### Flows' triggers (migration `0081`, `lib/flow-triggers*.ts`)
+
+- **Plain, and only ids and times.** `flow_trigger_fires` keeps one row per
+  fire a flow claimed: the flow's id, a key made of a kind, a record's id
+  and a time, and timestamps, never a title. Rows go after a week.
+  `team_events.flow_claimed_at` is a timestamp beside Team's
+  `processed_at`, so flows and Team each read an event once.
+- **Nothing leaves the site.** Triggers read the calendar, People, life
+  admin, orders and bookings from Athena's own tables and hand what they
+  found (titles, names, dates) to the flow engine as a run's starting
+  values and label. Sealing those is the engine's, as it is for a Team
+  run's. A sealed title this deploy can't read is left out, never passed on.
+- **Each fire runs once, and never late.** A fire is claimed before its run
+  starts, so overlapping passes can't start it twice; one more than 90
+  minutes late is skipped, a "before" is never run once its event has
+  started, and nothing fires for a time or an event from before the flow
+  was made.
+
 ### Plans, routines and What Ask did (migration `0055`)
 
 - **Plans write nothing until Go.** While Ask works, every tool that could
