@@ -8,6 +8,9 @@
  *                last), and the day's runs in order
  *   #/team/<id>  the assistant's own page (team/team-detail.ts)
  *   #/team/new   setup (team/setup.ts), a sheet over the page
+ *   #/team/import  add a workflow someone shared (team/workflow-import.ts),
+ *                a sheet over the page; a file shared to the installed app
+ *                lands here. A workflow dropped on the page opens it too.
  *
  * The page looks again while it's open (team/page-live.ts) and updates in
  * place, so focus, scroll and the characters' motion carry on undisturbed.
@@ -35,12 +38,14 @@ import { renderTeamChat } from "../team/chat";
 import { renderAssignment } from "../team/assignment-page";
 import { openNewAssignment } from "../team/new-assignment";
 import { watchWaiting } from "../team/waiting";
+import { openImportWorkflow } from "../team/workflow-import";
+import { takeSharedWorkflow } from "../db/workflows";
 
 type Go = (view: ViewId, opts?: { noteId?: string | null }) => void;
 
 export interface TeamViewContext {
   go: Go;
-  /** null: the team; "new": setup; otherwise an assistant's id. */
+  /** null: the team; "new": setup; "import": add a workflow; otherwise an assistant's id. */
   param: string | null;
 }
 
@@ -81,6 +86,18 @@ function backToGrid(go: Go) {
     pushedFromGrid = false;
     history.back();
   } else go("team");
+}
+
+/** Add a workflow someone shared: a sheet over the team; once added, its page. */
+function openImport(go: Go, files?: File[], onClose?: () => void) {
+  openImportWorkflow({
+    files,
+    onClose,
+    onAdded: (a) => {
+      showToast(`${a.name} joined your team, paused`);
+      window.setTimeout(() => toDetail(go, a.id), 450);
+    },
+  });
 }
 
 /** A run's conversation when it kept one, else the assistant's own page. */
@@ -332,6 +349,8 @@ function sampleDay(): HTMLElement {
 function hello(go: Go): HTMLElement {
   const start = h("button", { class: "btn btn--primary team-hello__go", type: "button" }, icons.plus(), "Make your first assistant");
   start.addEventListener("click", () => toSetup(go));
+  const shared = h("button", { class: "link-btn", type: "button" }, "Or add a workflow someone shared");
+  shared.addEventListener("click", () => openImport(go));
   const ideas = EXAMPLES.map((ex) => {
     const c = h("button", { class: "team-hello__idea", type: "button" }, h("span", {}, ex), icons.arrowRight());
     c.addEventListener("click", () => toSetup(go, ex));
@@ -354,7 +373,8 @@ function hello(go: Go): HTMLElement {
       sampleDay(),
       start,
       h("p", { class: "team-hello__label" }, "Or start from an idea"),
-      h("div", { class: "team-hello__ideas" }, ...ideas)
+      h("div", { class: "team-hello__ideas" }, ...ideas),
+      shared
     )
   );
 }
@@ -384,6 +404,8 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
   const chat = h("a", { class: "btn btn--soft btn--sm", href: "#/team/chat" }, icons.chat(), "Team chat", chatCount);
   const assign = h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.plus(), "New assignment");
   assign.addEventListener("click", () => openNewAssignment());
+  const addShared = h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.arrowDown(), "Add a workflow");
+  addShared.addEventListener("click", () => openImport(ctx.go));
   const offWaiting = watchWaiting((p) => {
     chatCount.hidden = !p.waiting;
     chatCount.textContent = p.waiting ? String(p.waiting) : "";
@@ -399,7 +421,24 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
   const day = h("section", { class: "team-day", "aria-labelledby": "team-day-h" }, h("div", { class: "section-head" }, h("h2", { id: "team-day-h" }, "Recent runs")), dayList, more);
   const layout = h("div", { class: "team-layout" }, h("div", { class: "team-main" }, waiting, desks), day);
   const body = h("div", { class: "team-body", "aria-busy": "true" });
-  const el = h("div", { class: "view team" }, pageHead({ title: "Team", count, lede, actions: [add], below: [h("div", { class: "team-entry" }, chat, assign)] }), body, said);
+  const el = h("div", { class: "view team" }, pageHead({ title: "Team", count, lede, actions: [add], below: [h("div", { class: "team-entry" }, chat, assign, addShared)] }), body, said);
+  // A workflow's zip, workflow.json or folder dropped on the page: the add sheet, with it read.
+  const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+  el.addEventListener("dragover", (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    el.classList.add("team-drop");
+  });
+  el.addEventListener("dragleave", (e) => {
+    if (e.target === el) el.classList.remove("team-drop");
+  });
+  el.addEventListener("drop", (e) => {
+    el.classList.remove("team-drop");
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (!files.length) return;
+    e.preventDefault();
+    openImport(ctx.go, files);
+  });
 
   let alive = true;
   let team: TeamAssistant[] = [];
@@ -497,6 +536,13 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
     more.hidden = showAll || ordered.length <= limit;
   }
 
+  /** #/team/import: a file shared to the installed app, or the add sheet on its own. */
+  function maybeImport() {
+    if (ctx.param !== "import" || setupOpen) return;
+    setupOpen = true;
+    void takeSharedWorkflow().then((file) => openImport(ctx.go, file ? [file] : undefined, () => backToGrid(ctx.go)));
+  }
+
   function maybeSetup() {
     if (ctx.param !== "new" || setupOpen) return;
     setupOpen = true;
@@ -553,6 +599,7 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
     if (!alive) return false;
     paint(news());
     maybeSetup();
+    maybeImport();
     return runs.some(isLive);
   }
 
@@ -595,6 +642,6 @@ export function renderTeam(ctx: TeamViewContext): { el: HTMLElement; destroy: ()
   // #/team/chat, #/team/chat/<post id>: Team chat, at a post. #/team/assignment/<id>: one assignment.
   if (ctx.param === "chat" || ctx.param?.startsWith("chat/")) return renderTeamChat({ postId: Number(ctx.param.split("/")[1]) || null });
   if (ctx.param?.startsWith("assignment/")) return renderAssignment({ id: ctx.param.slice("assignment/".length) });
-  if (ctx.param && ctx.param !== "new") return renderTeamDetail({ id: ctx.param, back: () => backToGrid(ctx.go) });
+  if (ctx.param && ctx.param !== "new" && ctx.param !== "import") return renderTeamDetail({ id: ctx.param, back: () => backToGrid(ctx.go) });
   return renderPage(ctx);
 }

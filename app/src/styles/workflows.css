@@ -1,0 +1,192 @@
+/* Workflows: "Share <Name>" (team/workflow-share.ts) and "Add a workflow" (team/workflow-import.ts). Built on skills.css. */
+
+.wf textarea.field:not(.skill-editor__body) {
+  min-height: 8em;
+  line-height: var(--leading-body);
+}
+
+.wf-intro {
+  margin: 0;
+}
+
+.wf-check {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-check .skills-form__caption {
+  margin-top: 0;
+}
+
+.wf-lede {
+  margin: 0;
+}
+
+.wf-findings {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wf-finding {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-right: var(--space-sm);
+}
+
+.wf-finding .row__title {
+  overflow-wrap: anywhere;
+}
+
+.wf-finding .tile {
+  color: var(--warn, var(--ink-2));
+}
+
+.wf-asks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs, 6px);
+}
+
+.wf-ask {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs, 6px);
+}
+
+.wf-ask .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.wf-wants {
+  margin: 0;
+}
+
+.wf-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+@media (max-width: 420px) {
+  .wf-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.wf-who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.wf-who > div {
+  min-width: 0;
+}
+
+.wf-who p {
+  margin: 0;
+}
+
+.wf-who__name {
+  font-size: var(--text-title, 1.25rem);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.wf-who__job {
+  font-size: var(--text-ui);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.wf-summary {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.wf-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-sec .skills-form__caption {
+  margin-top: 0;
+}
+
+.wf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  list-style: none;
+  font-size: var(--text-small);
+  color: var(--ink);
+}
+
+.wf-list li {
+  display: flex;
+  gap: var(--space-xs);
+  line-height: var(--leading-body);
+}
+
+.wf-list li svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.wf-list li.is-ok svg {
+  color: var(--good, var(--ink-2));
+}
+
+.wf-list li.is-missing {
+  color: var(--ink-2);
+}
+
+.wf-tick {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  cursor: pointer;
+}
+
+.wf-tick > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wf-tick__box {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.wf-tick__label {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.team-drop {
+  outline: 2px dashed var(--accent);
+  outline-offset: -8px;
+  border-radius: var(--radius-lg, 16px);
+}

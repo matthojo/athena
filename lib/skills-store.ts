@@ -249,8 +249,10 @@ export function freeName(name: string, taken: ReadonlySet<string>): string {
  * Save the skill Athena wrote for an assistant: a new one, or this one's
  * text replaced (its files stay). It's kept off, so main Ask never uses it.
  * The name is made unique among all skills. Throws AthenaInputError.
+ * `from`: a new skill's reference files and where it came from (an
+ * imported workflow, lib/workflow-share.ts); an existing one keeps its own.
  */
-export async function putAssistantSkill(assistantId: string, doc: SkillDoc, team: TeamSkillMeta): Promise<Skill> {
+export async function putAssistantSkill(assistantId: string, doc: SkillDoc, team: TeamSkillMeta, from?: { files?: SkillFile[]; skipped?: SkillSkipped[]; source?: SkillSource }): Promise<Skill> {
   if (!UUID.test(assistantId)) throw new AthenaInputError("That assistant isn't there any more", 404);
   let clean: SkillDoc;
   try {
@@ -262,7 +264,7 @@ export async function putAssistantSkill(assistantId: string, doc: SkillDoc, team
   const was = await assistantSkill(assistantId);
   const taken = new Set((await listSkills()).filter((s) => s.id !== was?.id).map((s) => s.name));
   const name = was && !taken.has(was.name) && clean.name === was.name ? was.name : freeName(clean.name, taken);
-  const payload: Payload = { ...clean, name, files: was?.files ?? [], skipped: was?.skipped ?? [], source: was?.source ?? { kind: "team", at: new Date().toISOString() }, team };
+  const payload: Payload = { ...clean, name, files: was?.files ?? from?.files ?? [], skipped: was?.skipped ?? from?.skipped ?? [], source: was?.source ?? from?.source ?? { kind: "team", at: new Date().toISOString() }, team };
   const sealed = sealText(JSON.stringify(payload));
   const [row] = was
     ? await q<Row>(`UPDATE ask_skills SET payload = $2, enabled = false, updated_at = now() WHERE id = $1::uuid RETURNING ${COLUMNS}`, [was.id, sealed])

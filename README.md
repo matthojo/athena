@@ -62,7 +62,9 @@ the project never sees your data.
   events.
 - **Team:** assistants you set up, which run on a schedule or when something
   arrives (a new Linear issue, a saved link). A change you haven't allowed
-  waits for your **Go**.
+  waits for your **Go**. Share one as a file anyone can add to their own
+  Athena, or add one someone shared: it joins paused, and asks before
+  anything until you say otherwise.
 - **A morning briefing and reminders:** a note at 07:30 in your time zone,
   and push notifications, including on iPhone once Athena is on your Home
   Screen.

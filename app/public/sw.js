@@ -160,13 +160,26 @@ const shareFrom = (req) => {
   return "unknown";
 };
 
-/** The shared title, text, link and first image, in Cache Storage until the app takes them. */
+/** A workflow's zip or workflow.json, at most this big: the add sheet reads it (team/workflow-import.ts). */
+const MAX_WORKFLOW_BYTES = 2_000_000;
+
+/**
+ * The shared title, text, link and first image, in Cache Storage until the app takes them.
+ * A shared workflow (a .zip or workflow.json) is kept apart and opens Team's add sheet instead,
+ * which shows all of it before anything is added.
+ */
 async function keepShare(req) {
   const from = shareFrom(req);
   // Another site's form: nothing is kept, and the app says there was nothing to save.
   if (from === "site") return Response.redirect("/#/saved/shared", 303);
   try {
     const form = await req.formData();
+    const workflow = form.getAll("workflow").find((f) => typeof f !== "string" && f.size > 0 && f.size <= MAX_WORKFLOW_BYTES);
+    if (workflow) {
+      const cache = await caches.open("athena-share");
+      await cache.put("/share-target/workflow", new Response(workflow, { headers: { "Content-Type": workflow.type || "application/octet-stream", "X-File-Name": encodeURIComponent(workflow.name || "workflow.zip") } }));
+      return Response.redirect("/#/team/import", 303);
+    }
     const pick = (k) => (typeof form.get(k) === "string" ? form.get(k).slice(0, 20000) : "");
     const cache = await caches.open("athena-share");
     await cache.put("/share-target/meta", new Response(JSON.stringify({ title: pick("title"), text: pick("text"), url: pick("url"), trusted: from === "os" }), { headers: { "Content-Type": "application/json" } }));
@@ -184,7 +197,8 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
 
   // The installed app as a share target (manifest.json share_target): keep what was shared, then open
-  // #/saved/shared, which sends it to /api/saved with the app's key and says "Saved" (views/saved.ts).
+  // #/saved/shared, which sends it to /api/saved with the app's key and says "Saved" (views/saved.ts),
+  // or, for a workflow, #/team/import, which previews it before anything is added.
   // Only a share from the OS is saved at once; see shareFrom.
   if (req.method === "POST" && url.origin === self.location.origin && url.pathname === "/share-target") {
     event.respondWith(keepShare(req));

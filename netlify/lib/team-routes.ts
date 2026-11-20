@@ -16,6 +16,10 @@
  *   POST   /api/team/<id>/run       → { run } (202): queued and handed to the background function (lib/team-run.ts)
  *   DELETE /api/team/<id>/memory?fact=<index> → { memory }; no fact: forget all (lib/team-memory.ts)
  *   POST   /api/team/<id>/keep      → { assistant }: a guest becomes a standing assistant; 409 { error } when the team is full
+ *   POST   /api/team/<id>/workflow  { edits?, fine?, download? } → WorkflowExport (lib/workflow-share.ts); with download and
+ *                                   nothing left to check, the zip; with something left, 409 { error, findings }
+ *   POST   /api/team/workflow/preview { zip, file? } | { entries } | { workflow_json, skill_md? } | { url } → WorkflowPreview; nothing is kept
+ *   POST   /api/team/workflow       WorkflowImportInput → { assistant } (201), paused; its skill is written after when the workflow has none
  *   /api/team/assignments…          → netlify/lib/assignment-routes.ts
  *
  * Behind the same bearer token as the rest of the API.
@@ -29,11 +33,18 @@ import { fitAnswers, skillGist } from "../../lib/team-skill";
 import { modelChoiceResponse } from "./models-routes";
 import { handleAssignmentRoutes, handleKeep } from "./assignment-routes";
 import { enqueueTeamRun, finishTeamRun, getTeamRun, handOffTeamRun, listTeamActivity, listTeamRuns } from "../../lib/team-run";
+import { exportWorkflow, importWorkflow, ownHosts, previewWorkflow, workflowZip } from "../../lib/workflow-share";
+import { WorkflowFormatError } from "../../lib/workflow";
+import { AthenaInputError } from "../../lib/db";
+import { SKILL_LIMITS } from "../../lib/skills";
+import { textUpTo } from "./body-limit";
 
 type Json = (data: unknown, status?: number) => Response;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NOT_YET = "Not ready yet";
+/** A workflow's zip or folder (2 MB, as base64) and the JSON around it. */
+const MAX_WORKFLOW_BODY = Math.ceil((SKILL_LIMITS.uploadBytes * 4) / 3) + 64_000;
 
 export async function handleTeamRoutes(req: Request, url: URL, segments: string[], body: () => Promise<Record<string, unknown> | null>, json: Json, waitUntil?: (p: Promise<unknown>) => void): Promise<Response | null> {
   try {
@@ -42,6 +53,7 @@ export async function handleTeamRoutes(req: Request, url: URL, segments: string[
     // An assistant's own model the owner hasn't agreed to, or one that can't do the job (lib/models.ts).
     const r = modelChoiceResponse(error, json);
     if (r) return r;
+    if (error instanceof WorkflowFormatError) throw new AthenaInputError(error.message);
     throw error;
   }
 }
@@ -85,6 +97,26 @@ async function teamRoutes(req: Request, url: URL, segments: string[], body: () =
     const d = b.draft && typeof b.draft === "object" ? (b.draft as Record<string, unknown>) : null;
     const draft = d ? { job: typeof d.job === "string" ? d.job : undefined, instructions: typeof d.instructions === "string" ? d.instructions : undefined } : null;
     return json((await askQuestions(text, draft)) satisfies TeamQuestionsResponse);
+  }
+
+  // Workflows (lib/workflow.ts): add one someone shared.
+  if (second === "workflow") {
+    if (method !== "POST") return nope();
+    if (third === "preview") {
+      const text = await textUpTo(req, MAX_WORKFLOW_BODY);
+      if (text === null) return json({ error: "That's over 2 MB. A workflow is mostly text: leave out large files." }, 413);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text || "{}");
+      } catch {
+        return json({ error: "That didn't arrive whole. Try again." }, 400);
+      }
+      return json(await previewWorkflow((parsed && typeof parsed === "object" ? parsed : {}) as Record<string, unknown>));
+    }
+    if (third) return json({ error: "Not found" }, 404);
+    const { assistant, writing } = await importWorkflow((await body()) ?? {});
+    if (writing && waitUntil) waitUntil(writing);
+    return json({ assistant }, 201);
   }
 
   if (second === "activity" && !third) {
@@ -143,6 +175,14 @@ async function teamRoutes(req: Request, url: URL, segments: string[], body: () =
       return json({ run: (await getTeamRun(queued.id))!, error: "It couldn't start. Try again in a minute." }, 503);
     }
     return json({ run: queued } satisfies TeamRunResponse, 202);
+  }
+  if (third === "workflow") {
+    if (method !== "POST") return nope();
+    const b = (await body()) ?? {};
+    const made = await exportWorkflow(found.id, b, ownHosts(url.origin));
+    if (b.download !== true) return json(made);
+    if (made.findings.length) return json({ error: "Check what's flagged first: edit it out, or say it's fine to share.", findings: made.findings }, 409);
+    return new Response(Buffer.from(workflowZip(made)), { status: 200, headers: { "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="${made.slug}.zip"`, "Cache-Control": "no-store" } });
   }
   if (third === "keep") {
     if (method !== "POST") return nope();

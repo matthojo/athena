@@ -12,6 +12,7 @@
  * - How it works for you (detail-brief.ts): its brief as sentences you tap
  *   to change, its skill (team-skill-section.ts), what it knows about you,
  *   and its personality and looks.
+ * - Share, as a workflow file someone else can add (workflow-share.ts).
  * - Pause and Delete, calm, at the end. Delete is confirmed.
  *
  * On a wide screen the work sits on the left and how it works on the right.
@@ -37,6 +38,7 @@ import { workSection } from "./detail-work";
 import { trackingSection } from "./detail-tracking";
 import { modelsSection } from "./detail-models";
 import { cap, isLive, liveWords, pronouns, startLine } from "./detail-words";
+import { openShareWorkflow } from "./workflow-share";
 
 export { triggerInput };
 
@@ -355,6 +357,20 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     return { el, paint };
   }
 
+  /** Share: the assistant as a workflow file (workflow-share.ts). */
+  function shareSection(): { el: HTMLElement; paint: () => void } {
+    const text = h("span", { class: "td-allow__text" });
+    const go = h("button", { class: "btn btn--soft btn--sm", type: "button" }, "Share");
+    go.addEventListener("click", () => openShareWorkflow(a));
+    const el = h("section", { class: "td-sec td-end", "aria-label": "Share" }, h("div", { class: "td-end__row" }, text, go));
+    const paint = () => {
+      const p = pronouns(a.personality);
+      text.replaceChildren(h("span", { class: "td-allow__label" }, `Share ${a.name}`), h("span", { class: "td-allow__detail" }, `As a file someone else can add to their own Athena. ${cap(p.their)} memory and your accounts stay here.`));
+      go.setAttribute("aria-label", `Share ${a.name} as a workflow`);
+    };
+    return { el, paint };
+  }
+
   // ---------- the page ----------
   /** This device's conversations that may still hold a plan, by run id: what waits for Go (team/page-pulse.ts). */
   let plans = new Map<string, readonly unknown[]>();
@@ -371,6 +387,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
   const memory = memorySection(briefCtx);
   const personality = personalitySection({ ...briefCtx, customise });
   const end = endSection();
+  const share = shareSection();
   // What it tracks (detail-tracking.ts): hidden when it tracks nothing.
   const tracking = trackingSection(() => a, () => alive);
   // How it thinks (detail-models.ts): made once the assistant has loaded.
@@ -382,6 +399,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     brief.paint();
     memory.paint();
     personality.paint();
+    share.paint();
     end.paint();
     tracking.paint();
     models?.paint();
@@ -396,6 +414,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     brief.paint();
     memory.paint();
     personality.paint();
+    share.paint();
     end.paint();
     work.paint(a, runs);
     tracking.paint();
@@ -403,7 +422,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     body.replaceChildren(
       hero(),
       pausedNote,
-      h("div", { class: "td-layout" }, h("div", { class: "td-main" }, work.el, tracking.el), h("div", { class: "td-aside" }, brief.el, models.el, skill.el, memory.el, personality.el, spendCapSection(a.id), end.el))
+      h("div", { class: "td-layout" }, h("div", { class: "td-main" }, work.el, tracking.el), h("div", { class: "td-aside" }, brief.el, models.el, skill.el, memory.el, personality.el, spendCapSection(a.id), share.el, end.el))
     );
     if (live()) mood("working");
   }
