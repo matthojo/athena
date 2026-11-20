@@ -29,6 +29,7 @@ export type ViewId =
   | "notes"
   | "ask"
   | "team"
+  | "flows"
   | "people"
   | "places"
   | "organisations"
