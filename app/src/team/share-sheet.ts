@@ -1,5 +1,5 @@
 /**
- * "Share <Name>" (lib/workflow.ts): an assistant as a file someone else can
+ * "Share <Name>" (lib/team-share.ts): an assistant as a file someone else can
  * add to their own Athena, from its page. A sheet, not a page:
  *
  * - What goes and what stays: the job, instructions, skill, triggers and
@@ -13,24 +13,24 @@
  *   and the questions it asks whoever adds it (the owner's own answers never
  *   go).
  *
- * The file is a zip of workflow.json, SKILL.md and the skill's files. It has
+ * The file is a zip of assistant.json, SKILL.md and the skill's files. It has
  * no link to this Athena: share it however you like.
  */
 import "../styles/skills.css";
-import "../styles/workflows.css";
+import "../styles/team-share.css";
 import { h } from "../lib/dom";
 import { icons } from "../components/icons";
 import { openSheet } from "../components/sheet";
 import { showToast } from "../components/toast";
-import { checkWorkflow, downloadWorkflow, type WorkflowEdits, type WorkflowExport } from "../db/workflows";
+import { checkExport, downloadExport, type ShareEdits, type ShareExport } from "../db/team-share";
 import type { TeamAssistant } from "../db/team";
 import { isSampleMode } from "../db/api";
 import { MAX_INSTRUCTIONS, MAX_JOB, MAX_NAME } from "../../../lib/team-types";
 import { MAX_QUESTION, MAX_QUESTIONS } from "../../../lib/team-skill";
-import type { Finding, WorkflowAsk } from "../../../lib/workflow";
+import type { Finding, SharedAsk } from "../../../lib/team-share";
 import { allowOption } from "./setup-allow";
 import { cap, pronouns } from "./detail-words";
-import { findingKindWords, findingsLede, removedWords, whereWords } from "./workflow-words";
+import { findingKindWords, findingsLede, removedWords, whereWords } from "./share-words";
 
 const errorText = (error: unknown) => (error instanceof Error && error.message && !/fetch|network|Failed/i.test(error.message) ? error.message : "That didn't work. Check you're online.");
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -41,19 +41,19 @@ function area(value: string, opts: { rows: number; max: number; label: string; m
   return t;
 }
 
-export function openShareWorkflow(a: TeamAssistant): void {
+export function openShareAssistant(a: TeamAssistant): void {
   const p = pronouns(a.personality);
   const body = h("div", { class: "skills-form wf" }, h("div", { class: "skills-loading" }, h("span", { class: "orb orb--thinking", "aria-hidden": "true" }), h("p", {}, "Getting it ready…")));
-  const sheet = openSheet({ title: `Share ${a.name}`, label: `Share ${a.name} as a workflow`, body, variant: "tall" });
+  const sheet = openSheet({ title: `Share ${a.name}`, label: `Share ${a.name} as a file`, body, variant: "tall" });
   const fine = new Set<string>();
-  let fields: { read: () => WorkflowEdits } | null = null;
+  let fields: { read: () => ShareEdits } | null = null;
   let findingsEl: HTMLElement | null = null;
   let removedEl: HTMLElement | null = null;
   let download: HTMLButtonElement | null = null;
   let busy = false;
   let timer = 0;
 
-  const edits = (): WorkflowEdits => fields?.read() ?? {};
+  const edits = (): ShareEdits => fields?.read() ?? {};
 
   function paintFindings(findings: Finding[]) {
     if (!findingsEl || !download) return;
@@ -81,7 +81,7 @@ export function openShareWorkflow(a: TeamAssistant): void {
     );
   }
 
-  function paintRemoved(x: WorkflowExport) {
+  function paintRemoved(x: ShareExport) {
     if (!removedEl) return;
     const words = removedWords(x.removed);
     removedEl.hidden = !words.length;
@@ -93,7 +93,7 @@ export function openShareWorkflow(a: TeamAssistant): void {
     if (busy) return;
     busy = true;
     try {
-      const x = await checkWorkflow(a.id, edits(), [...fine]);
+      const x = await checkExport(a.id, edits(), [...fine]);
       paintFindings(x.findings);
       paintRemoved(x);
     } catch (error) {
@@ -110,8 +110,8 @@ export function openShareWorkflow(a: TeamAssistant): void {
     timer = window.setTimeout(() => void check(), 900);
   };
 
-  function draw(x: WorkflowExport) {
-    const w = x.workflow;
+  function draw(x: ShareExport) {
+    const w = x.shared;
     const name = h("input", { class: "field", type: "text", value: w.name, maxlength: MAX_NAME, autocomplete: "off", "aria-label": "Name" }) as HTMLInputElement;
     const job = h("input", { class: "field", type: "text", value: w.job, maxlength: MAX_JOB, autocomplete: "off", "aria-label": "Job" }) as HTMLInputElement;
     const instructions = area(w.instructions, { rows: 5, max: MAX_INSTRUCTIONS, label: "Instructions" });
@@ -121,7 +121,7 @@ export function openShareWorkflow(a: TeamAssistant): void {
     const noLooks = h("input", { type: "checkbox", role: "switch", class: "switch", id: "wf-no-looks", "aria-label": `Leave out ${a.name}'s looks` }) as HTMLInputElement;
 
     // The questions it asks whoever adds it: the ones it asked you at setup, without your answers.
-    let asks: WorkflowAsk[] = w.asks.map((q) => ({ ...q, choices: [...q.choices] }));
+    let asks: SharedAsk[] = w.asks.map((q) => ({ ...q, choices: [...q.choices] }));
     const askList = h("div", { class: "wf-asks" });
     const addAsk = h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.plus(), "Add a question") as HTMLButtonElement;
     addAsk.addEventListener("click", () => {
@@ -175,13 +175,13 @@ export function openShareWorkflow(a: TeamAssistant): void {
       window.clearTimeout(timer);
       download!.disabled = true;
       try {
-        const left = await downloadWorkflow(a.id, edits(), [...fine]);
+        const left = await downloadExport(a.id, edits(), [...fine]);
         if (left) {
           paintFindings(left);
           showToast("Something's still flagged. Edit it out, or say it's fine.", { icon: "flag" });
           return;
         }
-        showToast(isSampleMode() ? "Saved workflow.json. Your own copy saves a zip with the skill too." : `Saved ${x.slug}.zip. Share it however you like.`, { icon: "check" });
+        showToast(isSampleMode() ? "Saved assistant.json. Your own copy saves a zip with the skill too." : `Saved ${x.slug}.zip. Share it however you like.`, { icon: "check" });
       } catch (error) {
         showToast(errorText(error), { icon: "refresh" });
       } finally {
@@ -191,7 +191,7 @@ export function openShareWorkflow(a: TeamAssistant): void {
 
     const wants = w.would_like.map((t) => allowOption(t).label.toLowerCase());
     body.replaceChildren(
-      h("p", { class: "settings__lede wf-intro" }, `A file anyone can add to their own Athena, with ${a.name}'s job, instructions, skill, triggers and looks. ${cap(p.their)} memory, runs and conversations stay here, and so do your accounts.`),
+      h("p", { class: "settings__lede wf-intro" }, `A file anyone can import into their own Athena, with ${a.name}'s job, instructions, skill, triggers and looks. ${cap(p.their)} memory, runs and conversations stay here, and so do your accounts.`),
       removedEl,
       findingsEl,
       h("label", { class: "skills-form__label" }, h("span", {}, "Name"), name),
@@ -205,13 +205,13 @@ export function openShareWorkflow(a: TeamAssistant): void {
       h("div", { class: "wf-pair" }, h("label", { class: "skills-form__label" }, h("span", {}, "Your GitHub username"), author), h("label", { class: "skills-form__label" }, h("span", {}, "Version"), version)),
       h("label", { class: "skill-switch", for: "wf-no-looks" }, h("span", {}, h("span", { class: "skill-switch__title" }, `Leave out ${a.name}'s looks`), h("span", { class: "row__meta" }, "Whoever adds it gets a new character.")), noLooks),
       h("div", { class: "skills-form__actions" }, again, download),
-      h("p", { class: "form__hint" }, "The file has no link to your Athena. Send it to someone, keep it in your own GitHub repository, or open a pull request to a workflow catalogue.")
+      h("p", { class: "form__hint" }, "The file has no link to your Athena. Send it to someone, keep it in your own GitHub repository, or open a pull request to a catalogue of assistants.")
     );
     paintFindings(x.findings);
     paintRemoved(x);
   }
 
-  void checkWorkflow(a.id, {}, []).then(draw, (error) => {
+  void checkExport(a.id, {}, []).then(draw, (error) => {
     body.replaceChildren(h("p", { class: "skills-error" }, icons.flag(), h("span", {}, errorText(error))));
   });
   void sheet;

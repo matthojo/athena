@@ -1,9 +1,9 @@
-// Workflows through the real /api function on real Postgres (lib/workflow-share.ts): sharing an assistant
+// Shared assistants through the real /api function on real Postgres (lib/team-share-store.ts): sharing an assistant
 // checks its words against the owner's own people and places and takes out links into their Athena, the
 // download waits until each finding is edited out or marked fine, and the zip it gives can be previewed and
 // added on another copy: paused, with only the ticked tools it asked for, and its skill with the answers.
 // Every name and address is made up. No model key: an assistant's own skill is the plain one.
-// Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/workflow-share.db.test.ts
+// Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/team-share-store.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL. Empties the team, skill and people tables first.
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
@@ -67,26 +67,26 @@ test("sharing: links into Athena go, the owner's people are flagged, and the dow
   const id = made.json.id as string;
   await putAssistantSkill(id, { name: "muse-gift-prices", description: "Muse's own skill.", body: "1. Read the gift idea.\n2. Check prices at Corner Bakery and near 12 Example Street.\n3. Email priya@mail.test if it drops.", extra: "" }, { basis: "x", made: "y", summary: "Checks prices.", answers: [{ question: "Which shops do you trust?", answer: "Corner Bakery" }] });
 
-  const look = await call("POST", `team/${id}/workflow`, {});
+  const look = await call("POST", `team/${id}/export`, {});
   assert.equal(look.status, 200);
   const x = look.json;
-  assert.doesNotMatch(JSON.stringify(x.workflow), /athena\.example\.com|athena:\/\/|3f1c2d4e/);
+  assert.doesNotMatch(JSON.stringify(x.shared), /athena\.example\.com|athena:\/\/|3f1c2d4e/);
   assert.deepEqual(x.removed.map((r: { kind: string }) => r.kind).sort(), ["athena-link", "site-link"]);
-  assert.deepEqual(x.workflow.asks, [{ question: "Which shops do you trust?", choices: [] }], "the question goes, the owner's answer doesn't");
-  assert.doesNotMatch(JSON.stringify(x.workflow), /"Corner Bakery"/);
-  assert.deepEqual(x.workflow.would_like, ["add_to_list", "add_todo"]);
-  assert.deepEqual(x.workflow.needs, ["gmail"]);
+  assert.deepEqual(x.shared.asks, [{ question: "Which shops do you trust?", choices: [] }], "the question goes, the owner's answer doesn't");
+  assert.doesNotMatch(JSON.stringify(x.shared), /"Corner Bakery"/);
+  assert.deepEqual(x.shared.would_like, ["add_to_list", "add_todo"]);
+  assert.deepEqual(x.shared.needs, ["gmail"]);
   const ids = x.findings.map((f: { id: string }) => f.id).sort();
   assert.deepEqual(ids, ["address:12 example street", "email:priya@mail.test", "person:priya", "place:corner bakery"]);
 
   // Not yet: the download is refused while anything is flagged.
-  const early = await call("POST", `team/${id}/workflow`, { download: true });
+  const early = await call("POST", `team/${id}/export`, { download: true });
   assert.equal(early.status, 409);
   assert.equal(early.json.findings.length, 4);
 
   // Edited out, or marked fine: the zip comes.
   const edits = { instructions: "Check prices for each gift idea.", skill: "1. Read the gift idea.\n2. Check prices at each shop you trust.\n3. Tell your owner if it drops." };
-  const ready = await call("POST", `team/${id}/workflow`, { edits, fine: ["place:corner bakery"], download: true });
+  const ready = await call("POST", `team/${id}/export`, { edits, fine: ["place:corner bakery"], download: true });
   assert.equal(ready.status, 200, JSON.stringify(ready.json));
   assert.ok(ready.bytes && ready.bytes.byteLength > 100);
 
@@ -96,20 +96,20 @@ test("sharing: links into Athena go, the owner's people are flagged, and the dow
 
   // The zip previews on "another copy", and adds as a paused assistant with only the ticked tools it asked for.
   const zip = Buffer.from(ready.bytes!).toString("base64");
-  const preview = await call("POST", "team/workflow/preview", { zip, file: "muse.zip" });
+  const preview = await call("POST", "team/import/preview", { zip, file: "muse.zip" });
   assert.equal(preview.status, 200, JSON.stringify(preview.json));
   const p = preview.json;
-  assert.equal(p.workflow.name, "Muse");
+  assert.equal(p.shared.name, "Muse");
   assert.match(p.skill.body, /each shop you trust/);
   assert.deepEqual(p.needs, [{ id: "gmail", connected: false }]);
   assert.equal(p.room, true);
 
-  const added = await call("POST", "team/workflow", { workflow: p.workflow, skill: p.skill, source: p.source, answers: [{ question: "Which shops do you trust?", answer: "Any shop on Example Road" }], allow: ["add_todo", "remember"], web: true });
+  const added = await call("POST", "team/import", { shared: p.shared, skill: p.skill, source: p.source, answers: [{ question: "Which shops do you trust?", answer: "Any shop on Example Road" }], allow: ["add_todo", "remember"], web: true });
   assert.equal(added.status, 201, JSON.stringify(added.json));
   const a = added.json.assistant;
   assert.equal(a.paused, true);
   assert.deepEqual(a.allow, ["add_todo"], "remember wasn't asked for");
-  assert.equal(a.web, false, "the workflow didn't ask to look things up online");
+  assert.equal(a.web, false, "the file didn't ask to look things up online");
   assert.deepEqual(a.triggers.map((t: { kind: string }) => t.kind).sort(), ["event", "schedule"]);
   const skill = await call("GET", `team/${a.id}/skill`);
   assert.match(skill.json.skill.body, /each shop you trust/);
@@ -118,19 +118,19 @@ test("sharing: links into Athena go, the owner's people are flagged, and the dow
   assert.equal(skill.json.edited, false);
 });
 
-test("adding: a bad workflow, a link off GitHub, and a full team are refused", { skip }, async () => {
+test("adding: a bad shared, a link off GitHub, and a full team are refused", { skip }, async () => {
   const call = await api();
-  assert.equal((await call("POST", "team/workflow/preview", { workflow_json: "{\"format\": 1}" })).status, 400);
-  const off = await call("POST", "team/workflow/preview", { url: "https://athena.example.com/w/muse" });
+  assert.equal((await call("POST", "team/import/preview", { assistant_json: "{\"format\": 1}" })).status, 400);
+  const off = await call("POST", "team/import/preview", { url: "https://athena.example.com/w/muse" });
   assert.equal(off.status, 400);
   assert.match(off.json.error, /from GitHub/);
-  assert.equal((await call("POST", "team/workflow", { workflow: { format: 1 } })).status, 400);
+  assert.equal((await call("POST", "team/import", { shared: { format: 1 } })).status, 400);
 
-  const one = await call("POST", "team/workflow/preview", { workflow_json: JSON.stringify({ format: 1, name: "Dot", job: "Turns Linear issues into to-dos" }) });
+  const one = await call("POST", "team/import/preview", { assistant_json: JSON.stringify({ format: 1, name: "Dot", job: "Turns Linear issues into to-dos" }) });
   assert.equal(one.status, 200);
   assert.equal(one.json.skill, null);
   for (let i = 0; i < 12; i++) assert.equal((await call("POST", "team", { job: `Job ${i}` })).status, 201);
-  const full = await call("POST", "team/workflow/preview", { workflow_json: JSON.stringify({ format: 1, job: "One more" }) });
+  const full = await call("POST", "team/import/preview", { assistant_json: JSON.stringify({ format: 1, job: "One more" }) });
   assert.equal(full.json.room, false);
-  assert.equal((await call("POST", "team/workflow", { workflow: full.json.workflow, skill: null, answers: [], allow: [], web: false })).status, 400);
+  assert.equal((await call("POST", "team/import", { shared: full.json.shared, skill: null, answers: [], allow: [], web: false })).status, 400);
 });

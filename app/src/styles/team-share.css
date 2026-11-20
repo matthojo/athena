@@ -1,4 +1,4 @@
-/* Workflows: "Share <Name>" (team/workflow-share.ts) and "Add a workflow" (team/workflow-import.ts). Built on skills.css. */
+/* Shared assistants: "Share <Name>" (team/share-sheet.ts) and "Import assistant" (team/import-sheet.ts). Built on skills.css. */
 
 /* .field is a one-line box with no room above or below: a text box here gets some. */
 .wf textarea.field {
@@ -221,7 +221,7 @@
   accent-color: var(--accent);
 }
 
-/* Instructions and Skill on the add sheet: section names, not file names. */
+/* Instructions and Skill on the import sheet: section names, not file names. */
 .wf-doc > summary .skill-file__name {
   font-family: inherit;
   font-size: var(--text-small);

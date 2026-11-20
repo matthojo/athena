@@ -1,9 +1,9 @@
 /**
- * Workflows (lib/workflow.ts) in plain words: what the share sheet took out
- * and flagged, and what the add sheet says about where one came from and
+ * Shared assistants (lib/team-share.ts) in plain words: what the share sheet took out
+ * and flagged, and what the import sheet says about where one came from and
  * what it needs. Pure, so the tests can check the words without a DOM.
  */
-import type { Finding, FindingKind, Removed, WorkflowNeed, WorkflowPreview } from "../../../lib/workflow";
+import type { Finding, FindingKind, Removed, ImportNeed, ImportPreview } from "../../../lib/team-share";
 import { connectorById } from "./trigger-editor-words";
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -70,13 +70,13 @@ export function accountName(id: string): string {
 }
 
 /** "Linear is connected" or "Needs Linear, which isn't connected. What it does with Linear starts once you connect it." */
-export function needWords(n: WorkflowNeed): string {
+export function needWords(n: ImportNeed): string {
   const name = accountName(n.id);
   return n.connected ? `${name} is connected` : `Needs ${name}, which isn't connected. What it does with ${name} starts once you connect it.`;
 }
 
-/** "From github.com/sample-author/athena-workflows", "From muse.zip". */
-export function fromWords(p: Pick<WorkflowPreview, "source">): string {
+/** "From github.com/sample-author/athena-assistants", "From muse.zip". */
+export function fromWords(p: Pick<ImportPreview, "source">): string {
   const s = p.source;
   if (s.kind === "link" && s.url) {
     try {

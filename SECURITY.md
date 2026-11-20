@@ -1760,14 +1760,14 @@ Design in `docs/team.md` "Assignments"; notes in
   the model through `/api/assistant/skill-draft`, rate-limited with the rest
   of Ask. `lib/skill-draft.ts` has no store: the draft only opens the editor.
 
-### Workflows: sharing an assistant, and adding one (`lib/workflow*.ts`)
+### Sharing and importing assistants (`lib/team-share*.ts`)
 
-An assistant can be downloaded as a workflow (a zip of `workflow.json`,
-`SKILL.md` and the skill's files) and added to another copy. No migration:
+An assistant can be downloaded as a file (a zip of `assistant.json`,
+`SKILL.md` and the skill's files) and imported into another copy. No migration:
 nothing new is stored.
 
 - **Nothing leaves unless the owner downloads it.** `POST
-  /api/team/<id>/workflow` (bearer token) builds the file in memory and sends
+  /api/team/<id>/export` (bearer token) builds the file in memory and sends
   it only to the owner's own device. Athena never uploads or publishes it,
   and there's no public page or link to the site: sharing is whatever the
   owner does with the file (a message, their own GitHub repository, a pull
@@ -1793,28 +1793,29 @@ nothing new is stored.
   on every download. The check catches slips but can miss things it
   doesn't know about, such as a nickname Athena has no record of, so the
   sheet asks the owner to read the file through.
-- **Adding one treats every word as someone else's.** `readWorkflow` checks
+- **Importing one treats every word as someone else's.** `readShared` checks
   every field against the same limits as an assistant made in Athena, drops
   unknown keys and looks it can't draw, and refuses anything else with a
   message. Zips and folders go through the same intake as skills (§10,
   "Skills": central directory, 2 MB, 100 KB a file, text files only, no
   scripts kept). Links are GitHub only (`github.com` folders and files, or
   `raw.githubusercontent.com`), fetched once through the same guard as skill
-  links; links to any other host are refused, so a workflow can't point
+  links; links to any other host are refused, so a shared assistant can't point
   Athena at someone's own site. The preview (`POST
-  /api/team/workflow/preview`) keeps nothing.
-- **Nothing in a workflow is a permission.** The assistant joins paused.
-  `allow` is only the tools the owner ticked that the workflow also asked
+  /api/team/import/preview`) keeps nothing.
+  `POST /api/team/import` adds it.
+- **Nothing in the file is a permission.** The assistant joins paused.
+  `allow` is only the tools the owner ticked that the file also asked
   for (`grantedTools`), each unticked to start; `web` is on only when both
-  the workflow asked and the owner ticked it. Everything else waits for Go,
+  the file asked and the owner ticked it. Everything else waits for Go,
   as for any assistant (§10, "One loop"). The skill is an assistant's own
   skill: instructions only, no tools (§10, "Skills"). Sites its words link
   to are listed on the preview as unchecked.
-- **The installed app's share target** takes a workflow file (a `.zip` or
+- **The installed app's share target** takes a shared assistant (a `.zip` or
   `.json`, up to 2 MB) only from the OS, as for any share
   (`shareFrom` in `sw.js`); another page's form is refused. It's kept in
-  Cache Storage until Team's add sheet reads it, and that sheet shows all of
-  it before anything is added.
+  Cache Storage until Team's import sheet reads it, and that sheet shows all
+  of it before anything is imported.
 
 ### Ask's read tools, today's context and memory
 

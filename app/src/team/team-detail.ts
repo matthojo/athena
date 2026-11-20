@@ -12,7 +12,7 @@
  * - How it works for you (detail-brief.ts): its brief as sentences you tap
  *   to change, its skill (team-skill-section.ts), what it knows about you,
  *   and its personality and looks.
- * - Share, as a workflow file someone else can add (workflow-share.ts).
+ * - Share, as a file someone else can import (share-sheet.ts).
  * - Pause and Delete, calm, at the end. Delete is confirmed.
  *
  * On a wide screen the work sits on the left and how it works on the right.
@@ -38,7 +38,7 @@ import { workSection } from "./detail-work";
 import { trackingSection } from "./detail-tracking";
 import { modelsSection } from "./detail-models";
 import { cap, isLive, liveWords, pronouns, startLine } from "./detail-words";
-import { openShareWorkflow } from "./workflow-share";
+import { openShareAssistant } from "./share-sheet";
 
 export { triggerInput };
 
@@ -357,16 +357,16 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     return { el, paint };
   }
 
-  /** Share: the assistant as a workflow file (workflow-share.ts). */
+  /** Share: the assistant as a file someone else can import (share-sheet.ts). */
   function shareSection(): { el: HTMLElement; paint: () => void } {
     const text = h("span", { class: "td-allow__text" });
     const go = h("button", { class: "btn btn--soft btn--sm", type: "button" }, "Share");
-    go.addEventListener("click", () => openShareWorkflow(a));
+    go.addEventListener("click", () => openShareAssistant(a));
     const el = h("section", { class: "td-sec td-end", "aria-label": "Share" }, h("div", { class: "td-end__row" }, text, go));
     const paint = () => {
       const p = pronouns(a.personality);
-      text.replaceChildren(h("span", { class: "td-allow__label" }, `Share ${a.name}`), h("span", { class: "td-allow__detail" }, `As a file someone else can add to their own Athena. ${cap(p.their)} memory and your accounts stay here.`));
-      go.setAttribute("aria-label", `Share ${a.name} as a workflow`);
+      text.replaceChildren(h("span", { class: "td-allow__label" }, `Share ${a.name}`), h("span", { class: "td-allow__detail" }, `As a file someone else can import into their own Athena. ${cap(p.their)} memory and your accounts stay here.`));
+      go.setAttribute("aria-label", `Share ${a.name} as a file`);
     };
     return { el, paint };
   }

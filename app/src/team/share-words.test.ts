@@ -1,8 +1,8 @@
-// Workflows in plain words (team/workflow-words.ts).
-// Run: npx tsx --test app/src/team/workflow-words.test.ts
+// Shared assistants in plain words (team/share-words.ts).
+// Run: npx tsx --test app/src/team/share-words.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { accountName, creditWords, findingKindWords, findingsLede, fromWords, needWords, removedWords, whereWords } from "./workflow-words";
+import { accountName, creditWords, findingKindWords, findingsLede, fromWords, needWords, removedWords, whereWords } from "./share-words";
 
 test("removedWords", () => {
   assert.deepEqual(removedWords([{ kind: "athena-link", count: 2 }, { kind: "site-link", count: 1 }, { kind: "record-id", count: 3 }]), ["2 links to your notes and records", "1 link to your Athena's address", "3 record ids"]);
@@ -25,7 +25,7 @@ test("accounts and needs", () => {
 });
 
 test("where it came from, and who made it", () => {
-  assert.equal(fromWords({ source: { kind: "link", url: "https://github.com/sample-author/athena-workflows/tree/main/muse", at: "" } }), "From github.com/sample-author/athena-workflows");
+  assert.equal(fromWords({ source: { kind: "link", url: "https://github.com/sample-author/athena-assistants/tree/main/muse", at: "" } }), "From github.com/sample-author/athena-assistants");
   assert.equal(fromWords({ source: { kind: "upload", file: "muse.zip", at: "" } }), "From muse.zip");
   assert.equal(creditWords({ author: "sample-author", version: "1.2.0" }), "By @sample-author · version 1.2.0");
   assert.equal(creditWords({ version: "2" }), "Version 2");

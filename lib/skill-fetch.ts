@@ -213,7 +213,7 @@ export async function fetchSkillFromLink(raw: string, now = new Date()): Promise
   }
 }
 
-/** A public GitHub folder's files, through the same guard, caps and deadline: a workflow's folder (lib/workflow-share.ts). */
+/** A public GitHub folder's files, through the same guard, caps and deadline: a shared assistant's folder (lib/team-share-store.ts). */
 export async function fetchGithubFolder(link: Extract<SkillLink, { kind: "github" }>): Promise<IntakeEntry[]> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), skillFetchDeps.timeoutMs);

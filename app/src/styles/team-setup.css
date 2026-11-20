@@ -342,7 +342,7 @@
   gap: var(--space-xs);
 }
 
-/* "Or add one someone shared" (team/workflow-import.ts), under the examples. */
+/* "Or import one someone shared" (team/import-sheet.ts), under the examples. */
 .ts-shared {
   justify-self: start;
   margin-top: var(--space-xs);

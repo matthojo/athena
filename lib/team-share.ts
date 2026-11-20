@@ -1,11 +1,11 @@
 /**
- * Workflows: a Team assistant as a file someone else can add to their own
+ * Shared assistants: a Team assistant as a file someone else can add to their own
  * Athena. Pure and shared with the app (sample mode reads and checks one
- * here too). The server side is lib/workflow-share.ts.
+ * here too). The server side is lib/team-share-store.ts.
  *
- * A workflow is a folder, usually zipped:
+ * A shared assistant is a folder, usually zipped:
  *
- *   <slug>/workflow.json   the assistant: name, job, instructions, looks,
+ *   <slug>/assistant.json   the assistant: name, job, instructions, looks,
  *                          triggers, the questions it asks whoever adds it,
  *                          the accounts it needs, and what it would like to
  *                          do without asking (a request, never a grant)
@@ -19,7 +19,7 @@
  * places, addresses, email addresses, phone numbers or private links; the
  * owner edits it out, or says it's fine to share.
  *
- * Reading one (`readWorkflow`) treats every field as someone else's words:
+ * Reading one (`readShared`) treats every field as someone else's words:
  * checked against the same limits as an assistant made in Athena, unknown
  * keys dropped, and nothing in it is a permission. On import the assistant
  * starts paused, with nothing allowed to run alone unless the owner ticks it.
@@ -53,30 +53,30 @@ import {
   type TeamTriggerInput,
 } from "./team-types";
 
-export const WORKFLOW_FORMAT = 1;
-export const WORKFLOW_FILE = "workflow.json";
-/** Accounts a workflow can say it needs. */
+export const SHARE_FORMAT = 1;
+export const ASSISTANT_FILE = "assistant.json";
+/** Accounts a shared can say it needs. */
 export const MAX_NEEDS = 10;
 /** Tools it can ask to run without asking. */
 export const MAX_WOULD_LIKE = 20;
 
-export class WorkflowFormatError extends Error {
+export class ShareFormatError extends Error {
   readonly status = 400 as const;
   constructor(message: string) {
     super(message);
-    this.name = "WorkflowFormatError";
+    this.name = "ShareFormatError";
   }
 }
 
 /** A question the assistant asks whoever adds it. Their answer goes into its skill. */
-export interface WorkflowAsk {
+export interface SharedAsk {
   question: string;
   /** Answers to tap. Empty: they write their own. */
   choices: string[];
 }
 
-/** A trigger as a workflow carries it: no ids, no last run. */
-export interface WorkflowTrigger {
+/** A trigger as a shared assistant carries it: no ids, no last run. */
+export interface SharedTrigger {
   kind: "schedule" | "event";
   /** schedule: 0 = Sunday … 6 = Saturday. */
   days?: number[];
@@ -85,8 +85,8 @@ export interface WorkflowTrigger {
   event?: EventFilter;
 }
 
-export interface Workflow {
-  format: typeof WORKFLOW_FORMAT;
+export interface SharedAssistant {
+  format: typeof SHARE_FORMAT;
   name: string;
   job: string;
   instructions: string;
@@ -94,8 +94,8 @@ export interface Workflow {
   summary: string;
   personality: Personality | null;
   avatar: AvatarSpec | null;
-  triggers: WorkflowTrigger[];
-  asks: WorkflowAsk[];
+  triggers: SharedTrigger[];
+  asks: SharedAsk[];
   /** Accounts it needs, by provider ("linear", "gmail"). */
   needs: string[];
   /** Tools it would like to run without asking. Shown unticked on import. */
@@ -106,21 +106,21 @@ export interface Workflow {
   version?: string;
   /** A GitHub username, if the author wants credit. */
   author?: string;
-  /** The workflow this one was made from: a github.com link. */
+  /** The shared this one was made from: a github.com link. */
   based_on?: string;
 }
 
-/** A workflow's skill: SKILL.md's body and its reference files. */
-export interface WorkflowSkill {
+/** A shared assistant's skill: SKILL.md's body and its reference files. */
+export interface SharedSkill {
   body: string;
   files: SkillFile[];
   skipped: SkillSkipped[];
 }
 
 /** What an import would add, shown whole before anything is kept. */
-export interface WorkflowBundle {
-  workflow: Workflow;
-  skill: WorkflowSkill | null;
+export interface SharedBundle {
+  shared: SharedAssistant;
+  skill: SharedSkill | null;
   source: SkillSource;
 }
 
@@ -136,13 +136,13 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function text(raw: unknown, field: string, max: number, opts: { required?: boolean; multiline?: boolean } = {}): string {
   if (raw === undefined || raw === null) {
-    if (opts.required) throw new WorkflowFormatError(`${field}: missing`);
+    if (opts.required) throw new ShareFormatError(`${field}: missing`);
     return "";
   }
-  if (typeof raw !== "string") throw new WorkflowFormatError(`${field}: should be text`);
+  if (typeof raw !== "string") throw new ShareFormatError(`${field}: should be text`);
   const v = opts.multiline ? raw.replace(/\r\n?/g, "\n").trim() : oneLine(raw);
-  if (opts.required && !v) throw new WorkflowFormatError(`${field}: missing`);
-  if (v.length > max) throw new WorkflowFormatError(`${field}: over ${max.toLocaleString("en-GB")} characters`);
+  if (opts.required && !v) throw new ShareFormatError(`${field}: missing`);
+  if (v.length > max) throw new ShareFormatError(`${field}: over ${max.toLocaleString("en-GB")} characters`);
   return v;
 }
 
@@ -178,18 +178,18 @@ function readPersonality(raw: unknown): Personality | null {
   return { tone: raw.tone as Personality["tone"], pronoun: raw.pronoun as Personality["pronoun"], traits, greeting };
 }
 
-function readTrigger(raw: unknown, i: number): WorkflowTrigger {
+function readTrigger(raw: unknown, i: number): SharedTrigger {
   const at = `triggers[${i}]`;
-  if (!isObj(raw)) throw new WorkflowFormatError(`${at}: should be an object`);
+  if (!isObj(raw)) throw new ShareFormatError(`${at}: should be an object`);
   if (raw.kind === "schedule") {
     const days = [...new Set((Array.isArray(raw.days) ? raw.days : []).map(Number))].filter((d) => Number.isInteger(d) && d >= 0 && d <= 6).sort((a, b) => a - b);
-    if (!days.length) throw new WorkflowFormatError(`${at}: a schedule needs days, 0 (Sunday) to 6`);
-    if (typeof raw.time !== "string" || !TIME.test(raw.time)) throw new WorkflowFormatError(`${at}: a schedule needs a time, like 08:30`);
+    if (!days.length) throw new ShareFormatError(`${at}: a schedule needs days, 0 (Sunday) to 6`);
+    if (typeof raw.time !== "string" || !TIME.test(raw.time)) throw new ShareFormatError(`${at}: a schedule needs a time, like 08:30`);
     return { kind: "schedule", days, time: raw.time };
   }
   if (raw.kind === "event") {
     const e = raw.event;
-    if (!isObj(e) || !inList(EVENT_SOURCES, e.source)) throw new WorkflowFormatError(`${at}: an event trigger needs event.source (collected, saved or note)`);
+    if (!isObj(e) || !inList(EVENT_SOURCES, e.source)) throw new ShareFormatError(`${at}: an event trigger needs event.source (collected, saved or note)`);
     const facet = (k: string, max: number) => {
       const v = e[k];
       if (v === undefined || v === null || v === "") return undefined;
@@ -208,13 +208,13 @@ function readTrigger(raw: unknown, i: number): WorkflowTrigger {
     if (match) event.match = match;
     return { kind: "event", event };
   }
-  throw new WorkflowFormatError(`${at}: kind should be schedule or event`);
+  throw new ShareFormatError(`${at}: kind should be schedule or event`);
 }
 
-function readAsks(raw: unknown): WorkflowAsk[] {
+function readAsks(raw: unknown): SharedAsk[] {
   if (raw === undefined || raw === null) return [];
-  if (!Array.isArray(raw)) throw new WorkflowFormatError("asks: should be a list");
-  const out: WorkflowAsk[] = [];
+  if (!Array.isArray(raw)) throw new ShareFormatError("asks: should be a list");
+  const out: SharedAsk[] = [];
   for (const [i, a] of raw.entries()) {
     const q = isObj(a) ? a.question : a;
     const question = text(q, `asks[${i}].question`, MAX_QUESTION);
@@ -222,19 +222,19 @@ function readAsks(raw: unknown): WorkflowAsk[] {
     const choices = [...new Set((isObj(a) && Array.isArray(a.choices) ? a.choices : []).filter((c): c is string => typeof c === "string").map(oneLine).filter((c) => c && c.length <= MAX_CHOICE))].slice(0, MAX_CHOICES);
     out.push({ question, choices: choices.length >= 2 ? choices : [] });
   }
-  if (out.length > MAX_QUESTIONS) throw new WorkflowFormatError(`asks: ${MAX_QUESTIONS} questions at most`);
+  if (out.length > MAX_QUESTIONS) throw new ShareFormatError(`asks: ${MAX_QUESTIONS} questions at most`);
   return out;
 }
 
 function names(raw: unknown, field: string, re: RegExp, max: number): string[] {
   if (raw === undefined || raw === null) return [];
-  if (!Array.isArray(raw)) throw new WorkflowFormatError(`${field}: should be a list`);
+  if (!Array.isArray(raw)) throw new ShareFormatError(`${field}: should be a list`);
   const out = [...new Set(raw.filter((v): v is string => typeof v === "string").map((v) => v.trim().toLowerCase()).filter((v) => re.test(v)))];
-  if (out.length > max) throw new WorkflowFormatError(`${field}: ${max} at most`);
+  if (out.length > max) throw new ShareFormatError(`${field}: ${max} at most`);
   return out;
 }
 
-/** A github.com link, or nothing: a workflow only ever points back at GitHub. */
+/** A github.com link, or nothing: a shared only ever points back at GitHub. */
 export function githubLink(raw: unknown): string | undefined {
   if (typeof raw !== "string" || raw.length > 300) return undefined;
   try {
@@ -248,29 +248,29 @@ export function githubLink(raw: unknown): string | undefined {
 }
 
 /** The accounts its event triggers wait on, then the ones it says it needs. Pure. */
-export function needsOf(triggers: readonly WorkflowTrigger[], declared: readonly string[] = []): string[] {
+export function needsOf(triggers: readonly SharedTrigger[], declared: readonly string[] = []): string[] {
   const out: string[] = [];
   for (const t of triggers) if (t.event?.connector && PROVIDER.test(t.event.connector) && !out.includes(t.event.connector)) out.push(t.event.connector);
   for (const d of declared) if (!out.includes(d)) out.push(d);
   return out.slice(0, MAX_NEEDS);
 }
 
-/** workflow.json, read and checked. Throws WorkflowFormatError with words for the owner. Pure. */
-export function readWorkflow(raw: unknown): Workflow {
-  if (!isObj(raw)) throw new WorkflowFormatError("That isn't a workflow: workflow.json should hold an object.");
-  if (raw.format !== WORKFLOW_FORMAT) {
-    if (typeof raw.format === "number" && raw.format > WORKFLOW_FORMAT) throw new WorkflowFormatError("That workflow was made by a newer Athena. Update yours, then try again.");
-    throw new WorkflowFormatError(`That isn't a workflow Athena can read: workflow.json needs "format": ${WORKFLOW_FORMAT}.`);
+/** assistant.json, read and checked. Throws ShareFormatError with words for the owner. Pure. */
+export function readShared(raw: unknown): SharedAssistant {
+  if (!isObj(raw)) throw new ShareFormatError("That isn't a shared assistant: assistant.json should hold an object.");
+  if (raw.format !== SHARE_FORMAT) {
+    if (typeof raw.format === "number" && raw.format > SHARE_FORMAT) throw new ShareFormatError("That assistant was shared from a newer Athena. Update yours, then try again.");
+    throw new ShareFormatError(`That isn't an assistant Athena can read: assistant.json needs "format": ${SHARE_FORMAT}.`);
   }
   const triggersRaw = raw.triggers ?? [];
-  if (!Array.isArray(triggersRaw)) throw new WorkflowFormatError("triggers: should be a list");
-  if (triggersRaw.length > MAX_TRIGGERS) throw new WorkflowFormatError(`triggers: ${MAX_TRIGGERS} at most`);
+  if (!Array.isArray(triggersRaw)) throw new ShareFormatError("triggers: should be a list");
+  if (triggersRaw.length > MAX_TRIGGERS) throw new ShareFormatError(`triggers: ${MAX_TRIGGERS} at most`);
   const triggers = triggersRaw.map(readTrigger);
   const version = typeof raw.version === "string" && VERSION.test(raw.version.trim()) ? raw.version.trim() : undefined;
   const author = typeof raw.author === "string" && GITHUB_USER.test(raw.author.trim().replace(/^@/, "")) ? raw.author.trim().replace(/^@/, "") : undefined;
   const basedOn = githubLink(raw.based_on);
   return {
-    format: WORKFLOW_FORMAT,
+    format: SHARE_FORMAT,
     name: text(raw.name, "name", MAX_NAME),
     job: text(raw.job, "job", MAX_JOB, { required: true }),
     instructions: text(raw.instructions, "instructions", MAX_INSTRUCTIONS, { multiline: true }),
@@ -288,8 +288,8 @@ export function readWorkflow(raw: unknown): Workflow {
   };
 }
 
-/** workflow.json as written: keys in a fixed order, empty optional ones left out. Pure. */
-export function serialiseWorkflow(w: Workflow): string {
+/** assistant.json as written: keys in a fixed order, empty optional ones left out. Pure. */
+export function serialiseShared(w: SharedAssistant): string {
   const out: Record<string, unknown> = { format: w.format, name: w.name, job: w.job };
   if (w.version) out.version = w.version;
   if (w.author) out.author = w.author;
@@ -307,63 +307,63 @@ export function serialiseWorkflow(w: Workflow): string {
 }
 
 /** The triggers as POST /api/team takes them. Pure. */
-export function triggerInputs(w: Workflow): TeamTriggerInput[] {
+export function triggerInputs(w: SharedAssistant): TeamTriggerInput[] {
   return w.triggers.map((t) => (t.kind === "schedule" ? { kind: "schedule", days: t.days, time: t.time } : { kind: "event", event: t.event }));
 }
 
 // ---------- a folder, zip or link's files ----------
 
-const isWorkflowFile = (path: string) => (path.split("/").pop() ?? "").toLowerCase() === WORKFLOW_FILE;
+const isAssistantFile = (path: string) => (path.split("/").pop() ?? "").toLowerCase() === ASSISTANT_FILE;
 
 /**
- * A workflow from a folder's or zip's files: the shallowest workflow.json,
+ * A shared from a folder's or zip's files: the shallowest assistant.json,
  * and the SKILL.md and files beside it (lib/skills.ts intakeEntries, so the
  * same caps apply). A folder with no SKILL.md is fine: Athena writes the
- * skill on import. Throws WorkflowFormatError. Pure.
+ * skill on import. Throws ShareFormatError. Pure.
  */
-export function bundleFromEntries(entries: IntakeEntry[], source: SkillSource): WorkflowBundle {
+export function bundleFromEntries(entries: IntakeEntry[], source: SkillSource): SharedBundle {
   const clean = entries.flatMap((e) => {
     const path = cleanPath(e.path);
     return path && !path.split("/").some((p) => p.startsWith(".") || p === "__MACOSX") ? [{ ...e, path }] : [];
   });
-  const found = clean.filter((e) => isWorkflowFile(e.path)).sort((a, b) => a.path.split("/").length - b.path.split("/").length);
+  const found = clean.filter((e) => isAssistantFile(e.path)).sort((a, b) => a.path.split("/").length - b.path.split("/").length);
   if (!found.length) {
-    if (clean.some((e) => /(^|\/)skill\.md$/i.test(e.path))) throw new WorkflowFormatError("That's a skill, not a workflow. Add it in Settings → Ask → Skills.");
-    throw new WorkflowFormatError("There's no workflow.json in that.");
+    if (clean.some((e) => /(^|\/)skill\.md$/i.test(e.path))) throw new ShareFormatError("That's a skill, not an assistant. Add it in Settings → Ask → Skills.");
+    throw new ShareFormatError("There's no assistant.json in that.");
   }
   const depth = found[0].path.split("/").length;
-  if (found.filter((e) => e.path.split("/").length === depth).length > 1) throw new WorkflowFormatError("That holds more than one workflow. Add them one at a time.");
+  if (found.filter((e) => e.path.split("/").length === depth).length > 1) throw new ShareFormatError("That holds more than one assistant. Import them one at a time.");
   const root = found[0].path.split("/").slice(0, -1).join("/");
   const json = textOf(found[0].bytes);
-  if (json === null) throw new WorkflowFormatError("workflow.json isn't readable text.");
+  if (json === null) throw new ShareFormatError("assistant.json isn't readable text.");
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
   } catch {
-    throw new WorkflowFormatError("workflow.json isn't valid JSON.");
+    throw new ShareFormatError("assistant.json isn't valid JSON.");
   }
-  const workflow = readWorkflow(parsed);
-  const beside = clean.filter((e) => e !== found[0] && (!root || e.path.startsWith(`${root}/`)) && !isWorkflowFile(e.path));
+  const shared = readShared(parsed);
+  const beside = clean.filter((e) => e !== found[0] && (!root || e.path.startsWith(`${root}/`)) && !isAssistantFile(e.path));
   const inRoot = (p: string) => (root ? p.slice(root.length + 1) : p);
-  // Only a SKILL.md at the workflow's own level is its skill.
+  // Only a SKILL.md at the shared assistant's own level is its skill.
   const hasSkill = beside.some((e) => inRoot(e.path).toLowerCase() === "skill.md");
-  let skill: WorkflowSkill | null = null;
+  let skill: SharedSkill | null = null;
   if (hasSkill) {
     let p: SkillPreview;
     try {
       p = intakeEntries(beside, source);
     } catch (error) {
-      if (error instanceof SkillFormatError) throw new WorkflowFormatError(`Its skill: ${error.message}`);
+      if (error instanceof SkillFormatError) throw new ShareFormatError(`Its skill: ${error.message}`);
       throw error;
     }
     skill = { body: p.body, files: p.files, skipped: p.skipped };
   }
-  return { workflow, skill, source };
+  return { shared, skill, source };
 }
 
-/** workflow.json on its own (and a SKILL.md, if one came with it). Pure. */
-export function bundleFromText(json: string, source: SkillSource, skillMd?: string): WorkflowBundle {
-  const entries: IntakeEntry[] = [{ path: WORKFLOW_FILE, bytes: new TextEncoder().encode(json) }];
+/** assistant.json on its own (and a SKILL.md, if one came with it). Pure. */
+export function bundleFromText(json: string, source: SkillSource, skillMd?: string): SharedBundle {
+  const entries: IntakeEntry[] = [{ path: ASSISTANT_FILE, bytes: new TextEncoder().encode(json) }];
   if (skillMd) entries.push({ path: "SKILL.md", bytes: new TextEncoder().encode(skillMd) });
   return bundleFromEntries(entries, source);
 }
@@ -371,7 +371,7 @@ export function bundleFromText(json: string, source: SkillSource, skillMd?: stri
 // ---------- making one ----------
 
 /** "Gift price watcher" → "gift-price-watcher": the folder and zip's name. Pure. */
-export function workflowSlug(name: string, job: string): string {
+export function shareSlug(name: string, job: string): string {
   const s = `${name || job}`
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
@@ -380,23 +380,23 @@ export function workflowSlug(name: string, job: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 48)
     .replace(/-+$/, "");
-  return s || "workflow";
+  return s || "assistant";
 }
 
 /** The seed for its character when it brings no looks: the same in the preview and once added. Pure. */
-export function workflowSeed(w: Pick<Workflow, "name" | "job">): string {
-  return `wf-${workflowSlug(w.name, w.job)}`.slice(0, 64);
+export function shareSeed(w: Pick<SharedAssistant, "name" | "job">): string {
+  return `wf-${shareSlug(w.name, w.job)}`.slice(0, 64);
 }
 
 /** What the owner can change in the export sheet before downloading. Changes apply to the file, not the assistant. */
-export interface WorkflowEdits {
+export interface ShareEdits {
   name?: string;
   job?: string;
   instructions?: string;
   summary?: string;
   skill?: string;
   greeting?: string;
-  asks?: WorkflowAsk[];
+  asks?: SharedAsk[];
   version?: string;
   author?: string;
   /** Leave its looks out: whoever adds it gets a fresh character. */
@@ -404,17 +404,17 @@ export interface WorkflowEdits {
 }
 
 /**
- * An assistant as a workflow, with the owner's edits. The setup questions
+ * An assistant as a file to share, with the owner's edits. The setup questions
  * kept with its skill become the questions it asks whoever adds it; the
  * owner's own answers never go. Pure.
  */
-export function workflowFromAssistant(a: Pick<TeamAssistant, "name" | "job" | "instructions" | "personality" | "avatar" | "triggers" | "allow" | "web">, opts: { summary?: string; answers?: TeamAnswer[]; edits?: WorkflowEdits } = {}): Workflow {
+export function sharedFromAssistant(a: Pick<TeamAssistant, "name" | "job" | "instructions" | "personality" | "avatar" | "triggers" | "allow" | "web">, opts: { summary?: string; answers?: TeamAnswer[]; edits?: ShareEdits } = {}): SharedAssistant {
   const e = opts.edits ?? {};
   const asks = e.asks ?? (opts.answers ?? []).map((x) => ({ question: x.question, choices: [] }));
-  const triggers: WorkflowTrigger[] = a.triggers.map((t) => (t.kind === "schedule" ? { kind: "schedule", days: [...t.days], time: t.time ?? "09:00" } : { kind: "event", event: { ...(t.event as EventFilter) } }));
+  const triggers: SharedTrigger[] = a.triggers.map((t) => (t.kind === "schedule" ? { kind: "schedule", days: [...t.days], time: t.time ?? "09:00" } : { kind: "event", event: { ...(t.event as EventFilter) } }));
   const personality = { ...a.personality, ...(e.greeting !== undefined ? { greeting: oneLine(e.greeting).slice(0, MAX_GREETING) } : {}) };
   const raw = {
-    format: WORKFLOW_FORMAT,
+    format: SHARE_FORMAT,
     name: e.name ?? a.name,
     job: e.job ?? a.job,
     instructions: e.instructions ?? a.instructions,
@@ -429,7 +429,7 @@ export function workflowFromAssistant(a: Pick<TeamAssistant, "name" | "job" | "i
     version: e.version,
     author: e.author,
   };
-  return readWorkflow(raw);
+  return readShared(raw);
 }
 
 // ---------- taking out the site's own links ----------
@@ -608,8 +608,8 @@ export function findPersonal(fields: CheckField[], known: KnownTerm[], fine: rea
   return [...found.values()];
 }
 
-/** Every field a workflow and its skill carry, for the check. Pure. */
-export function checkFields(w: Workflow, skill: { body: string; files: SkillFile[] } | null): CheckField[] {
+/** Every field a shared and its skill carry, for the check. Pure. */
+export function checkFields(w: SharedAssistant, skill: { body: string; files: SkillFile[] } | null): CheckField[] {
   const out: CheckField[] = [
     { field: "name", text: w.name },
     { field: "job", text: w.job },
@@ -643,7 +643,7 @@ export function withAnswers(body: string, answers: TeamAnswer[]): string {
 }
 
 /** The tools it may run alone: only ones it asked for and the owner ticked. Pure. */
-export function grantedTools(w: Pick<Workflow, "would_like">, ticked: unknown): string[] {
+export function grantedTools(w: Pick<SharedAssistant, "would_like">, ticked: unknown): string[] {
   const asked = new Set(w.would_like);
   return [...new Set((Array.isArray(ticked) ? ticked : []).filter((t): t is string => typeof t === "string" && asked.has(t)))];
 }
@@ -659,22 +659,22 @@ export function linkedHosts(texts: string[]): string[] {
   return [...out].sort().slice(0, 10);
 }
 
-/** Reference files sent back on import, checked again. Throws WorkflowFormatError. Pure. */
-export function workflowFiles(raw: unknown): SkillFile[] {
+/** Reference files sent back on import, checked again. Throws ShareFormatError. Pure. */
+export function sharedSkillFiles(raw: unknown): SkillFile[] {
   try {
     return checkFiles(raw);
   } catch (error) {
-    if (error instanceof SkillFormatError) throw new WorkflowFormatError(`Its skill: ${error.message}`);
+    if (error instanceof SkillFormatError) throw new ShareFormatError(`Its skill: ${error.message}`);
     throw error;
   }
 }
 
-// ---------- what the routes answer (lib/workflow-share.ts, netlify/lib/team-routes.ts) ----------
+// ---------- what the routes answer (lib/team-share-store.ts, netlify/lib/team-routes.ts) ----------
 
-/** POST /api/team/<id>/workflow: the file as it would be downloaded, and what to look at first. */
-export interface WorkflowExport {
-  workflow: Workflow;
-  skill: WorkflowSkill | null;
+/** POST /api/team/<id>/export: the file as it would be downloaded, and what to look at first. */
+export interface ShareExport {
+  shared: SharedAssistant;
+  skill: SharedSkill | null;
   /** What looks like the owner's own, still in the text. A download waits until each is edited out or marked fine. */
   findings: Finding[];
   /** Links and ids into the owner's Athena, taken out for them. */
@@ -683,24 +683,24 @@ export interface WorkflowExport {
   slug: string;
 }
 
-/** An account a workflow needs, and whether this Athena has it connected. */
-export interface WorkflowNeed {
+/** An account a shared needs, and whether this Athena has it connected. */
+export interface ImportNeed {
   id: string;
   connected: boolean;
 }
 
-/** POST /api/team/workflow/preview: everything an import would add, before anything is kept. */
-export interface WorkflowPreview extends WorkflowBundle {
-  needs: WorkflowNeed[];
+/** POST /api/team/import/preview: everything an import would add, before anything is kept. */
+export interface ImportPreview extends SharedBundle {
+  needs: ImportNeed[];
   /** Sites its words link to, other than GitHub. */
   links: string[];
   /** There's room on the team for it. */
   room: boolean;
 }
 
-/** POST /api/team/workflow: add it. Everything but the owner's choices comes from the preview. */
-export interface WorkflowImportInput {
-  workflow: Workflow;
+/** POST /api/team/import: add it. Everything but the owner's choices comes from the preview. */
+export interface ImportInput {
+  shared: SharedAssistant;
   skill: { body: string; files: SkillFile[]; skipped?: SkillSkipped[] } | null;
   source: SkillSource;
   answers: TeamAnswer[];
@@ -712,7 +712,7 @@ export interface WorkflowImportInput {
 // ---------- a link to one ----------
 
 /** A GitHub folder, as lib/skill-fetch.ts reads one. */
-export interface WorkflowLink {
+export interface ShareLink {
   kind: "github";
   owner: string;
   repo: string;
@@ -723,21 +723,21 @@ export interface WorkflowLink {
 const GH_NAME = /^[A-Za-z0-9_.-]{1,100}$/;
 
 /**
- * Where a link's workflow is: a folder on github.com (…/tree/<ref>/<path>),
- * a file in it (…/blob/<ref>/<path>/workflow.json or SKILL.md, read as its
+ * Where a link's assistant is: a folder on github.com (…/tree/<ref>/<path>),
+ * a file in it (…/blob/<ref>/<path>/assistant.json or SKILL.md, read as its
  * folder), or the same file on raw.githubusercontent.com. Anything else is
- * refused: workflows come from GitHub, never from someone's own site.
- * Throws WorkflowFormatError. Pure.
+ * refused: shared assistants come from GitHub, never from someone's own site.
+ * Throws ShareFormatError. Pure.
  */
-export function parseWorkflowLink(raw: string): WorkflowLink {
+export function parseShareLink(raw: string): ShareLink {
   let u: URL;
   try {
     u = new URL(raw.trim());
   } catch {
-    throw new WorkflowFormatError("That isn't a link.");
+    throw new ShareFormatError("That isn't a link.");
   }
-  if (u.protocol !== "https:") throw new WorkflowFormatError("Only https links can be imported.");
-  if (u.username || u.password) throw new WorkflowFormatError("Leave the sign-in out of the link.");
+  if (u.protocol !== "https:") throw new ShareFormatError("Only https links can be imported.");
+  if (u.username || u.password) throw new ShareFormatError("Leave the sign-in out of the link.");
   const host = u.hostname.toLowerCase();
   const parts = u.pathname.split("/").filter(Boolean).map((p) => {
     try {
@@ -746,22 +746,22 @@ export function parseWorkflowLink(raw: string): WorkflowLink {
       return p;
     }
   });
-  if (parts.some((p) => p === ".." || p === ".")) throw new WorkflowFormatError("That link doesn't point at a folder.");
+  if (parts.some((p) => p === ".." || p === ".")) throw new ShareFormatError("That link doesn't point at a folder.");
   const fileToFolder = (rest: string[]) => {
     const last = (rest[rest.length - 1] ?? "").toLowerCase();
-    if (last === WORKFLOW_FILE || last === "skill.md") return rest.slice(0, -1).join("/");
-    throw new WorkflowFormatError("Link to the workflow's folder on GitHub, or to its workflow.json.");
+    if (last === ASSISTANT_FILE || last === "skill.md") return rest.slice(0, -1).join("/");
+    throw new ShareFormatError("Link to the assistant's folder on GitHub, or to its assistant.json.");
   };
   if (host === "raw.githubusercontent.com") {
     const [owner, repo, ref, ...rest] = parts;
-    if (!owner || !repo || !ref || !GH_NAME.test(owner) || !GH_NAME.test(repo)) throw new WorkflowFormatError("That link doesn't point at a workflow on GitHub.");
+    if (!owner || !repo || !ref || !GH_NAME.test(owner) || !GH_NAME.test(repo)) throw new ShareFormatError("That link doesn't point at an assistant on GitHub.");
     return { kind: "github", owner, repo, ref, path: fileToFolder(rest) };
   }
-  if (host !== "github.com" && host !== "www.github.com") throw new WorkflowFormatError("Athena imports workflows from GitHub. For anything else, download the file and upload it.");
+  if (host !== "github.com" && host !== "www.github.com") throw new ShareFormatError("Athena imports assistants from GitHub. For anything else, download the file and upload it.");
   const [owner, repo, mode, ref, ...rest] = parts;
   const r = (repo ?? "").replace(/\.git$/, "");
-  if (!owner || !r || !GH_NAME.test(owner) || !GH_NAME.test(r)) throw new WorkflowFormatError("That GitHub link doesn't point at a repository.");
+  if (!owner || !r || !GH_NAME.test(owner) || !GH_NAME.test(r)) throw new ShareFormatError("That GitHub link doesn't point at a repository.");
   if (!mode) return { kind: "github", owner, repo: r, ref: null, path: "" };
-  if (!ref || (mode !== "tree" && mode !== "blob")) throw new WorkflowFormatError("Link to the workflow's folder on GitHub, or to its workflow.json.");
+  if (!ref || (mode !== "tree" && mode !== "blob")) throw new ShareFormatError("Link to the assistant's folder on GitHub, or to its assistant.json.");
   return { kind: "github", owner, repo: r, ref, path: mode === "blob" ? fileToFolder(rest) : rest.join("/") };
 }

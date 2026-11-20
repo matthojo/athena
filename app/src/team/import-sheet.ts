@@ -1,7 +1,8 @@
 /**
- * "Add a workflow" (lib/workflow.ts): an assistant someone shared, added to
- * this team. From the Team page's button, a file dropped on the page, a file
- * shared to the installed app (#/team/import), or a GitHub link.
+ * "Import assistant" (lib/team-share.ts): an assistant someone shared, added to
+ * this team. Opened from New assistant ("Or import one someone shared"), the
+ * empty Team page, a file dropped on the Team page, or a file shared to the
+ * installed app (#/team/import); it reads a file, a folder or a GitHub link.
  *
  * Everything is shown before anything is kept: who it is, when it runs, the
  * accounts it needs and whether they're connected, the questions it asks,
@@ -11,21 +12,21 @@
  * turns it on from its page.
  */
 import "../styles/skills.css";
-import "../styles/workflows.css";
+import "../styles/team-share.css";
 import { h } from "../lib/dom";
 import { icons } from "../components/icons";
 import { openSheet, type SheetHandle } from "../components/sheet";
 import { showToast } from "../components/toast";
-import { addWorkflow, previewWorkflowFiles, previewWorkflowLink, type WorkflowPreview } from "../db/workflows";
+import { addImported, previewImportFiles, previewImportLink, type ImportPreview } from "../db/team-share";
 import type { TeamAssistant } from "../db/team";
 import { MAX_ANSWER, type TeamAnswer } from "../../../lib/team-skill";
 import { MAX_ASSISTANTS } from "../../../lib/team-types";
-import { workflowSeed } from "../../../lib/workflow";
+import { shareSeed } from "../../../lib/team-share";
 import { avatarFromSeed, renderAvatarTile } from "./avatar";
 import { allowOption } from "./setup-allow";
 import { answersFor, questionsForm, type AnswerMap } from "./setup-questions";
 import { triggerSentence } from "./trigger-editor-words";
-import { creditWords, fromWords, needWords } from "./workflow-words";
+import { creditWords, fromWords, needWords } from "./share-words";
 
 const errorText = (error: unknown) => (error instanceof Error && error.message && !/fetch|network|Failed/i.test(error.message) ? error.message : "That didn't work. Check you're online.");
 
@@ -40,7 +41,7 @@ function setBody(sheet: SheetHandle, el: HTMLElement): void {
   sheet.dialog.querySelector(".sheet__scroll")?.replaceChildren(el);
 }
 
-export function openImportWorkflow(opts: ImportOptions): void {
+export function openImportAssistant(opts: ImportOptions): void {
   const fileInput = h("input", { type: "file", accept: ".zip,.json,application/zip,application/json", hidden: true }) as HTMLInputElement;
   const folderInput = h("input", { type: "file", hidden: true, webkitdirectory: "", multiple: true }) as HTMLInputElement;
   const option = (icon: "arrowUp" | "folder" | "link", title: string, detail: string, run: () => void) => {
@@ -51,27 +52,27 @@ export function openImportWorkflow(opts: ImportOptions): void {
   const choose = h(
     "div",
     { class: "skills-add" },
-    h("p", { class: "settings__lede" }, "An assistant someone shared: its job, instructions, skill and triggers. You see all of it before it's added, and it joins paused."),
+    h("p", { class: "settings__lede" }, "An assistant someone shared: its job, instructions, skill and triggers. You see all of it before it's imported, and it joins paused."),
     h(
       "div",
       { class: "card card--flush list" },
-      option("arrowUp", "Upload a file", "A workflow's .zip, or its workflow.json", () => fileInput.click()),
-      option("folder", "Upload a folder", "A folder with workflow.json in it", () => folderInput.click()),
-      option("link", "From GitHub", "A folder in a public repository, like a workflow catalogue", () => linkStep())
+      option("arrowUp", "Upload a file", "A shared assistant's .zip, or its assistant.json", () => fileInput.click()),
+      option("folder", "Upload a folder", "A folder with assistant.json in it", () => folderInput.click()),
+      option("link", "From GitHub", "A folder in a public repository, like a catalogue of assistants", () => linkStep())
     ),
     fileInput,
     folderInput
   );
-  const sheet = openSheet({ title: "Add a workflow", label: "Add a workflow", body: choose, onClose: opts.onClose });
+  const sheet = openSheet({ title: "Import assistant", label: "Import assistant", body: choose, onClose: opts.onClose });
 
   const fromFiles = (files: File[]) => {
-    if (files.length) show(() => previewWorkflowFiles(files));
+    if (files.length) show(() => previewImportFiles(files));
   };
   fileInput.addEventListener("change", () => fromFiles([...(fileInput.files ?? [])]));
   folderInput.addEventListener("change", () => fromFiles([...(folderInput.files ?? [])]));
 
   const backToChoose = () => {
-    sheet.setTitle("Add a workflow");
+    sheet.setTitle("Import assistant");
     sheet.setBack(null);
     fileInput.value = "";
     folderInput.value = "";
@@ -79,19 +80,19 @@ export function openImportWorkflow(opts: ImportOptions): void {
   };
 
   function linkStep() {
-    const url = h("input", { class: "field", type: "url", inputmode: "url", placeholder: "https://github.com/…/tree/main/gift-prices", "aria-label": "Link to the workflow", autocomplete: "off", required: true }) as HTMLInputElement;
+    const url = h("input", { class: "field", type: "url", inputmode: "url", placeholder: "https://github.com/…/tree/main/gift-prices", "aria-label": "Link to the assistant", autocomplete: "off", required: true }) as HTMLInputElement;
     const go = h("button", { class: "btn btn--primary btn--block", type: "submit" }, "Preview");
     const form = h(
       "form",
       { class: "skills-form" },
       h("label", { class: "skills-form__label" }, h("span", {}, "Link"), url),
-      h("p", { class: "form__hint" }, "A public GitHub folder with a workflow.json in it, or a link to the workflow.json itself. Athena reads it once and shows you everything before adding it."),
+      h("p", { class: "form__hint" }, "A public GitHub folder with an assistant.json in it, or a link to the assistant.json itself. Athena reads it once and shows you everything before importing it."),
       go
     );
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       if (!url.value.trim()) return url.focus();
-      show(() => previewWorkflowLink(url.value.trim()));
+      show(() => previewImportLink(url.value.trim()));
     });
     sheet.setTitle("From GitHub");
     sheet.setBack(backToChoose);
@@ -99,8 +100,8 @@ export function openImportWorkflow(opts: ImportOptions): void {
     url.focus();
   }
 
-  function show(load: () => Promise<WorkflowPreview>) {
-    sheet.setTitle("Check it before adding");
+  function show(load: () => Promise<ImportPreview>) {
+    sheet.setTitle("Check it before importing");
     sheet.setBack(opts.files ? null : backToChoose);
     setBody(sheet, h("div", { class: "skills-loading" }, h("span", { class: "orb orb--thinking", "aria-hidden": "true" }), h("p", {}, "Reading it…")));
     void load().then(
@@ -109,10 +110,10 @@ export function openImportWorkflow(opts: ImportOptions): void {
     );
   }
 
-  function preview(p: WorkflowPreview): HTMLElement {
-    const w = p.workflow;
+  function preview(p: ImportPreview): HTMLElement {
+    const w = p.shared;
     const name = w.name || "This assistant";
-    const face = renderAvatarTile(w.avatar ?? avatarFromSeed(workflowSeed(w)), { size: 72, animate: true });
+    const face = renderAvatarTile(w.avatar ?? avatarFromSeed(shareSeed(w)), { size: 72, animate: true });
     const credit = creditWords(w);
 
     // Its questions: choices to tap where it gave some, a field where it didn't.
@@ -131,13 +132,13 @@ export function openImportWorkflow(opts: ImportOptions): void {
     });
     const web = w.web ? (h("input", { type: "checkbox", class: "wf-tick__box" }) as HTMLInputElement) : null;
 
-    const add = h("button", { class: "btn btn--primary btn--block", type: "button", disabled: !p.room }, icons.plus(), `Add ${name}`) as HTMLButtonElement;
+    const add = h("button", { class: "btn btn--primary btn--block", type: "button", disabled: !p.room }, icons.plus(), `Import ${name}`) as HTMLButtonElement;
     const cancel = h("button", { class: "btn btn--soft btn--block", type: "button" }, "Cancel");
     cancel.addEventListener("click", () => sheet.close());
     add.addEventListener("click", async () => {
       add.disabled = true;
       try {
-        const made = await addWorkflow(p, { answers: answers(), allow: ticks.filter((t) => t.box.checked).map((t) => t.box.value), web: !!web?.checked });
+        const made = await addImported(p, { answers: answers(), allow: ticks.filter((t) => t.box.checked).map((t) => t.box.value), web: !!web?.checked });
         sheet.close();
         opts.onAdded(made);
       } catch (error) {
@@ -182,7 +183,7 @@ export function openImportWorkflow(opts: ImportOptions): void {
             ...files.map((f) => h("details", { class: "skill-file" }, h("summary", {}, icons.note(), h("span", { class: "skill-file__name" }, f.path)), h("pre", { class: "skill-pre" }, f.text))),
             p.skill.skipped.length ? h("ul", { class: "skill-skipped", "aria-label": "Not used" }, ...p.skill.skipped.map((s) => h("li", {}, h("span", { class: "skill-file__name" }, s.path), h("span", { class: "skill-skipped__why" }, s.reason)))) : null
           )
-        : h("p", { class: "form__hint" }, `It has no skill of its own. Athena writes one from its job and your answers when you add it.`),
+        : h("p", { class: "form__hint" }, `It has no skill of its own. Athena writes one from its job and your answers when you import it.`),
       h("div", { class: "skills-form__actions" }, cancel, add)
     );
   }

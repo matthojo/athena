@@ -1688,33 +1688,34 @@ contracts between slices, is `docs/team.md`.
     routes `#/team/chat`, `#/team/chat/<post id>`, `#/team/assignment/<id>`;
     sample mode in `db/sample-assignments.ts`.
 
-- **Workflows** (`lib/workflow.ts`, pure and shared with the app;
-  `lib/workflow-share.ts`; routes in `netlify/lib/team-routes.ts`; app
-  `db/workflows.ts`, `team/workflow-share.ts`, `team/workflow-import.ts`,
-  `team/workflow-words.ts`). An assistant as a file someone else can add: a
-  folder (zipped for download) with `workflow.json` (format 1: name, job,
+- **Sharing and importing assistants** (`lib/team-share.ts`, pure and shared with the app;
+  `lib/team-share-store.ts`; routes in `netlify/lib/team-routes.ts`; app
+  `db/team-share.ts`, `team/share-sheet.ts`, `team/import-sheet.ts`,
+  `team/share-words.ts`). An assistant as a file someone else can import: a
+  folder (zipped for download) with `assistant.json` (format 1: name, job,
   instructions, summary, personality, avatar, triggers without ids, `asks`,
   `needs`, `would_like`, `web`, and optional `version`, `author`,
   `based_on`), its `SKILL.md` and the skill's files. No migration.
-  - **Share** (the assistant's page): `POST /api/team/<id>/workflow` with
-    `edits` and `fine` returns a `WorkflowExport`: the file's contents with
+  - **Share** (the assistant's page): `POST /api/team/<id>/export` with
+    `edits` and `fine` returns a `ShareExport`: the file's contents with
     links into this Athena taken out (`scrubText`), and `findings` from
     `findPersonal` against `knownTerms()` (people, identities, places,
     organisations, projects, the owner's profile, connector labels). The
     setup questions kept with its skill become `asks`; the owner's answers
     don't go. `download: true` gives the zip, or 409 with the findings.
-  - **Add** (Team's "Add a workflow", a drop on the page, or `#/team/import`
-    from the share target): `POST /api/team/workflow/preview` reads a zip, a
-    folder's files, a `workflow.json` or a GitHub link (`parseWorkflowLink`,
-    `fetchGithubFolder` in `lib/skill-fetch.ts`) into a `WorkflowPreview`
-    with each needed account's connection. `POST /api/team/workflow` makes
+  - **Import** ("Or import one someone shared" in New assistant, the empty
+    Team page, a drop on the page, or `#/team/import` from the share target):
+    `POST /api/team/import/preview` reads a zip, a folder's files, an
+    `assistant.json` or a GitHub link (`parseShareLink`, `fetchGithubFolder`
+    in `lib/skill-fetch.ts`) into an `ImportPreview` with each needed
+    account's connection. `POST /api/team/import` makes
     the assistant paused, with `grantedTools` (asked for and ticked), and its
-    skill as the assistant's own (`putAssistantSkill` with the workflow's
+    skill as the assistant's own (`putAssistantSkill` with the file's
     files and source), the owner's answers appended (`withAnswers`); with no
-    skill, `attachSkill` writes one after the response. A workflow with no
-    looks gets the character its preview showed (`workflowSeed`).
-  - **Sample mode** checks, previews and adds in the app against the sample
-    team and people; a download there is `workflow.json` alone.
+    skill, `attachSkill` writes one after the response. An assistant with no
+    looks gets the character its preview showed (`shareSeed`).
+  - **Sample mode** checks, previews and imports in the app against the sample
+    team and people; a download there is `assistant.json` alone.
   - **The catalogue** is a separate GitHub repository; Athena only reads
     GitHub links and never publishes.
 

@@ -250,7 +250,7 @@ export function freeName(name: string, taken: ReadonlySet<string>): string {
  * text replaced (its files stay). It's kept off, so main Ask never uses it.
  * The name is made unique among all skills. Throws AthenaInputError.
  * `from`: a new skill's reference files and where it came from (an
- * imported workflow, lib/workflow-share.ts); an existing one keeps its own.
+ * imported shared, lib/team-share-store.ts); an existing one keeps its own.
  */
 export async function putAssistantSkill(assistantId: string, doc: SkillDoc, team: TeamSkillMeta, from?: { files?: SkillFile[]; skipped?: SkillSkipped[]; source?: SkillSource }): Promise<Skill> {
   if (!UUID.test(assistantId)) throw new AthenaInputError("That assistant isn't there any more", 404);

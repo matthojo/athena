@@ -1,18 +1,18 @@
 /**
- * Workflows on the server (lib/workflow.ts has the format and the pure
+ * Shared assistants on the server (lib/team-share.ts has the format and the pure
  * parts): sharing an assistant as a file, and adding one someone shared.
  *
- * - `exportWorkflow`: POST /api/team/<id>/workflow. The assistant and its
- *   skill as a workflow, with the owner's edits, links into their Athena
+ * - `exportAssistant`: POST /api/team/<id>/export. The assistant and its
+ *   skill as a file to share, with the owner's edits, links into their Athena
  *   taken out, and the personal-data check run against their own people,
  *   places, organisations, projects, email addresses, phone numbers, profile
  *   and account names. Nothing is kept: the edits only change the file.
- * - `workflowZip`: the download, once nothing is left to check.
- * - `previewWorkflow`: POST /api/team/workflow/preview. A zip, a folder's
- *   files, a workflow.json or a GitHub link, read once, with the accounts it
+ * - `shareZip`: the download, once nothing is left to check.
+ * - `previewImport`: POST /api/team/import/preview. A zip, a folder's
+ *   files, an assistant.json or a GitHub link, read once, with the accounts it
  *   needs and whether they're connected. Nothing is kept.
- * - `importWorkflow`: POST /api/team/workflow. The assistant, paused, with
- *   only the tools the owner ticked (and the workflow asked for) allowed to
+ * - `importAssistant`: POST /api/team/import. The assistant, paused, with
+ *   only the tools the owner ticked (and the file asked for) allowed to
  *   run alone, and its skill with their answers added.
  */
 import { AthenaInputError, q } from "./db";
@@ -35,26 +35,26 @@ import {
   findPersonal,
   grantedTools,
   linkedHosts,
-  parseWorkflowLink,
-  readWorkflow,
+  parseShareLink,
+  readShared,
   scrubText,
-  serialiseWorkflow,
+  serialiseShared,
   triggerInputs,
   withAnswers,
-  workflowFiles,
-  WorkflowFormatError,
-  workflowFromAssistant,
-  workflowSeed,
-  workflowSlug,
-  WORKFLOW_FILE,
+  sharedSkillFiles,
+  ShareFormatError,
+  sharedFromAssistant,
+  shareSeed,
+  shareSlug,
+  ASSISTANT_FILE,
   type KnownTerm,
   type Removed,
-  type WorkflowBundle,
-  type WorkflowEdits,
-  type WorkflowExport,
-  type WorkflowPreview,
-  type WorkflowSkill,
-} from "./workflow";
+  type SharedBundle,
+  type ShareEdits,
+  type ShareExport,
+  type ImportPreview,
+  type SharedSkill,
+} from "./team-share";
 
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : undefined);
@@ -123,7 +123,7 @@ export async function knownTerms(): Promise<KnownTerm[]> {
 
 // ---------- sharing one ----------
 
-function readEdits(raw: unknown): WorkflowEdits {
+function readEdits(raw: unknown): ShareEdits {
   if (!raw || typeof raw !== "object") return {};
   const r = raw as Record<string, unknown>;
   const asks = Array.isArray(r.asks)
@@ -168,11 +168,11 @@ export function ownHosts(requestOrigin: string, env: Record<string, string | und
 }
 
 /**
- * The assistant as a workflow, ready to look over: edits applied, links into
+ * The assistant as a file to share, ready to look over: edits applied, links into
  * this Athena taken out, and the check run. `fine`: finding ids the owner
  * said are fine to share. Throws AthenaInputError (404) when it's gone.
  */
-export async function exportWorkflow(id: string, body: Record<string, unknown>, hosts: string[], deps: { known?: KnownTerm[] } = {}): Promise<WorkflowExport> {
+export async function exportAssistant(id: string, body: Record<string, unknown>, hosts: string[], deps: { known?: KnownTerm[] } = {}): Promise<ShareExport> {
   const a = await getAssistant(id);
   if (!a) throw new AthenaInputError("That assistant isn't there any more", 404);
   const s = await assistantSkill(a.id);
@@ -186,24 +186,24 @@ export async function exportWorkflow(id: string, body: Record<string, unknown>, 
   };
   let w;
   try {
-    w = workflowFromAssistant(a, { summary: s?.team?.summary, answers: s?.team?.answers, edits });
+    w = sharedFromAssistant(a, { summary: s?.team?.summary, answers: s?.team?.answers, edits });
   } catch (error) {
-    if (error instanceof WorkflowFormatError) throw new AthenaInputError(error.message);
+    if (error instanceof ShareFormatError) throw new AthenaInputError(error.message);
     throw error;
   }
   w = { ...w, job: scrub(w.job), instructions: scrub(w.instructions), summary: scrub(w.summary), asks: w.asks.map((x) => ({ question: scrub(x.question), choices: x.choices.map(scrub) })) };
   const skillBody = edits.skill ?? s?.body ?? "";
-  const skill: WorkflowSkill | null = skillBody.trim() ? { body: scrub(skillBody), files: (s?.files ?? []).map((f) => ({ path: f.path, text: scrub(f.text) })), skipped: [] } : null;
+  const skill: SharedSkill | null = skillBody.trim() ? { body: scrub(skillBody), files: (s?.files ?? []).map((f) => ({ path: f.path, text: scrub(f.text) })), skipped: [] } : null;
   const known = deps.known ?? (await knownTerms());
   const findings = findPersonal(checkFields(w, skill), known, fine);
-  return { workflow: w, skill, findings, removed, slug: workflowSlug(w.name, w.job) };
+  return { shared: w, skill, findings, removed, slug: shareSlug(w.name, w.job) };
 }
 
-/** The download: <slug>/workflow.json, <slug>/SKILL.md and its files, in a zip. */
-export function workflowZip(x: WorkflowExport): Uint8Array {
-  const files = [{ path: `${x.slug}/${WORKFLOW_FILE}`, text: serialiseWorkflow(x.workflow) }];
+/** The download: <slug>/assistant.json, <slug>/SKILL.md and its files, in a zip. */
+export function shareZip(x: ShareExport): Uint8Array {
+  const files = [{ path: `${x.slug}/${ASSISTANT_FILE}`, text: serialiseShared(x.shared) }];
   if (x.skill) {
-    const description = `${x.workflow.name || "This assistant"}'s skill: how it does its job (${x.workflow.job.replace(/[.!]+$/, "")}).`.slice(0, SKILL_LIMITS.description);
+    const description = `${x.shared.name || "This assistant"}'s skill: how it does its job (${x.shared.job.replace(/[.!]+$/, "")}).`.slice(0, SKILL_LIMITS.description);
     files.push({ path: `${x.slug}/SKILL.md`, text: serialiseSkillMd({ name: x.slug.slice(0, SKILL_LIMITS.name), description, body: x.skill.body, extra: "" }) });
     for (const f of x.skill.files) files.push({ path: `${x.slug}/${f.path}`, text: f.text });
   }
@@ -212,47 +212,47 @@ export function workflowZip(x: WorkflowExport): Uint8Array {
 
 // ---------- adding one ----------
 
-const asWorkflowError = (error: unknown): never => {
-  if (error instanceof SkillFormatError) throw new WorkflowFormatError(error.message.replace("for a skill", "for a workflow").replace("A skill is mostly text", "A workflow is mostly text"));
+const asShareError = (error: unknown): never => {
+  if (error instanceof SkillFormatError) throw new ShareFormatError(error.message.replace("for a skill", "for an assistant").replace("A skill is mostly text", "A shared assistant is mostly text"));
   throw error;
 };
 
 const bytesOf = (b64: unknown): Uint8Array => {
-  if (typeof b64 !== "string" || !/^[A-Za-z0-9+/=\s]*$/.test(b64)) throw new WorkflowFormatError("That file didn't arrive whole. Try again.");
+  if (typeof b64 !== "string" || !/^[A-Za-z0-9+/=\s]*$/.test(b64)) throw new ShareFormatError("That file didn't arrive whole. Try again.");
   return new Uint8Array(Buffer.from(b64, "base64"));
 };
 
-/** A workflow from what the app sent: a zip, a folder's files, a workflow.json, or a GitHub link. Throws WorkflowFormatError. */
-export async function bundleFrom(body: Record<string, unknown>, now = new Date()): Promise<WorkflowBundle> {
+/** A shared from what the app sent: a zip, a folder's files, an assistant.json, or a GitHub link. Throws ShareFormatError. */
+export async function bundleFrom(body: Record<string, unknown>, now = new Date()): Promise<SharedBundle> {
   const at = now.toISOString();
   const file = typeof body.file === "string" ? body.file.slice(0, 200) : undefined;
   const upload: SkillSource = { kind: "upload", ...(file ? { file } : {}), at };
   try {
     if (typeof body.url === "string") {
       const url = body.url.trim().slice(0, 2048);
-      const link = parseWorkflowLink(url);
+      const link = parseShareLink(url);
       return bundleFromEntries(await fetchGithubFolder(link), { kind: "link", url, at });
     }
     if (body.zip !== undefined) return bundleFromEntries(readSkillZip(bytesOf(body.zip)), upload);
     if (Array.isArray(body.entries)) {
-      if (body.entries.length > 500) throw new WorkflowFormatError("That folder has too many files for a workflow.");
+      if (body.entries.length > 500) throw new ShareFormatError("That folder has too many files for an assistant.");
       const entries: IntakeEntry[] = body.entries.map((e) => ({ path: String((e as { path?: unknown })?.path ?? ""), bytes: bytesOf((e as { data?: unknown })?.data ?? "") }));
       return bundleFromEntries(entries, upload);
     }
-    if (typeof body.workflow_json === "string") return bundleFromText(body.workflow_json.slice(0, 200_000), upload, typeof body.skill_md === "string" ? body.skill_md.slice(0, SKILL_LIMITS.body + 5_000) : undefined);
+    if (typeof body.assistant_json === "string") return bundleFromText(body.assistant_json.slice(0, 200_000), upload, typeof body.skill_md === "string" ? body.skill_md.slice(0, SKILL_LIMITS.body + 5_000) : undefined);
   } catch (error) {
-    return asWorkflowError(error);
+    return asShareError(error);
   }
-  throw new WorkflowFormatError("Send a workflow's zip, its folder, its workflow.json or a GitHub link.");
+  throw new ShareFormatError("Send a shared assistant's zip, its folder, its assistant.json or a GitHub link.");
 }
 
 /** Everything an import would add, with the accounts it needs and whether they're connected. Nothing is kept. */
-export async function previewWorkflow(body: Record<string, unknown>, now = new Date()): Promise<WorkflowPreview> {
+export async function previewImport(body: Record<string, unknown>, now = new Date()): Promise<ImportPreview> {
   const bundle = await bundleFrom(body, now);
   const [connectors, team] = await Promise.all([listConnectors().catch(() => []), listAssistants()]);
   const have = new Set(connectors.filter((c) => c.status !== "error").map((c) => c.provider));
-  const texts = [bundle.workflow.instructions, bundle.workflow.summary, bundle.skill?.body ?? "", ...(bundle.skill?.files.map((f) => f.text) ?? [])];
-  return { ...bundle, needs: bundle.workflow.needs.map((id) => ({ id, connected: have.has(id) })), links: linkedHosts(texts), room: team.length < MAX_ASSISTANTS };
+  const texts = [bundle.shared.instructions, bundle.shared.summary, bundle.skill?.body ?? "", ...(bundle.skill?.files.map((f) => f.text) ?? [])];
+  return { ...bundle, needs: bundle.shared.needs.map((id) => ({ id, connected: have.has(id) })), links: linkedHosts(texts), room: team.length < MAX_ASSISTANTS };
 }
 
 function sourceOf(raw: unknown, now: Date): SkillSource {
@@ -260,7 +260,7 @@ function sourceOf(raw: unknown, now: Date): SkillSource {
   const at = now.toISOString();
   if (r.kind === "link" && typeof r.url === "string") {
     try {
-      parseWorkflowLink(r.url);
+      parseShareLink(r.url);
       return { kind: "link", url: r.url.slice(0, 2048), at };
     } catch {
       // not a GitHub link: kept as an upload
@@ -270,17 +270,17 @@ function sourceOf(raw: unknown, now: Date): SkillSource {
 }
 
 /**
- * Add a workflow: the assistant (paused, its triggers, only the ticked tools
+ * Import one: the assistant (paused, its triggers, only the ticked tools
  * it asked for), then its skill with the owner's answers, or, with no skill,
  * one Athena writes from the job and the answers. Returns the assistant; the
  * second value is the skill still being written, when there is one.
  */
-export async function importWorkflow(body: Record<string, unknown>, now = new Date()): Promise<{ assistant: TeamAssistant; writing: Promise<unknown> | null }> {
+export async function importAssistant(body: Record<string, unknown>, now = new Date()): Promise<{ assistant: TeamAssistant; writing: Promise<unknown> | null }> {
   let w;
   try {
-    w = readWorkflow(body.workflow);
+    w = readShared(body.shared);
   } catch (error) {
-    if (error instanceof WorkflowFormatError) throw new AthenaInputError(error.message);
+    if (error instanceof ShareFormatError) throw new AthenaInputError(error.message);
     throw error;
   }
   const answers = fitAnswers(body.answers);
@@ -288,9 +288,9 @@ export async function importWorkflow(body: Record<string, unknown>, now = new Da
   const skillBody = typeof rawSkill?.body === "string" ? rawSkill.body.replace(/\r\n?/g, "\n").trim().slice(0, SKILL_LIMITS.body) : "";
   let files;
   try {
-    files = rawSkill ? workflowFiles(rawSkill.files) : [];
+    files = rawSkill ? sharedSkillFiles(rawSkill.files) : [];
   } catch (error) {
-    if (error instanceof WorkflowFormatError) throw new AthenaInputError(error.message);
+    if (error instanceof ShareFormatError) throw new AthenaInputError(error.message);
     throw error;
   }
   const a = await createAssistant({
@@ -299,7 +299,7 @@ export async function importWorkflow(body: Record<string, unknown>, now = new Da
     instructions: w.instructions,
     ...(w.personality ? { personality: w.personality } : {}),
     // No looks of its own: the character its preview showed.
-    avatar: w.avatar ?? avatarFromSeed(workflowSeed(w)),
+    avatar: w.avatar ?? avatarFromSeed(shareSeed(w)),
     allow: grantedTools(w, body.allow),
     web: body.web === true && w.web,
     paused: true,

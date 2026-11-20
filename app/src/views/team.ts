@@ -8,10 +8,10 @@
  *                last), and the day's runs in order
  *   #/team/<id>  the assistant's own page (team/team-detail.ts)
  *   #/team/new   setup (team/setup.ts), a sheet over the page
- *   #/team/import  add a workflow someone shared (team/workflow-import.ts),
+ *   #/team/import  add a shared someone shared (team/import-sheet.ts),
  *                a sheet over the page; a file shared to the installed app
- *                lands here. A workflow dropped on the page opens it too, and
- *                so does setup's "Or add one someone shared".
+ *                lands here. A shared dropped on the page opens it too, and
+ *                so does setup's "Or import one someone shared".
  *
  * The page looks again while it's open (team/page-live.ts) and updates in
  * place, so focus, scroll and the characters' motion carry on undisturbed.
@@ -39,14 +39,14 @@ import { renderTeamChat } from "../team/chat";
 import { renderAssignment } from "../team/assignment-page";
 import { openNewAssignment } from "../team/new-assignment";
 import { watchWaiting } from "../team/waiting";
-import { openImportWorkflow } from "../team/workflow-import";
-import { takeSharedWorkflow } from "../db/workflows";
+import { openImportAssistant } from "../team/import-sheet";
+import { takeSharedAssistant } from "../db/team-share";
 
 type Go = (view: ViewId, opts?: { noteId?: string | null }) => void;
 
 export interface TeamViewContext {
   go: Go;
-  /** null: the team; "new": setup; "import": add a workflow; otherwise an assistant's id. */
+  /** null: the team; "new": setup; "import": add a shared assistant; otherwise an assistant's id. */
   param: string | null;
 }
 
@@ -89,9 +89,9 @@ function backToGrid(go: Go) {
   } else go("team");
 }
 
-/** Add a workflow someone shared: a sheet over the team; once added, its page. */
+/** Add a shared someone shared: a sheet over the team; once added, its page. */
 function openImport(go: Go, files?: File[], onClose?: () => void) {
-  openImportWorkflow({
+  openImportAssistant({
     files,
     onClose,
     onAdded: (a) => {
@@ -350,7 +350,7 @@ function sampleDay(): HTMLElement {
 function hello(go: Go): HTMLElement {
   const start = h("button", { class: "btn btn--primary team-hello__go", type: "button" }, icons.plus(), "Make your first assistant");
   start.addEventListener("click", () => toSetup(go));
-  const shared = h("button", { class: "link-btn", type: "button" }, "Or add a workflow someone shared");
+  const shared = h("button", { class: "link-btn", type: "button" }, "Or import an assistant someone shared");
   shared.addEventListener("click", () => openImport(go));
   const ideas = EXAMPLES.map((ex) => {
     const c = h("button", { class: "team-hello__idea", type: "button" }, h("span", {}, ex), icons.arrowRight());
@@ -421,7 +421,7 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
   const layout = h("div", { class: "team-layout" }, h("div", { class: "team-main" }, waiting, desks), day);
   const body = h("div", { class: "team-body", "aria-busy": "true" });
   const el = h("div", { class: "view team" }, pageHead({ title: "Team", count, lede, actions: [add], below: [h("div", { class: "team-entry" }, chat, assign)] }), body, said);
-  // A workflow's zip, workflow.json or folder dropped on the page: the add sheet, with it read.
+  // A shared assistant's zip, assistant.json or folder dropped on the page: the import sheet, with it read.
   const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
   el.addEventListener("dragover", (e) => {
     if (!hasFiles(e)) return;
@@ -535,11 +535,11 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
     more.hidden = showAll || ordered.length <= limit;
   }
 
-  /** #/team/import: a file shared to the installed app, or the add sheet on its own. */
+  /** #/team/import: a file shared to the installed app, or the import sheet on its own. */
   function maybeImport() {
     if (ctx.param !== "import" || setupOpen) return;
     setupOpen = true;
-    void takeSharedWorkflow().then((file) => openImport(ctx.go, file ? [file] : undefined, () => backToGrid(ctx.go)));
+    void takeSharedAssistant().then((file) => openImport(ctx.go, file ? [file] : undefined, () => backToGrid(ctx.go)));
   }
 
   function maybeSetup() {

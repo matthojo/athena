@@ -1,12 +1,12 @@
 /**
- * Workflows, for the app (lib/workflow.ts, lib/workflow-share.ts and
- * /api/team/…/workflow on the server): sharing an assistant as a file, and
+ * Shared assistants, for the app (lib/team-share.ts, lib/team-share-store.ts and
+ * /api/team/…/export and /api/team/import on the server): sharing an assistant as a file, and
  * adding one someone shared. Sample mode does the same here, against the
  * sample team and the sample people, with no server: a download there is
- * workflow.json on its own, and a zip can't be read.
+ * assistant.json on its own, and a zip can't be read.
  */
 import { getToken, isSampleMode, request } from "./api";
-import { createAssistant, getAssistant, listTeam, sampleKeepWorkflowSkill, teamChanged, type TeamAssistant } from "./team";
+import { createAssistant, getAssistant, listTeam, sampleKeepImportedSkill, teamChanged, type TeamAssistant } from "./team";
 import { sampleSkillList } from "./skills";
 import { samplePeople, samplePlaces, sampleOrganisations } from "./sample-data";
 import {
@@ -16,29 +16,29 @@ import {
   findPersonal,
   grantedTools,
   linkedHosts,
-  parseWorkflowLink,
-  readWorkflow,
+  parseShareLink,
+  readShared,
   scrubText,
-  serialiseWorkflow,
+  serialiseShared,
   triggerInputs,
   withAnswers,
-  workflowFromAssistant,
-  workflowSeed,
-  workflowSlug,
-  WorkflowFormatError,
+  sharedFromAssistant,
+  shareSeed,
+  shareSlug,
+  ShareFormatError,
   type KnownTerm,
   type Removed,
-  type WorkflowBundle,
-  type WorkflowEdits,
-  type WorkflowExport,
-  type WorkflowImportInput,
-  type WorkflowPreview,
-} from "../../../lib/workflow";
+  type SharedBundle,
+  type ShareEdits,
+  type ShareExport,
+  type ImportInput,
+  type ImportPreview,
+} from "../../../lib/team-share";
 import { MAX_ASSISTANTS } from "../../../lib/team-types";
 import { avatarFromSeed } from "../../../lib/team-seed";
 import type { TeamAnswer } from "../../../lib/team-skill";
 
-export type { WorkflowEdits, WorkflowExport, WorkflowPreview };
+export type { ShareEdits, ShareExport, ImportPreview };
 
 // ---------- sharing ----------
 
@@ -57,7 +57,7 @@ function sampleKnown(): KnownTerm[] {
   return out;
 }
 
-function sampleExport(a: TeamAssistant, edits: WorkflowEdits, fine: string[]): WorkflowExport {
+function sampleExport(a: TeamAssistant, edits: ShareEdits, fine: string[]): ShareExport {
   const s = sampleSkillList().find((x) => x.assistant_id === a.id);
   let removed: Removed[] = [];
   const hosts = [location.hostname];
@@ -66,26 +66,26 @@ function sampleExport(a: TeamAssistant, edits: WorkflowEdits, fine: string[]): W
     removed = addRemoved(removed, r.removed);
     return r.text;
   };
-  let w = workflowFromAssistant(a, { summary: s?.team?.summary, answers: s?.team?.answers, edits });
+  let w = sharedFromAssistant(a, { summary: s?.team?.summary, answers: s?.team?.answers, edits });
   w = { ...w, job: scrub(w.job), instructions: scrub(w.instructions), summary: scrub(w.summary) };
   const body = edits.skill ?? s?.body ?? "";
   const skill = body.trim() ? { body: scrub(body), files: (s?.files ?? []).map((f) => ({ path: f.path, text: scrub(f.text) })), skipped: [] } : null;
-  return { workflow: w, skill, findings: findPersonal(checkFields(w, skill), sampleKnown(), fine), removed, slug: workflowSlug(w.name, w.job) };
+  return { shared: w, skill, findings: findPersonal(checkFields(w, skill), sampleKnown(), fine), removed, slug: shareSlug(w.name, w.job) };
 }
 
-/** The assistant as a workflow, with these edits: what's flagged and what was taken out. Nothing changes on the assistant. */
-export async function checkWorkflow(id: string, edits: WorkflowEdits, fine: string[]): Promise<WorkflowExport> {
+/** The assistant as a file to share, with these edits: what's flagged and what was taken out. Nothing changes on the assistant. */
+export async function checkExport(id: string, edits: ShareEdits, fine: string[]): Promise<ShareExport> {
   if (isSampleMode()) {
     const a = await getAssistant(id);
     if (!a) throw new Error("That assistant isn't there any more");
     try {
       return sampleExport(a, edits, fine);
     } catch (error) {
-      if (error instanceof WorkflowFormatError) throw new Error(error.message);
+      if (error instanceof ShareFormatError) throw new Error(error.message);
       throw error;
     }
   }
-  return request<WorkflowExport>(`/team/${encodeURIComponent(id)}/workflow`, { method: "POST", body: JSON.stringify({ edits, fine }) });
+  return request<ShareExport>(`/team/${encodeURIComponent(id)}/export`, { method: "POST", body: JSON.stringify({ edits, fine }) });
 }
 
 function save(blob: Blob, name: string): void {
@@ -99,29 +99,29 @@ function save(blob: Blob, name: string): void {
 }
 
 /**
- * Save the workflow to this device. The server checks again first: when
+ * Save the shared to this device. The server checks again first: when
  * something is still flagged it answers with the findings, returned here,
  * and nothing is saved. Null when it saved.
  */
-export async function downloadWorkflow(id: string, edits: WorkflowEdits, fine: string[]): Promise<WorkflowExport["findings"] | null> {
+export async function downloadExport(id: string, edits: ShareEdits, fine: string[]): Promise<ShareExport["findings"] | null> {
   if (isSampleMode()) {
-    const x = await checkWorkflow(id, edits, fine);
+    const x = await checkExport(id, edits, fine);
     if (x.findings.length) return x.findings;
-    save(new Blob([serialiseWorkflow(x.workflow)], { type: "application/json" }), "workflow.json");
+    save(new Blob([serialiseShared(x.shared)], { type: "application/json" }), "assistant.json");
     return null;
   }
   const token = getToken();
-  const res = await fetch(`/api/team/${encodeURIComponent(id)}/workflow`, {
+  const res = await fetch(`/api/team/${encodeURIComponent(id)}/export`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify({ edits, fine, download: true }),
   });
-  if (res.status === 409) return ((await res.json()) as { findings: WorkflowExport["findings"] }).findings;
+  if (res.status === 409) return ((await res.json()) as { findings: ShareExport["findings"] }).findings;
   if (!res.ok) {
     const why = await res.json().then((b: { error?: string }) => b.error, () => undefined);
     throw new Error(why ?? "That download didn't work. Try again.");
   }
-  const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "workflow.zip";
+  const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "assistant.zip";
   save(await res.blob(), name);
   return null;
 }
@@ -137,12 +137,12 @@ const b64 = async (blob: Blob): Promise<string> => {
 
 const isZip = (f: File) => /\.zip$/i.test(f.name) || f.type === "application/zip" || f.type === "application/x-zip-compressed";
 
-async function samplePreview(bundle: WorkflowBundle): Promise<WorkflowPreview> {
+async function samplePreview(bundle: SharedBundle): Promise<ImportPreview> {
   const team = await listTeam();
-  const texts = [bundle.workflow.instructions, bundle.workflow.summary, bundle.skill?.body ?? "", ...(bundle.skill?.files.map((f) => f.text) ?? [])];
+  const texts = [bundle.shared.instructions, bundle.shared.summary, bundle.skill?.body ?? "", ...(bundle.skill?.files.map((f) => f.text) ?? [])];
   // Sample mode has Linear and Gmail connected, as its sample accounts are.
   const have = new Set(["linear", "gmail", "google-calendar"]);
-  return { ...bundle, needs: bundle.workflow.needs.map((id) => ({ id, connected: have.has(id) })), links: linkedHosts(texts), room: team.length < MAX_ASSISTANTS };
+  return { ...bundle, needs: bundle.shared.needs.map((id) => ({ id, connected: have.has(id) })), links: linkedHosts(texts), room: team.length < MAX_ASSISTANTS };
 }
 
 /** Sample mode's stand-in for a GitHub link: Dot, as someone else shared it. */
@@ -166,14 +166,14 @@ const asError = (error: unknown): never => {
   throw error instanceof Error ? new Error(error.message) : error;
 };
 
-/** A workflow's zip, its workflow.json, or its folder (from a picker or a drop), as an import would add it. Nothing is kept. */
-export async function previewWorkflowFiles(files: File[]): Promise<WorkflowPreview> {
+/** A shared assistant's zip, its assistant.json, or its folder (from a picker or a drop), as an import would add it. Nothing is kept. */
+export async function previewImportFiles(files: File[]): Promise<ImportPreview> {
   const one = files.length === 1 ? files[0] : null;
   const zip = !!one && isZip(one);
   const entries = !zip ? files.map((f) => ({ path: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name, file: f })) : [];
   const file = one?.name ?? entries[0]?.path.split("/")[0];
   if (isSampleMode()) {
-    if (zip) throw new Error("In sample mode Athena can read a workflow.json or a folder, but not a zip.");
+    if (zip) throw new Error("In sample mode Athena can read an assistant.json or a folder, but not a zip.");
     try {
       const read = await Promise.all(entries.map(async (e) => ({ path: e.path, bytes: new Uint8Array(await e.file.arrayBuffer()) })));
       return samplePreview(bundleFromEntries(read, { kind: "upload", ...(file ? { file } : {}), at: new Date().toISOString() }));
@@ -182,34 +182,34 @@ export async function previewWorkflowFiles(files: File[]): Promise<WorkflowPrevi
     }
   }
   const body = zip ? { zip: await b64(one!), file: one!.name } : { entries: await Promise.all(entries.map(async (e) => ({ path: e.path, data: await b64(e.file) }))), file };
-  return request<WorkflowPreview>("/team/workflow/preview", { method: "POST", body: JSON.stringify(body) });
+  return request<ImportPreview>("/team/import/preview", { method: "POST", body: JSON.stringify(body) });
 }
 
-/** A workflow's folder on GitHub, read once by the server. Nothing is kept. */
-export async function previewWorkflowLink(url: string): Promise<WorkflowPreview> {
+/** A shared assistant's folder on GitHub, read once by the server. Nothing is kept. */
+export async function previewImportLink(url: string): Promise<ImportPreview> {
   if (isSampleMode()) {
     try {
-      parseWorkflowLink(url);
+      parseShareLink(url);
       await new Promise((r) => setTimeout(r, 700));
-      return samplePreview({ workflow: readWorkflow(SAMPLE_LINKED), skill: { body: SAMPLE_LINKED_SKILL, files: [], skipped: [] }, source: { kind: "link", url, at: new Date().toISOString() } });
+      return samplePreview({ shared: readShared(SAMPLE_LINKED), skill: { body: SAMPLE_LINKED_SKILL, files: [], skipped: [] }, source: { kind: "link", url, at: new Date().toISOString() } });
     } catch (error) {
       return asError(error);
     }
   }
-  return request<WorkflowPreview>("/team/workflow/preview", { method: "POST", body: JSON.stringify({ url }) });
+  return request<ImportPreview>("/team/import/preview", { method: "POST", body: JSON.stringify({ url }) });
 }
 
 /** Add it: paused, with only the ticked tools it asked for. Returns the new assistant. */
-export async function addWorkflow(p: WorkflowPreview, choices: { answers: TeamAnswer[]; allow: string[]; web: boolean }): Promise<TeamAssistant> {
+export async function addImported(p: ImportPreview, choices: { answers: TeamAnswer[]; allow: string[]; web: boolean }): Promise<TeamAssistant> {
   if (isSampleMode()) {
-    const w = p.workflow;
+    const w = p.shared;
     const made = await createAssistant(
       {
         ...(w.name ? { name: w.name } : {}),
         job: w.job,
         instructions: w.instructions,
         ...(w.personality ? { personality: w.personality } : {}),
-        avatar: w.avatar ?? avatarFromSeed(workflowSeed(w)),
+        avatar: w.avatar ?? avatarFromSeed(shareSeed(w)),
         allow: grantedTools(w, choices.allow),
         web: choices.web && w.web,
         paused: true,
@@ -218,27 +218,27 @@ export async function addWorkflow(p: WorkflowPreview, choices: { answers: TeamAn
       },
       { sampleSkill: !p.skill },
     );
-    if (p.skill) sampleKeepWorkflowSkill(made, withAnswers(p.skill.body, choices.answers), choices.answers, w.summary);
+    if (p.skill) sampleKeepImportedSkill(made, withAnswers(p.skill.body, choices.answers), choices.answers, w.summary);
     return made;
   }
-  const input: WorkflowImportInput = { workflow: p.workflow, skill: p.skill, source: p.source, answers: choices.answers, allow: choices.allow, web: choices.web };
-  const { assistant } = await request<{ assistant: TeamAssistant }>("/team/workflow", { method: "POST", body: JSON.stringify(input) });
+  const input: ImportInput = { shared: p.shared, skill: p.skill, source: p.source, answers: choices.answers, allow: choices.allow, web: choices.web };
+  const { assistant } = await request<{ assistant: TeamAssistant }>("/team/import", { method: "POST", body: JSON.stringify(input) });
   teamChanged();
   return assistant;
 }
 
 // ---------- a file shared to the installed app ----------
 
-/** A workflow shared to the installed app (sw.js keeps it until the Team page takes it). Null when there's none. */
-export async function takeSharedWorkflow(): Promise<File | null> {
+/** An assistant shared to the installed app (sw.js keeps it until the Team page takes it). Null when there's none. */
+export async function takeSharedAssistant(): Promise<File | null> {
   if (typeof caches === "undefined") return null;
   try {
     const cache = await caches.open("athena-share");
-    const res = await cache.match("/share-target/workflow");
+    const res = await cache.match("/share-target/assistant");
     if (!res) return null;
-    const name = decodeURIComponent(res.headers.get("X-File-Name") ?? "") || "workflow.zip";
+    const name = decodeURIComponent(res.headers.get("X-File-Name") ?? "") || "assistant.zip";
     const blob = await res.blob();
-    await cache.delete("/share-target/workflow");
+    await cache.delete("/share-target/assistant");
     return new File([blob], name, { type: blob.type });
   } catch {
     return null;
