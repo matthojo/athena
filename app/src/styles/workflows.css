@@ -1,8 +1,41 @@
 /* Workflows: "Share <Name>" (team/workflow-share.ts) and "Add a workflow" (team/workflow-import.ts). Built on skills.css. */
 
+/* .field is a one-line box with no room above or below: a text box here gets some. */
+.wf textarea.field {
+  height: auto;
+  padding: 12px 14px;
+  line-height: var(--leading-body);
+}
+
 .wf textarea.field:not(.skill-editor__body) {
   min-height: 8em;
+}
+
+/* A hint inside a field's label reads as a hint, not a label. */
+.wf .skills-form__label .form__hint {
+  font-weight: var(--weight-regular, 400);
+}
+
+/* Nothing flagged: one calm line. */
+.wf-clear {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  font-size: var(--text-small);
   line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.wf-clear svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--good);
 }
 
 .wf-intro {
@@ -36,8 +69,17 @@
   padding-right: var(--space-sm);
 }
 
+.wf-finding .row__body {
+  flex: 1;
+  min-width: 0;
+}
+
 .wf-finding .row__title {
   overflow-wrap: anywhere;
+}
+
+.wf-finding .btn {
+  flex: none;
 }
 
 .wf-finding .tile {
@@ -179,6 +221,26 @@
   accent-color: var(--accent);
 }
 
+/* Instructions and Skill on the add sheet: section names, not file names. */
+.wf-doc > summary .skill-file__name {
+  font-family: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+/* Its questions: the ones with answers to tap, then the ones to answer in words, spaced alike. */
+.wf-questions {
+  display: grid;
+  gap: var(--space-md);
+}
+
+/* A question to answer in words, set like the ones with answers to tap. */
+.wf-free {
+  display: grid;
+  gap: 10px;
+}
+
 .wf-tick__label {
   font-size: var(--text-ui);
   font-weight: var(--weight-medium);
@@ -189,4 +251,13 @@
   outline: 2px dashed var(--accent);
   outline-offset: -8px;
   border-radius: var(--radius-lg, 16px);
+}
+
+/* Two buttons that always fit side by side, however narrow the sheet. */
+.wf .skills-form__actions {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.wf .skills-form__actions .btn {
+  min-width: 0;
 }

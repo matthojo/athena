@@ -58,8 +58,9 @@ export function openShareWorkflow(a: TeamAssistant): void {
   function paintFindings(findings: Finding[]) {
     if (!findingsEl || !download) return;
     download.disabled = findings.length > 0;
+    if (!findings.length) return findingsEl.replaceChildren(h("p", { class: "wf-clear" }, icons.check(), h("span", {}, findingsLede(findings))));
     findingsEl.replaceChildren(
-      h("p", { class: "skills-form__caption" }, findings.length ? "Check these first" : "Nothing flagged"),
+      h("p", { class: "skills-form__caption" }, "Check these first"),
       h("p", { class: "form__hint wf-lede" }, findingsLede(findings)),
       ...(findings.length
         ? [
@@ -167,7 +168,7 @@ export function openShareWorkflow(a: TeamAssistant): void {
 
     findingsEl = h("section", { class: "wf-check", "aria-live": "polite" });
     removedEl = h("p", { class: "skills-draft-note", hidden: true });
-    download = h("button", { class: "btn btn--primary btn--block", type: "button" }, icons.arrowDown(), isSampleMode() ? "Download workflow.json" : "Download") as HTMLButtonElement;
+    download = h("button", { class: "btn btn--primary btn--block", type: "button" }, icons.arrowDown(), "Download") as HTMLButtonElement;
     const again = h("button", { class: "btn btn--soft btn--block", type: "button" }, icons.refresh(), "Check again");
     again.addEventListener("click", () => void check());
     download.addEventListener("click", async () => {

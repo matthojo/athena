@@ -207,6 +207,7 @@ test("findPersonal: email addresses, phone numbers and private links, unless mad
   );
   assert.deepEqual(f.map((x) => x.kind).sort(), ["email", "link", "phone"]);
   assert.equal(f.find((x) => x.kind === "email")!.term, "ana@mail.test");
+  assert.equal(findPersonal([{ field: "job", text: "See https://docs.google.com/document/d/abc." }], [])[0].term, "https://docs.google.com/document/d/abc", "a sentence's full stop isn't part of the link");
 });
 
 test("findPersonal: a nickname kept lowercased still counts when written as a name", () => {

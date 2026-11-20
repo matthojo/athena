@@ -10,7 +10,8 @@
  *   #/team/new   setup (team/setup.ts), a sheet over the page
  *   #/team/import  add a workflow someone shared (team/workflow-import.ts),
  *                a sheet over the page; a file shared to the installed app
- *                lands here. A workflow dropped on the page opens it too.
+ *                lands here. A workflow dropped on the page opens it too, and
+ *                so does setup's "Or add one someone shared".
  *
  * The page looks again while it's open (team/page-live.ts) and updates in
  * place, so focus, scroll and the characters' motion carry on undisturbed.
@@ -404,8 +405,6 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
   const chat = h("a", { class: "btn btn--soft btn--sm", href: "#/team/chat" }, icons.chat(), "Team chat", chatCount);
   const assign = h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.plus(), "New assignment");
   assign.addEventListener("click", () => openNewAssignment());
-  const addShared = h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.arrowDown(), "Add a workflow");
-  addShared.addEventListener("click", () => openImport(ctx.go));
   const offWaiting = watchWaiting((p) => {
     chatCount.hidden = !p.waiting;
     chatCount.textContent = p.waiting ? String(p.waiting) : "";
@@ -421,7 +420,7 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
   const day = h("section", { class: "team-day", "aria-labelledby": "team-day-h" }, h("div", { class: "section-head" }, h("h2", { id: "team-day-h" }, "Recent runs")), dayList, more);
   const layout = h("div", { class: "team-layout" }, h("div", { class: "team-main" }, waiting, desks), day);
   const body = h("div", { class: "team-body", "aria-busy": "true" });
-  const el = h("div", { class: "view team" }, pageHead({ title: "Team", count, lede, actions: [add], below: [h("div", { class: "team-entry" }, chat, assign, addShared)] }), body, said);
+  const el = h("div", { class: "view team" }, pageHead({ title: "Team", count, lede, actions: [add], below: [h("div", { class: "team-entry" }, chat, assign)] }), body, said);
   // A workflow's zip, workflow.json or folder dropped on the page: the add sheet, with it read.
   const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
   el.addEventListener("dragover", (e) => {
@@ -566,6 +565,7 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
         if (made && !metOnFirstDay) showToast(`${made.name} joined your team`);
         backToGrid(ctx.go);
       },
+      onImport: () => openImport(ctx.go),
     });
   }
 

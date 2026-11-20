@@ -43,7 +43,7 @@ function setBody(sheet: SheetHandle, el: HTMLElement): void {
 export function openImportWorkflow(opts: ImportOptions): void {
   const fileInput = h("input", { type: "file", accept: ".zip,.json,application/zip,application/json", hidden: true }) as HTMLInputElement;
   const folderInput = h("input", { type: "file", hidden: true, webkitdirectory: "", multiple: true }) as HTMLInputElement;
-  const option = (icon: "capture" | "folder" | "link", title: string, detail: string, run: () => void) => {
+  const option = (icon: "arrowUp" | "folder" | "link", title: string, detail: string, run: () => void) => {
     const b = h("button", { class: "row", type: "button" }, h("span", { class: "tile tile--sm" }, icons[icon]()), h("span", { class: "row__body" }, h("span", { class: "row__title" }, title), h("span", { class: "row__meta" }, detail)), h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()));
     b.addEventListener("click", run);
     return b;
@@ -55,7 +55,7 @@ export function openImportWorkflow(opts: ImportOptions): void {
     h(
       "div",
       { class: "card card--flush list" },
-      option("capture", "Upload a file", "A workflow's .zip, or its workflow.json", () => fileInput.click()),
+      option("arrowUp", "Upload a file", "A workflow's .zip, or its workflow.json", () => fileInput.click()),
       option("folder", "Upload a folder", "A folder with workflow.json in it", () => folderInput.click()),
       option("link", "From GitHub", "A folder in a public repository, like a workflow catalogue", () => linkStep())
     ),
@@ -156,7 +156,13 @@ export function openImportWorkflow(opts: ImportOptions): void {
       p.room ? h("p", { class: "skills-draft-note" }, icons.shield(), h("span", {}, `${name} joins paused. Nothing runs until you turn it on from its page.`)) : h("p", { class: "skills-error" }, icons.flag(), h("span", {}, `Your team has ${MAX_ASSISTANTS} assistants, the most it can have. Remove one to make room.`)),
       section("When it runs", h("ul", { class: "wf-list" }, ...(w.triggers.length ? w.triggers.map((t) => h("li", {}, triggerSentence(t))) : [h("li", {}, "Only when you chat with it or tap Run now")]))),
       p.needs.length ? section("Accounts it needs", h("ul", { class: "wf-list" }, ...p.needs.map((n) => h("li", { class: n.connected ? "is-ok" : "is-missing" }, n.connected ? icons.check() : icons.plug(), h("span", {}, needWords(n)))))) : null,
-      w.asks.length ? section(`${name} asks`, withChoices.length ? questionsForm(withChoices, picked, (m) => (picked = m)) : null, ...free.map(({ q, input }) => h("label", { class: "skills-form__label" }, h("span", {}, q.question), input)), h("p", { class: "form__hint" }, "Your answers go into its skill. You can skip any of them.")) : null,
+      w.asks.length
+        ? section(
+            `${name} asks`,
+            h("div", { class: "wf-questions" }, withChoices.length ? questionsForm(withChoices, picked, (m) => (picked = m)) : null, ...free.map(({ q, input }) => h("label", { class: "wf-free" }, h("span", { class: "tq__q" }, q.question), input))),
+            h("p", { class: "form__hint" }, "Your answers go into its skill. You can skip any of them.")
+          )
+        : null,
       ticks.length || web
         ? section(
             "Can it go ahead without asking?",
@@ -166,11 +172,11 @@ export function openImportWorkflow(opts: ImportOptions): void {
           )
         : null,
       p.links.length ? h("p", { class: "skills-error" }, icons.globe(), h("span", {}, `Its words link to ${p.links.join(", ")}. Athena didn't check those sites.`)) : null,
-      h("details", { class: "skill-file", open: !p.skill }, h("summary", {}, icons.note(), h("span", { class: "skill-file__name" }, "Instructions")), h("pre", { class: "skill-pre" }, w.instructions || "None. It works from its job.")),
+      h("details", { class: "skill-file wf-doc", open: !p.skill }, h("summary", {}, icons.note(), h("span", { class: "skill-file__name" }, "Instructions")), h("pre", { class: "skill-pre" }, w.instructions || "None. It works from its job.")),
       p.skill
         ? h(
             "details",
-            { class: "skill-file" },
+            { class: "skill-file wf-doc" },
             h("summary", {}, icons.book(), h("span", { class: "skill-file__name" }, "Skill"), files.length ? h("span", { class: "skill-file__size" }, files.length === 1 ? "1 file" : `${files.length} files`) : null),
             h("pre", { class: "skill-pre skill-pre--body" }, p.skill.body),
             ...files.map((f) => h("details", { class: "skill-file" }, h("summary", {}, icons.note(), h("span", { class: "skill-file__name" }, f.path)), h("pre", { class: "skill-pre" }, f.text))),

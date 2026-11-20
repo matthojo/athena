@@ -601,7 +601,8 @@ export function findPersonal(fields: CheckField[], known: KnownTerm[], fine: rea
     // Links into someone's own documents, chats and calls.
     for (const m of raw.matchAll(/https?:\/\/([^\s/?#)\]>"']+)[^\s)\]>"']*/gi)) {
       const host = m[1].toLowerCase().replace(/:\d+$/, "");
-      if (PRIVATE_HOSTS.test(host)) add("link", m[0], field);
+      // A sentence's full stop or comma isn't part of the link.
+      if (PRIVATE_HOSTS.test(host)) add("link", m[0].replace(/[.,;:!?]+$/, ""), field);
     }
   }
   return [...found.values()];
