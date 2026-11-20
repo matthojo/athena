@@ -101,7 +101,7 @@ export async function getAssistant(id: string): Promise<TeamAssistant | null> {
 }
 
 /** Add an assistant. `answers` (setup's questions) go to the server, which writes its skill after it's added. */
-export async function createAssistant(input: TeamAssistantInput & { answers?: TeamAnswer[] }): Promise<TeamAssistant> {
+export async function createAssistant(input: TeamAssistantInput & { answers?: TeamAnswer[] }, opts: { sampleSkill?: boolean } = {}): Promise<TeamAssistant> {
   let made: TeamAssistant;
   if (isSampleMode()) {
     const list = sampleList();
@@ -131,8 +131,9 @@ export async function createAssistant(input: TeamAssistantInput & { answers?: Te
     list.push(made);
     made = structuredClone(made);
     // As the server does, a moment later: the skill attaches when it's written.
+    // An added shared brings its own (sampleKeepImportedSkill): `sampleSkill: false`.
     const forMade = made;
-    setTimeout(() => sampleWriteSkill(forMade, fitAnswers(answers)), 2500);
+    if (opts.sampleSkill !== false) setTimeout(() => sampleWriteSkill(forMade, fitAnswers(answers)), 2500);
   } else {
     made = await request<TeamAssistant>("/team", { method: "POST", body: JSON.stringify(input) });
   }
@@ -328,4 +329,14 @@ export async function keepSkill(id: string): Promise<TeamSkillInfo> {
     return sampleInfo(a);
   }
   return request<TeamSkillInfo>(`/team/${encodeURIComponent(id)}/skill`, { method: "POST", body: JSON.stringify({ keep: true }) });
+}
+
+/** Sample mode: an imported assistant's own skill, kept as the server keeps it, with the owner's answers worked in (db/team-share.ts). */
+export function sampleKeepImportedSkill(a: TeamAssistant, body: string, answers: TeamAnswer[], summary: string): void {
+  sampleWriteSkill(a, answers, { name: "", description: "", body, extra: "", summary });
+}
+
+/** Something outside this module added an assistant (an added shared, db/team-share.ts): pages look again. */
+export function teamChanged(): void {
+  changed();
 }

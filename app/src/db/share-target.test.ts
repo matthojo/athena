@@ -167,3 +167,35 @@ test("with 'always save shares' on, another origin's POST is still refused and n
   assert.equal(savesAtOnce({ trusted: true }), true);
   assert.equal(store.size, 0, "off leaves nothing behind");
 });
+
+// An assistant shared to the installed app (team/import-sheet.ts): kept apart, and the Team page's import sheet opens.
+function shareAssistantFile(site: string | null, bytes = 40) {
+  const form = new FormData();
+  form.set("assistant", new File([new Uint8Array(bytes)], "gift prices.zip", { type: "application/zip" }));
+  const headers = new Headers();
+  if (site) headers.set("Sec-Fetch-Site", site);
+  return new Request("https://athena.example/share-target", { method: "POST", body: form, headers });
+}
+
+test("a shared assistant is kept for Team's import sheet, with its name", async () => {
+  const w = worker();
+  const res = await w.dispatch(shareAssistantFile("none"));
+  assert.equal(res!.headers.get("Location"), "https://athena.example/#/team/import");
+  const kept = w.stores.get("athena-share")?.get("/share-target/assistant");
+  assert.ok(kept);
+  assert.equal(decodeURIComponent(kept!.headers.get("X-File-Name")!), "gift prices.zip");
+  assert.equal(await w.kept(), null, "nothing goes to Saved");
+});
+
+test("another page's form can't leave a shared either", async () => {
+  const w = worker();
+  const res = await w.dispatch(shareAssistantFile("cross-site"));
+  assert.equal(res!.headers.get("Location"), "https://athena.example/#/saved/shared");
+  assert.equal(w.stores.has("athena-share"), false);
+});
+
+test("a shared over 2 MB isn't kept", async () => {
+  const w = worker();
+  await w.dispatch(shareAssistantFile("none", 2_000_001));
+  assert.equal(w.stores.get("athena-share")?.has("/share-target/assistant") ?? false, false);
+});

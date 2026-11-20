@@ -1760,6 +1760,63 @@ Design in `docs/team.md` "Assignments"; notes in
   the model through `/api/assistant/skill-draft`, rate-limited with the rest
   of Ask. `lib/skill-draft.ts` has no store: the draft only opens the editor.
 
+### Sharing and importing assistants (`lib/team-share*.ts`)
+
+An assistant can be downloaded as a file (a zip of `assistant.json`,
+`SKILL.md` and the skill's files) and imported into another copy. No migration:
+nothing new is stored.
+
+- **Nothing leaves unless the owner downloads it.** `POST
+  /api/team/<id>/export` (bearer token) builds the file in memory and sends
+  it only to the owner's own device. Athena never uploads or publishes it,
+  and there's no public page or link to the site: sharing is whatever the
+  owner does with the file (a message, their own GitHub repository, a pull
+  request to a catalogue).
+- **What goes in.** The assistant's name, job, instructions, character,
+  triggers (days and times; event filters), its skill's text and files, and
+  as requests only: the tools it may run alone and whether it looks things up
+  online. What never goes in: its memory, runs, conversations, model
+  choices, connector ids, the owner's setup answers (only the questions), and
+  any id. Edits made in the share sheet change the file, never the assistant.
+- **Taken out, then checked.** Before the owner sees it, `scrubText` removes
+  `athena://` links, links to the site's own hosts (the request's, and
+  Netlify's `URL`, `DEPLOY_URL`, `DEPLOY_PRIME_URL`) and record ids.
+  `findPersonal` then flags whole-word matches of the owner's people (names,
+  first names written as names, nicknames, email addresses, phone numbers),
+  places and first address lines, organisations, projects, their own name,
+  home town and employer, and connected account labels, plus any email
+  address or phone number not on an example domain or Ofcom's drama range,
+  and links to hosts that are usually private (Google Docs and Drive, Notion,
+  Slack, Linear, Zoom, `*.netlify.app` and others). These are opened and
+  compared in memory and never kept or sent. The download is refused (409)
+  while anything is flagged and not marked fine, and the server checks again
+  on every download. The check catches slips but can miss things it
+  doesn't know about, such as a nickname Athena has no record of, so the
+  sheet asks the owner to read the file through.
+- **Importing one treats every word as someone else's.** `readShared` checks
+  every field against the same limits as an assistant made in Athena, drops
+  unknown keys and looks it can't draw, and refuses anything else with a
+  message. Zips and folders go through the same intake as skills (§10,
+  "Skills": central directory, 2 MB, 100 KB a file, text files only, no
+  scripts kept). Links are GitHub only (`github.com` folders and files, or
+  `raw.githubusercontent.com`), fetched once through the same guard as skill
+  links; links to any other host are refused, so a shared assistant can't point
+  Athena at someone's own site. The preview (`POST
+  /api/team/import/preview`) keeps nothing.
+  `POST /api/team/import` adds it.
+- **Nothing in the file is a permission.** The assistant joins paused.
+  `allow` is only the tools the owner ticked that the file also asked
+  for (`grantedTools`), each unticked to start; `web` is on only when both
+  the file asked and the owner ticked it. Everything else waits for Go,
+  as for any assistant (§10, "One loop"). The skill is an assistant's own
+  skill: instructions only, no tools (§10, "Skills"). Sites its words link
+  to are listed on the preview as unchecked.
+- **The installed app's share target** takes a shared assistant (a `.zip` or
+  `.json`, up to 2 MB) only from the OS, as for any share
+  (`shareFrom` in `sw.js`); another page's form is refused. It's kept in
+  Cache Storage until Team's import sheet reads it, and that sheet shows all
+  of it before anything is imported.
+
 ### Ask's read tools, today's context and memory
 
 `work` reads `work_items` and Work activity's notes: the owner's own work only, cited as the Work page for a period (`work:month`).

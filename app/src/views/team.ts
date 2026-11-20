@@ -8,6 +8,10 @@
  *                last), and the day's runs in order
  *   #/team/<id>  the assistant's own page (team/team-detail.ts)
  *   #/team/new   setup (team/setup.ts), a sheet over the page
+ *   #/team/import  add a shared someone shared (team/import-sheet.ts),
+ *                a sheet over the page; a file shared to the installed app
+ *                lands here. A shared dropped on the page opens it too, and
+ *                so does setup's "Or import one someone shared".
  *
  * The page looks again while it's open (team/page-live.ts) and updates in
  * place, so focus, scroll and the characters' motion carry on undisturbed.
@@ -35,12 +39,14 @@ import { renderTeamChat } from "../team/chat";
 import { renderAssignment } from "../team/assignment-page";
 import { openNewAssignment } from "../team/new-assignment";
 import { watchWaiting } from "../team/waiting";
+import { openImportAssistant } from "../team/import-sheet";
+import { takeSharedAssistant } from "../db/team-share";
 
 type Go = (view: ViewId, opts?: { noteId?: string | null }) => void;
 
 export interface TeamViewContext {
   go: Go;
-  /** null: the team; "new": setup; otherwise an assistant's id. */
+  /** null: the team; "new": setup; "import": add a shared assistant; otherwise an assistant's id. */
   param: string | null;
 }
 
@@ -81,6 +87,18 @@ function backToGrid(go: Go) {
     pushedFromGrid = false;
     history.back();
   } else go("team");
+}
+
+/** Add a shared someone shared: a sheet over the team; once added, its page. */
+function openImport(go: Go, files?: File[], onClose?: () => void) {
+  openImportAssistant({
+    files,
+    onClose,
+    onAdded: (a) => {
+      showToast(`${a.name} joined your team, paused`);
+      window.setTimeout(() => toDetail(go, a.id), 450);
+    },
+  });
 }
 
 /** A run's conversation when it kept one, else the assistant's own page. */
@@ -332,6 +350,8 @@ function sampleDay(): HTMLElement {
 function hello(go: Go): HTMLElement {
   const start = h("button", { class: "btn btn--primary team-hello__go", type: "button" }, icons.plus(), "Make your first assistant");
   start.addEventListener("click", () => toSetup(go));
+  const shared = h("button", { class: "link-btn", type: "button" }, "Or import an assistant someone shared");
+  shared.addEventListener("click", () => openImport(go));
   const ideas = EXAMPLES.map((ex) => {
     const c = h("button", { class: "team-hello__idea", type: "button" }, h("span", {}, ex), icons.arrowRight());
     c.addEventListener("click", () => toSetup(go, ex));
@@ -354,7 +374,8 @@ function hello(go: Go): HTMLElement {
       sampleDay(),
       start,
       h("p", { class: "team-hello__label" }, "Or start from an idea"),
-      h("div", { class: "team-hello__ideas" }, ...ideas)
+      h("div", { class: "team-hello__ideas" }, ...ideas),
+      shared
     )
   );
 }
@@ -400,6 +421,23 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
   const layout = h("div", { class: "team-layout" }, h("div", { class: "team-main" }, waiting, desks), day);
   const body = h("div", { class: "team-body", "aria-busy": "true" });
   const el = h("div", { class: "view team" }, pageHead({ title: "Team", count, lede, actions: [add], below: [h("div", { class: "team-entry" }, chat, assign)] }), body, said);
+  // A shared assistant's zip, assistant.json or folder dropped on the page: the import sheet, with it read.
+  const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+  el.addEventListener("dragover", (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    el.classList.add("team-drop");
+  });
+  el.addEventListener("dragleave", (e) => {
+    if (e.target === el) el.classList.remove("team-drop");
+  });
+  el.addEventListener("drop", (e) => {
+    el.classList.remove("team-drop");
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (!files.length) return;
+    e.preventDefault();
+    openImport(ctx.go, files);
+  });
 
   let alive = true;
   let team: TeamAssistant[] = [];
@@ -497,6 +535,13 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
     more.hidden = showAll || ordered.length <= limit;
   }
 
+  /** #/team/import: a file shared to the installed app, or the import sheet on its own. */
+  function maybeImport() {
+    if (ctx.param !== "import" || setupOpen) return;
+    setupOpen = true;
+    void takeSharedAssistant().then((file) => openImport(ctx.go, file ? [file] : undefined, () => backToGrid(ctx.go)));
+  }
+
   function maybeSetup() {
     if (ctx.param !== "new" || setupOpen) return;
     setupOpen = true;
@@ -520,6 +565,7 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
         if (made && !metOnFirstDay) showToast(`${made.name} joined your team`);
         backToGrid(ctx.go);
       },
+      onImport: () => openImport(ctx.go),
     });
   }
 
@@ -553,6 +599,7 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
     if (!alive) return false;
     paint(news());
     maybeSetup();
+    maybeImport();
     return runs.some(isLive);
   }
 
@@ -595,6 +642,6 @@ export function renderTeam(ctx: TeamViewContext): { el: HTMLElement; destroy: ()
   // #/team/chat, #/team/chat/<post id>: Team chat, at a post. #/team/assignment/<id>: one assignment.
   if (ctx.param === "chat" || ctx.param?.startsWith("chat/")) return renderTeamChat({ postId: Number(ctx.param.split("/")[1]) || null });
   if (ctx.param?.startsWith("assignment/")) return renderAssignment({ id: ctx.param.slice("assignment/".length) });
-  if (ctx.param && ctx.param !== "new") return renderTeamDetail({ id: ctx.param, back: () => backToGrid(ctx.go) });
+  if (ctx.param && ctx.param !== "new" && ctx.param !== "import") return renderTeamDetail({ id: ctx.param, back: () => backToGrid(ctx.go) });
   return renderPage(ctx);
 }

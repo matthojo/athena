@@ -212,3 +212,14 @@ export async function fetchSkillFromLink(raw: string, now = new Date()): Promise
     clearTimeout(timer);
   }
 }
+
+/** A public GitHub folder's files, through the same guard, caps and deadline: a shared assistant's folder (lib/team-share-store.ts). */
+export async function fetchGithubFolder(link: Extract<SkillLink, { kind: "github" }>): Promise<IntakeEntry[]> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), skillFetchDeps.timeoutMs);
+  try {
+    return await githubEntries(link, ctl.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+}

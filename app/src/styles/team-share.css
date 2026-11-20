@@ -1,0 +1,263 @@
+/* Shared assistants: "Share <Name>" (team/share-sheet.ts) and "Import assistant" (team/import-sheet.ts). Built on skills.css. */
+
+/* .field is a one-line box with no room above or below: a text box here gets some. */
+.wf textarea.field {
+  height: auto;
+  padding: 12px 14px;
+  line-height: var(--leading-body);
+}
+
+.wf textarea.field:not(.skill-editor__body) {
+  min-height: 8em;
+}
+
+/* A hint inside a field's label reads as a hint, not a label. */
+.wf .skills-form__label .form__hint {
+  font-weight: var(--weight-regular, 400);
+}
+
+/* Nothing flagged: one calm line. */
+.wf-clear {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.wf-clear svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--good);
+}
+
+.wf-intro {
+  margin: 0;
+}
+
+.wf-check {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-check .skills-form__caption {
+  margin-top: 0;
+}
+
+.wf-lede {
+  margin: 0;
+}
+
+.wf-findings {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wf-finding {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-right: var(--space-sm);
+}
+
+.wf-finding .row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.wf-finding .row__title {
+  overflow-wrap: anywhere;
+}
+
+.wf-finding .btn {
+  flex: none;
+}
+
+.wf-finding .tile {
+  color: var(--warn, var(--ink-2));
+}
+
+.wf-asks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs, 6px);
+}
+
+.wf-ask {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs, 6px);
+}
+
+.wf-ask .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.wf-wants {
+  margin: 0;
+}
+
+.wf-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+@media (max-width: 420px) {
+  .wf-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.wf-who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.wf-who > div {
+  min-width: 0;
+}
+
+.wf-who p {
+  margin: 0;
+}
+
+.wf-who__name {
+  font-size: var(--text-title, 1.25rem);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.wf-who__job {
+  font-size: var(--text-ui);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.wf-summary {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.wf-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-sec .skills-form__caption {
+  margin-top: 0;
+}
+
+.wf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  list-style: none;
+  font-size: var(--text-small);
+  color: var(--ink);
+}
+
+.wf-list li {
+  display: flex;
+  gap: var(--space-xs);
+  line-height: var(--leading-body);
+}
+
+.wf-list li svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.wf-list li.is-ok svg {
+  color: var(--good, var(--ink-2));
+}
+
+.wf-list li.is-missing {
+  color: var(--ink-2);
+}
+
+.wf-tick {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  cursor: pointer;
+}
+
+.wf-tick > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wf-tick__box {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+/* Instructions and Skill on the import sheet: section names, not file names. */
+.wf-doc > summary .skill-file__name {
+  font-family: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+/* Its questions: the ones with answers to tap, then the ones to answer in words, spaced alike. */
+.wf-questions {
+  display: grid;
+  gap: var(--space-md);
+}
+
+/* A question to answer in words, set like the ones with answers to tap. */
+.wf-free {
+  display: grid;
+  gap: 10px;
+}
+
+.wf-tick__label {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.team-drop {
+  outline: 2px dashed var(--accent);
+  outline-offset: -8px;
+  border-radius: var(--radius-lg, 16px);
+}
+
+/* Two buttons that always fit side by side, however narrow the sheet. */
+.wf .skills-form__actions {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.wf .skills-form__actions .btn {
+  min-width: 0;
+}

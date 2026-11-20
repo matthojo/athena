@@ -342,6 +342,12 @@
   gap: var(--space-xs);
 }
 
+/* "Or import one someone shared" (team/import-sheet.ts), under the examples. */
+.ts-shared {
+  justify-self: start;
+  margin-top: var(--space-xs);
+}
+
 .ts-example {
   display: block;
   width: 100%;

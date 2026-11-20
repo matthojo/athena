@@ -30,8 +30,8 @@ export interface NamedPerson {
 
 export const MAX_PERSON_SUGGESTIONS = 3;
 
-/** Names that are also everyday words: matched only when written as a name. */
-const EVERYDAY = new Set(
+/** Names that are also everyday words: matched only when written as a name (here, and in lib/team-share.ts). */
+export const EVERYDAY = new Set(
   (
     "will mark may april june august bill rob pat sue hope joy faith grace rose dawn eve jack frank penny don ray drew chase miles art " +
     "summer autumn olive ivy lily daisy holly amber ruby pearl jade sky rich nick dean guy carol harry bob sandy rusty ginger"

@@ -69,6 +69,8 @@ export interface SetupOptions {
   text?: string;
   onAdded: (a: TeamAssistant) => void;
   onClose: () => void;
+  /** "Or import one someone shared": setup closes, then the import sheet opens (team/import-sheet.ts). */
+  onImport?: () => void;
 }
 
 type Scene = "job" | "talk" | "look" | "day";
@@ -211,7 +213,12 @@ export function openSetup(opts: SetupOptions): SheetHandle {
       fit();
     });
     pressChips();
-    const el = h("section", { class: "ts-step" }, ...nodes, f, h("p", { class: "ts-label" }, "Or start from one of these"), h("div", { class: "ts-examples" }, ...chips));
+    const shared = opts.onImport ? h("button", { class: "link-btn ts-shared", type: "button" }, "Or import one someone shared") : null;
+    shared?.addEventListener("click", () => {
+      sheet.close();
+      window.setTimeout(() => opts.onImport?.(), 450);
+    });
+    const el = h("section", { class: "ts-step" }, ...nodes, f, h("p", { class: "ts-label" }, "Or start from one of these"), h("div", { class: "ts-examples" }, ...chips), shared);
     requestAnimationFrame(fit);
     return { el, focus: () => (finePointer() ? f.focus() : h2.focus()) };
   }
