@@ -168,10 +168,10 @@ export function openImportWorkflow(opts: ImportOptions): void {
             "Can it go ahead without asking?",
             h("p", { class: "form__hint" }, `${name} would like to do these on its own. Anything you leave unticked waits for your Go.`),
             ...ticks.map((t) => t.el),
-            web ? h("label", { class: "wf-tick" }, web, h("span", {}, h("span", { class: "wf-tick__label" }, "Look things up online"), h("span", { class: "row__meta" }, "Searches the web and reads pages it finds, while Let Ask search the web is on"))) : null
+            web ? h("label", { class: "wf-tick" }, web, h("span", {}, h("span", { class: "wf-tick__label" }, "Look things up online"), h("span", { class: "row__meta" }, "Searches the web and reads pages it finds, while “Let Ask search the web” is on"))) : null
           )
         : null,
-      p.links.length ? h("p", { class: "skills-error" }, icons.globe(), h("span", {}, `Its words link to ${p.links.join(", ")}. Athena didn't check those sites.`)) : null,
+      p.links.length ? h("p", { class: "skills-error" }, icons.globe(), h("span", {}, `Its instructions link to ${p.links.join(", ")}. Athena didn't check ${p.links.length === 1 ? "that site" : "those sites"}.`)) : null,
       h("details", { class: "skill-file wf-doc", open: !p.skill }, h("summary", {}, icons.note(), h("span", { class: "skill-file__name" }, "Instructions")), h("pre", { class: "skill-pre" }, w.instructions || "None. It works from its job.")),
       p.skill
         ? h(

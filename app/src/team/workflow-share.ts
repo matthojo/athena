@@ -85,7 +85,7 @@ export function openShareWorkflow(a: TeamAssistant): void {
     if (!removedEl) return;
     const words = removedWords(x.removed);
     removedEl.hidden = !words.length;
-    removedEl.replaceChildren(icons.check(), h("span", {}, `Taken out for you: ${list(words)}.`));
+    removedEl.replaceChildren(icons.check(), h("span", {}, `Athena took out ${list(words)}.`));
   }
 
   async function check() {

@@ -56,8 +56,9 @@ export function whereWords(where: readonly string[]): string {
 
 /** The share sheet's line over its findings. */
 export function findingsLede(findings: readonly Finding[]): string {
-  if (!findings.length) return "Nothing looks like yours. Read it through once more before you share it.";
-  return `${findings.length === 1 ? "This looks" : "These look"} like ${findings.length === 1 ? "it's" : "they're"} yours. Edit ${findings.length === 1 ? "it" : "them"} out below, or say ${findings.length === 1 ? "it's" : "they're"} fine to share.`;
+  if (!findings.length) return "Nothing is flagged. Athena checked for your people, places, contact details and private links. Read it through yourself before you share it.";
+  const one = findings.length === 1;
+  return `${one ? "This looks like one" : "These look like some"} of your own details. Edit ${one ? "it" : "them"} out below, or mark ${one ? "it" : "them"} fine to share.`;
 }
 
 /** "Linear", "Calendar", "Outlook mail": an account's name. */
@@ -68,10 +69,10 @@ export function accountName(id: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-/** "Linear is connected" or "Needs Linear, which isn't connected. Its Linear trigger waits until you connect it." */
+/** "Linear is connected" or "Needs Linear, which isn't connected. What it does with Linear starts once you connect it." */
 export function needWords(n: WorkflowNeed): string {
   const name = accountName(n.id);
-  return n.connected ? `${name} is connected` : `Needs ${name}, which isn't connected. Anything waiting on ${name} starts once you connect it.`;
+  return n.connected ? `${name} is connected` : `Needs ${name}, which isn't connected. What it does with ${name} starts once you connect it.`;
 }
 
 /** "From github.com/sample-author/athena-workflows", "From muse.zip". */

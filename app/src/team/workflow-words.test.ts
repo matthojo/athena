@@ -13,15 +13,15 @@ test("findings: what and where", () => {
   assert.equal(findingKindWords("person"), "One of your people");
   assert.equal(whereWords(["instructions"]), "In the instructions");
   assert.equal(whereWords(["instructions", "skill", "file:shops.md"]), "In the instructions, the skill and shops.md");
-  assert.match(findingsLede([]), /Nothing looks like yours/);
-  assert.equal(findingsLede([{ id: "a", kind: "person", term: "Priya", where: ["job"] }]), "This looks like it's yours. Edit it out below, or say it's fine to share.");
+  assert.match(findingsLede([]), /^Nothing is flagged\./);
+  assert.equal(findingsLede([{ id: "a", kind: "person", term: "Priya", where: ["job"] }]), "This looks like one of your own details. Edit it out below, or mark it fine to share.");
 });
 
 test("accounts and needs", () => {
   assert.equal(accountName("linear"), "Linear");
   assert.equal(accountName("outlook-mail"), "Outlook mail");
   assert.equal(needWords({ id: "linear", connected: true }), "Linear is connected");
-  assert.match(needWords({ id: "gmail", connected: false }), /^Needs Gmail, which isn't connected/);
+  assert.equal(needWords({ id: "gmail", connected: false }), "Needs Gmail, which isn't connected. What it does with Gmail starts once you connect it.");
 });
 
 test("where it came from, and who made it", () => {

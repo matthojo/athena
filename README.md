@@ -64,7 +64,7 @@ the project never sees your data.
   arrives (a new Linear issue, a saved link). A change you haven't allowed
   waits for your **Go**. Share one as a file anyone can add to their own
   Athena, or add one someone shared: it joins paused, and asks before
-  anything until you say otherwise.
+  every change until you tick what it may do on its own.
 - **A morning briefing and reminders:** a note at 07:30 in your time zone,
   and push notifications, including on iPhone once Athena is on your Home
   Screen.

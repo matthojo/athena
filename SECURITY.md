@@ -1790,8 +1790,9 @@ nothing new is stored.
   Slack, Linear, Zoom, `*.netlify.app` and others). These are opened and
   compared in memory and never kept or sent. The download is refused (409)
   while anything is flagged and not marked fine, and the server checks again
-  on every download. The check is a guard against slips, not a guarantee:
-  the sheet asks the owner to read the file through.
+  on every download. The check catches slips but can miss things it
+  doesn't know about, such as a nickname Athena has no record of, so the
+  sheet asks the owner to read the file through.
 - **Adding one treats every word as someone else's.** `readWorkflow` checks
   every field against the same limits as an assistant made in Athena, drops
   unknown keys and looks it can't draw, and refuses anything else with a
