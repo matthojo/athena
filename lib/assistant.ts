@@ -105,6 +105,8 @@ import { ROUTINE_GUIDANCE, ROUTINE_TOOLS, ROUTINE_TOOL_NAMES, applyRoutineUndo, 
 import { moveEvent } from "./scheduling";
 import { applyPictureUndo, isPictureUndo, type PictureUndo } from "./images";
 import { ASSIGNMENT_TOOL_NAMES, runAssignmentTool, withAssignmentTools } from "./assignment-tools";
+import { FLOW_TOOL_NAME, runFlowTool, withFlowTool, type FlowToolContext } from "./flow-draft-ask";
+import type { AskFlowCard } from "./flow-types";
 
 /** The start of some text, cut at a word: "Hi Gayle, the launch slides are in…". */
 const clipWords = (text: string, n: number) => {
@@ -988,7 +990,7 @@ const LOOP_OWN = new Set<string>(["read_note", "find_recipes"]);
 
 /** The tools a Session runs for Ask's loop: everything here that changes something, and the finds that give ids to change by. */
 const SESSION_TOOLS: Anthropic.Tool[] = TOOLS.filter((t) => !READ_TOOL_NAMES.has(t.name) && !LOOP_OWN.has(t.name));
-const SESSION_TOOL_NAMES = new Set([...SESSION_TOOLS.map((t) => t.name), ATTACH_TOOL.name, ...ASSIGNMENT_TOOL_NAMES]);
+const SESSION_TOOL_NAMES = new Set([...SESSION_TOOLS.map((t) => t.name), ATTACH_TOOL.name, ...ASSIGNMENT_TOOL_NAMES, FLOW_TOOL_NAME]);
 
 /**
  * Those tools as the model gets them: every one that may change something also takes its plan line (`step`); attach_file only when the
@@ -997,7 +999,8 @@ const SESSION_TOOL_NAMES = new Set([...SESSION_TOOLS.map((t) => t.name), ATTACH_
 export function actTools(opts: { files: boolean; money?: boolean }): Anthropic.Tool[] {
   const tools = opts.money ? SESSION_TOOLS : SESSION_TOOLS.filter((t) => t.name !== LOG_MONEY_TOOL);
   // Assignments (lib/assignment-tools.ts): a stage's hand_off and ask_owner, main Ask's start_assignment and continue_assignment.
-  return withAssignmentTools(withStepField([...tools, ...(opts.files ? [ATTACH_TOOL] : [])]));
+  // Flows (lib/flow-draft-ask.ts): main Ask's propose_flow.
+  return withFlowTool(withAssignmentTools(withStepField([...tools, ...(opts.files ? [ATTACH_TOOL] : [])])));
 }
 
 /** How far through a Watch & read item (lib/watch-read.ts parseProgress checks the rest). */
@@ -1193,6 +1196,8 @@ export class Session {
   scheduling: SchedulingCard | undefined;
   /** start_assignment's lineup, a card for the owner's Go (lib/assignment-tools.ts). */
   lineup: AskLineup | undefined;
+  /** propose_flow's flow, kept paused: a card to turn on or edit (lib/flow-draft-ask.ts). */
+  flow: AskFlowCard | undefined;
   /** Things that would leave Athena, waiting for the owner's tap (lib/assistant-confirm.ts). */
   readonly confirm: ConfirmCard[] = [];
   /** While planning: the changes queued instead of made (lib/ask-plans.ts). Null runs every tool as it comes. */
@@ -1287,6 +1292,13 @@ export class Session {
     // Assignments' own tools run as they are, never as plan steps: the runner moves the work on (lib/assignment-tools.ts).
     const own = await runAssignmentTool(name, input, this);
     if (own !== null) return own;
+    // A flow is drawn and kept paused, never queued as a plan step: nothing runs until the owner turns it on (lib/flow-draft-ask.ts).
+    const flowCtx: FlowToolContext = { client: this.deps.client, money: !!this.deps.money, flow: this.flow };
+    const flowed = await runFlowTool(name, input, flowCtx);
+    if (flowed !== null) {
+      this.flow = flowCtx.flow;
+      return flowed;
+    }
     // Planning: anything that would change something is kept for Go, not run (lib/ask-plans.ts). The tools that
     // only prepare a confirm card (lib/assistant-confirm.ts) run as they are: they wait for a tap of their own.
     const queued = WAITS_FOR_TAP.has(name) || this.allow?.has(name) ? null : this.draft?.offer(name, input);

@@ -1685,6 +1685,33 @@ Design in `docs/team.md` "Assignments"; notes in
   note is kept. A post outside an assignment is swept after 90 days once
   settled.
 
+### Drafting flows and Ask's flow card (`lib/flow-draft*.ts`)
+
+- **What goes to the model.** `POST /api/flows/draft` and Ask's
+  `propose_flow` send the owner's one sentence (1,000 characters at most),
+  today's date, and the names, first lines and field names of the tools a
+  flow may use, to the model the owner chose for drafting (the `team_draft`
+  job, docs/ai-models.md). No notes, people or other records go with it. The
+  sentence is quoted as data, and nothing is saved by drafting itself.
+- **Checked, not trusted.** What the model proposes is checked against
+  `lib/flow-types.ts` and `FLOW_LIMITS` before anything sees it: unknown
+  tools are dropped with a note, and so are tools a flow never uses (those
+  that send, answer for the owner, change a connected account, archive or
+  delete: `NEVER_IN_FLOWS`). Values may only point at the trigger or at a
+  step that has surely run before. A step that reads spending is kept only
+  while "Let Ask read transactions" is on.
+- **Changes wait for Go.** A drawn change runs alone only if it's a
+  reminder, a to-do or a line on a checklist (each only adds to the
+  owner's own Athena, with Undo) and the owner didn't ask to be checked
+  with; every other change waits for Go. Thinking steps are left out:
+  a drawn flow has no assistant.
+- **Saved off.** `propose_flow` saves the flow paused (`origin: "ask"`)
+  through the engine's `FlowCreator`; nothing runs until the owner taps
+  Turn on (`PATCH /api/flows/:id`, the engine's route and checks). It's
+  main Ask's only, never an assistant's turn or a stage, never a plan step,
+  one per reply, and a write tool to the guard, so it isn't offered once a
+  turn is flagged.
+
 ### Plans, routines and What Ask did (migration `0055`)
 
 - **Plans write nothing until Go.** While Ask works, every tool that could
