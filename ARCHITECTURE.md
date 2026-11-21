@@ -1741,12 +1741,18 @@ suggestions and the app is `lib/flow-types.ts`.
   `add_todo` and `add_to_list` run alone, and a draft is refused unless it
   waits for Go. Every run read carries `values`: the trigger's and each step's,
   as words (`shownValues`, from the sealed state). `createFlowSource()` and `createFlowStarter()` are the
-  ports triggers uses; `triggerGives()` there is a stand-in until triggers'
-  own replaces it. The starter's chain guard (`startedByRun`, `chainFor`)
+  ports triggers uses; what a trigger gives is triggers' own (`triggerGives` in
+  `lib/flow-triggers.ts`), which drafting and suggestions read too.
+  `lib/flow-engine.ts` plugs the engine in: imported by `api.ts`,
+  `reminders.ts` and `mcp.ts`, it hands triggers the source and starter (so
+  the reminders pass and the owner's own events start runs), gives Ask's
+  `propose_flow` the engine's `createFlow`, and gives suggestions the
+  owner's flows. Deleting a flow deletes its `flow_trigger_fires` rows. The starter's chain guard (`startedByRun`, `chainFor`)
   traces an event to the run that made its record and refuses a flow already
   in that chain, or a fourth run.
 - **Catalogue** (`lib/flow-catalog.ts`, `GET /api/flows/catalog`). Ask's own
-  tools, as an allowlist of looks, changes inside Athena and drafts
+  tools, as an allowlist of looks, changes inside Athena (filing a saved
+  item, `file_saved_item`, among them) and drafts
   (`draft_email`, `draft_message`, group `tell`, always waiting for Go), plus
   Check, Ask me, Wait, Tell me, Think and Start an assignment. Go on a draft
   writes it with `runAssistantTool` and Ask's mail and Slack ports, and keeps

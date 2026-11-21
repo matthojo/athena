@@ -74,7 +74,7 @@ async function counts() {
 
 test("a three-step plan writes nothing; Go makes all three in order; Undo all takes them back", { skip }, async () => {
   const { qRaw } = await import("./db");
-  await qRaw(`TRUNCATE ask_activity, ask_plans`);
+  await qRaw(`TRUNCATE ask_activity, ask_plans CASCADE`);
   const { runPlanTool } = await import("./assistant");
   const { runAsk } = await import("./answer");
   const { goPlan, undoPlan, getPlan } = await import("./ask-plans");

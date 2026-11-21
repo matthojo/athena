@@ -7,6 +7,7 @@ import type { AskPlan, AssistantChange, WatchPick } from "../types";
 import type { ActivityEntry } from "./ask-plans";
 import { SAMPLE_IDS } from "./sample-data";
 import { SAMPLE_EVENT_ID } from "./scheduling";
+import { SAMPLE_FLOW_IDS, SAMPLE_RUN_IDS } from "./sample-flows";
 
 const id = (n: number) => `5a3e0000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -58,7 +59,9 @@ export function sampleActivity(): ActivityEntry[] {
     e(4, 60 * 26, "routine", { kind: "commitment", id: id(990013), action: "updated", title: "Send Priya the hiring plan draft", detail: "To do · due Mon", label: "Send Priya the hiring plan draft: due Mon", open: null, undo: { op: "sample" } }),
     e(5, 60 * 30, "nudge", { kind: "commitment", id: id(990014), action: "updated", title: "Renew the car insurance", detail: "Tue", label: "Renew the car insurance: Tue", open: null, undo: { op: "sample" } }, "undone"),
     e(6, 60 * 50, "ask", { kind: "person", id: SAMPLE_IDS.elena, action: "updated", title: "Elena Rossi", detail: "Works at Brightwater", label: "Elena Rossi: Works at Brightwater", open: { kind: "person", id: SAMPLE_IDS.elena }, undo: { op: "sample" } }, "undo_failed"),
-  ];
+    // A plain flow's change: "Flow: Delivery day", opening the run that made it.
+    { ...e(7, 60 * 3, "flow", { kind: "reminder", id: id(990015), action: "created", title: "Parcel from Larkspur Home", detail: "Thu 08:00", label: "Parcel from Larkspur Home: Thu 08:00", open: null, undo: { op: "sample" } }), thread_id: null, flow_id: SAMPLE_FLOW_IDS.delivery, flow_run_id: SAMPLE_RUN_IDS.delivery, flow_name: "Delivery day" },
+  ].sort((a, b) => b.at.localeCompare(a.at));
 }
 
 export function samplePicks(): WatchPick[] {

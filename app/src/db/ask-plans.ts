@@ -32,8 +32,12 @@ const sample = { undone: new Set<string>() };
 export interface ActivityEntry {
   id: string;
   at: string;
-  source: "ask" | "plan" | "routine" | "nudge" | "team";
+  source: "ask" | "plan" | "routine" | "nudge" | "team" | "flow";
   thread_id: string | null;
+  /** source "flow" only (lib/ask-activity.ts): the flow, the run that made the change, and the flow's name now. */
+  flow_id?: string | null;
+  flow_run_id?: string | null;
+  flow_name?: string | null;
   state: "done" | "undone" | "undo_failed";
   change: AssistantChange;
 }

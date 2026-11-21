@@ -3,7 +3,7 @@
 // Run: npx tsx --test lib/flow-steps.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { decide, depthOf, fillText, listAt, MissingValue, moneyWords, numberOf, parseMoney, toolInput, toolValues, valueLabels, waitUntil, type FlowValues } from "./flow-steps";
+import { decide, depthOf, fillText, listAt, MissingValue, moneyWords, numberOf, parseMoney, toolInput, toolValues, triggerVal, triggerValues, valueLabels, valueWords, waitUntil, type FlowValues } from "./flow-steps";
 import type { FlowStep } from "./flow-types";
 
 const values: FlowValues = {
@@ -97,4 +97,39 @@ test("a tool's result gives its values: counts, totals, the first record, or wha
   const money = JSON.stringify({ total: "£384.00", count: 12, payments: [{ merchant: "Northwind Broadband", amount: "£32.00" }] });
   assert.deepEqual(toolValues([{ key: "total", label: "the total", kind: "money" }, { key: "latest", label: "the latest", kind: "money" }], money, [], ""), { total: { amount: 384, currency: "GBP" }, latest: { amount: 32, currency: "GBP" } });
   assert.deepEqual(toolValues([{ key: "todo", label: "the to-do", kind: "todo" }], "{}", [{ id: "t-1", title: "Decide on the renewal" }], "Added a to-do"), { todo: { id: "t-1", title: "Decide on the renewal", kind: "todo" } });
+});
+
+test("a trigger's values, in the shapes a run reads: names as records or words, lists as one item or names", () => {
+  assert.deepEqual(
+    triggerValues({
+      company: { id: null, name: "Larkspur Home" },
+      person: { id: "p-1", name: "Sam Example" },
+      people: [{ id: "p-1", name: "Sam Example" }],
+      crowd: [{ id: "p-1", name: "Sam Example" }, { id: "p-2", name: "Rowan Example" }],
+      item: { id: "t-1", kind: "trip", title: null },
+      event: { id: "e-1", title: "Coffee" },
+      delivery_date: "2030-01-17",
+      count: 1,
+      gone: null,
+      none: [],
+    }),
+    {
+      company: "Larkspur Home",
+      person: { id: "p-1", title: "Sam Example" },
+      people: { id: "p-1", title: "Sam Example" },
+      crowd: "Sam Example, Rowan Example",
+      item: { id: "t-1", title: "", kind: "trip" },
+      event: { id: "e-1", title: "Coffee" },
+      delivery_date: "2030-01-17",
+      count: 1,
+    },
+  );
+  assert.equal(valueWords(triggerVal({ id: null, name: "Northwind Broadband" })), "Northwind Broadband");
+});
+
+test("a date and time in a date field is its day where the owner is: a booking's start as a reminder's day", () => {
+  const tool = { input_schema: { type: "object" as const, properties: { text: { type: "string" }, date: { type: "string" }, due_on: { type: "string" } } } };
+  const vals: FlowValues = { trigger: { starts_at: "2030-03-01T23:30:00.000Z", title: "Train to Example Bay" } };
+  const input = toolInput({ text: ["Pack for ", { from: "trigger", key: "title" }], date: [{ from: "trigger", key: "starts_at" }], due_on: [{ from: "trigger", key: "starts_at" }] }, tool, vals, "Europe/Paris");
+  assert.deepEqual(input, { text: "Pack for Train to Example Bay", date: "2030-03-02", due_on: "2030-03-02" });
 });

@@ -1706,8 +1706,9 @@ none of its own.
   prepares a card for a tap. The store refuses a flow naming any other tool,
   and the runner checks again before every step.
 - **Changes wait unless the owner said otherwise.** Only adding a reminder, a
-  to-do or a list item runs alone by default; every other change waits for
-  Go unless the owner sets it to run alone. A change that waits is kept as an
+  to-do or a list item runs alone by default (`AUTO_BY_DEFAULT`, which the
+  editor, drafting and suggestions all follow); every other change, filing a
+  saved item included, waits for Go unless the owner sets it to run alone. A change that waits is kept as an
   Ask plan (`ask_plans`, sealed) and nothing is made until Go, which runs it
   through Ask's plan code, logged in What Ask did (a plain flow's as "Flow:
   <name>", with the flow's and run's ids, plain) with its Undo. Skip and Stop
@@ -1757,15 +1758,15 @@ none of its own.
 - **Plain, and only ids and times.** `flow_trigger_fires` keeps one row per
   fire a flow claimed: the flow's id, a key made of a kind, a record's id
   and sometimes a time (one flow's run for one event is `event:` and the
-  event's id), and timestamps, never a title. Rows go after a week.
-  `team_events.flow_claimed_at` is a timestamp beside Team's
+  event's id), and timestamps, never a title. Rows go after a week, and
+  with their flow when it's deleted. `team_events.flow_claimed_at` is a timestamp beside Team's
   `processed_at`, set once every flow has had the event, so flows and Team
   each read events apart.
 - **Nothing leaves the site.** Triggers read the calendar, People, life
   admin, orders and bookings from Athena's own tables and hand what they
   found (titles, names, dates) to the flow engine as a run's starting
   values and label. Sealing those is the engine's, as it is for a Team
-  run's. A sealed title this deploy can't read is left out, never passed on.
+  run's: they're kept only in the run's sealed `state`. A sealed title this deploy can't read is left out, never passed on.
 - **Each fire runs once, and never late.** A fire is claimed before its run
   starts, so overlapping passes can't start it twice; one more than 90
   minutes late is skipped, a "before" is never run once its event has
@@ -1776,17 +1777,18 @@ none of its own.
 
 - **What goes to the model.** `POST /api/flows/draft` and Ask's
   `propose_flow` send the owner's one sentence (1,000 characters at most),
-  today's date, and the names, first lines and field names of the tools a
-  flow may use, to the model the owner chose for drafting (the `team_draft`
+  today's date, and the names, first lines, field names and the names of
+  the values each gives of the tools a flow may use, to the model the owner chose for drafting (the `team_draft`
   job, docs/ai-models.md). No notes, people or other records go with it. The
   sentence is quoted as data, and nothing is saved by drafting itself.
 - **Checked, not trusted.** What the model proposes is checked against
   `lib/flow-types.ts` and `FLOW_LIMITS` before anything sees it: unknown
-  tools are dropped with a note. Only tools on an allowlist (`FLOW_TOOLS`
-  in `lib/flow-draft-tools.ts`, the same names as the engine's step
-  catalogue plus the two draft tools) are offered, and never one on
-  `NEVER_TOOLS` (those that send, answer for the owner, change a connected
-  account, archive or delete, or reshape the owner's data). Values may only
+  tools are dropped with a note. Only the engine's step catalogue
+  (`lib/flow-catalog.ts`, the same list the Add a step sheet offers) is
+  offered, so never a tool on its `NEVER_TOOLS` (those that send, answer for
+  the owner, change a connected account, archive or delete, or reshape the
+  owner's data). A drawn step gives only the values the engine fills for
+  its tool. Values may only
   point at the trigger or at a step that has surely run before. A step that
   reads spending is kept only while "Let Ask read transactions" is on.
 - **Changes wait for Go.** A drawn change runs alone only if it's a

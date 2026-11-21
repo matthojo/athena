@@ -5,7 +5,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { TOOLS } from "./assistant";
 import { AUTO_BY_DEFAULT, FLOW_TOOLS, NEVER_TOOLS, defaultGo, flowCatalog, flowTool, toolChanges } from "./flow-catalog";
-import { CHAIN_MAX, chainFor, checkSteps, fillGo, plainSchedule, shownValues, triggerGives } from "./flows";
+import { CHAIN_MAX, chainFor, checkSteps, fillGo, plainSchedule, shownValues } from "./flows";
+import { triggerGives } from "./flow-triggers";
+import { DRAFT_TOOLS as APP_DRAFT_TOOLS, RUNS_ALONE_TOOLS as APP_RUNS_ALONE } from "../app/src/flows/steps";
 import { FLOW_LIMITS, type FlowStep, type FlowText, type FlowTrigger } from "./flow-types";
 
 test("every tool the catalogue names is one of Ask's, and none is never-offered", () => {
@@ -36,6 +38,13 @@ test("the catalogue: a Go setting on changes, money marked, fields without the p
   assert.equal(entries.find((e) => e.tool === "find_people")?.changes, false);
   for (const kind of ["check", "ask", "wait", "notify", "think", "assignment"]) assert.ok(entries.some((e) => e.kind === kind), kind);
   assert.equal(entries.find((e) => e.kind === "think")?.needsAssistant, true);
+  // Filing a saved item: a change inside Athena with Undo, so it's offered, and it waits for Go (suggestions offer it).
+  const filing = entries.find((e) => e.tool === "file_saved_item")!;
+  assert.equal(filing.group, "add");
+  assert.equal(filing.changes, true);
+  assert.deepEqual(filing.gives.map((g) => g.key), ["saved"]);
+  assert.ok(filing.fields.some((f) => f.key === "saved_id" && f.kind === "saved" && f.required));
+  assert.equal(defaultGo("file_saved_item"), "ask");
 });
 
 test("drafts are offered under Tell, as changes that wait for Go", () => {
@@ -80,11 +89,11 @@ test("chips point at the trigger or an earlier step's value; ids are unique; too
   assert.doesNotThrow(() => checkSteps([note("a", [{ from: "trigger", key: "title" }])], { kind: "event", event: { source: "collected", kind: "renewal" } }));
 });
 
-test("what a trigger gives, and the plain half the jobs read never holds its words", () => {
-  assert.deepEqual(triggerGives({ kind: "manual" }), []);
+test("what a trigger gives is triggers' own, and the plain half the jobs read never holds its words", () => {
+  assert.deepEqual(triggerGives({ kind: "manual" }).map((g) => g.key), ["date"]);
   assert.deepEqual(
     triggerGives({ kind: "event", event: { source: "collected", kind: "renewal" } }).map((g) => g.key),
-    ["item", "title"],
+    ["item", "company", "renewal_date", "title", "count"],
   );
   assert.ok(triggerGives({ kind: "before", what: "event", minutes: 30, withPeople: true }).some((g) => g.kind === "person"));
   const plain = plainSchedule({ kind: "event", event: { source: "collected", kind: "renewal", match: "Northwind" } });
@@ -141,4 +150,11 @@ test("a run's values read as plain words: a record as its title, money and days 
   assert.deepEqual(shown.paid, { latest: "£32.00", count: "12" });
   assert.match(shown.when.date, /4 Dec/);
   assert.equal(shown.empty, undefined);
+});
+
+test("the app's editor keeps the same Go defaults: only reminders, to-dos and list lines run alone, and drafts always wait", () => {
+  // app/src/flows/steps.ts can't import this module (it reads Ask's tools), so it keeps the names; they must match.
+  assert.deepEqual([...APP_RUNS_ALONE].sort(), [...AUTO_BY_DEFAULT].sort());
+  assert.deepEqual([...AUTO_BY_DEFAULT].sort(), ["add_reminder", "add_to_list", "add_todo"]);
+  assert.deepEqual([...APP_DRAFT_TOOLS].sort(), ["draft_email", "draft_message"]);
 });

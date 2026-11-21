@@ -96,7 +96,7 @@ async function counts() {
 before(async () => {
   if (!url) return;
   const { qRaw } = await import("./db");
-  await qRaw(`TRUNCATE ask_activity, ask_plans, ask_routines`);
+  await qRaw(`TRUNCATE ask_activity, ask_plans, ask_routines CASCADE`);
   await qRaw(`DELETE FROM commitments`);
 });
 after(async () => {

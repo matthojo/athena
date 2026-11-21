@@ -49,7 +49,7 @@ test("delivery emails then a reminder: Delivery day, a reminder on the delivery 
   assert.equal(step.tool, "add_reminder");
   assert.equal(step.go, "auto");
   assert.equal(flowTextPlain(step.input.text), "Delivery today: {title}");
-  assert.deepEqual(step.input.date, [{ from: "trigger", key: "expected" }]);
+  assert.deepEqual(step.input.date, [{ from: "trigger", key: "delivery_date" }]);
   assert.deepEqual(step.input.time, ["07:45"]);
   assert.deepEqual(suggestionProblems(s), []);
 });
@@ -343,7 +343,7 @@ test("mergeCollected: one item per record with each time it moved on", () => {
 
 test("trigger keys use the names triggers give (triggerGives)", () => {
   const keys = (kind: string) => suggestedTriggerKeys({ kind: "event", event: { source: "collected", kind } });
-  assert.deepEqual(keys("delivery"), ["item", "company", "expected", "title", "count"]);
+  assert.deepEqual(keys("delivery"), ["item", "company", "delivery_date", "title", "count"]);
   assert.deepEqual(keys("booking"), ["item", "booking", "company", "starts_at", "title", "count"]);
   assert.deepEqual(keys("appointment"), ["item", "date", "title", "count"]);
   assert.deepEqual(keys("deadline"), ["item", "date", "title", "count"]);

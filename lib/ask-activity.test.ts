@@ -3,7 +3,8 @@
 // Run: npx tsx --test lib/ask-activity.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ACTIVITY_SOURCES, activityFlow, activityRow, nudgeActionChange, presentActivity } from "./ask-activity";
+import { flowRunOf, flowSourceWords } from "../app/src/flows/activity";
+import { ACTIVITY_SOURCES, activityRow, nudgeActionChange, presentActivity } from "./ask-activity";
 import { runSteps } from "./ask-plans";
 import type { Change } from "./assistant";
 
@@ -49,10 +50,15 @@ test("a plain flow's change: source flow, with its flow and run, labelled with t
   // Only a flow's rows point at a flow.
   assert.equal(activityRow(todo, { source: "team", flow_id: F, flow_run_id: RUN }).flow_id, null);
   const e = presentActivity({ id: "a3", created_at: "2026-11-10T10:00:00Z", source: "flow", thread_id: null, plan_id: P, routine_id: null, nudge_id: null, flow_id: F, flow_run_id: RUN, state: "done", state_at: null, payload: row.payload }, new Map([[F, "Renewal  check"]]))!;
-  assert.deepEqual(e.flow, { id: F, run_id: RUN, name: "Renewal check", label: "Flow: Renewal check", url: `/#/flows/runs/${RUN}` });
-  assert.equal(activityFlow(F, RUN, "").label, "A flow");
+  // One shape, the one the app reads (app/src/flows/activity.ts): flow_id, flow_run_id and flow_name.
+  assert.deepEqual({ id: e.flow_id, run: e.flow_run_id, name: e.flow_name }, { id: F, run: RUN, name: "Renewal check" });
+  assert.equal(flowRunOf(e), RUN);
+  assert.equal(flowSourceWords(e.flow_name), "Flow: Renewal check");
+  const gone = presentActivity({ id: "a5", created_at: "2026-11-10T10:00:00Z", source: "flow", thread_id: null, plan_id: P, routine_id: null, nudge_id: null, flow_id: F, flow_run_id: RUN, state: "done", state_at: null, payload: row.payload })!;
+  assert.equal(gone.flow_name, null, "a deleted flow has no name");
+  assert.equal(flowSourceWords(gone.flow_name), "A flow");
   const team = presentActivity({ id: "a4", created_at: "2026-11-10T10:00:00Z", source: "team", thread_id: null, plan_id: null, routine_id: null, nudge_id: null, state: "done", state_at: null, payload: row.payload })!;
-  assert.equal(team.flow, null);
+  assert.deepEqual([team.flow_id, team.flow_run_id, team.flow_name], [null, null, null]);
 });
 
 test("a nudge card's parts: a move keeps its own Undo, a to-do's day goes back to what it was", () => {

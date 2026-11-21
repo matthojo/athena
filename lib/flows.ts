@@ -5,9 +5,9 @@
  * only days, times, counts and the facets an event filter names. A run's label, summary, error and state are
  * sealed; its status, what it waits for, and ids are plain, so the reminders job can find what's due.
  *
- * Also here: checking what the owner sends (FlowInput) against FLOW_LIMITS, what a trigger gives later steps
- * (triggerGives, a local stand-in until lib/flow-triggers.ts has its own), and the two ports triggers uses:
- * createFlowSource() (which flows are on, with their triggers) and createFlowStarter() (queue a run).
+ * Also here: checking what the owner sends (FlowInput) against FLOW_LIMITS, and the two ports triggers uses:
+ * createFlowSource() (which flows are on, with their triggers) and createFlowStarter() (queue a run). What a trigger
+ * gives later steps is triggers' own (lib/flow-triggers.ts triggerGives); lib/flow-engine.ts plugs these in.
  */
 import { z } from "zod";
 import { AthenaInputError, q, qRaw, tx } from "./db";
@@ -15,7 +15,8 @@ import { sealText } from "./data-box";
 import { parseTime } from "./routines";
 import { eventFilterSchema } from "./team";
 import { defaultGo, flowTool, isDraftTool } from "./flow-catalog";
-import { allSteps, depthOf, eachStep, valueWords, type FlowValues, type Frame } from "./flow-steps";
+import { allSteps, depthOf, eachStep, triggerValues, valueWords, type FlowValues, type Frame } from "./flow-steps";
+import { triggerGives } from "./flow-triggers";
 import {
   FLOW_LIMITS,
   type Flow,
@@ -27,56 +28,12 @@ import {
   type FlowStarter,
   type FlowStep,
   type FlowTrigger,
-  type FlowValue,
   type FlowWaitsFor,
-  type ValueKind,
 } from "./flow-types";
-import type { EventFilter } from "./team-types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const iso = (v: string | Date | null) => (v == null ? null : new Date(v).toISOString());
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
-
-// ---------- what a trigger gives ----------
-
-const val = (key: string, label: string, kind: ValueKind): FlowValue => ({ key, label, kind });
-
-/** What an event filter's item is: an email for mail, else what Athena keeps it as. Pure. */
-function eventItemKind(f: EventFilter): ValueKind {
-  if (f.source === "saved") return "saved";
-  if (f.source === "note") return "note";
-  if (f.kind && /^(email|delivery|booking|appointment|deadline|renewal|alert|todo)$/.test(f.kind)) return "email";
-  if (f.kind === "event") return "event";
-  return "note";
-}
-
-/**
- * What a trigger gives later steps, as chips. A local stand-in: lib/flow-triggers.ts's triggerGives() replaces it
- * once triggers lands, and triggers fills these keys in FlowStarter.start's `values`. Pure.
- */
-export function triggerGives(t: FlowTrigger): FlowValue[] {
-  switch (t.kind) {
-    case "schedule":
-      return [val("date", "the day", "date")];
-    case "manual":
-      return [];
-    case "event": {
-      const kind = eventItemKind(t.event);
-      const noun = kind === "email" ? "the email" : kind === "saved" ? "the saved item" : kind === "event" ? "the event" : "the note";
-      return [val("item", noun, kind), val("title", "its title", "text")];
-    }
-    case "before":
-      if (t.what === "event") return [val("event", "the event", "event"), val("start", "when it starts", "datetime"), ...(t.withPeople ? [val("person", "who it's with", "person")] : [])];
-      return [val("item", "what the date is for", "text"), val("date", "the date", "date")];
-  }
-}
-
-/** A team_events row's values, in triggerGives' keys: for a dry run on the last thing that matched. Pure. */
-export function eventValues(ev: { ref_id: string | null; ref_kind: string | null; facets: Record<string, unknown> | null; created_at?: string }): Record<string, unknown> {
-  const f = ev.facets ?? {};
-  const title = typeof f.title === "string" ? f.title : "";
-  return { ...(ev.ref_id ? { item: { id: ev.ref_id, title, kind: ev.ref_kind ?? undefined } } : {}), ...(title ? { title } : {}) };
-}
 
 // ---------- checking what the owner sends ----------
 
@@ -341,6 +298,8 @@ export async function deleteFlow(id: unknown): Promise<boolean> {
   if (typeof id !== "string" || !UUID.test(id)) return false;
   await qRaw(`UPDATE nudges SET dismissed_at = now() WHERE dismissed_at IS NULL AND key LIKE 'flow:%' AND split_part(key, ':', 2) IN (SELECT id::text FROM flow_runs WHERE flow_id = $1::uuid)`, [id]);
   const rows = await qRaw<{ id: string }>(`DELETE FROM flows WHERE id = $1::uuid RETURNING id`, [id]);
+  // Its claimed fires (migration 0081) have no foreign key: they go with it.
+  await qRaw(`DELETE FROM flow_trigger_fires WHERE flow_id = $1`, [id]);
   return rows.length > 0;
 }
 
@@ -535,7 +494,8 @@ export async function insertRun(
       flow.id,
       sealText(oneLine(from.label).slice(0, 200) || "Run now"),
       flow.assistant_id,
-      sealText(JSON.stringify(emptyState(from.values, from.byHand === true || from.dry === true))),
+      // What the trigger gave, in the shapes a run reads, however it was started (a pass, the owner, Run now, a try).
+      sealText(JSON.stringify(emptyState({ ...from.values, trigger: triggerValues(from.values.trigger) }, from.byHand === true || from.dry === true))),
       from.dry === true,
       JSON.stringify(ids),
       from.slot ?? null,

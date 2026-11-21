@@ -81,7 +81,7 @@ async function api(method: string, path: string, body?: unknown): Promise<{ stat
 
 async function reset() {
   const { qRaw } = await import("./db");
-  await qRaw(`TRUNCATE ask_skills, ask_activity, ask_plans`);
+  await qRaw(`TRUNCATE ask_skills, ask_activity, ask_plans CASCADE`);
   await qRaw(`DELETE FROM settings WHERE key = 'skills.starters'`);
   await qRaw(`INSERT INTO settings (key, value) VALUES ('timezone', '"Europe/London"') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`);
   seen.length = 0;

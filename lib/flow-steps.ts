@@ -84,6 +84,37 @@ export function valueWords(v: FlowVal | undefined, tz?: string): string {
   return "";
 }
 
+/**
+ * A value as triggers give it (lib/flow-triggers.ts), in the shapes a run reads: a person or a linked record as
+ * { id, title }, a company with no record as its name, a title that's unknown as "", and a list as its one item, or
+ * its names joined when there are several. Pure.
+ */
+export function triggerVal(x: unknown): FlowVal {
+  if (x == null) return null;
+  if (typeof x === "string" || typeof x === "number" || typeof x === "boolean") return x;
+  if (isMoney(x)) return x;
+  if (Array.isArray(x)) {
+    const list = x.map(triggerVal).filter((v): v is FlowVal => v != null && v !== "");
+    if (list.length <= 1) return list[0] ?? null;
+    return list.map((v) => valueWords(v)).filter(Boolean).join(", ");
+  }
+  if (typeof x !== "object") return null;
+  const o = x as { id?: unknown; title?: unknown; name?: unknown; kind?: unknown };
+  const words = typeof o.title === "string" ? o.title : typeof o.name === "string" ? o.name : "";
+  if (typeof o.id !== "string" || !o.id) return words || null;
+  return { id: o.id, title: words, ...(typeof o.kind === "string" && o.kind ? { kind: o.kind } : {}) };
+}
+
+/** A trigger's values, each in the shapes a run reads (triggerVal); nothing for an empty one. Pure. */
+export function triggerValues(raw: Record<string, unknown> | undefined): Record<string, FlowVal> {
+  const out: Record<string, FlowVal> = {};
+  for (const [k, x] of Object.entries(raw ?? {})) {
+    const v = triggerVal(x);
+    if (v != null && v !== "") out[k] = v;
+  }
+  return out;
+}
+
 /** Is there something here? Empty text, null and missing are nothing. Pure. */
 export const present = (v: FlowVal | undefined): boolean => v != null && !(typeof v === "string" && !v.trim());
 
@@ -146,9 +177,16 @@ export function toolInput(fields: Record<string, FlowText>, tool: Pick<Anthropic
         out[key] = prop.type === "integer" ? Math.round(numberOf(v)!) : numberOf(v);
         continue;
       }
-      if (prop.type === "string" && DATE.test(String(v)) && /(^|_)(date|on|from|to)$/.test(key)) {
-        out[key] = v;
-        continue;
+      if (prop.type === "string" && /(^|_)(date|on|from|to)$/.test(key)) {
+        if (DATE.test(String(v))) {
+          out[key] = v;
+          continue;
+        }
+        // A date and time (a booking's start) in a date field: its day, where the owner is.
+        if (typeof v === "string" && DATETIME.test(v) && tz && !Number.isNaN(Date.parse(v))) {
+          out[key] = zonedToday(new Date(v), tz);
+          continue;
+        }
       }
     }
     const filled = fillText(text, values, tz).trim();

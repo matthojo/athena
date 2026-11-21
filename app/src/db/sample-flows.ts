@@ -41,6 +41,9 @@ export const SAMPLE_FLOW_IDS = {
   friday: "f10e0000-0000-4000-8000-000000000005",
 } as const;
 
+/** Runs other sample screens link to: What Ask did's flow row opens the delivery run. */
+export const SAMPLE_RUN_IDS = { delivery: "f10e7000-0000-4000-8000-000000000101" } as const;
+
 // ---------- what a trigger gives ----------
 
 /** What a trigger gives later steps, as the server fills `trigger_gives` (sample mode only; lenient). */
@@ -419,16 +422,16 @@ export function sampleFlows(now = Date.now()): SampleFlows {
     store.check[s.flow.id] = s.check;
   }
   const { renewal, meet, delivery, gift, friday } = SAMPLE_FLOW_IDS;
-  const at = (id: string, t: number, decisions: Decisions, extra: { label?: string; summary?: string; check?: Seed["check"] } = {}) => {
+  const at = (id: string, t: number, decisions: Decisions, extra: { label?: string; summary?: string; check?: Seed["check"]; id?: string } = {}) => {
     const seed = all.find((s) => s.flow.id === id)!;
-    store.runs.push(sampleRunFrom(store, seed.flow, { label: extra.label ?? seed.label, at: t, decisions, dry: false, summary: extra.summary ?? seed.summary, check: extra.check }));
+    store.runs.push(sampleRunFrom(store, seed.flow, { label: extra.label ?? seed.label, at: t, decisions, dry: false, summary: extra.summary ?? seed.summary, check: extra.check, id: extra.id }));
   };
   // Older runs first: the list keeps the newest per flow.
   at(renewal, now - 37 * DAY, { decide: "go" }, { label: "An email from Pageturn Books", summary: "Pageturn Books: up 25%. You gave the to-do your Go." });
   at(renewal, now - 18 * DAY, {}, { label: "An email from Hillside Home Insurance", summary: "Hillside Home Insurance: the same as last year. Reminder for 18 Nov.", check: { upcheck: "no" } });
   at(renewal, todayAt(8, 12, now), {});
   at(meet, todayAt(13, 30, now), {});
-  at(delivery, todayAt(9, 40, now), { in: 0 });
+  at(delivery, todayAt(9, 40, now), { in: 0 }, { id: SAMPLE_RUN_IDS.delivery });
   at(gift, todayAt(16, 59, now) - DAY, {});
   at(friday, nextDay(5, 17, 2, now) - 7 * DAY, { plan: 1 });
   for (const fl of store.flows) {

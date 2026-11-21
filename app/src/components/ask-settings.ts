@@ -11,7 +11,7 @@ import { openItem } from "../lib/open-item";
 import { requestOpen } from "../db/ask-threads";
 import { askWebSetting } from "./ask-web-setting";
 import { fetchActivity, undoActivity, type ActivityEntry } from "../db/ask-plans";
-import { FLOW_SOURCE, flowRunHref, flowRunOf, flowSourceWords, isFlowActivity, type FlowActivityFields } from "../flows/activity";
+import { flowRunHref, flowRunOf, flowSourceWords, isFlowActivity, type FlowActivityFields } from "../flows/activity";
 
 /** #/settings/ask: Skills and What Ask did one step in. Routines moved to Team (docs/team.md). */
 export function askSettingsSection(ctx: { open: (id: "ask-activity" | "skills") => void }): { el: HTMLElement; destroy: () => void } {
@@ -52,8 +52,8 @@ export function askSettingsSection(ctx: { open: (id: "ask-activity" | "skills") 
 
 // ---------- What Ask did ----------
 
-// "flow": a plain flow's change (the engine adds the source; flows/activity.ts). It reads "Flow: <name>" and links to its run.
-const SOURCE: Record<ActivityEntry["source"] | typeof FLOW_SOURCE, string> = { ask: "Ask", plan: "A plan", routine: "A routine", nudge: "From Athena", team: "Your team", flow: "A flow" };
+// "flow": a plain flow's change (flows/activity.ts). It reads "Flow: <name>" and links to its run.
+const SOURCE: Record<ActivityEntry["source"], string> = { ask: "Ask", plan: "A plan", routine: "A routine", nudge: "From Athena", team: "Your team", flow: "A flow" };
 
 /** A flow's name from one of its runs, when the entry doesn't carry it. Flows load only when a flow's change is listed. */
 let flowNames: Promise<Map<string, string>> | null = null;
@@ -66,7 +66,7 @@ async function flowNameForRun(runId: string): Promise<string | null> {
 
 /** Who made the change: a word, or for a flow its name and a link to the run. */
 function sourceOf(e: ActivityEntry): Node {
-  const f = e as ActivityEntry & FlowActivityFields;
+  const f: FlowActivityFields = e;
   if (!isFlowActivity(f)) return document.createTextNode(SOURCE[e.source] ?? "Ask");
   const run = flowRunOf(f);
   const el = run ? h("a", { href: flowRunHref(run) }, flowSourceWords(f.flow_name)) : h("span", {}, flowSourceWords(f.flow_name));

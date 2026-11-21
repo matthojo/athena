@@ -10,7 +10,8 @@
 import type { AskFlowCard, FlowValue } from "./flow-types";
 
 const v = (key: string, label: string, kind: FlowValue["kind"]): FlowValue => ({ key, label, kind });
-// What an event trigger gives, as lib/flow-draft-tools.ts guessTriggerGives has it (not imported: the app loads this file).
+// What an event trigger gives (lib/flow-triggers.ts triggerGives) and what each tool step gives (lib/flow-catalog.ts), written
+// out because the app loads this file; lib/flow-draft.test.ts checks they match.
 const TITLE = v("title", "the title", "text");
 const COUNT = v("count", "how many came in", "number");
 
@@ -36,8 +37,8 @@ export function sampleFlow(sentence: string): SampleFlow {
         flow: {
           name: "Delivery day",
           trigger: { kind: "event", event: { source: "collected", kind: "delivery" } },
-          trigger_gives: [v("item", "the order", "text"), v("company", "the shop", "organisation"), v("expected", "the delivery date", "date"), TITLE, COUNT],
-          steps: [{ id: "s1", title: null, kind: "tool", tool: "add_reminder", go: "auto", gives: [], input: { text: ["Parcel from ", { from: "trigger", key: "company" }], date: [{ from: "trigger", key: "expected" }], time: ["08:00"] } }],
+          trigger_gives: [v("item", "the order", "text"), v("company", "the shop", "organisation"), v("delivery_date", "the delivery date", "date"), TITLE, COUNT],
+          steps: [{ id: "s1", title: null, kind: "tool", tool: "add_reminder", go: "auto", gives: [v("reminder", "the reminder", "text")], input: { text: ["Parcel from ", { from: "trigger", key: "company" }], date: [{ from: "trigger", key: "delivery_date" }], time: ["08:00"] } }],
           assistant_id: null,
         },
       },
@@ -54,7 +55,7 @@ export function sampleFlow(sentence: string): SampleFlow {
           trigger: { kind: "event", event: { source: "collected", kind: "renewal" } },
           trigger_gives: [v("item", "what renews", "text"), v("company", "the company", "organisation"), v("renewal_date", "the renewal date", "date"), TITLE, COUNT],
           steps: [
-            { id: "s1", title: null, kind: "tool", tool: "money", go: "auto", input: { merchant: [{ from: "trigger", key: "company" }] }, gives: [v("latest", "what you paid last time", "money")] },
+            { id: "s1", title: null, kind: "tool", tool: "money", go: "auto", input: { merchant: [{ from: "trigger", key: "company" }] }, gives: [v("total", "the total", "money"), v("latest", "the latest payment", "money"), v("count", "how many", "number")] },
             {
               id: "s2",
               title: null,

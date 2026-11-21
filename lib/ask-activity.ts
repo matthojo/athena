@@ -33,18 +33,6 @@ export interface ActivityContext {
   flow_run_id?: string | null;
 }
 
-/** A plain flow's change, as the log shows it: "Flow: <name>", opening the run. */
-export interface ActivityFlow {
-  id: string;
-  run_id: string;
-  /** The flow's name now; "" when it's gone or can't be opened. */
-  name: string;
-  /** "Flow: Renewal check", or "A flow" when the name is gone. */
-  label: string;
-  /** Where Open goes: the run's page, /#/flows/runs/<run id>. */
-  url: string;
-}
-
 export interface ActivityEntry {
   id: string;
   at: string;
@@ -53,17 +41,16 @@ export interface ActivityEntry {
   plan_id: string | null;
   routine_id: string | null;
   nudge_id: string | null;
-  /** source `flow` only; null otherwise. */
-  flow: ActivityFlow | null;
+  /**
+   * source `flow` only, null otherwise: the flow and the run the change came from, and the flow's name now (null when
+   * it's gone or can't be opened). The app shows "Flow: <name>" (or "A flow") and opens /#/flows/runs/<flow_run_id>.
+   */
+  flow_id: string | null;
+  flow_run_id: string | null;
+  flow_name: string | null;
   state: ActivityState;
   state_at: string | null;
   change: Change;
-}
-
-/** A flow's line in the log, and where it opens. Pure. */
-export function activityFlow(flowId: string, runId: string, name: string): ActivityFlow {
-  const n = name.replace(/\s+/g, " ").trim();
-  return { id: flowId, run_id: runId, name: n, label: n ? `Flow: ${n}` : "A flow", url: `/#/flows/runs/${runId}` };
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -140,6 +127,13 @@ interface Row {
 const COLUMNS = `id, created_at, source, thread_id, plan_id, routine_id, nudge_id, flow_id, flow_run_id, state, state_at, payload`;
 const iso = (v: string | Date | null) => (v == null ? null : new Date(v).toISOString());
 
+/** A flow's row: its flow, its run and the flow's name now. Every other source: nulls. Pure. */
+function flowOf(r: Row, names: ReadonlyMap<string, string>): Pick<ActivityEntry, "flow_id" | "flow_run_id" | "flow_name"> {
+  if (r.source !== "flow" || !r.flow_id) return { flow_id: null, flow_run_id: null, flow_name: null };
+  const name = (names.get(r.flow_id) ?? "").replace(/\s+/g, " ").trim();
+  return { flow_id: r.flow_id, flow_run_id: r.flow_run_id ?? null, flow_name: name || null };
+}
+
 /** A row as the app reads it; null when its receipt can't be opened (sealed under a key this deploy doesn't have). `names`: flows' names by id. */
 export function presentActivity(r: Row, names: ReadonlyMap<string, string> = new Map()): ActivityEntry | null {
   let change: Change;
@@ -156,7 +150,7 @@ export function presentActivity(r: Row, names: ReadonlyMap<string, string> = new
     plan_id: r.plan_id,
     routine_id: r.routine_id,
     nudge_id: r.nudge_id,
-    flow: r.source === "flow" && r.flow_id && r.flow_run_id ? activityFlow(r.flow_id, r.flow_run_id, names.get(r.flow_id) ?? "") : null,
+    ...flowOf(r, names),
     state: r.state,
     state_at: iso(r.state_at),
     change: { ...change, activity_id: r.id },

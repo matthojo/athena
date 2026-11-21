@@ -72,6 +72,7 @@ export const FLOW_TOOLS: Record<string, ToolPick> = {
   link_records: { group: "add", label: "Link two things", hint: "A note to a person, a place to an event", gives: [v("done", "what it linked", "text")] },
   save_trip: { group: "add", label: "Add a trip", hint: "A place and its dates", gives: [v("trip", "the trip", "trip")] },
   save_purchase: { group: "add", label: "Add an order", hint: "Something you ordered", gives: [v("done", "the order", "text")] },
+  file_saved_item: { group: "add", label: "File something saved", hint: "Onto Watch & read, Places, a list or a to-do", gives: [v("saved", "the saved item", "saved")] },
 
   draft_email: { group: "tell", label: "Draft an email", hint: "Written for you to read; never sent", gives: [v("draft", "the draft", "text")] },
   draft_message: { group: "tell", label: "Draft a message", hint: "Email, text, WhatsApp or Slack; never sent", gives: [v("draft", "the draft", "text")] },
@@ -81,7 +82,8 @@ export const FLOW_TOOLS: Record<string, ToolPick> = {
 export const DRAFT_TOOLS: ReadonlySet<string> = new Set(["draft_email", "draft_message"]);
 export const isDraftTool = (name: string): boolean => DRAFT_TOOLS.has(name);
 
-/** The changes that run alone unless the owner says otherwise (the owner's call, 21 Nov). Every other change waits for Go. */
+/** The changes that run alone unless the owner says otherwise (the owner's call, 21 Nov): the only three, everywhere (the
+ * editor, drafting and suggestions read this). Every other change, file_saved_item included, waits for Go. */
 export const AUTO_BY_DEFAULT: ReadonlySet<string> = new Set(["add_reminder", "add_todo", "add_to_list"]);
 
 /** A change step's Go setting when nobody set one: `auto` for AUTO_BY_DEFAULT, `ask` for the rest. Pure. */

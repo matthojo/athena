@@ -12,6 +12,7 @@
  */
 import { FLOW_LIMITS, type Flow, type FlowStep, type FlowSuggestion, type FlowText, type FlowTrigger, type ValueRef } from "./flow-types";
 import { suggestedTriggerKeys } from "./flow-suggest-keys";
+import { AUTO_BY_DEFAULT } from "./flow-catalog";
 
 /** What suggestions need to know of a flow the owner has (read through a port; lib/flow-suggest-store.ts). */
 export type ExistingFlow = Pick<Flow, "trigger" | "steps">;
@@ -20,8 +21,6 @@ const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ID = /^[a-z0-9_-]{3,80}$/;
 /** Ask's tools a suggestion may use: changes the owner already makes by hand, nothing that sends or deletes. */
 export const SUGGESTED_TOOLS = new Set(["add_reminder", "add_todo", "add_to_list", "file_saved_item"]);
-/** The only ones that may run on their own (go "auto"); any other change waits for Go. */
-export const AUTO_TOOLS = new Set(["add_reminder", "add_todo", "add_to_list"]);
 
 const isRef = (p: unknown): p is ValueRef => !!p && typeof p === "object" && typeof (p as ValueRef).from === "string" && typeof (p as ValueRef).key === "string";
 
@@ -95,7 +94,7 @@ export function suggestionProblems(s: FlowSuggestion): string[] {
         case "tool":
           if (!SUGGESTED_TOOLS.has(step.tool)) out.push(`${at}: tool ${step.tool}`);
           if (step.go !== "auto" && step.go !== "ask") out.push(`${at}: go`);
-          else if (step.go === "auto" && !AUTO_TOOLS.has(step.tool)) out.push(`${at}: ${step.tool} must wait for Go`);
+          else if (step.go === "auto" && !AUTO_BY_DEFAULT.has(step.tool)) out.push(`${at}: ${step.tool} must wait for Go`);
           for (const [k, v] of Object.entries(step.input)) out.push(...textProblems(v, `${at}.${k}`, known));
           if (step.tool === "add_reminder" && (!step.input.text || !step.input.date)) out.push(`${at}: a reminder needs text and a date`);
           if (step.tool === "add_reminder" && step.input.time && !step.input.time.every((p) => typeof p !== "string" || HHMM.test(p))) out.push(`${at}: time`);

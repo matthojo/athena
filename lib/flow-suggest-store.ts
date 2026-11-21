@@ -8,8 +8,8 @@
  * keeps the suggestion's id, which names the kind of habit and, for one built
  * on the owner's words, a short hash of them (never the words).
  *
- * Flows the owner already has come through a port (FlowReader), so this
- * slice doesn't import the engine; netlify/functions/api.ts wires it.
+ * Flows the owner already has come through a port (FlowReader): the engine's
+ * engineFlows (lib/flow-engine.ts), wired in netlify/functions/api.ts.
  */
 import { q, qRaw } from "./db";
 import { presentActivity } from "./ask-activity";
@@ -17,14 +17,11 @@ import { filedToOf } from "./saved";
 import { FOLLOW_KINDS, REPEAT_DAYS, SAVED_DAYS, type AskChange, type CollectedItem, type OwnerReminder, type OwnerTodo, type SavedFiling, type SuggestSignals } from "./flow-suggest";
 import type { ExistingFlow } from "./flow-suggest-check";
 
-/** How suggestions read the owner's flows. The engine implements it once merged. */
+/** How suggestions read the owner's flows (lib/flow-engine.ts engineFlows). */
 export interface FlowReader {
   /** Every flow, on or off: a paused flow still counts as "already a flow". */
   list(): Promise<ExistingFlow[]>;
 }
-
-/** Until the engine is wired: no flows. */
-export const NO_FLOWS: FlowReader = { list: async () => [] };
 
 const PURCHASE_DAYS = 30;
 const EVENT_DAYS = 7;

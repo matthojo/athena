@@ -1611,3 +1611,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS flow_runs_slot_idx ON flow_runs (flow_id, slot
 -- keys: a pruned run or a removed flow leaves the log's rows as they were.
 ALTER TABLE ask_activity ADD COLUMN IF NOT EXISTS flow_id UUID;
 ALTER TABLE ask_activity ADD COLUMN IF NOT EXISTS flow_run_id UUID;
+
+-- Flows' triggers (0081, lib/flow-triggers.ts, lib/flow-triggers-db.ts). `team_events.flow_claimed_at`: flows mark
+-- each event seen with their own column, beside Team's `processed_at`, so both see every event once.
+-- `flow_trigger_fires`: one row per fire a flow has claimed (a schedule slot, one event's "before", one date's
+-- "before", one flow's run for one event: `event:<id>`), so overlapping passes start it once. Plain: a flow's id, a
+-- key of a kind, a record's id and a time; never a title. No foreign key: rows go after a week (FIRE_DAYS), and with
+-- their flow when it's deleted (lib/flows.ts deleteFlow).
+ALTER TABLE team_events ADD COLUMN IF NOT EXISTS flow_claimed_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS team_events_flow_pending_idx ON team_events (id) WHERE flow_claimed_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS flow_trigger_fires (
+  flow_id TEXT NOT NULL,
+  fire_key TEXT NOT NULL,
+  fire_at TIMESTAMPTZ NOT NULL,
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (flow_id, fire_key)
+);
+CREATE INDEX IF NOT EXISTS flow_trigger_fires_at_idx ON flow_trigger_fires (fire_at);
+
+-- Flow suggestions (0082, lib/flow-suggest.ts): a suggestion the owner dismissed never comes back. `id` names the
+-- kind of habit; one built on the owner's own words carries a short SHA-256 of them, never the words.
+CREATE TABLE IF NOT EXISTS flow_suggestion_dismissals (
+  id TEXT PRIMARY KEY CHECK (id ~ '^[a-z0-9_-]{3,80}$'),
+  dismissed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

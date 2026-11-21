@@ -3,8 +3,8 @@
  * (migration 0081), the calendar a "before" trigger reads, the values an
  * event's record carries, and the pass the reminders job calls.
  *
- * The engine plugs itself in with useFlowEngine({ source, starter }). Until
- * it has, runFlowTriggers does nothing and claims nothing, so events wait
+ * The engine plugs itself in with useFlowEngine({ source, starter }), from
+ * lib/flow-engine.ts. Until it has, runFlowTriggers does nothing and claims nothing, so events wait
  * for it (Team prunes them after a week either way). Events are read, run,
  * then marked seen (`flow_claimed_at`); each flow's run for each event is a
  * fire (`event:<id>`) in `flow_trigger_fires`, so an event a plain flow left

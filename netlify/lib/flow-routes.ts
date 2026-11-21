@@ -23,10 +23,11 @@
 import { AthenaInputError, qRaw } from "../../lib/db";
 import { FLOW_LIMITS, type Flow, type FlowListResponse, type FlowRun } from "../../lib/flow-types";
 import { flowCatalog } from "../../lib/flow-catalog";
-import { createFlow, deleteFlow, eventValues, getFlow, getRun, insertRun, latestRuns, listFlows, listRuns, saveRun, setFlowAssistant, updateFlow } from "../../lib/flows";
+import { createFlow, deleteFlow, getFlow, getRun, insertRun, latestRuns, listFlows, listRuns, saveRun, setFlowAssistant, updateFlow } from "../../lib/flows";
 import { settleRun, stopRun, type FlowEffects, type Settle } from "../../lib/flow-run";
 import { clip } from "../../lib/flow-steps";
 import type { EventFilter } from "../../lib/team-types";
+import type { TeamEventRow } from "../../lib/team-events";
 
 type Json = (data: unknown, status?: number) => Response;
 
@@ -46,25 +47,28 @@ const stepIdOf = (b: Record<string, unknown>): string => {
 };
 
 /** The newest team_events row that matches a trigger's filter, for a try (team_events keeps seven days). */
-async function lastMatching(f: EventFilter): Promise<{ id: string; ref_id: string | null; ref_kind: string | null; kind: string; facets: Record<string, string | boolean | string[]> } | null> {
-  const { matchesFilter } = await import("../../lib/team-triggers");
-  const rows = await qRaw<{ id: string | number; kind: "collected" | "saved" | "note"; ref_id: string | null; ref_kind: string | null; facets: Record<string, string | boolean | string[]> | null }>(
-    `SELECT id, kind, ref_id, ref_kind, facets FROM team_events ORDER BY id DESC LIMIT 1000`,
-  );
+async function lastMatching(f: EventFilter): Promise<TeamEventRow | null> {
+  const { matchesFilter, toEventRow } = await import("../../lib/team-triggers");
+  const rows = await qRaw<Parameters<typeof toEventRow>[0]>(`SELECT id, kind, ref_id, ref_kind, facets, created_at FROM team_events ORDER BY id DESC LIMIT 1000`);
   const hit = rows.find((r) => matchesFilter(f, { kind: r.kind, facets: r.facets ?? {} }));
-  return hit ? { id: String(hit.id), ref_id: hit.ref_id, ref_kind: hit.ref_kind, kind: hit.kind, facets: hit.facets ?? {} } : null;
+  return hit ? toEventRow(hit) : null;
 }
 
-/** What a run starts from: Run now's words and values, or a try's on the last thing that matched. */
+/** What a run starts from: Run now's words and values, or a try's on the last thing that matched, with the values a real run would get. */
 async function startFrom(flow: Flow, dry: boolean, tz: string, now: Date): Promise<{ label: string; values: Record<string, unknown>; event_ids?: string[] }> {
-  const { zonedToday } = await import("../../lib/dates");
-  if (flow.trigger.kind === "schedule") return { label: dry ? "A try, as if it were today" : "Run now", values: { date: zonedToday(now, tz) } };
+  const { pickValues, scheduleValues, eventValues } = await import("../../lib/flow-triggers");
+  if (flow.trigger.kind === "schedule") return { label: dry ? "A try, as if it were today" : "Run now", values: pickValues(flow.trigger, scheduleValues(now, tz)) };
+  if (flow.trigger.kind === "manual") {
+    const { zonedToday } = await import("../../lib/dates");
+    return { label: "Run now", values: { date: zonedToday(now, tz) } };
+  }
   if (!dry) return { label: "Run now", values: {} };
   if (flow.trigger.kind === "event") {
     const ev = await lastMatching(flow.trigger.event);
     if (!ev) throw new AthenaInputError("Nothing has matched this trigger in the last week, so there's nothing to try it on yet.");
-    const { runLabel } = await import("../../lib/team-run");
-    return { label: `A try on: ${runLabel(null, [{ kind: ev.kind as never, facets: ev.facets }])}`, values: eventValues(ev), event_ids: [ev.id] };
+    const [{ runLabel }, { dbItemValues }] = await Promise.all([import("../../lib/team-run"), import("../../lib/flow-triggers-db")]);
+    const more = await dbItemValues(ev).catch(() => ({}));
+    return { label: `A try on: ${runLabel(null, [ev])}`, values: pickValues(flow.trigger, { ...eventValues([ev]), ...more }), event_ids: [ev.id] };
   }
   return { label: "A try on past data", values: {} };
 }

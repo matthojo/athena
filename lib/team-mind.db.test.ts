@@ -278,7 +278,7 @@ test("one assistant's run never sees another's: Dot's run gets nothing of Muse's
   const { enqueueTeamRun, runTeamRun, getTeamRun } = await import("./team-run");
   const { listAskThreads } = await import("./ask-threads");
   const { qRaw } = await import("./db");
-  await qRaw(`TRUNCATE ask_plans, ask_activity`);
+  await qRaw(`TRUNCATE ask_plans, ask_activity CASCADE`);
   // Muse's output carries a marker in every place a run leaves something: its reply, its plan, its memory.
   // (Not "Lego Ferrari" alone: Ask's own tool descriptions use that as an example.)
   const MARK = "Daytona model, ref ZQX-7741, at £34 from Smyths";

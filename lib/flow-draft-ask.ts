@@ -6,10 +6,10 @@
  * straight away with its usual tools ("…and add one for the parcel already on
  * its way").
  *
- * Saving goes through a tiny port, FlowCreator, so this doesn't depend on the
- * engine's code: the engine registers its own with useFlowCreator once both
- * are merged. Until then propose_flow says flows aren't ready, and Ask offers
- * something else.
+ * Saving goes through a tiny port, FlowCreator, so Ask's code doesn't import
+ * the engine: lib/flow-engine.ts registers the engine's createFlow with
+ * useFlowCreator. In a function that hasn't loaded it, propose_flow says flows
+ * aren't ready, and Ask offers something else.
  *
  * Only main Ask proposes flows: never an assistant's turn or a stage of an
  * assignment. It's never queued as a plan step: the flow it saves is off.

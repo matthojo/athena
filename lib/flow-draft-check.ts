@@ -14,7 +14,7 @@
  * Pure: no model, no database.
  */
 import { EVENT_SOURCES, type EventFilter, type TeamWeekday } from "./team-types";
-import { FLOW_LIMITS, VALUE_KINDS, type CheckOp, type FlowCondition, type FlowStep, type FlowText, type FlowTrigger, type FlowValue, type ValueKind, type ValueRef } from "./flow-types";
+import { FLOW_LIMITS, type CheckOp, type FlowCondition, type FlowStep, type FlowText, type FlowTrigger, type FlowValue, type ValueKind, type ValueRef } from "./flow-types";
 import { goFor, type DraftTool } from "./flow-draft-tools";
 
 export const CHECK_OPS: readonly CheckOp[] = ["is", "is_not", "contains", "more_than", "less_than", "up_by_pct", "exists", "missing"];
@@ -22,12 +22,10 @@ export const CHECK_OPS: readonly CheckOp[] = ["is", "is_not", "contains", "more_
 export const MAX_BEFORE_MINUTES = 7 * 24 * 60;
 /** Notes the editor shows at most. */
 export const MAX_NOTES = 8;
-/** Values one step may give. */
-export const MAX_GIVES = 8;
 
 export interface CheckContext {
   tools: DraftTool[];
-  /** What a trigger gives later steps (the engine's, or lib/flow-draft-tools.ts guessTriggerGives). */
+  /** What a trigger gives later steps (lib/flow-triggers.ts triggerGives). */
   triggerGives: (t: FlowTrigger) => FlowValue[];
   /** "Let Ask read transactions" is on: steps may read spending. */
   money: boolean;
@@ -176,22 +174,6 @@ class Walk {
 
 const empty = (t: FlowText) => t.length === 0;
 
-/** Values a step gives, checked: a key, a label and a known kind, each key once. Pure. */
-export function fitGives(raw: unknown): FlowValue[] {
-  if (!Array.isArray(raw)) return [];
-  const out: FlowValue[] = [];
-  for (const g of raw) {
-    if (!isObj(g)) continue;
-    const key = str(g.key).trim().toLowerCase();
-    const label = clip(str(g.label), 40);
-    const kind = g.kind as ValueKind;
-    if (!/^[a-z][a-z0-9_]{0,39}$/.test(key) || !label || !VALUE_KINDS.includes(kind) || out.some((o) => o.key === key)) continue;
-    out.push({ key, label, kind });
-    if (out.length === MAX_GIVES) break;
-  }
-  return out;
-}
-
 // ---------- the steps ----------
 
 interface RawStep {
@@ -304,7 +286,7 @@ export function checkDraft(raw: unknown, ctx: CheckContext, fallbackName: string
         if (tool.money) w.money = true;
         w.ids.set(r.id, id);
         w.count++;
-        return { ...base, kind: "tool", tool: tool.name, input, go: goFor(tool, s.go), gives: fitGives(s.gives) };
+        return { ...base, kind: "tool", tool: tool.name, input, go: goFor(tool, s.go), gives: tool.gives };
       }
       case "check": {
         if (depth > FLOW_LIMITS.depth) {

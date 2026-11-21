@@ -5,24 +5,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { TOOLS } from "./assistant";
-import { READ_TOOLS } from "./ask-tools";
-import { stepActs } from "./steps";
 import { FLOW_LIMITS, type FlowStep } from "./flow-types";
-import { ALWAYS_ASK, draftTools, FLOW_TOOLS, goFor, guessTriggerGives, NEVER_TOOLS, RUNS_ALONE } from "./flow-draft-tools";
+import { AUTO_BY_DEFAULT, DRAFT_TOOLS, FLOW_TOOLS, NEVER_TOOLS, defaultGo, flowCatalog, flowTool, isDraftTool } from "./flow-catalog";
+import { triggerGives } from "./flow-triggers";
+import { catalogDraftTools, draftToolsFrom, goFor } from "./flow-draft-tools";
 import { checkDraft, cleanName, cleanTime, fitTrigger, type CheckContext } from "./flow-draft-check";
 import { draftFlow, fallbackDraft, toolLines } from "./flow-draft";
 import { sampleFlow } from "./flow-draft-sample";
 
-const tools = draftTools([...READ_TOOLS, ...TOOLS], stepActs);
-const ctx = (over: Partial<CheckContext> = {}): CheckContext => ({ tools, triggerGives: guessTriggerGives, money: false, ...over });
+const tools = draftToolsFrom(flowCatalog(), { describe: (n) => flowTool(n)?.description, draft: isDraftTool, runsAlone: (n) => defaultGo(n) === "auto" });
+const ctx = (over: Partial<CheckContext> = {}): CheckContext => ({ tools, triggerGives, money: false, ...over });
 const tool = (name: string) => tools.find((t) => t.name === name)!;
 
-test("a flow may use only the allowlisted tools, never one that sends, edits an account, deletes or belongs to Ask's own turn", () => {
+test("drafting offers exactly the engine's catalogue: its tools, fields and gives, never one that sends, edits an account or deletes", async () => {
   const names = new Set(tools.map((t) => t.name));
-  for (const t of ["add_reminder", "add_todo", "add_to_list", "save_note", "find_notes", "money", "weather", "draft_message", "draft_email"]) assert.ok(names.has(t), t);
+  for (const t of ["add_reminder", "add_todo", "add_to_list", "save_note", "find_notes", "money", "weather", "draft_message", "draft_email", "file_saved_item"]) assert.ok(names.has(t), t);
   for (const t of NEVER_TOOLS) assert.ok(!names.has(t), t);
-  for (const t of names) assert.ok(FLOW_TOOLS.has(t), t);
-  for (const t of FLOW_TOOLS) assert.ok(names.has(t), `${t} is one of Ask's tools`);
+  assert.deepEqual([...names], Object.keys(FLOW_TOOLS).filter((n) => TOOLS.some((t) => t.name === n)), "the engine's list, in its order");
+  assert.deepEqual(await catalogDraftTools(), tools, "loaded lazily, the same list");
+  assert.deepEqual(tool("money").gives.map((g) => g.key), ["total", "latest", "count"], "the engine's fixed gives");
   for (const t of ["search_athena", "read_note", "save_booking", "track"]) assert.ok(!names.has(t), `${t} isn't on the allowlist`);
   assert.equal(names.size, tools.length, "each tool once");
   assert.equal(tool("find_notes").changes, false);
@@ -30,14 +31,16 @@ test("a flow may use only the allowlisted tools, never one that sends, edits an 
   assert.equal(tool("money").money, true);
   assert.ok(!tool("add_reminder").fields.includes("step"), "Ask's plan line isn't a field");
   assert.deepEqual(tool("add_reminder").required, ["text", "date"]);
-  assert.match(toolLines([tool("add_reminder")]), /^- add_reminder \(changes\): Set a reminder: .* Fields: text\*, date\*, time/);
+  assert.match(toolLines([tool("add_reminder")]), /^- add_reminder \(changes\): Set a reminder: .* Fields: text\*, date\*, time.* Gives: reminder \(the reminder, text\)\.$/);
 });
 
 test("changes wait for Go, except a reminder, a to-do or a list line the owner didn't ask to check; drafts always wait", () => {
-  for (const name of RUNS_ALONE) assert.equal(goFor(tool(name), undefined), "auto", name);
+  for (const name of AUTO_BY_DEFAULT) assert.equal(goFor(tool(name), undefined), "auto", name);
+  assert.deepEqual(tools.filter((t) => t.runsAlone).map((t) => t.name).sort(), ["add_reminder", "add_to_list", "add_todo"]);
+  assert.equal(goFor(tool("file_saved_item"), undefined), "ask", "filing a saved item waits for Go");
   assert.equal(goFor(tool("add_reminder"), "ask"), "ask", "the owner said to check first");
   assert.equal(goFor(tool("save_note"), "auto"), "ask", "the model can't let any other change run alone");
-  for (const name of ALWAYS_ASK) {
+  for (const name of DRAFT_TOOLS) {
     assert.equal(tool(name).changes, true, name);
     assert.equal(goFor(tool(name), undefined), "ask", name);
     assert.equal(goFor(tool(name), "auto"), "ask", `${name}: a draft always waits for Go`);
@@ -67,10 +70,10 @@ const RENEWAL = {
   name: "renewal check.",
   trigger: { kind: "event", event: { source: "collected", kind: "renewal" } },
   steps: [
-    { id: "a", kind: "tool", tool: "money", input: { merchant: "{{trigger.company}}" }, gives: [{ key: "last_price", label: "last year's price", kind: "money" }] },
-    { id: "b", kind: "check", condition: { left: "{{a.last_price}}", op: "more_than", right: "{{trigger.title}}" } },
+    { id: "a", kind: "tool", tool: "money", input: { merchant: "{{trigger.company}}" }, gives: [{ key: "last_price", label: "the model's own name", kind: "money" }] },
+    { id: "b", kind: "check", condition: { left: "{{a.latest}}", op: "more_than", right: "{{trigger.title}}" } },
     { id: "c", parent: "b", branch: "yes", kind: "wait", days: 7, before: "{{trigger.renewal_date}}", at: "9:00" },
-    { id: "d", parent: "b", branch: "yes", kind: "notify", text: "{{trigger.company}} renews soon; last year was {{a.last_price}}" },
+    { id: "d", parent: "b", branch: "yes", kind: "notify", text: "{{trigger.company}} renews soon; last year was {{a.latest}}{{a.last_price}}" },
   ],
 };
 
@@ -79,17 +82,18 @@ test("a clean draft comes through as the contract's tree, ids renumbered, values
   assert.equal(d.name, "Renewal check");
   assert.deepEqual(d.trigger, { kind: "event", event: { source: "collected", kind: "renewal" } });
   assert.equal(d.money, true);
-  assert.deepEqual(d.notes, []);
+  assert.ok(d.notes.every((n) => /isn't there yet|last_price/.test(n)), d.notes.join("|"));
   assert.deepEqual(d.steps, [
-    { id: "s1", title: null, kind: "tool", tool: "money", input: { merchant: [{ from: "trigger", key: "company" }] }, go: "auto", gives: [{ key: "last_price", label: "last year's price", kind: "money" }] },
+    { id: "s1", title: null, kind: "tool", tool: "money", input: { merchant: [{ from: "trigger", key: "company" }] }, go: "auto", gives: tool("money").gives },
     {
       id: "s2",
       title: null,
       kind: "check",
-      condition: { left: { from: "s1", key: "last_price" }, op: "more_than", right: { from: "trigger", key: "title" } },
+      condition: { left: { from: "s1", key: "latest" }, op: "more_than", right: { from: "trigger", key: "title" } },
       yes: [
         { id: "s3", title: null, kind: "wait", days: 7, before: { from: "trigger", key: "renewal_date" }, at: "09:00" },
-        { id: "s4", title: null, kind: "notify", text: [{ from: "trigger", key: "company" }, " renews soon; last year was ", { from: "s1", key: "last_price" }] },
+        // The model's own name for a value (last_price) isn't one the engine fills, so it's taken out.
+        { id: "s4", title: null, kind: "notify", text: [{ from: "trigger", key: "company" }, " renews soon; last year was ", { from: "s1", key: "latest" }] },
       ],
       no: [],
     },
@@ -112,12 +116,12 @@ test("an unknown tool is dropped with a note; a value from a later step or from 
       trigger: { kind: "event", event: { source: "collected", kind: "delivery" } },
       steps: [
         { id: "1", kind: "tool", tool: "send_sms", input: { to: "me" } },
-        { id: "2", kind: "notify", text: "Price {{3.price}} for {{trigger.company}}" },
-        { id: "3", kind: "tool", tool: "find_notes", input: { query: "{{trigger.company}}" }, gives: [{ key: "price", label: "the price", kind: "money" }] },
-        { id: "4", kind: "check", condition: { left: "{{trigger.expected}}", op: "exists" } },
+        { id: "2", kind: "notify", text: "Price {{3.note}} for {{trigger.company}}" },
+        { id: "3", kind: "tool", tool: "find_notes", input: { query: "{{trigger.company}}" } },
+        { id: "4", kind: "check", condition: { left: "{{trigger.delivery_date}}", op: "exists" } },
         { id: "5", parent: "4", branch: "no", kind: "tool", tool: "find_todos", input: { query: "parcel" }, gives: [{ key: "todo", label: "the to-do", kind: "todo" }] },
         { id: "6", kind: "notify", text: "Due {{5.todo}}" },
-        { id: "7", kind: "tool", tool: "add_reminder", input: { text: "Parcel from {{trigger.company}}", date: "{{trigger.expected}}", time: "08:00", bogus: "x" } },
+        { id: "7", kind: "tool", tool: "add_reminder", input: { text: "Parcel from {{trigger.company}}", date: "{{trigger.delivery_date}}", time: "08:00", bogus: "x" } },
       ],
     },
     ctx(),
@@ -134,7 +138,7 @@ test("an unknown tool is dropped with a note; a value from a later step or from 
   const reminder = top[4] as Extract<FlowStep, { kind: "tool" }>;
   assert.equal(reminder.go, "auto");
   assert.deepEqual(Object.keys(reminder.input), ["text", "date", "time"], "unknown fields dropped");
-  assert.deepEqual(reminder.input.date, [{ from: "trigger", key: "expected" }]);
+  assert.deepEqual(reminder.input.date, [{ from: "trigger", key: "delivery_date" }]);
 });
 
 test("a step that only had words from out of reach, and one that can't be read, are left out", () => {
@@ -192,12 +196,12 @@ test("limits: steps, nesting and the name", () => {
 
 test("a check up by a percentage needs the number and what it's compared with", () => {
   const steps = [
-    { id: "a", kind: "tool", tool: "find_notes", input: { query: "bill" }, gives: [{ key: "old", label: "the old price", kind: "money" }, { key: "new", label: "the new price", kind: "money" }] },
-    { id: "b", kind: "check", condition: { left: "{{a.new}}", op: "up_by_pct", right: "10%", against: "{{a.old}}" } },
-    { id: "c", kind: "check", condition: { left: "{{a.new}}", op: "up_by_pct", right: 10 } },
+    { id: "a", kind: "tool", tool: "money", input: { merchant: "{{trigger.company}}" } },
+    { id: "b", kind: "check", condition: { left: "{{a.latest}}", op: "up_by_pct", right: "10%", against: "{{a.total}}" } },
+    { id: "c", kind: "check", condition: { left: "{{a.latest}}", op: "up_by_pct", right: 10 } },
   ];
-  const d = checkDraft({ name: "Bills", trigger: { kind: "event", event: { source: "collected", kind: "renewal" } }, steps }, ctx(), "x")!;
-  assert.deepEqual((d.steps[1] as Extract<FlowStep, { kind: "check" }>).condition, { left: { from: "s1", key: "new" }, op: "up_by_pct", right: 10, against: { from: "s1", key: "old" } });
+  const d = checkDraft({ name: "Bills", trigger: { kind: "event", event: { source: "collected", kind: "renewal" } }, steps }, ctx({ money: true }), "x")!;
+  assert.deepEqual((d.steps[1] as Extract<FlowStep, { kind: "check" }>).condition, { left: { from: "s1", key: "latest" }, op: "up_by_pct", right: 10, against: { from: "s1", key: "total" } });
   assert.equal(d.steps.length, 2, "the one without `against` is left out");
 });
 
@@ -274,22 +278,19 @@ test("sample mode's flows hold up as drawn ones do", () => {
       }
     };
     walk(f.steps);
-    const back = checkDraft({ name: f.name, trigger: f.trigger.kind === "event" ? { kind: "event", event: f.trigger.event } : f.trigger, steps: flat }, ctx({ money: true, triggerGives: () => f.trigger_gives }), "x")!;
+    assert.deepEqual(f.trigger_gives, triggerGives(f.trigger), `${said}: what its trigger gives is triggers' own`);
+    const back = checkDraft({ name: f.name, trigger: f.trigger.kind === "event" ? { kind: "event", event: f.trigger.event } : f.trigger, steps: flat }, ctx({ money: true }), "x")!;
     assert.deepEqual(back.notes, [], said);
     assert.deepEqual(back.steps, f.steps, said);
   }
 });
 
-test("what a trigger gives: the same keys the triggers fill (lib/flow-triggers.ts triggerGives)", () => {
-  const keys = (t: Parameters<typeof guessTriggerGives>[0]) => guessTriggerGives(t).map((g) => g.key);
-  assert.deepEqual(keys({ kind: "event", event: { source: "collected", kind: "delivery" } }), ["item", "company", "expected", "title", "count"]);
-  assert.deepEqual(keys({ kind: "event", event: { source: "collected", kind: "renewal" } }), ["item", "company", "renewal_date", "title", "count"]);
-  assert.deepEqual(keys({ kind: "event", event: { source: "collected", kind: "booking" } }), ["item", "booking", "company", "starts_at", "title", "count"]);
-  assert.deepEqual(keys({ kind: "event", event: { source: "saved" } }), ["item", "website", "title", "count"]);
-  assert.deepEqual(keys({ kind: "event", event: { source: "note", tag: "idea" } }), ["item", "tags", "title", "count"]);
-  assert.deepEqual(keys({ kind: "schedule", days: [1], time: "09:00" }), ["date", "time"]);
-  assert.deepEqual(keys({ kind: "manual" }), ["date"]);
-  assert.deepEqual(keys({ kind: "before", what: "event", minutes: 30 }), ["event", "people", "starts_at", "title"]);
-  assert.deepEqual(keys({ kind: "before", what: "date", days: 3, at: "09:00", eventKind: "Birthday" }), ["event", "person", "date", "years", "title"]);
-  assert.deepEqual(keys({ kind: "before", what: "date", days: 3, at: "09:00", eventKind: "renewal" }), ["item", "company", "renewal_date", "title"]);
+test("what a trigger gives is triggers' own: the prompt lists triggerGives' keys", async () => {
+  let system = "";
+  const client = { messages: { create: async (p: { system: string }) => ((system = p.system), { content: [] }) } } as never;
+  await draftFlow("Whenever a parcel's coming, remind me", { client, tools });
+  const delivery = triggerGives({ kind: "event", event: { source: "collected", kind: "delivery" } }).map((g) => `${g.key} (${g.label}, ${g.kind})`).join("; ");
+  assert.ok(system.includes(`- a delivery email: ${delivery}`), system);
+  assert.ok(delivery.includes("delivery_date"));
+  assert.match(system, /run alone \(add_todo, add_reminder, add_to_list\)/);
 });

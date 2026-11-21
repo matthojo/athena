@@ -64,7 +64,7 @@ test("a flow is made, read, changed and removed; its words are sealed and the jo
   const { qRaw } = await import("./db");
   const made = await createFlow({ name: "Renewal guard", trigger: { kind: "event", event: { source: "collected", kind: "renewal", match: "Northwind" } }, steps: [todoAsk, tell] });
   assert.equal(made.name, "Renewal guard");
-  assert.deepEqual(made.trigger_gives.map((g) => g.key), ["item", "title"]);
+  assert.deepEqual(made.trigger_gives.map((g) => g.key), ["item", "company", "renewal_date", "title", "count"], "triggers' own keys");
   assert.equal(made.paused, false);
   const [raw] = await qRaw<{ payload: string; trigger_kind: string; schedule: unknown }>(`SELECT payload, trigger_kind, schedule FROM flows WHERE id = $1`, [made.id]);
   assert.ok(!raw.payload.includes("Renewal guard") && !raw.payload.includes("Northwind"), "the words are sealed");
@@ -166,7 +166,7 @@ test("What Ask did: a plain flow's change is kept as the flow's, labelled with i
   await logChanges([change("00000000-0000-4000-8000-000000000201", "Decide on the renewal")], flowActivity({ source: "team" as const }, { assistant: false, flowId: flow.id, runId: run.run.id }));
   const [entry] = await listActivity();
   assert.equal(entry.source, "flow");
-  assert.deepEqual(entry.flow, { id: flow.id, run_id: run.run.id, name: "Renewal guard", label: "Flow: Renewal guard", url: `/#/flows/runs/${run.run.id}` });
+  assert.deepEqual([entry.flow_id, entry.flow_run_id, entry.flow_name], [flow.id, run.run.id, "Renewal guard"]);
 });
 
 test("a run end to end: it waits for Go, Go carries it on, and it ends with its card kept", { skip }, async () => {

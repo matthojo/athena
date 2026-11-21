@@ -20,7 +20,7 @@ import { h } from "../lib/dom";
 import { icons, type IconName } from "./icons";
 import { showToast } from "./toast";
 import { DEFAULT_PREFS, type NotificationPrefs, type NudgeKind } from "../../../lib/nudges";
-import { RULES, settingsRuleIds } from "../lib/nudge-rules";
+import { RULES } from "../lib/nudge-rules";
 import { DEFAULT_PROACTIVE, fetchProactive, saveProactive, unmuteRule, type JourneyPlanners, type ProactivePatch, type ProactivePrefs, type RuleId } from "../db/nudges";
 import { RULE_IDS, TRAVEL_MODES, type TravelMode } from "../../../lib/proactive/types";
 import { TRAVEL_WORDS } from "../lib/travel-words";
@@ -283,10 +283,8 @@ export function notificationsSection(): { el: HTMLElement; destroy: () => void }
   function paintAthena() {
     const day = (iso: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" }).format(new Date(iso));
     athena.replaceChildren(
-      ...settingsRuleIds(RULE_IDS).map((aid) => {
-        // "flow" may not be a RuleId yet (the engine adds it): the prefs are read as if it were, on by default like Team's.
-        const id = aid as RuleId;
-        const r = RULES[aid];
+      ...RULE_IDS.map((id) => {
+        const r = RULES[id];
         const on = proactive.rules[id] ?? true;
         const muted = mutes[id] && Date.parse(mutes[id]!) > Date.now() ? mutes[id]! : null;
         let extra: HTMLElement | undefined;

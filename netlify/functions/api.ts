@@ -91,7 +91,9 @@ import { handleFlowRoutes } from "../lib/flow-routes";
 import { flowEffects, handOffFlowRun } from "../../lib/flow-effects";
 import { handleModelsRoutes, modelChoiceResponse } from "../lib/models-routes";
 import { handleFlowSuggestRoutes } from "../lib/flow-suggest-routes";
-import { dismissSuggestion, listDismissed, NO_FLOWS, readSignals } from "../../lib/flow-suggest-store";
+import { dismissSuggestion, listDismissed, readSignals } from "../../lib/flow-suggest-store";
+// Plugs flows into triggers, owner actions and Ask (lib/flow-engine.ts).
+import { engineFlows } from "../../lib/flow-engine";
 import { messageModel } from "../../lib/models";
 import { handleTeamChatRoutes, type ChatDesk } from "../lib/team-chat-routes";
 import { settlePlanPosts } from "../../lib/team-posts";
@@ -2010,15 +2012,14 @@ export default async (req: Request, _context: Context) => {
       if (handled) return handled;
     }
     // Flow suggestions: habits worth a flow, and dismissing one (netlify/lib/flow-suggest-routes.ts). Before the engine's
-    // /api/flows routes, so /api/flows/suggestions isn't read as a flow id. Flows are read through a port: NO_FLOWS until the
-    // engine (lib/flows.ts) is merged and gives one.
+    // /api/flows routes, so /api/flows/suggestions isn't read as a flow id. The owner's flows come from the engine.
     if (first === "flows" && second === "suggestions") {
       const handled = await handleFlowSuggestRoutes(req, segments.slice(1), (d, s) => json(req, d, s), {
         signals: readSignals,
         timeZone: getOwnerTimeZone,
         dismissed: listDismissed,
         dismiss: dismissSuggestion,
-        flows: NO_FLOWS,
+        flows: engineFlows,
       });
       if (handled) return handled;
     }

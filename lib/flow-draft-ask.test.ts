@@ -10,13 +10,13 @@ import { asTrackerChecker } from "./trackers-store";
 import type { Flow, FlowInput, FlowStep } from "./flow-types";
 import { FLOW_TOOL_NAME, flowCard, runFlowTool, useFlowCreator, withFlowTool, type FlowToolContext } from "./flow-draft-ask";
 import { daysWords, flowLines, FLOW_WORDS, minutesWords, plainWords, stepParts, triggerWords, valueLabels } from "./flow-draft-words";
-import { guessTriggerGives } from "./flow-draft-tools";
+import { triggerGives } from "./flow-triggers";
 import { sampleFlow } from "./flow-draft-sample";
 
 const PARCEL = {
   name: "Delivery day",
   trigger: { kind: "event", event: { source: "collected", kind: "delivery" } },
-  steps: [{ id: "s1", kind: "tool", tool: "add_reminder", input: { text: "Parcel from {{trigger.company}}", date: "{{trigger.expected}}", time: "08:00" } }],
+  steps: [{ id: "s1", kind: "tool", tool: "add_reminder", input: { text: "Parcel from {{trigger.company}}", date: "{{trigger.delivery_date}}", time: "08:00" } }],
 };
 
 const model = (input: unknown) => ({ messages: { create: async () => ({ content: [{ type: "tool_use", id: "t", name: "flow_draft", input }] }) } }) as never;
@@ -29,7 +29,7 @@ function fakeEngine() {
     create: async (input: FlowInput): Promise<Flow> => {
       made.push(input);
       const now = "2026-11-20T09:00:00.000Z";
-      return { id: "f1a2b3c4-0000-4000-8000-000000000001", name: input.name!, trigger: input.trigger!, trigger_gives: guessTriggerGives(input.trigger!), steps: input.steps!, assistant_id: null, handed_at: null, money: !!input.money, paused: input.paused ?? true, origin: input.origin ?? "owner", last_run_at: null, created_at: now, updated_at: now };
+      return { id: "f1a2b3c4-0000-4000-8000-000000000001", name: input.name!, trigger: input.trigger!, trigger_gives: triggerGives(input.trigger!), steps: input.steps!, assistant_id: null, handed_at: null, money: !!input.money, paused: input.paused ?? true, origin: input.origin ?? "owner", last_run_at: null, created_at: now, updated_at: now };
     },
   };
 }
@@ -62,7 +62,7 @@ test("it draws the flow, saves it paused with origin ask, and the reply carries 
     assert.equal(out.name, "Delivery day");
     assert.equal(out.flow, "When an email says a parcel is coming\n  Remind me at 08:00 on [the delivery date]: Parcel from [the shop]");
     assert.equal(ctx.flow?.flow_id, "f1a2b3c4-0000-4000-8000-000000000001");
-    assert.deepEqual(ctx.flow?.flow.steps[0], { id: "s1", title: null, kind: "tool", tool: "add_reminder", go: "auto", gives: [], input: { text: ["Parcel from ", { from: "trigger", key: "company" }], date: [{ from: "trigger", key: "expected" }], time: ["08:00"] } });
+    assert.deepEqual(ctx.flow?.flow.steps[0], { id: "s1", title: null, kind: "tool", tool: "add_reminder", go: "auto", gives: [{ key: "reminder", label: "the reminder", kind: "text" }], input: { text: ["Parcel from ", { from: "trigger", key: "company" }], date: [{ from: "trigger", key: "delivery_date" }], time: ["08:00"] } });
     await assert.rejects(runFlowTool(FLOW_TOOL_NAME, { sentence: "Whenever again" }, ctx), /One flow per reply/);
     await assert.rejects(runFlowTool(FLOW_TOOL_NAME, { sentence: " " }, { money: false, client: model(PARCEL) }));
     // A model that can't help still leaves a flow to fill in, and says so.
@@ -112,14 +112,14 @@ test("steps in words, values as chips, branches indented", () => {
   const f = card.flow;
   const labels = valueLabels(f.trigger_gives, f.steps);
   assert.equal(plainWords(stepParts(f.steps[0], labels)), "Look at payments to [the company]");
-  assert.deepEqual(stepParts(f.steps[1], labels), ["If ", { chip: "what you paid last time" }, " is there"]);
+  assert.deepEqual(stepParts(f.steps[1], labels), ["If ", { chip: "the latest payment" }, " is there"]);
   assert.deepEqual(flowLines(f.trigger, f.trigger_gives, f.steps), [
     "When a renewal email comes in",
     "  Look at payments to [the company]",
-    "  If [what you paid last time] is there",
+    "  If [the latest payment] is there",
     "    Yes:",
     "      Wait until 7 days before [the renewal date] at 09:00",
-    "      Tell me: [the company] renews soon. Last time you paid [what you paid last time].",
+    "      Tell me: [the company] renews soon. Last time you paid [the latest payment].",
   ]);
   const own: FlowStep = { id: "s9", title: "Ping me", kind: "notify", text: ["x"] };
   assert.deepEqual(stepParts(own, labels), ["Ping me"], "the owner's own title wins");

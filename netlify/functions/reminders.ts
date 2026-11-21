@@ -94,6 +94,8 @@ import { claimDueRoutines, deliverRoutines, handOffRoutine } from "../../lib/rou
 import { migrateRoutines } from "../../lib/team-migrate";
 import { queueTeamRuns } from "../../lib/team-triggers";
 import { runFlowTriggers } from "../../lib/flow-triggers-db";
+// Plugs the engine into triggers: without it runFlowTriggers does nothing (lib/flow-engine.ts).
+import "../../lib/flow-engine";
 import { deliverTeamNudges, failStaleRuns, handOffQueuedRuns, handOffTeamRun } from "../../lib/team-run";
 import { pruneTeamEvents } from "../../lib/team-events";
 import { sweepAssignments } from "../../lib/assignment-run";
@@ -246,7 +248,7 @@ export async function runReminders(now: Date = new Date(), origin: string | unde
   }
 
   // ---------- 0d. Flows (lib/flow-triggers.ts): due schedule slots, "before" times and new events start runs ----------
-  // Each fire and event is claimed once, apart from Team's claim. Nothing runs until the engine plugs in.
+  // Each fire and event is claimed once, apart from Team's claim. The engine is plugged in by lib/flow-engine.ts.
   try {
     const flows = await runFlowTriggers(now, tz);
     if (flows?.length) report.flows = { started: flows.length };
