@@ -172,3 +172,17 @@ current app with cut 5's event and rect names. What changed:
   ("Make the steps") can't draft in sample mode (it makes an empty flow), so there is no `flowNew`.
 - Stills add `flows` (the list) and `flowEditor` (Birthday heads-up, switched on; rects in the manifest's
   `flowEditorStill`). `team` still shows Dot's Linear line.
+
+## Cut 6 (final)
+
+86.4 s, 2592 frames, 36 bars. Every shot re-captured on the public release of the app; a Flows
+beat (Athena's "You look for a present a week before birthdays" suggestion → "Make it a flow" →
+"Birthday heads-up" switched on); a new acoustic-style score (kalimba, glockenspiel, celesta,
+marimba, felt piano, ukulele, upright bass, brushes) at -15 LUFS. Reviewed by a picture reviewer and
+a sound reviewer (`review/round1`); their must-fixes are in. Rebuild with
+`FILM=<scratchpad>/film6` and `CAP_DIR=$FILM/cap`:
+
+1. `CAP_DIR=$FILM/cap CAP_FILM_POSTER=$FILM/assets/film-poster.jpg node docs/advert/cut6/capture.cjs <shot>`
+2. `CAP_DIR=$FILM/cap node docs/advert/cut6/render.cjs`
+3. From `docs/advert/cut6`: `python3 music.py && python3 sfx.py && python3 cues.py && python3 mix.py && python3 verify_audio.py`
+4. Mux as before, to `athena-launch-film-v6.mp4`.
