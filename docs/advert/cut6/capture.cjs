@@ -1,9 +1,9 @@
-// Cut 5 product captures (from cut 4's). Deterministic 30fps: Playwright's fake clock is paused and stepped 1/30s
+// Cut 6 product captures (from cut 5's). Deterministic 30fps: Playwright's fake clock is paused and stepped 1/30s
 // per frame; CSS/Web animations are paused and their currentTime driven from the same virtual clock;
 // each frame is a 3x JPEG. Sample mode only, /api aborted.
 //
 //   CAP_DIR=/path/to/cap node capture.cjs [shot ...]
-//   shots: home ask saved track music habits work workDone hire health graph checkin stills   (none = all)
+//   shots: home ask saved track music habits work workDone hire flow health graph checkin stills   (none = all)
 //   `track`, `work` + `workDone` and `hire` are the Team story (PLAN.md, Team 1-3); `tellme`, `penny`, `pennyWork`
 //   and `pennyDone` are written to the manifest as aliases of them.
 //   CAP_FILM_POSTER=/path/poster.jpg puts the film's own poster on the Saved film card (film only, never committed).
@@ -834,13 +834,19 @@ const SHOTS = {
 
   // The evening check-in on Days ("This evening · How was today?"), top of page so the whole card shows.
   async checkin(b) {
-    const p = await setup(b, '2026-11-09T21:05:00Z');
+    // The current card puts the "Morning preparation" / "Evening reflection" check-in cards between "How was
+    // today?" and the mood row. The film's finale crops the card from its top to the mood row, so for this shot
+    // only they are not drawn (capture-only CSS, as with workDone's toasts): head, "How was today?", Rough…Great.
+    // CAP_CHECKIN_ROUTINES=1 keeps them.
+    const p = await setup(b, '2026-11-09T21:05:00Z', 3, { css: process.env.CAP_CHECKIN_ROUTINES ? '' : 'section.today .checkin-entry { display: none !important; }' });
     await prepare(p, '#/days', 3500);
     const card = p.locator('section.today').first();
     const picker = card.locator('.mood-picker').first();
     const great = picker.locator('.mood-step', { hasText: 'Great' }).first();
     const question = card.getByText('How was today?').first();
     const rects = { card: await rectOf(card), moodBlock: union(await rectOf(question), await rectOf(picker)), great: await rectOf(great) };
+    // The round mark inside the Great step (the dot that fills when pressed).
+    rects.greatCircle = await p.evaluate(() => { const g = [...document.querySelectorAll('section.today .mood-step')].find(e => /Great/.test(e.textContent || '')); const c = g && (g.querySelector('svg, [class*="dot"], [class*="face"], [class*="icon"]')); if (!c) return null; const r = c.getBoundingClientRect(), k = v => Math.round(v * 10) / 10; return { x: k(r.x), y: k(r.y), w: k(r.width), h: k(r.height) }; });
     const res = await record(p, 'checkin', 3500, { actions: [[1200, () => great.click(), 'press']] });
     rects.cardEnd = await rectOf(card);
     saveManifest('checkin', { ...res, rects });

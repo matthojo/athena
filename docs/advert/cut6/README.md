@@ -139,3 +139,36 @@ polish pass. The sections above this one still describe cut 4's commands; for cu
 
 The price-drop shot is staged through the app's own controls (a check removed off camera and
 restored with Undo on camera); see the capture notes above.
+
+## Captures (cut 6)
+
+`CAP_DIR=$FILM/cap CAP_FILM_POSTER=$FILM/assets/film-poster.jpg node docs/advert/cut6/capture.cjs [shot ...]`
+Shots: `home ask saved track music habits work workDone hire flow health graph checkin stills`, all re-shot on the
+current app with cut 5's event and rect names. What changed:
+
+- `record` now checks every frame for text painted in the viewport (not under the sticky head or the dock):
+  "Muse" is a FAIL line, Linear/Amazon/Spotify a NOTE with the frame range. None has "Muse". Spotify is in
+  `music` (the "Open in Spotify" press, as before); Linear is in `hire` (see below). `rectOf` returns null for a part
+  the app no longer draws instead of failing the shot.
+- `track`/`workDone`: the panel's foot is now "Penny checks this · You checked … ago" (`.tk-who`); `foot`,
+  `footBefore` and `footText` measure it.
+- `saved`: Watch & read opens on a month summary, In progress and For Christmas before "Up next", so the Films
+  row is ~1550 px down. The scroll takes 2 s (`scrollStart` 7100, `scrollEnd` 9100) and the shot is 10.6 s (318 frames).
+- `hire`: the Team page now has Team chat / New assignment and a "Waiting for you" card, so Dot, Wren and the new
+  face can't all fit. The end hold has Wren's card just under the sticky head (144 px) and Acorn whole under it,
+  Dot scrolled out (his job line says "Turns Linear issues…"). The job sheet's starter ideas include "When a Linear
+  issue is assigned to me, add a to-do" until Continue: `rects.linearStarter`. `stills/teamAfter.jpg` (390x1400)
+  holds all four cards, Dot's Linear line included. Penny's live line on the Team page reads "Reading
+  fennandhale.example…" then "Reading greenleaf.example…" (sample domains).
+- `checkin`: the card's "Morning preparation" / "Evening reflection" cards are not drawn in this shot
+  (capture-only CSS, `CAP_CHECKIN_ROUTINES=1` keeps them), so the card is head, "How was today?", Rough…Great.
+  New `rects.greatCircle`.
+- New `flow` (Flows beat): `#/flows`, the second suggestion card ("You look for a present a week before
+  birthdays / Four times since September. Want Athena to do it for you?") left where the app puts it (dismissing
+  the first or scrolling brings the Linear flow up under the dock). "Make it a flow" at 1800 ms; the app makes
+  "Birthday heads-up" (kept off) and opens its page: When "A week before a birthday, at 9:00", Then "Find gift
+  ideas", "Tell me" (the third under the floating Test button). The On switch at 3600 ("Birthday heads-up is on"
+  toast). 6 s, 180 frames, 3x. The route change blends for frames 55–57 (`covers` 54–58). The New flow sheet
+  ("Make the steps") can't draft in sample mode (it makes an empty flow), so there is no `flowNew`.
+- Stills add `flows` (the list) and `flowEditor` (Birthday heads-up, switched on; rects in the manifest's
+  `flowEditorStill`). `team` still shows Dot's Linear line.
