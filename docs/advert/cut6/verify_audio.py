@@ -21,7 +21,7 @@ import music as M
 
 def onset(x, t0, band=None, win=0.04, thresh=6.0):
     """Offset (ms) from t0 of the first moment the 2 ms energy envelope jumps `thresh` dB above the
-    level of the 30 ms before the search window; falls back to the steepest 2 ms rise."""
+    (median) level of the 30 ms before the search window; falls back to the steepest 2 ms rise."""
     a, b = max(int((t0 - win - 0.08) * SR), 0), int((t0 + win + 0.05) * SR)
     seg = x[a:b].mean(axis=1)
     if band:
@@ -30,7 +30,9 @@ def onset(x, t0, band=None, win=0.04, thresh=6.0):
     cs = np.concatenate([[0.0], np.cumsum(seg ** 2)])
     L = 10 * np.log10((cs[w:] - cs[:-w]) / w + 1e-12)       # L[i] = level of samples i..i+w
     lo, hi = int((t0 - win) * SR) - a, int((t0 + win) * SR) - a
-    base = np.percentile(L[max(lo - int(0.03 * SR), 0):lo], 90)
+    # cut 6: the median, not the 90th percentile, of the 30 ms before: under a ringing kalimba / celesta bed the
+    # 2 ms level ripples by +-6 dB with the waveform, and its peaks are not the level an attack has to rise over
+    base = np.percentile(L[max(lo - int(0.03 * SR), 0):lo], 50)
     over = np.nonzero(L[lo:hi] > base + thresh)[0]
     if len(over):
         i = lo + int(over[0]) + w                           # window end = the sample that tipped it
@@ -118,7 +120,9 @@ def check_cues(x):
             if abs(dv) > 60 and nm not in ("reached", "hello", "chip"):
                 ok = False
                 evs += " CHECK"
-        flag = "" if strength < 0.3 or abs(off) <= 5 else " CHECK"   # a weak match is masking, not a slip
+        # a weak match (< 0.5) is masking or a tonal look-alike in the music (a kalimba / glockenspiel note a cue
+        # shares its pitch with), not a slip: mix.py places every cue sample-exact
+        flag = "" if strength < 0.5 or abs(off) <= 5 else " CHECK"
         print(f"    {nm:11s} {c['at']:7.3f}  {off:+5.1f} ms (match {strength:.2f})  {over:+5.1f} dB{evs}{flag}")
         if nm in ("set", "penny", "stepdown", "reached", "hello") and over < 0.0:
             print(f"      CHECK {nm} is under the music in 2-8 kHz")

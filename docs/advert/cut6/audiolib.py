@@ -319,11 +319,14 @@ def struck_bar(f, dur, ratios, amps, taus, attack=0.0015, bend=0.0, seed=0, thum
 def kalimba(midi, dur=1.4, vel=1.0, seed=0):
     """Kalimba: a steel tine plucked by a thumb. Clamped-free tine partials (1 : 6.27 : 17.5) whose overtones
     die in tens of ms, a few cents' bend as the tine is released, a soft thumb thump, a ~3 ms rise (skin, not a
-    plectrum). The fundamental rings longer on low tines."""
+    plectrum) and the faint tick of the nail leaving the tine. The fundamental rings longer on low tines."""
     f = mtof(midi)
     tau = 0.6 * (523.0 / f) ** 0.45
-    return struck_bar(f, dur, (1.0, 2.0, 6.27, 17.5), (1.0, 0.05, 0.22 * vel, 0.05 * vel),
-                      (tau, tau * 0.25, 0.045, 0.012), attack=0.0028, bend=0.004, seed=seed, thump=0.10 * vel)
+    out = struck_bar(f, dur, (1.0, 2.0, 6.27, 17.5), (1.0, 0.05, 0.22 * vel, 0.05 * vel),
+                     (tau, tau * 0.25, 0.045, 0.012), attack=0.0028, bend=0.004, seed=seed, thump=0.10 * vel)
+    n, t = _t(dur)           # the nail leaving the tine: a 1.5 ms tick of 2-8 kHz air, what a phone hears first
+    ck = fft_filter(_nz(n, 405 + seed), lambda fr: g_hp(fr, 2000.0, 2) * g_lp(fr, 8000.0, 2)) * np.exp(-t / 0.0015)
+    return out + 0.12 * vel * ck / (np.max(np.abs(ck)) + 1e-9)
 
 
 def glock(midi, dur=1.6, vel=1.0, seed=0):

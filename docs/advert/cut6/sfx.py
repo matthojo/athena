@@ -201,7 +201,7 @@ def bubble(f0=500.0, f1=1400.0, dur=0.12, seed=0):
     f = f0 * (f1 / f0) ** np.clip(t / 0.04, 0, 1) ** 0.7
     ph = 2 * np.pi * np.cumsum(f) / SR
     s = (np.sin(ph) + 0.3 * np.sin(2 * ph) + 0.12 * np.sin(3 * ph)) * np.exp(-t / 0.035)
-    s += 0.25 * np.sin(4 * ph) * np.exp(-t / 0.008)          # the 'plip' of the surface: a phone speaker hears it
+    s += (0.5 * np.sin(4 * ph) + 0.2 * np.sin(6 * ph)) * np.exp(-t / 0.008)   # the 'plip' of the surface: a phone hears it
     a = int(0.002 * SR)
     s[:a] *= np.linspace(0, 1, a)
     return edges(s, 0.0002, 0.02)
@@ -264,6 +264,8 @@ def reached():
         p = (-0.5, 0.5, -0.25, 0.0, 0.3)[j]
         x[i:i + len(b), 0] += g * b * (1 - 0.6 * max(p, 0))
         x[i:i + len(b), 1] += g * b * (1 + 0.6 * min(p, 0))
+    ck = glock(110, 0.05, vel=0.5, seed=205)                 # a tiny glass tick on top, the first thing heard
+    x[: len(ck)] += 0.2 * ck[:, None]
     wet = convolve_reverb(x, make_ir(rt60=1.1, seed=25))
     return norm(edges(x + 0.3 * wet, 0.0006, 0.2), -11.0)
 

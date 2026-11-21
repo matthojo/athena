@@ -104,11 +104,11 @@ BED_AT, BED_RMS = 0.1, -31.0  # the opening reed bed: starts swelling at 0.1 s, 
 AIR_DB, PRESENCE_DB, LOWCUT_DB, MUD_DB = 8.0, 8.0, 5.0, -3.0
 BUILD_BASS = (0.45, 0.03)     # rotation build: bass climb gain a + b*beat
 BUILD_KICK = (0.60, 0.015)    # rotation build: kick gain a + b*beat (roll hits x0.6)
-BUILD_RIDE = (-2.5, 0.5)      # the build's bed ridden from -4 to +0.5 LU against the pull-back (see ride_build)
-ARRIVE_LIFT_DB = 1.5          # bus ride over the arrival (see main)
+BUILD_RIDE = (-2.0, 0.5)      # the build's bed ridden from -4 to +0.5 LU against the pull-back (see ride_build)
+ARRIVE_LIFT_DB = 0.5          # bus ride over the arrival (see main)
 STEP_LIFT_DB = 1.5            # and over the bar after the step down (the second-biggest moment)
-PULL_LIFT_DB = 1.0            # and over the pull-back's first beat and a bit, after the hit itself
-CHORD_DB = float(os.environ.get("CHORD_DB", -7.0))   # final chord bus level (cut 5: -5.5, limited 4 dB)
+PULL_LIFT_DB = 1.5            # and over the pull-back's first beat and a bit, after the hit itself
+CHORD_DB = float(os.environ.get("CHORD_DB", -7.5))   # final chord bus level (cut 5: -5.5, limited 4 dB)
 MUSIC_LUFS = -15.0            # the intermediate master (mix.py trims the bed 3 dB and masters again to -15)
 PENT = [74, 76, 78, 81, 83, 86, 88, 90, 93, 95, 98, 100]     # D major pentatonic, D5 up to E7
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "swaps.json")) as _f:
@@ -459,7 +459,7 @@ def build():
     #      octave above on each, softer
     for j, (t, m) in enumerate(zip(TILES, TILE_NOTES)):
         add("tile", hook_note(m, 1.2), t, 0.62 + 0.04 * j, pan=-0.28 + 0.08 * j)
-        add("tile", glock_note(m + 12, 1.0, 0.7), t + 0.003, 0.16, pan=0.28 - 0.08 * j)
+        add("tile", glock_note(m + 12, 1.0, 0.7), t, 0.16, pan=0.28 - 0.08 * j)
 
     # ---- the band, bar by bar
     for bar in range(1, LAST_BAR + 1):
@@ -678,7 +678,7 @@ def build():
 
     # ---- the pull-back hit: the tonic chord, bright, a ukulele downstroke and two bells strummed behind it
     notes = CH["D"]["ep"]
-    add("accent", piano_chord(tuple(notes) + tuple(m + 12 for m in notes), 1.2, 0.85), PULL, 0.6)
+    add("accent", piano_chord(tuple(notes) + tuple(m + 12 for m in notes), 1.2, 0.85), PULL, 0.8)
     add("accent", strum("D", True, 1.0, 0.9), PULL + 0.005, 0.5)
     add("accent", glock_note(90, 1.4, 1.0), PULL, 0.25)
     for dt, m in ((0.04, 81), (0.07, 86)):
@@ -705,7 +705,7 @@ def build():
         notes = CH["D"]["ep"]
         add("accent", piano_chord(tuple(notes) + tuple(m + 12 for m in notes), 0.9, 0.85), t, 0.9)
         for m in bells:
-            add("accent", glock_note(m, 1.0, 1.0), t + 0.003, 0.4)
+            add("accent", glock_note(m, 1.0, 1.0), t, 0.4)
         add("accent", wblock(1250.0), t, 0.5)
 
     # ---- the build, BUILD0 -> STOP: everything rises; the percussion follows the swaps' own steps
@@ -813,7 +813,7 @@ def ride_build(bus):
     t = (idx + i0) / SR
     x = np.clip((t - BUILD0) / (STOP - BUILD0), 0, 1)
     target = BUILD_RIDE[0] + (BUILD_RIDE[1] - BUILD_RIDE[0]) * x
-    g = np.clip(target - L, -8.0, 8.0)
+    g = np.clip(target - L, -8.0, 6.0)
     S = T(0.9)
     k = np.hanning(S)
     g = np.convolve(g, k / k.sum(), mode="same")
@@ -847,32 +847,33 @@ def final_chord():
     bl = END - STOP - 0.1
     br = reed((50, 57), round(bl, 4), 0.5, 7)
     tb = np.arange(len(br)) / SR
-    put(F, br / np.max(np.abs(br)) * (tb / bl)[:, None] ** 1.5, STOP + 0.1, 0.010)
+    put(F, br / np.max(np.abs(br)) * (tb / bl)[:, None] ** 1.5, STOP + 0.1, 0.007)
 
     notes = (50, 57, 62, 66, 69, 76)
     n = int(dur * SR)
     t = np.arange(n) / SR
     pad = reed(notes, round(dur, 4), 1.0, 3)[:n] * np.exp(-t / 3.0)[:, None]
     pad /= np.max(np.abs(pad))
-    put(F, pad, END, 0.50)
+    put(F, pad, END, 0.80)
     # a quick upward roll on the felt piano (22 ms a note): warmer than a block chord, onsets don't stack
     for j, m in enumerate((38, 50, 57, 62, 66, 69, 74, 76)):
-        put(F, piano_note(m, round(dur - 0.1, 4), 0.75), END + 0.022 * j, (0.30 if m < 50 else 0.22), pan=-0.35 + 0.1 * j)
+        put(F, piano_note(m, round(dur - 0.1, 4), 0.75), END + 0.022 * j, (0.20 if m < 50 else 0.16), pan=-0.35 + 0.1 * j)
     put(F, strum("D", True, 0.9, 2.5, 0.03), END + 0.03, 0.25, pan=0.2)
     for j, m in enumerate((62, 69, 78)):
         put(F, hook_note(m, 1.2), END + 0.025 * j, 0.14)
-    put(F, bass_note(38, 3.0, 0.7), END + 0.01, 0.35)
-    for j, (dt, m, p) in enumerate(((0.0, 90, -0.4), (0.12, 93, 0.4), (0.24, 98, -0.2), (0.39, 88, 0.5),
+    put(F, bass_note(38, 3.0, 0.7), END + 0.04, 0.35)
+    for j, (dt, m, p) in enumerate(((0.06, 90, -0.4), (0.12, 93, 0.4), (0.24, 98, -0.2), (0.39, 88, 0.5),
                                     (0.54, 95, -0.5), (0.72, 102, 0.2), (0.93, 98, -0.3), (1.2, 105, 0.35))):
         sp = celesta_note(m, 1.4) if j % 2 else glock_note(m, 1.4, 0.7)
         put(F, sp, END + dt, 0.2 * (0.86 ** j), pan=p)
         put(wet_src, sp, END + dt, 0.2 * (0.86 ** j), pan=p)
     put(F, chimes(11, 2.0, True, 3), END + 0.02, 0.10)
     # logo tag: A6 then D7 on the glockenspiel, soft
-    for dt, m, g, p in ((0.0, 93, 0.2, -0.15), (0.15, 98, 0.16, 0.15)):
+    for dt, m, g, p in ((0.0, 93, 0.14, -0.15), (0.15, 98, 0.11, 0.15)):
         tg = glock_note(m, 1.8, 1.0)
         put(F, tg, TAG + dt, g, pan=p)
         put(wet_src, tg, TAG + dt, g * 0.8, pan=p)
+        put(F, glock_note(110, 0.05, 0.5), TAG + dt, g * 0.25, pan=p)      # a tiny glass tick on each: heard first
     wet_src += 0.6 * F
     return F, wet_src
 
@@ -889,7 +890,7 @@ def main():
     peak_target = {"kick": -10.0, "snare": -14.0, "snap": -17.0, "clap": -16.0, "wood": -17.0, "shaker": -17.0,
                    "brushsw": -25.0, "tamb": -21.0, "tom": -12.0,
                    "fx": -21.0, "tile": -8.0, "accent": -7.0, "room": -52.0, "flow": -10.0,
-                   "tick": -9.0, "build": -15.0, "bpad": -17.0, "tock": -15.0, "seek": -16.0, "warm": -5.5}
+                   "tick": -10.0, "build": -12.0, "bpad": -12.0, "tock": -15.0, "seek": -16.0, "warm": -5.5}
     for name, buf in STEMS.items():
         if name == "bed":
             buf *= db(BED_RMS - rms_db(buf[T(0.9):T(2.4)]))
@@ -943,7 +944,7 @@ def main():
         send += buf * sends[name]
     wet = convolve_reverb(send, make_ir(rt60=1.2, seed=11, hi=6500.0))
     tail = np.ones(N)
-    tail[b:] = db(-9.0 * np.arange(N - b) / SR)          # the tail thins quickly: a held breath
+    tail[b:] = db(-12.0 * np.arange(N - b) / SR)         # the tail thins quickly: a held breath
     wet *= tail[:, None]
 
     F, fsrc = final_chord()

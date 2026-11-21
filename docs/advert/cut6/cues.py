@@ -276,7 +276,7 @@ def build_cues(film=None, verbose=True):
     t_move = ev("saved", "move", anchor=28.2)
     tap(t_move - 0.04, 8)                                  # tap "Move to Watch & read"
     t_filed = ev("saved", "filed", "toast") or t_move
-    add("tick", t_filed + 0.06, -2)                        # "Filed": a small check, not a buried pop
+    add("tick", t_filed + 0.06, -4)                        # "Filed": a small check, not a buried pop
     # the poster lands in Watch & read at the end of the last fly segment (morph.saved.flyN.end, highest N)
     # flights are numbered as film.js builds them, not by time: take the last one to START (after "Move")
     flies = sorted((fev[k[:-4]] / 1000.0, int(k.split(".")[2][3:]), v / 1000.0) for k, v in fev.items()
@@ -293,7 +293,7 @@ def build_cues(film=None, verbose=True):
     else:
         t_landed = ev("saved", "landed", rel=("move", t_move))
     if t_landed is not None and t_landed > t_move + 0.3:
-        add("land", t_landed - 0.04, 5)                    # the poster settles in Watch & read
+        add("land", t_landed - 0.04, 2)                    # the poster settles in Watch & read
     if flies and isinstance(fev.get(f"morph.saved.fly{flies[-1][0]}"), (int, float)):
         t_fly = fev[f"morph.saved.fly{flies[-1][0]}"] / 1000.0 + 0.05      # r3: the flight itself, 50 ms in
         if not any(c["sfx"].startswith("whoosh") and abs(c["at"] - t_fly) < 0.5 for c in cues):
@@ -323,7 +323,7 @@ def build_cues(film=None, verbose=True):
     # ---- Music: tap "Evening run", the tile grows into the sheet
     t_mo = ev("music", "open", anchor=37.8)
     tap(t_mo - 0.05, 8)
-    add("pop", t_mo + 0.05, 1)
+    add("pop", t_mo + 0.05, 4)
 
     # ---- Habits: the tick
     t_tick = ev("habits", "tick", anchor=42.0)
@@ -334,7 +334,7 @@ def build_cues(film=None, verbose=True):
     t_work = ev("work", "working", "workingLine", anchor=44.4)
     add("penny", on_grid(t_work, 0.06), 11)     # cut 6: the rounder voice has less 2-8 kHz
     t_step = ev("work", "stepDown", "result", anchor=STEP_DEFAULT)
-    add("stepdown", t_step - STEP_LEAD, 4)
+    add("stepdown", t_step - STEP_LEAD, 5)
     t_reach = ev("work", "reached", "reachedLine", film_only=True)
     if t_reach is None or t_reach < t_step + 0.2:
         t_reach = t_step + BEAT / 2                        # half a beat after the landing, so both are heard
@@ -355,7 +355,7 @@ def build_cues(film=None, verbose=True):
     t_hello = ev("hire", "hello", film_only=True)
     t_hello = t_hello if t_hello is not None and t_hello >= t_arr else t_arr
     t_hello = on_grid(t_hello, 0.06) if on_grid(t_hello, 0.06) >= t_hello - 0.02 else t_hello   # never ahead of its bubble
-    add("hello", t_hello, 9)
+    add("hello", t_hello, 8)
     t_faces = ev("hire", "faces", "team", film_only=True)
     if t_faces is not None and t_faces > FLOWS - 3 * S16:
         t_faces = None       # the Team page would only show inside the pull-back: they answer the hello instead
@@ -385,7 +385,7 @@ def build_cues(film=None, verbose=True):
     #      (the music's kalimba run lands on flows.steps; a small plink per step row on top), the switch turns on
     t_sug = ev("flows", "suggest", "card", film_only=True)
     if t_sug is not None and FLOWS - 0.1 <= t_sug < FLOWSTEP_DEFAULT + 1.2:
-        add("pop2", on_grid(t_sug), -2)
+        add("pop2", on_grid(t_sug), 2)
     t_make = ev("flows", "make", "makeFlow", anchor=61.5)
     tap(t_make - 0.04, 6)
     rows = sorted(v / 1000.0 for k, v in fev.items() if k.startswith("flows.step") and k[10:].isdigit()
@@ -393,12 +393,12 @@ def build_cues(film=None, verbose=True):
     t_steps = ev("flows", "steps", anchor=FLOWSTEP_DEFAULT)
     if rows:
         for j, tr in enumerate(rows[:4]):
-            add(f"flowstep{j + 1}", on_grid(tr), -6)
+            add(f"flowstep{j + 1}", on_grid(tr), 4)
     else:
-        add("flowstep1", t_steps + BEAT / 2, -6)   # half a beat after the run's landing, so both are heard
+        add("flowstep1", t_steps + BEAT / 2, 4)   # half a beat after the run's landing, so both are heard
     t_on = ev("flows", "on", "switchOn", film_only=True)
     if t_on is not None and t_on > t_steps:
-        add("toggle", on_grid(t_on), -2)
+        add("toggle", on_grid(t_on), 2)
 
     # ---- the closing line: typed, two phrases selected and retyped. The quickening swaps are ticked by the music.
     swaps = load(os.path.join(HERE, "swaps.json")) or []
