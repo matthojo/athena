@@ -20,7 +20,7 @@ export const STARTERS: ReadonlyArray<{ icon: "calendar" | "bookmark" | "parcel";
 export function openNewFlow(o: { text?: string; onMade: (f: Flow, notes: string[]) => void }): void {
   const ta = h("textarea", { class: "flow-new__input", rows: 4, maxlength: FLOW_LIMITS.text, placeholder: "When a renewal email comes in, check what I paid last year and tell me if it's gone up", "aria-label": "What should happen" }) as HTMLTextAreaElement;
   ta.value = o.text ?? "";
-  const draw = h("button", { class: "btn btn--primary btn--block flow-new__draw", type: "button" }, "Draw it");
+  const draw = h("button", { class: "btn btn--primary btn--block flow-new__draw", type: "button" }, "Make the steps");
   const blank = h("button", { class: "flow-link flow-new__blank", type: "button" }, "Or build it step by step");
   const status = h("p", { class: "flow-new__status", role: "status", "aria-live": "polite" });
   const starters = h(
@@ -40,7 +40,7 @@ export function openNewFlow(o: { text?: string; onMade: (f: Flow, notes: string[
     { class: "flow-sheet flow-new" },
     h("div", { class: "flow-new__art", "aria-hidden": "true" }, tile("trigger", "clock", "lg"), h("span", { class: "flow-new__art-wire" }), tile("step", "plus", "lg")),
     h("h2", { class: "flow-new__title" }, "What should happen?"),
-    h("p", { class: "flow-new__lede" }, "Start with when. Athena draws the steps, and you can change any of them."),
+    h("p", { class: "flow-new__lede" }, "Say when it should happen and what Athena should do. Athena makes the steps, and you can change any of them."),
     ta,
     h("span", { class: "flow-note" }, "Or start from one of these"),
     starters,
@@ -62,7 +62,7 @@ export function openNewFlow(o: { text?: string; onMade: (f: Flow, notes: string[
     busy = true;
     draw.disabled = true;
     blank.disabled = true;
-    status.textContent = fromSentence ? "Drawing it…" : "";
+    status.textContent = fromSentence ? "Making the steps…" : "";
     try {
       let notes: string[] = [];
       let made: Flow;
@@ -70,7 +70,7 @@ export function openNewFlow(o: { text?: string; onMade: (f: Flow, notes: string[
         const d = await draftFlow(sentence);
         notes = d.notes;
         made = await createFlow({ ...d.flow, paused: true, origin: "draft" });
-        if (d.fallback) notes = [...notes, "Athena couldn't draw this one, so it's a blank flow with your sentence as its name."];
+        if (d.fallback) notes = [...notes, "Athena couldn't make steps from that, so this flow is empty and named after your sentence. Add the steps yourself."];
       } else made = await createFlow({ name: sentence ? sentence.slice(0, FLOW_LIMITS.name) : "New flow", trigger: { kind: "manual" }, steps: [], paused: true, origin: "owner" });
       sheet.close();
       // Closing the sheet steps back in history a beat later: move on after it, as Team's sheets do.

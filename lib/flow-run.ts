@@ -316,8 +316,8 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
     case "tool": {
       const tool = flowTool(step.tool);
       if (!tool) {
-        line("failed", "This step can't run: a flow can't use that any more.");
-        return { kind: "end", w: { status: "failed", error: `Stopped at “${name}”: a flow can't use that any more.` } };
+        line("failed", "This step can't run: flows can no longer use it.");
+        return { kind: "end", w: { status: "failed", error: `Stopped at “${name}”: flows can no longer use this step.` } };
       }
       if (toolReadsMoney(step.tool) && !ctx.money) {
         line("skipped", ctx.flow.money ? "Skipped: Ask may not read your spending. Turn on Let Ask read transactions in Settings." : "Skipped: this flow may not read your spending.");
@@ -366,7 +366,7 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
       const choices = step.choices.map((c) => c.label);
       if (ctx.dry) {
         line("skipped", `Would ask you “${clip(question, 120)}” and wait for your answer`);
-        for (const c of step.choices) skipAll(state, now, c.steps, "Not on a try: it waits for your answer");
+        for (const c of step.choices) skipAll(state, now, c.steps, "Skipped in a test run: it would wait for your answer");
         return { kind: "end", w: { status: "done" } };
       }
       line("waiting", "Waits for your answer", { question: { text: question, choices } });
@@ -378,7 +378,7 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
       if (!at) {
         const label = step.before ? (labels.get(refKey(step.before)) ?? step.before.key) : "the date";
         line("failed", missingLine(label));
-        return { kind: "end", w: { status: "stopped", error: `Stopped at “${name}”: nothing for ${label}.` } };
+        return { kind: "end", w: { status: "stopped", error: `Stopped at “${name}”: nothing was found for ${label}.` } };
       }
       if (at.getTime() <= now.getTime()) {
         line("done", "That time has passed, so it carried on");
@@ -486,12 +486,12 @@ export async function walk(state: RunState, ctx: RunContext, fx: FlowEffects): P
       if (!(error instanceof MissingValue)) throw error;
       const label = labels.get(refKey(error.ref)) ?? error.ref.key;
       if (ctx.dry) {
-        setLine(state, fx.now(), { step_id: step.id, status: "skipped", line: `Would run, but needs ${label}, which a try doesn't have` });
+        setLine(state, fx.now(), { step_id: step.id, status: "skipped", line: `Can't test this step: it needs ${label}, which a test run doesn't have` });
         frame.i++;
         continue;
       }
       setLine(state, fx.now(), { step_id: step.id, status: "failed", line: missingLine(label) });
-      return { status: "stopped", error: `Stopped at “${stepName(step)}”: nothing for ${label}.` };
+      return { status: "stopped", error: `Stopped at “${stepName(step)}”: nothing was found for ${label}.` };
     }
     if (out.kind === "wait") return out.w;
     if (out.kind === "end") return out.w;
@@ -499,7 +499,7 @@ export async function walk(state: RunState, ctx: RunContext, fx: FlowEffects): P
     frame.i++;
     if (out.kind === "branch") state.stack.push({ path: [...frame.path, [at, out.branch]], i: 0 });
   }
-  return state.stack.length ? { status: "failed", error: "The run went round too many times, so it stopped." } : { status: "done" };
+  return state.stack.length ? { status: "failed", error: "Stopped: this run took too many steps." } : { status: "done" };
 }
 
 // ---------- after the owner, a time or an assignment ----------
@@ -579,7 +579,7 @@ export async function settle(state: RunState, flow: Flow, s: Settle, fx: FlowEff
     case "skip": {
       if (w.kind !== "go" || s.step_id !== w.step_id) throw new AthenaInputError("That change isn't waiting for your Go");
       if (w.plan_id) await fx.dropPlan(w.plan_id);
-      line("skipped", "Skipped: you said not this time");
+      line("skipped", "Skipped: you tapped Skip");
       moveOn(state, frame);
       return {};
     }
@@ -625,7 +625,7 @@ export function summaryOf(state: RunState, out: Walked, opts: { voice?: Voice | 
   const done = state.lines.filter((l) => l.status === "done").map((l) => l.line);
   if (opts.dry) {
     const would = state.lines.filter((l) => l.status === "skipped" && /^Would /.test(l.line) && !/^Would (?:ask you|wait|tell you|run, but)/.test(l.line)).length;
-    return `A try on past data: nothing was changed.${would ? ` ${would === 1 ? "One step" : `${would} steps`} would have changed something.` : ""}`;
+    return `Test run on past data: nothing changed.${would ? ` ${would === 1 ? "One step" : `${would} steps`} would have changed something.` : ""}`;
   }
   if (out.status === "waiting") {
     const lead = state.changes.length ? (v ? didLine(v, state.changes as never) : `${cap(changeWords(state.changes as never))}.`) : "";
@@ -874,7 +874,7 @@ export async function settleRun(runId: string, s: Settle, deps: RunDeps): Promis
     const ok = await saveRun(stored.run.id, stored.version, { status: "queued", waits_for: null, resumes_at: null, plan_id: null, assignment_id: null, waiting_since: null, state });
     if (ok) return { run: (await getRun(runId))!.run, queued: true };
   }
-  throw new AthenaInputError("Something else changed this run just now. Look again.");
+  throw new AthenaInputError("This run changed while you were looking. Check it again.");
 }
 
 /** Stop a run: what waits on it is dropped, and nothing more of it happens. */
@@ -895,7 +895,7 @@ export async function stopRun(runId: string, deps: RunDeps, why = "Stopped by yo
       return (await getRun(runId))!.run;
     }
   }
-  throw new AthenaInputError("Something else changed this run just now. Look again.");
+  throw new AthenaInputError("This run changed while you were looking. Check it again.");
 }
 
 // ---------- the reminders job's part ----------

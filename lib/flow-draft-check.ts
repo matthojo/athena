@@ -351,7 +351,7 @@ export function checkDraft(raw: unknown, ctx: CheckContext, fallbackName: string
       }
       case "think":
         // Only a flow with an assistant thinks (lib/flow-types.ts), and a drawn flow has none yet.
-        w.note("Thinking steps need an assistant. Hand the flow to one, then add it.");
+        w.note("Thinking steps need an assistant to run the flow. Choose one, then add the step.");
         return null;
       case "assignment": {
         const brief = w.text(s.brief, scope, where);

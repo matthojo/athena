@@ -95,7 +95,7 @@ export function openStepSheet(o: StepSheetOptions): void {
     return field.el;
   };
 
-  const title = h("input", { class: "field", type: "text", maxlength: FLOW_LIMITS.name, placeholder: stepTitle({ ...step, title: null }, o.catalog, o.assistant?.name), "aria-label": "Call it" }) as HTMLInputElement;
+  const title = h("input", { class: "field", type: "text", maxlength: FLOW_LIMITS.name, placeholder: stepTitle({ ...step, title: null }, o.catalog, o.assistant?.name), "aria-label": "Step name" }) as HTMLInputElement;
   title.value = step.title ?? "";
 
   const body = h("div", { class: "flow-sheet" });
@@ -106,31 +106,31 @@ export function openStepSheet(o: StepSheetOptions): void {
     const s = step;
     const fs = entry?.fields ?? (isDraftTool(s.tool) ? DRAFT_FIELDS : null) ?? Object.keys(s.input).map((k) => ({ key: k, label: k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()), kind: "text" as ValueKind, required: false }));
     for (const fd of fs) sections.push(addField(fd.key, fd.label, s.input[fd.key] ?? [], fd.required));
-    if (entry?.money) sections.push(h("p", { class: "flow-note" }, flowIcon("lock"), "Reads your spending. It runs only while Ask may read it too (Settings)."));
+    if (entry?.money) sections.push(h("p", { class: "flow-note" }, flowIcon("lock"), "Reads your spending. It only runs while Let Ask read transactions is on in Settings."));
     if (goLocked(s)) {
       // A draft always waits for your Go (owner, 21 Nov 2026): the switch shows it, locked.
       s.go = "ask";
-      const locked = segmented("When the flow gets here", [{ value: "ask", label: "Wait for my Go" }, { value: "auto", label: "Just add it" }] as const, "ask", () => undefined);
+      const locked = segmented("When this step runs", [{ value: "ask", label: "Wait for my Go" }, { value: "auto", label: "Do it without asking" }] as const, "ask", () => undefined);
       locked.classList.add("is-locked");
       locked.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button").forEach((x) => (x.disabled = true));
       sections.push(
         h(
           "div",
           { class: "flow-sheet__group" },
-          h("span", { class: "flow-field__label" }, "When the flow gets here"),
+          h("span", { class: "flow-field__label" }, "When this step runs"),
           locked,
           h("p", { class: "flow-note" }, flowIcon("lock"), "A draft always waits for your Go. Nothing is sent: it waits in your drafts.")
         )
       );
     } else if (changes(s, o.catalog)) {
-      const verb = "Just add it";
+      const verb = "Do it without asking";
       sections.push(
         h(
           "div",
           { class: "flow-sheet__group" },
-          h("span", { class: "flow-field__label" }, "When the flow gets here"),
-          segmented("When the flow gets here", [{ value: "ask", label: "Wait for my Go" }, { value: "auto", label: verb }] as const, s.go, (v) => (s.go = v)),
-          h("p", { class: "flow-note" }, "Changes a flow makes are listed with Undo, like Ask's.")
+          h("span", { class: "flow-field__label" }, "When this step runs"),
+          segmented("When this step runs", [{ value: "ask", label: "Wait for my Go" }, { value: "auto", label: verb }] as const, s.go, (v) => (s.go = v)),
+          h("p", { class: "flow-note" }, "You can undo anything a flow changes in What Ask did.")
         )
       );
     }
@@ -150,7 +150,7 @@ export function openStepSheet(o: StepSheetOptions): void {
         s.condition.right = Number(pct.value);
         s.condition.against ??= o.values.find((v) => v.kind === "money" || v.kind === "number")?.ref ?? o.values[0]?.ref;
         rightBox.append(
-          h("div", { class: "flow-inline" }, pct, h("span", {}, "% on")),
+          h("div", { class: "flow-inline" }, pct, h("span", {}, "% higher than")),
           selectOf("Compared with", opts, s.condition.against ? refKey(s.condition.against) : "", (k) => ((s.condition.against = refFromKey(o.values, k) ?? undefined), paintPreview()))
         );
         return;
@@ -235,7 +235,7 @@ export function openStepSheet(o: StepSheetOptions): void {
     };
     sections.push(
       dates.length
-        ? segmented("Wait", [{ value: "for", label: "For some days" }, { value: "before", label: "Until before a date" }] as const, s.before ? "before" : "for", (v) => {
+        ? segmented("Wait", [{ value: "for", label: "For some days" }, { value: "before", label: "Until a set time before a date" }] as const, s.before ? "before" : "for", (v) => {
             s.before = v === "before" ? (refFromKey(o.values, (dateSel as HTMLSelectElement | null)?.value ?? "") ?? dates[0].ref) : undefined;
             paintMode();
           })
@@ -272,7 +272,7 @@ export function openStepSheet(o: StepSheetOptions): void {
       paintGives();
     });
     paintGives();
-    sections.push(h("div", { class: "flow-sheet__group" }, h("span", { class: "flow-field__label" }, "Gives you"), givesBox, addGive));
+    sections.push(h("div", { class: "flow-sheet__group" }, h("span", { class: "flow-field__label" }, "Values it gives later steps"), givesBox, addGive));
   } else if (step.kind === "assignment") {
     sections.push(addField("brief", "The brief", step.brief, true, "What the lineup should do"), h("p", { class: "flow-note" }, "Starts a Team assignment. Its lineup waits for your Go, as it does from Ask."));
   }
@@ -310,7 +310,7 @@ export function openStepSheet(o: StepSheetOptions): void {
   if (firstAt >= 0) sections.splice(firstAt + 1, 0, tray);
   body.append(
     ...sections,
-    h("div", { class: "flow-sheet__group" }, h("label", { class: "flow-field__label" }, "Call it", h("span", { class: "flow-field__optional" }, " (optional)")), title),
+    h("div", { class: "flow-sheet__group" }, h("label", { class: "flow-field__label" }, "Step name", h("span", { class: "flow-field__optional" }, " (optional)")), title),
     preview,
     moveRow ?? "",
     error,

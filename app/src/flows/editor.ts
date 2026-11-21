@@ -105,7 +105,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     const reach = new Set((step ? valuesForStep(flow, step.id) : []).map((v) => refKey(v.ref)));
     return (r) => {
       const v = all.get(refKey(r));
-      return { label: v?.label ?? "a value that's gone", kind: v?.kind ?? "text", known: !!v && (!step || reach.has(refKey(r))) };
+      return { label: v?.label ?? "a value that no longer exists", kind: v?.kind ?? "text", known: !!v && (!step || reach.has(refKey(r))) };
     };
   }
 
@@ -250,11 +250,11 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     const lead = thinking && assistant ? face(assistant.avatar, 36, assistant.name) : stepTile(s);
     const metas: Node[] = [];
     const entry = entryFor(s, catalog);
-    if (entry?.money) metas.push(h("span", { class: "flow-card__meta" }, flowIcon("lock"), flow.money ? "Reads your spending. Allowed in Settings." : "Reads your spending, which this flow may not do yet."));
-    if (thinking) metas.push(h("span", { class: "flow-card__meta" }, assistant ? `${s.web ? "Online · " : ""}Thinking step · uses AI credits` : "Needs an assistant. Hand the flow to one, or remove this step."));
+    if (entry?.money) metas.push(h("span", { class: "flow-card__meta" }, flowIcon("lock"), flow.money ? "Reads your spending. Allowed in Settings." : "Reads your spending. This flow isn't allowed to yet."));
+    if (thinking) metas.push(h("span", { class: "flow-card__meta" }, assistant ? `${s.web ? "Online · " : ""}Thinking step · uses AI credits` : "Needs an assistant to run this flow. Choose one, or remove this step."));
     if (s.kind === "ask") metas.push(h("span", { class: "flow-card__meta" }, `${s.choices.length} choices · waits for your answer`));
     if (s.kind === "assignment") metas.push(h("span", { class: "flow-card__meta" }, "Its lineup waits for your Go"));
-    if (broken) metas.push(h("span", { class: "flow-card__meta flow-card__meta--bad" }, "Uses a value it can't reach any more. Tap to pick another."));
+    if (broken) metas.push(h("span", { class: "flow-card__meta flow-card__meta--bad" }, "Uses a value from a step that has moved or gone. Tap to choose another."));
     const tag = waitsForGo(s) ? badge({ tone: "you", words: "Waits for your Go" }) : changes(s, catalog) ? badge({ tone: "quiet", words: "Runs on its own" }) : null;
     const card = h(
       "button",
@@ -290,7 +290,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
                 "div",
                 { class: "flow-lane", role: "group", "aria-label": laneLabel(s, b.branch).textContent ?? "" },
                 laneLabel(s, b.branch),
-                ...(b.steps.length ? inner : [h("p", { class: "flow-lane__empty" }, "Nothing happens here yet")]),
+                ...(b.steps.length ? inner : [h("p", { class: "flow-lane__empty" }, "No steps on this path yet")]),
                 plus(here, b.steps.length, `Add a step to ${laneLabel(s, b.branch).textContent}`)
               );
             })
@@ -311,7 +311,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     });
     const onRow = h("label", { class: "flow-on" }, h("span", {}, "On"), on);
     if (assistant) {
-      const take = h("button", { class: "flow-link", type: "button" }, "Take it back");
+      const take = h("button", { class: "flow-link", type: "button" }, `Run it without ${assistant.name}`);
       take.addEventListener("click", () => void giveBack());
       const p = h("a", { class: "flow-hero__face", href: `#/team/${encodeURIComponent(assistant.id)}`, "aria-label": `${assistant.name}'s page` }, face(assistant.avatar, 64));
       // Paused on Team: none of its flows run, this one included, whatever its own switch says.
@@ -320,7 +320,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
         "div",
         { class: "flow-hero flow-hero--assistant" },
         h("div", { class: "flow-hero__row" }, p, h("div", {}, h("h1", { class: "page-title flow-hero__name" }, flow.name), h("span", { class: "flow-hero__kind" }, flowKindWords(flow, assistant.name)))),
-        h("div", { class: "flow-hero__row flow-hero__row--between" }, h("span", { class: "flow-hero__meta" }, `Handed to ${assistant.name} ${handedWords(flow.handed_at)}. `, take), onRow),
+        h("div", { class: "flow-hero__row flow-hero__row--between" }, h("span", { class: "flow-hero__meta" }, `You gave it to ${assistant.name} ${handedWords(flow.handed_at)}. `, take), onRow),
         paused ? h("p", { class: "flow-note", role: "status" }, flowIcon("pause"), h("span", {}, paused, " ", h("a", { class: "flow-link", href: `#/team/${encodeURIComponent(assistant.id)}` }, `Turn ${assistant.name} on`))) : ""
       );
     }
@@ -336,7 +336,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     const card = h(
       "button",
       { class: "flow-card flow-card--trigger", type: "button", "aria-label": `${triggerWords(flow.trigger)}. Change what starts it` },
-      h("span", { class: "flow-card__node" }, triggerTile(flow.trigger), h("span", { class: "flow-card__main" }, h("span", { class: "flow-card__title" }, triggerTitle(flow.trigger)), flow.trigger.kind === "event" ? null : h("span", { class: "flow-card__meta" }, flow.trigger.kind === "manual" ? "Run now, a Shortcut, or a try" : "In your time zone")), h("span", { class: "flow-card__chev", "aria-hidden": "true" }, icons.chevronRight()))
+      h("span", { class: "flow-card__node" }, triggerTile(flow.trigger), h("span", { class: "flow-card__main" }, h("span", { class: "flow-card__title" }, triggerTitle(flow.trigger)), flow.trigger.kind === "event" ? null : h("span", { class: "flow-card__meta" }, flow.trigger.kind === "manual" ? "Only when you tap Run now or use a Shortcut" : "In your time zone")), h("span", { class: "flow-card__chev", "aria-hidden": "true" }, icons.chevronRight()))
     );
     card.addEventListener("click", () => openTriggerSheet({ trigger: flow.trigger, onDone: (t) => void save({ trigger: t }) }));
     const gives = givesRow(flow.trigger_gives);
@@ -353,7 +353,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
         "div",
         { class: "card card--flush list" },
         ...runs.slice(0, 5).map((r) => {
-          const b = h("button", { class: "row flow-run-row", type: "button" }, h("span", { class: `flow-mark flow-mark--${r.status}`, "aria-hidden": "true" }), h("span", { class: "row__body" }, h("span", { class: "row__title" }, r.summary ?? r.label), h("span", { class: "row__meta" }, `${runHeading(r.started_at)}${r.dry ? " · a try" : ""}`)), h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()));
+          const b = h("button", { class: "row flow-run-row", type: "button" }, h("span", { class: `flow-mark flow-mark--${r.status}`, "aria-hidden": "true" }), h("span", { class: "row__body" }, h("span", { class: "row__title" }, r.summary ?? r.label), h("span", { class: "row__meta" }, `${runHeading(r.started_at)}${r.dry ? " · test run" : ""}`)), h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()));
           b.addEventListener("click", () => ctx.openRun(r.id));
           return b;
         })
@@ -381,14 +381,14 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
       );
     }
     const faces = h("div", { class: "flow-faces", "aria-hidden": "true" }, ...team.slice(0, 3).map((a) => face(a.avatar, 36)));
-    const go = h("button", { class: "btn btn--soft btn--sm flow-hand__go", type: "button" }, "Hand to an assistant");
+    const go = h("button", { class: "btn btn--soft btn--sm flow-hand__go", type: "button" }, "Let an assistant run it");
     go.addEventListener("click", () => openHandSheet({ flow, onHanded: handed }));
     return h(
       "section",
       { class: "flow-hand" },
       team.length ? faces : null,
       h("h2", { class: "flow-hand__title" }, "Want it to think, too?"),
-      h("p", { class: "flow-hand__text" }, "Hand it to an assistant. It keeps these steps, and can look for a better deal, tell you in its own words and remember what you decided last time."),
+      h("p", { class: "flow-hand__text" }, "An assistant can run it with these same steps, and also look for a better deal, tell you in its own words and remember what you decided last time."),
       go
     );
   }
@@ -396,7 +396,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
   function paint() {
     const broken = brokenSteps(flow);
     const n = countSteps(flow.steps);
-    const notesEl = notes.length ? h("div", { class: "flow-drawn", role: "note" }, h("span", { class: "flow-drawn__title" }, "Athena drew this. Check it over:"), h("ul", {}, ...notes.map((x) => h("li", {}, x)))) : null;
+    const notesEl = notes.length ? h("div", { class: "flow-drawn", role: "note" }, h("span", { class: "flow-drawn__title" }, "Athena made these steps from your sentence. Check them:"), h("ul", {}, ...notes.map((x) => h("li", {}, x)))) : null;
     body.replaceChildren(
       hero(),
       notesEl ?? "",
@@ -420,10 +420,10 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
         ctx.openRun(run.id);
       } catch (e) {
         tryBtn.disabled = false;
-        showToast(e instanceof Error && e.message ? `Couldn't try it: ${e.message}` : "Couldn't try it. Try again.");
+        showToast(e instanceof Error && e.message ? `Couldn't test it: ${e.message}` : "Couldn't test it. Try again.");
       }
     });
-    foot.replaceChildren(tryBtn, h("span", { class: "flow-foot__note" }, "A try changes nothing."));
+    foot.replaceChildren(tryBtn, h("span", { class: "flow-foot__note" }, "A test run changes nothing."));
     foot.hidden = false;
   }
 
@@ -432,9 +432,9 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     const thinking: string[] = [];
     walk(flow.steps, (s) => s.kind === "think" && thinking.push(s.id));
     const ok = await confirmDialog({
-      title: `Take ${flow.name} back from ${assistant.name}?`,
-      body: thinking.length ? `It becomes a plain flow again. ${thinking.length === 1 ? "Its thinking step needs" : `Its ${thinking.length} thinking steps need`} an assistant, so ${thinking.length === 1 ? "it won't run" : "they won't run"} until you remove ${thinking.length === 1 ? "it" : "them"} or hand the flow over again.` : "It becomes a plain flow again, with every step you made.",
-      confirmLabel: "Take it back",
+      title: `Run ${flow.name} without ${assistant.name}?`,
+      body: thinking.length ? `It runs without an assistant again. ${thinking.length === 1 ? "Its thinking step needs" : `Its ${thinking.length} thinking steps need`} an assistant, so ${thinking.length === 1 ? "it won't run" : "they won't run"} until you remove ${thinking.length === 1 ? "it" : "them"} or give the flow to an assistant again.` : "It runs without an assistant again, with every step you made.",
+      confirmLabel: `Run it without ${assistant.name}`,
     });
     if (!ok) return;
     try {
@@ -442,9 +442,9 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
       flow = await takeBack(flow.id);
       assistant = null;
       paint();
-      showToast(`${flow.name} is a plain flow again. ${name} doesn't run it now.`);
+      showToast(`${name} no longer runs ${flow.name}.`);
     } catch {
-      showToast("Couldn't take it back. Try again.");
+      showToast("Couldn't change who runs it. Try again.");
     }
   }
 
@@ -453,7 +453,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     if (!flow) return;
     const runNow = h("button", { class: "flow-menu__item", type: "button" }, icons.play(), "Run now");
     const rename = h("button", { class: "flow-menu__item", type: "button" }, icons.pen(), "Rename");
-    const giveBackBtn = assistant ? h("button", { class: "flow-menu__item", type: "button" }, icons.restore(), "Take it back") : null;
+    const giveBackBtn = assistant ? h("button", { class: "flow-menu__item", type: "button" }, icons.restore(), `Run it without ${assistant.name}`) : null;
     const del = h("button", { class: "flow-menu__item flow-menu__item--danger", type: "button" }, icons.trash(), "Delete");
     const sheet = openSheet({ label: flow.name, title: flow.name, body: h("div", { class: "flow-menu" }, runNow, rename, giveBackBtn, del) });
     runNow.addEventListener("click", async () => {

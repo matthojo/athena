@@ -350,7 +350,7 @@ export function walkSample(f: Pick<Flow, "steps">, decisions: Decisions, dry: bo
         case "check": {
           const way = look.check[s.id] ?? "yes";
           push({ step_id: s.id, status: "done", line: way === "yes" ? (said?.line ?? "Yes") : (said?.no ?? "No") });
-          skipAll(way === "yes" ? s.no : s.yes, way === "yes" ? "Not this time: that's the “Otherwise” branch" : "Not this time: that's the “If so” branch");
+          skipAll(way === "yes" ? s.no : s.yes, way === "yes" ? "Not run: it's on the “Otherwise” path" : "Not run: it's on the “If so” path");
           const waits = run(way === "yes" ? s.yes : s.no);
           if (waits) return waits;
           break;
@@ -361,14 +361,14 @@ export function walkSample(f: Pick<Flow, "steps">, decisions: Decisions, dry: bo
             return "answer";
           }
           push({ step_id: s.id, status: "done", line: `You chose “${s.choices[d]?.label ?? "an answer"}”` });
-          s.choices.forEach((c, i) => i !== d && skipAll(c.steps, `Not this time: you chose “${s.choices[d]?.label}”`));
+          s.choices.forEach((c, i) => i !== d && skipAll(c.steps, `Not run: you chose “${s.choices[d]?.label}”`));
           const waits = run(s.choices[d]?.steps ?? []);
           if (waits) return waits;
           break;
         }
         case "wait": {
           if (dry || d === "passed") {
-            push({ step_id: s.id, status: "done", line: dry ? "Would wait here. A try doesn't." : "Waited." });
+            push({ step_id: s.id, status: "done", line: dry ? "Would wait here. A test run doesn't." : "Waited." });
             break;
           }
           const until = s.before ? nextDay(4, ...hm(s.at)) : at + s.days * DAY;

@@ -296,7 +296,7 @@ export function decide(c: FlowCondition, values: FlowValues, labels: Map<string,
   const has = present(left);
   if (c.op === "exists") return { yes: has, line: has ? `Yes: there's ${label}` : `No: there's no ${label}` };
   if (c.op === "missing") return { yes: !has, line: has ? `No: there's ${label}` : `Yes: there's no ${label}` };
-  if (!has) return { yes: false, line: `No: nothing for ${label}` };
+  if (!has) return { yes: false, line: `No: nothing was found for ${label}` };
   const right: FlowVal | undefined = isRef(c.right) ? valueAt(values, c.right) : (c.right as FlowVal | undefined);
   const L = valueWords(left, tz);
   const R = valueWords(right, tz);
@@ -454,12 +454,12 @@ export function pendingWords(label: string, input: Record<string, unknown>): str
 /** "add a to-do: …" for "Would add a to-do: …". Pure. */
 export const lowerFirst = (s: string): string => (/^[A-Z][a-z]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s);
 
-/** A skipped branch's steps: "Not this time: that's the “Otherwise” branch". Pure. */
+/** A skipped branch's steps: "Not run: it's on the “Otherwise” path". Pure. */
 export function notThisTime(branch: "yes" | "no" | string): string {
-  if (branch === "yes") return "Not this time: that's the “Yes” branch";
-  if (branch === "no") return "Not this time: that's the “Otherwise” branch";
-  return `Not this time: you chose “${clip(branch, 40)}”`;
+  if (branch === "yes") return "Not run: it's on the “If so” path";
+  if (branch === "no") return "Not run: it's on the “Otherwise” path";
+  return `Not run: you chose “${clip(branch, 40)}”`;
 }
 
 /** Where the run stopped for a value nobody gave: "Stopped here: nothing for the company". Pure. */
-export const missingLine = (label: string): string => `Stopped here: nothing for ${label}`;
+export const missingLine = (label: string): string => `Stopped here: nothing was found for ${label}`;

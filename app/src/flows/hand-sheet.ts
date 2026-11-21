@@ -19,7 +19,7 @@ export function changeLines(who: Pick<TeamAssistant, "name" | "personality"> | n
   const cap = who ? who.name : "The new assistant";
   const they = who ? pronouns(who.personality).they : "it";
   return [
-    `Its runs come from ${mid}, on Home and on Team.`,
+    `Its runs show as from ${mid} on Home and on Team.`,
     `${cap} can think between steps. Those steps use AI credits.`,
     `${cap} remembers what you decide, like which renewals you always let run.`,
     `Anything ${they === "it" ? mid : they} isn't allowed to do alone still waits for your Go.`,
@@ -29,16 +29,16 @@ export function changeLines(who: Pick<TeamAssistant, "name" | "personality"> | n
 export function openHandSheet(o: { flow: Flow; onHanded: (f: Flow) => void }): void {
   const list = h("div", { class: "flow-who-list", role: "radiogroup", "aria-label": "Assistant" });
   const changes = h("ul", { class: "flow-changes" });
-  const go = h("button", { class: "btn btn--primary btn--block", type: "button", disabled: true }, "Hand it over");
+  const go = h("button", { class: "btn btn--primary btn--block", type: "button", disabled: true }, "Choose an assistant");
   const body = h(
     "div",
     { class: "flow-sheet" },
-    h("p", { class: "flow-sheet__lede" }, "It keeps every step you made. The assistant can add thinking steps between them."),
+    h("p", { class: "flow-sheet__lede" }, "The assistant runs every step you made, and can add thinking steps between them."),
     list,
     h("div", { class: "flow-sheet__group" }, h("span", { class: "flow-field__label" }, "What changes"), changes),
-    h("div", { class: "flow-sheet__foot" }, go, h("p", { class: "flow-note flow-note--centre" }, "Take it back whenever you like. It becomes a plain flow again."))
+    h("div", { class: "flow-sheet__foot" }, go, h("p", { class: "flow-note flow-note--centre" }, "You can run it without an assistant again at any time."))
   );
-  const sheet = openSheet({ label: "Hand to an assistant", title: `Who should run ${o.flow.name}?`, body, variant: "tall" });
+  const sheet = openSheet({ label: "Let an assistant run it", title: `Who should run ${o.flow.name}?`, body, variant: "tall" });
   let team: TeamAssistant[] = [];
   let picked: string | null = null;
 
@@ -47,7 +47,7 @@ export function openHandSheet(o: { flow: Flow; onHanded: (f: Flow) => void }): v
     list.querySelectorAll<HTMLButtonElement>("[role=radio]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.id === picked)));
     changes.replaceChildren(...changeLines(picked === "new" ? null : who).map((l) => h("li", {}, flowIcon("check"), h("span", {}, l))));
     go.disabled = !picked;
-    go.textContent = picked === "new" ? "Make an assistant for it" : who ? `Hand to ${who.name}` : "Hand it over";
+    go.textContent = picked === "new" ? "Make an assistant for it" : who ? `Let ${who.name} run it` : "Choose an assistant";
   };
 
   const option = (id: string, lead: HTMLElement, name: string, job: string) => {
@@ -81,7 +81,7 @@ export function openHandSheet(o: { flow: Flow; onHanded: (f: Flow) => void }): v
       o.onHanded(f);
     } catch (e) {
       go.disabled = false;
-      showToast(e instanceof Error && e.message ? `Couldn't hand it over: ${e.message}` : "Couldn't hand it over. Try again.");
+      showToast(e instanceof Error && e.message ? `Couldn't give it to the assistant: ${e.message}` : "Couldn't give it to the assistant. Try again.");
     }
   });
 }
@@ -90,7 +90,7 @@ export function openHandSheet(o: { flow: Flow; onHanded: (f: Flow) => void }): v
 export function openGiveSheet(o: { assistant: TeamAssistant; onGiven: (f: Flow) => void; onNew: () => void }): void {
   const list = h("div", { class: "flow-give-list" });
   const make = h("button", { class: "btn btn--soft btn--block", type: "button" }, flowIcon("plus"), "Make a new flow");
-  const body = h("div", { class: "flow-sheet" }, h("p", { class: "flow-sheet__lede" }, `${o.assistant.name} keeps its steps, and can add thinking steps between them.`), list, make);
+  const body = h("div", { class: "flow-sheet" }, h("p", { class: "flow-sheet__lede" }, `${o.assistant.name} runs its steps, and can add thinking steps between them.`), list, make);
   const sheet = openSheet({ label: `Give ${o.assistant.name} a flow`, title: `Give ${o.assistant.name} a flow`, body, variant: "tall" });
   make.addEventListener("click", () => {
     sheet.close();
@@ -112,7 +112,7 @@ export function openGiveSheet(o: { assistant: TeamAssistant; onGiven: (f: Flow) 
               window.setTimeout(() => o.onGiven(next), 450);
             } catch {
               b.disabled = false;
-              showToast("Couldn't hand it over. Try again.");
+              showToast("Couldn't give it to the assistant. Try again.");
             }
           });
           return b;

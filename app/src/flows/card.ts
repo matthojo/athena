@@ -10,7 +10,7 @@ import { flowBadge, lastRunLine, triggerWords } from "./words";
 
 /** For the Flows list and an assistant's page: a flow's card. */
 export function flowCard(f: Flow, latest: FlowRun | undefined, o: { assistant?: TeamAssistant | null; open: () => void; compact?: boolean }): HTMLElement {
-  const who = o.assistant ? h("span", { class: "flow-row__who" }, face(o.assistant.avatar, 22), `${o.assistant.name} runs this`) : h("span", { class: "flow-row__who" }, "Plain flow");
+  const who = o.assistant ? h("span", { class: "flow-row__who" }, face(o.assistant.avatar, 22), `${o.assistant.name} runs this`) : h("span", { class: "flow-row__who" }, "No assistant");
   const b = h(
     "button",
     { class: `card flow-row${o.compact ? " flow-row--compact" : ""}`, type: "button" },

@@ -127,7 +127,7 @@ export function openTriggerSheet(o: { trigger: FlowTrigger; onDone: (t: FlowTrig
       at.addEventListener("input", () => ((bDate.at = at.value || "09:00"), paintSentence()));
       settings.append(field("What date", kind), field("When", days), field("At", at), matchInput(() => bDate.match, (v) => (bDate.match = v), "With this in its name"));
     } else {
-      settings.append(h("p", { class: "flow-note" }, "It runs when you tap Run now, from a Shortcut, or when you try it."));
+      settings.append(h("p", { class: "flow-note" }, "It only runs when you tap Run now or start it from a Shortcut."));
     }
   }
 
@@ -153,7 +153,7 @@ export function openTriggerSheet(o: { trigger: FlowTrigger; onDone: (t: FlowTrig
     ),
     sentence,
     settings,
-    h("p", { class: "flow-note" }, "A new trigger can give different values. Steps that used one it doesn't give are marked, so you can pick another."),
+    h("p", { class: "flow-note" }, "Steps that used a value this trigger doesn't give are marked, so you can choose another."),
     h("div", { class: "flow-sheet__foot" }, done)
   );
   paintSettings();

@@ -84,11 +84,11 @@ export function tryWords(t: FlowTrigger): string {
       gift_idea: "gift idea",
       saved: "thing you saved",
     };
-    return `Try it on the last ${noun[k ?? ""] ?? (t.event.source === "note" ? "note" : "one")}`;
+    return `Test on the last ${noun[k ?? ""] ?? (t.event.source === "note" ? "note" : "one")}`;
   }
-  if (t.kind === "before") return t.what === "event" ? "Try it on your last event" : "Try it on the last date";
-  if (t.kind === "schedule") return "Try it on the last time";
-  return "Try it now";
+  if (t.kind === "before") return t.what === "event" ? "Test on your last event" : "Test on the last date";
+  if (t.kind === "schedule") return "Test on the last time";
+  return "Test it now";
 }
 
 // ---------- steps ----------
@@ -192,7 +192,7 @@ type Label = (r: ValueRef) => string;
 export function conditionWords(c: FlowCondition, label: Label): string {
   const left = label(c.left);
   const right = c.right === undefined ? "" : typeof c.right === "object" ? label(c.right) : String(c.right);
-  if (c.op === "up_by_pct") return `${left} is up by at least ${right}% on ${c.against ? label(c.against) : "before"}`;
+  if (c.op === "up_by_pct") return `${left} is at least ${right}% higher than ${c.against ? label(c.against) : "before"}`;
   const words = OPS.find((o) => o.op === c.op)?.words ?? c.op;
   return OPS.find((o) => o.op === c.op)?.needsRight ? `${left} ${words} ${right}`.trim() : `${left} ${words}`;
 }
@@ -225,7 +225,7 @@ export type FlowBadge = { tone: "you" | "on" | "off" | "bad" | "quiet"; words: s
 export function flowBadge(flow: Pick<Flow, "paused">, latest?: Pick<FlowRun, "status" | "waits_for" | "dry"> | null): FlowBadge {
   if (latest && latest.status === "waiting" && !latest.dry) {
     if (latest.waits_for === "go") return { tone: "you", words: "Needs your Go" };
-    if (latest.waits_for === "answer") return { tone: "you", words: "Asks you something" };
+    if (latest.waits_for === "answer") return { tone: "you", words: "Needs your answer" };
     if (latest.waits_for === "time") return { tone: "quiet", words: "Waiting" };
     if (latest.waits_for === "assignment") return { tone: "quiet", words: "On an assignment" };
   }
@@ -259,7 +259,7 @@ export function flowKindWords(flow: Pick<Flow, "assistant_id" | "steps">, assist
   const n = countSteps(flow.steps);
   const steps = `${n} ${n === 1 ? "step" : "steps"}`;
   if (flow.assistant_id) return `${assistantName ?? "An assistant"} runs this · ${steps}`;
-  return `Plain flow · free to run · ${steps}`;
+  return `No assistant · no AI spend · ${steps}`;
 }
 
 /**
@@ -275,14 +275,14 @@ export function pausedWords(assistant: { name: string; paused?: boolean } | null
 
 /** What a run waits on, for its page: "1 change waits for your Go". */
 export function runStateWords(run: Pick<FlowRun, "status" | "waits_for" | "dry" | "steps">, hour12 = prefers12h(), now = new Date()): string {
-  const prefix = run.dry ? "A try: nothing was changed. " : "";
+  const prefix = run.dry ? "Test run: nothing changed. " : "";
   switch (run.status) {
     case "queued":
       return `${prefix}About to start`;
     case "running":
       return `${prefix}Running now`;
     case "done":
-      return run.dry ? "A try: nothing was changed" : "Finished";
+      return run.dry ? "Test run: nothing changed" : "Finished";
     case "failed":
       return `${prefix}Didn't finish`;
     case "stopped":

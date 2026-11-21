@@ -125,10 +125,10 @@ export function textWithChips(t: FlowText, look: Lookup): HTMLElement {
   );
 }
 
-/** "Gives you" and its chips, under a trigger or a step that gives values. */
+/** "Later steps can use" and its chips, under a trigger or a step that gives values. */
 export function givesRow(values: readonly FlowValue[]): HTMLElement | null {
   if (!values.length) return null;
-  return h("div", { class: "flow-gives" }, h("span", { class: "flow-gives__label" }, "Gives you"), ...values.map((v) => chip(v)));
+  return h("div", { class: "flow-gives" }, h("span", { class: "flow-gives__label" }, "Later steps can use"), ...values.map((v) => chip(v)));
 }
 
 /** A flow's shape for its card: the trigger's tile, then its steps' (the first few). */
