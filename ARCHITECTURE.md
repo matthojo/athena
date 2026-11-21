@@ -1719,6 +1719,64 @@ contracts between slices, is `docs/team.md`.
   - **The catalogue** is a separate GitHub repository; Athena only reads
     GitHub links and never publishes.
 
+### Flows
+
+A trigger, then steps with branches, beside Team. A plain flow runs with no
+character and calls no model unless a step needs one; a flow handed to a Team
+assistant runs in its voice, with its memory and allowlist, and can have
+thinking steps. The contract between the engine, triggers, drafting,
+suggestions and the app is `lib/flow-types.ts`.
+
+- **Store** (migration 0080, `lib/flows.ts`). `flows`: the owner's words
+  sealed in `payload`, `trigger_kind` and a word-free `schedule` plain for the
+  jobs, `assistant_id` when handed over. `flow_runs`: label, summary, error
+  and `state` (each step's line, the values steps gave, a stack of where the
+  run is in the tree, what it waits on, the cards it owes) sealed; status,
+  `waits_for`, `resumes_at`, the Ask plan or assignment it waits on, the ids it
+  made, the run that started it (`started_by`) and the flows before it
+  (`chain`), and a `version` for compare-and-set plain. Checking a flow
+  against `FLOW_LIMITS` (choices from `minChoices` to `choices`) and its chips
+  (each must point at the trigger or a step before it) is `checkSteps`; a
+  change with no Go setting gets `defaultGo` (`fillGo`): only `add_reminder`,
+  `add_todo` and `add_to_list` run alone, and a draft is refused unless it
+  waits for Go. Every run read carries `values`: the trigger's and each step's,
+  as words (`shownValues`, from the sealed state). `createFlowSource()` and `createFlowStarter()` are the
+  ports triggers uses; `triggerGives()` there is a stand-in until triggers'
+  own replaces it. The starter's chain guard (`startedByRun`, `chainFor`)
+  traces an event to the run that made its record and refuses a flow already
+  in that chain, or a fourth run.
+- **Catalogue** (`lib/flow-catalog.ts`, `GET /api/flows/catalog`). Ask's own
+  tools, as an allowlist of looks, changes inside Athena and drafts
+  (`draft_email`, `draft_message`, group `tell`, always waiting for Go), plus
+  Check, Ask me, Wait, Tell me, Think and Start an assignment. Go on a draft
+  writes it with `runAssistantTool` and Ask's mail and Slack ports, and keeps
+  it as a `draft` change to read and save (`draftChanges`); nothing is sent.
+- **Runner** (`lib/flow-steps.ts` pure, `lib/flow-run.ts`, real effects in
+  `lib/flow-effects.ts`). A run is queued, then claimed once by the
+  background function `netlify/functions/flow-run.ts` (`/api/flow-run`). It
+  walks until it ends or waits: tools through `runAssistantTool`, a change
+  set to ask becomes an Ask plan and the run waits for Go; Ask me waits for
+  an answer; Wait for a time; Start an assignment for its lineup's Go and then
+  its end; Think is `runAssistantTurn` as the flow's assistant. Each step
+  leaves one line from what happened (lib/steps.ts's words), no model. A
+  plain flow's changes are What Ask did's source `flow` ("Flow: <name>",
+  opening `/#/flows/runs/<id>`); an assistant's stay `team`.
+  The owner's Go, Skip and answers settle the wait and queue the run again.
+  A dry run uses the last `team_events` row that matched and changes nothing.
+- **The reminders job** (`sweepFlowRuns`, `deliverFlowNotices`) carries Waits
+  on, moves runs on when an assignment ends or a plan ran from Ask, stops runs
+  that waited for the owner 14 days, hands off queued runs a hand-off missed,
+  and sends held cards (key `flow:<run>:…`; rule `flow` for a plain flow,
+  `team` for an assistant's).
+- **Hand and take back** (`POST /api/flows/:id/hand`, `/take-back`). Sets
+  `assistant_id`; `"new"` makes an assistant from a fresh seed. A run keeps
+  the assistant that started it. An assistant's finished run is also kept as
+  a quiet, finished `team_runs` row, so it shows on Team activity, and sends a
+  "From <Name>" card when it changed something and said nothing else.
+- **Routes** (`netlify/lib/flow-routes.ts`): every `/api/flows` route in the
+  contract except draft and suggestions, which are drafting's and
+  suggestions' own.
+
 ### Skills
 
 Skills are SKILL.md instructions, in the same format as Claude's skills, that

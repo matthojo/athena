@@ -30,9 +30,9 @@ export const MAX_TRAVEL_CHOICES = 50;
 const isMode = (v: unknown): v is TravelMode => typeof v === "string" && (TRAVEL_MODES as readonly string[]).includes(v);
 const EVENT_ID = /^[A-Za-z0-9_-]{1,80}$/;
 
-/** Meeting prep, awaiting reply, the owner's own routines and Team assistants, and the car (the owner added it) are on; the rest wait for the owner to try them. */
+/** Meeting prep, awaiting reply, the owner's own routines, Team assistants and flows, and the car (the owner added it) are on; the rest wait for the owner to try them. */
 export const DEFAULT_PROACTIVE: ProactivePrefs = {
-  rules: { meeting_prep: true, after_meeting: false, awaiting_reply: true, leave_by: false, day_plan: false, weekly_plan: false, drift: false, routine: true, watch_tonight: false, car: true, team: true },
+  rules: { meeting_prep: true, after_meeting: false, awaiting_reply: true, leave_by: false, day_plan: false, weekly_plan: false, drift: false, routine: true, watch_tonight: false, car: true, team: true, flow: true },
   cap: 4,
   reply_days: 3,
   travel_mode: "transit",

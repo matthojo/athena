@@ -1685,6 +1685,73 @@ Design in `docs/team.md` "Assignments"; notes in
   note is kept. A post outside an assignment is swept after 90 days once
   settled.
 
+### Flows (migration `0080`, `lib/flows.ts`, `lib/flow-run.ts`)
+
+A flow is a trigger and steps with branches (contract: `lib/flow-types.ts`).
+It runs unattended, so it is held to the same rules as a Team run and adds
+none of its own.
+
+- **Sealed.** `flows.payload` (name, trigger, steps) and `flow_runs`'
+  `label`, `summary`, `error` and `state` are sealed like other text and are
+  in the key rotation (`lib/encryption.ts`). What the jobs need stays
+  readable: the trigger's kind and a schedule with no words in it, a run's
+  status, times, and ids.
+- **Only Ask's own tools, and never one that leaves Athena.** A tool step runs
+  one of Ask's tools with the same code and checks (`runAssistantTool`, or
+  `ReadTools` for the shared looks). The catalogue (`lib/flow-catalog.ts`) is
+  an allowlist: looks, changes inside Athena that keep an Undo, and drafts.
+  Nothing that sends (messages, invite answers, notes to another service),
+  edits a connected account (calendar moves and new events), deletes or
+  archives, reshapes the owner's data (fields, types, mass edits), or only
+  prepares a card for a tap. The store refuses a flow naming any other tool,
+  and the runner checks again before every step.
+- **Changes wait unless the owner said otherwise.** Only adding a reminder, a
+  to-do or a list item runs alone by default; every other change waits for
+  Go unless the owner sets it to run alone. A change that waits is kept as an
+  Ask plan (`ask_plans`, sealed) and nothing is made until Go, which runs it
+  through Ask's plan code, logged in What Ask did (a plain flow's as "Flow:
+  <name>", with the flow's and run's ids, plain) with its Undo. Skip and Stop
+  close the plan so it can't run later.
+- **Drafts are never sent.** `draft_email` and `draft_message` always wait
+  for Go: the store refuses one set to run alone, and the runner waits on it
+  whatever was saved. Go writes the draft with Ask's own code and the same
+  mail and Slack ports Ask gets, and keeps it as a change for the owner to
+  read. Nothing is sent, and an email reaches Gmail or Outlook Drafts only
+  when the owner taps Save in the app (as for Ask, security review M7). With
+  no email account to keep it in, the step stops and says so.
+- **Money.** `money` and `regular_payments` run only while the flow's own
+  switch and Settings' "Let Ask read transactions" are both on; otherwise the
+  step is skipped and no amount reaches anything.
+- **Thinking steps are the assistant's turn.** A Think step is
+  `runAssistantTurn` in run mode: the assistant's persona, memory, allowlist
+  and web switch, the guard on other people's words, its own spend cap. The
+  values earlier steps found reach it quoted as data. Anything outside its
+  allowlist waits for Go. A plain flow has no thinking steps (they're
+  skipped), so it calls no model, apart from an assignment's lineup.
+- **Assignments.** Start an assignment keeps the lineup as a draft; nothing
+  starts until the owner's Go in Team chat.
+- **A try changes nothing.** A dry run runs looks only; every change says
+  what it would do, no card is sent, a thinking step is a read-only check,
+  and the walk ends at a question.
+- **Loops and limits.** A run keeps the ids of the records it changed
+  (`flow_runs.made`, at once, not at its next save). An event about one of
+  them is traced to that run: the new run records it (`started_by`) and the
+  flows before it (`chain`, plain ids), and isn't started when its flow is
+  already in the chain or the chain would pass three runs. A trigger's slot
+  starts a flow once (a unique index). `FLOW_LIMITS` holds on save (40
+  flows, 24 steps, 3 deep, 2 to 4 choices, 500 characters a piece of text,
+  60 days a Wait); 50 runs are kept per flow; a run waiting for the owner 14
+  days is stopped.
+- **Values.** What the trigger and each step gave is kept in the run's
+  sealed `state` and read back as plain words on every run read (a record as
+  its title), for the owner's own app only.
+- **Cards.** A Notify step's card, one saying a run waits for the owner, and
+  an assistant's "From <Name>" go through the same gate as every nudge
+  (mutes, quiet hours, the daily cap), sealed in `nudges`. A plain flow's
+  follow the Flows switch (rule `flow`); an assistant's follow Team's.
+- **Routes.** `/api/flows/*` is behind the bearer token like the rest of the
+  API; the background function at `/api/flow-run` checks the same token.
+
 ### Flows' triggers (migration `0081`, `lib/flow-triggers*.ts`)
 
 - **Plain, and only ids and times.** `flow_trigger_fires` keeps one row per
@@ -1767,9 +1834,11 @@ Design in `docs/team.md` "Assignments"; notes in
   routine's name and the answer's first line, like any nudge's title and
   body, and opens `/#/ask/nudge/<id>`.
 - **What Ask did** (`ask_activity`, `lib/ask-activity.ts`). One row per change
-  from a reply, a plan, a routine's plan or a nudge card's part. The receipt
-  and its Undo op are sealed in `payload`; readable columns are ids, the
-  source, the state and times. Undo there is the same `applyUndo` as a
+  from a reply, a plan, a routine's plan, a nudge card's part or a flow's
+  step. The receipt and its Undo op are sealed in `payload`; readable columns
+  are ids (a flow's row also the flow's and run's, migration `0080`), the
+  source, the state and times. A flow's name for its label is read from the
+  flow's sealed words, never copied into the log. Undo there is the same `applyUndo` as a
   reply's; a refusal is kept as "couldn't undo". A nudge part's words come
   from Athena's own stored nudge, and only a move's own undo op is taken
   from the app (a to-do's is built on the server).
@@ -2263,6 +2332,8 @@ the status counts and the tests all read it from there.
 | `ask_skills` (migration `0058`) | `payload` |
 | `ask_plans`, `ask_activity` (migration `0055`, §10) | `payload` |
 | `ask_routines` | `payload`, `pending` (a routine's waiting nudge) |
+| `flows` (migration `0080`, §10) | `payload` (a flow's name, its whole trigger with any words it matches, and its steps). `trigger_kind` and `schedule` (days, times, counts and the facets an event filter names, never its words) stay readable |
+| `flow_runs` | `label`, `summary`, `error`, `state` (each step's line, the values steps gave, what it waits on, the cards it owes). Statuses, times and ids (the Ask plan or assignment it waits on, the records it made, the run that started it and the flows before it) stay readable |
 | `note_link_choices` (migration `0059`) | `payload` |
 | `settings` | values inside rows: the car record (`car`, §16), the notification key's private half (`vapid`, §8), the owner's playlists (`music_playlists`), artists' genres (`music_genres`) and what the home's appliances were last seen doing (`appliances`) |
 

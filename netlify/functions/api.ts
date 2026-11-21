@@ -87,6 +87,8 @@ import { logChanges, undoActivity } from "../../lib/ask-activity";
 import { handleAskRoutes } from "../lib/ask-routes";
 import { handleTeamRoutes } from "../lib/team-routes";
 import { handleFlowDraftRoutes } from "../lib/flow-draft-routes";
+import { handleFlowRoutes } from "../lib/flow-routes";
+import { flowEffects, handOffFlowRun } from "../../lib/flow-effects";
 import { handleModelsRoutes, modelChoiceResponse } from "../lib/models-routes";
 import { handleFlowSuggestRoutes } from "../lib/flow-suggest-routes";
 import { dismissSuggestion, listDismissed, NO_FLOWS, readSignals } from "../../lib/flow-suggest-store";
@@ -2017,6 +2019,14 @@ export default async (req: Request, _context: Context) => {
         dismissed: listDismissed,
         dismiss: dismissSuggestion,
         flows: NO_FLOWS,
+      });
+      if (handled) return handled;
+    }
+    // Flows: a trigger, then steps with branches, beside Team (netlify/lib/flow-routes.ts, lib/flow-run.ts).
+    if (first === "flows") {
+      const handled = await handleFlowRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s), {
+        effects: () => flowEffects({ ports: { gmail: mailPort, slack: slackPort, calendar: calendarPort, scheduling: schedulingPort } }),
+        handOff: (runId) => handOffFlowRun(url.origin, runId),
       });
       if (handled) return handled;
     }

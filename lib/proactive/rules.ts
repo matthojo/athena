@@ -501,6 +501,8 @@ export function allNudges(input: ProactiveInput, opts: { replyDays: number; live
     routine: () => [],
     // Team assistants' runs come from lib/team-run.ts, through the same gate.
     team: () => [],
+    // Plain flows' cards come from their runs (lib/flow-effects.ts), through the same gate.
+    flow: () => [],
   };
   return (Object.entries(byRule) as Array<[RuleId, () => Nudge[]]>).flatMap(([rule, f]) => (opts.live && !opts.live(rule) ? [] : f()));
 }
