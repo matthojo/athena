@@ -86,6 +86,7 @@ import { goPlan, undoPlan } from "../../lib/ask-plans";
 import { logChanges, undoActivity } from "../../lib/ask-activity";
 import { handleAskRoutes } from "../lib/ask-routes";
 import { handleTeamRoutes } from "../lib/team-routes";
+import { handleFlowDraftRoutes } from "../lib/flow-draft-routes";
 import { handleModelsRoutes, modelChoiceResponse } from "../lib/models-routes";
 import { handleFlowSuggestRoutes } from "../lib/flow-suggest-routes";
 import { dismissSuggestion, listDismissed, NO_FLOWS, readSignals } from "../../lib/flow-suggest-store";
@@ -1966,6 +1967,11 @@ export default async (req: Request, _context: Context) => {
     // Routines, What Ask did and tonight's picks (netlify/lib/ask-routes.ts).
     if (first === "routines" || first === "activity" || first === "watch-tonight") {
       const handled = await handleAskRoutes(req, url, segments, () => parseJsonBody(req), (d, s) => json(req, d, s), { undo: (op) => applyUndo(op, { calendar: calendarPort, scheduling: schedulingPort }) });
+      if (handled) return handled;
+    }
+    // Flows drafting: POST /api/flows/draft (netlify/lib/flow-draft-routes.ts). The rest of /api/flows is the engine's.
+    if (first === "flows" && second === "draft") {
+      const handled = await handleFlowDraftRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s));
       if (handled) return handled;
     }
     // Team: assistants with their own triggers, memory and character (netlify/lib/team-routes.ts, docs/team.md).

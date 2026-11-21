@@ -241,6 +241,9 @@ export function assistantStepStart(name: string, input: unknown): string | null 
     // Assignments and documents (lib/assignment-tools.ts, lib/assistant-documents.ts).
     case "start_assignment":
       return "Picking a lineup";
+    // Flows (lib/flow-draft-ask.ts).
+    case "propose_flow":
+      return "Drawing a flow";
     case "continue_assignment":
       return "Carrying on with the assignment";
     case "hand_off":
@@ -307,6 +310,8 @@ export function assistantStepDone(name: string, input: unknown, result: string, 
       return "Checked your car";
     case "start_assignment":
       return "Picked a lineup";
+    case "propose_flow":
+      return "Drew a flow";
     case "continue_assignment":
       return (parsed(result) as { done?: unknown } | null)?.done ? "Carried on with the assignment" : "Nothing moved on";
     case "hand_off":
