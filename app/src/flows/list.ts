@@ -1,6 +1,6 @@
 /**
  * Flows (mockup 1): how today went in one line, what Athena noticed you do
- * by hand (Make it a flow · Not now), then your flows, each with its trigger,
+ * by hand (Make it a flow · No thanks), then your flows, each with its trigger,
  * its shape, who runs it and how its last run went.
  */
 import { h } from "../lib/dom";
@@ -33,7 +33,7 @@ export function renderFlowList(ctx: ListContext): { el: HTMLElement; destroy: ()
 
   function suggestion(s: FlowSuggestion): HTMLElement {
     const make = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Make it a flow");
-    const later = h("button", { class: "btn btn--soft btn--sm", type: "button" }, "Not now");
+    const later = h("button", { class: "btn btn--soft btn--sm", type: "button" }, "No thanks");
     const card = h(
       "section",
       { class: "card flow-sug", "aria-label": s.title },
@@ -52,10 +52,12 @@ export function renderFlowList(ctx: ListContext): { el: HTMLElement; destroy: ()
         showToast(e instanceof Error && e.message ? `Couldn't make it: ${e.message}` : "Couldn't make it. Try again.");
       }
     });
+    // No thanks means never again (owner, 21 Nov 2026).
     later.addEventListener("click", async () => {
       card.remove();
       try {
         await dismissSuggestion(s.id);
+        showToast("Athena won't suggest that one again.");
       } catch {
         // It may come back next time: nothing lost.
       }

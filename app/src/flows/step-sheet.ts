@@ -1,7 +1,9 @@
 /**
  * One step's settings (mockup 6): its words, with chips of values from
  * earlier steps only; for a step that changes something, whether it waits
- * for your Go; and a preview of how it reads with the last thing that ran.
+ * for your Go (a draft always does); a preview of how it reads with the
+ * values from the newest run; and Move up and Move down, refused when the
+ * move would leave a step without a value it uses.
  */
 import { h } from "../lib/dom";
 import { openSheet } from "../components/sheet";
@@ -10,7 +12,7 @@ import { FLOW_LIMITS, type CatalogEntry, type CheckOp, type FlowStep, type FlowT
 import type { TeamAssistant } from "../../../lib/team-types";
 import { flowIcon, face, segmented, switchInput, type Lookup } from "./parts";
 import { textField, valueTray, type TextField } from "./text-field";
-import { entryFor, changes } from "./steps";
+import { DRAFT_FIELDS, entryFor, changes, goLocked, isDraftTool } from "./steps";
 import { conditionWords, isEmptyText, OPS, plainText, stepTitle } from "./words";
 import { refKey } from "./text";
 import { countSteps, type AvailableValue } from "./tree";
@@ -24,12 +26,18 @@ export interface StepSheetOptions {
   allValues: readonly AvailableValue[];
   catalog: readonly CatalogEntry[];
   assistant: TeamAssistant | null;
-  /** What each value was last time, keyed "from.key": the preview. Empty when the server doesn't say. */
+  /** What each value was on the newest run that kept them, keyed "from.key": the preview. Empty with no run yet: chip labels show instead. */
   preview: Record<string, string>;
-  /** "the last renewal": what the preview was taken from. */
+  /** "Today at 8:12 · An email from Northwind Broadband": which run the preview comes from. */
   previewFrom: string;
   onDone: (step: FlowStep) => void;
   onRemove?: () => void;
+  /**
+   * Move up and Move down, for a step that's already in the flow. `onMove`
+   * gets the step as it stands in the sheet and returns why it can't move,
+   * or null once it has.
+   */
+  move?: { up: boolean; down: boolean; onMove: (by: -1 | 1, step: FlowStep) => string | null };
 }
 
 const KINDS_TO_NAME: ReadonlyArray<{ kind: ValueKind; label: string }> = [
@@ -96,11 +104,26 @@ export function openStepSheet(o: StepSheetOptions): void {
   // ---------- each kind's settings ----------
   if (step.kind === "tool") {
     const s = step;
-    const fs = entry?.fields ?? Object.keys(s.input).map((k) => ({ key: k, label: k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()), kind: "text" as ValueKind, required: false }));
+    const fs = entry?.fields ?? (isDraftTool(s.tool) ? DRAFT_FIELDS : null) ?? Object.keys(s.input).map((k) => ({ key: k, label: k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()), kind: "text" as ValueKind, required: false }));
     for (const fd of fs) sections.push(addField(fd.key, fd.label, s.input[fd.key] ?? [], fd.required));
     if (entry?.money) sections.push(h("p", { class: "flow-note" }, flowIcon("lock"), "Reads your spending. It runs only while Ask may read it too (Settings)."));
-    if (changes(s, o.catalog)) {
-      const verb = s.tool.startsWith("draft") ? "Just draft it" : "Just add it";
+    if (goLocked(s)) {
+      // A draft always waits for your Go (owner, 21 Nov 2026): the switch shows it, locked.
+      s.go = "ask";
+      const locked = segmented("When the flow gets here", [{ value: "ask", label: "Wait for my Go" }, { value: "auto", label: "Just add it" }] as const, "ask", () => undefined);
+      locked.classList.add("is-locked");
+      locked.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button").forEach((x) => (x.disabled = true));
+      sections.push(
+        h(
+          "div",
+          { class: "flow-sheet__group" },
+          h("span", { class: "flow-field__label" }, "When the flow gets here"),
+          locked,
+          h("p", { class: "flow-note" }, flowIcon("lock"), "A draft always waits for your Go. Nothing is sent: it waits in your drafts.")
+        )
+      );
+    } else if (changes(s, o.catalog)) {
+      const verb = "Just add it";
       sections.push(
         h(
           "div",
@@ -270,14 +293,17 @@ export function openStepSheet(o: StepSheetOptions): void {
     }
     const known = Object.keys(values).length > 0;
     preview.replaceChildren(
-      h("span", { class: "flow-preview__label" }, known ? `With ${o.previewFrom}` : "How it reads"),
-      h("div", { class: "flow-preview__card" }, h("span", { class: "flow-preview__line" }, line || "Fill it in to see how it reads."))
+      h("span", { class: "flow-preview__label" }, known ? "With the last run" : "How it reads"),
+      h("div", { class: "flow-preview__card" }, h("span", { class: "flow-preview__line" }, line || "Fill it in to see how it reads."), known && o.previewFrom ? h("span", { class: "flow-preview__from" }, o.previewFrom) : null)
     );
   }
 
   const tray = valueTray(o.values, () => focused);
   const done = h("button", { class: "btn btn--primary btn--block", type: "button" }, "Done");
   const remove = o.onRemove ? h("button", { class: "btn btn--ghost btn--danger", type: "button" }, flowIcon("trash"), "Remove this step") : null;
+  const moveUp = o.move ? (h("button", { class: "btn btn--soft btn--sm", type: "button", disabled: !o.move.up }, flowIcon("arrowUp"), "Move up") as HTMLButtonElement) : null;
+  const moveDown = o.move ? (h("button", { class: "btn btn--soft btn--sm", type: "button", disabled: !o.move.down }, flowIcon("arrowDown"), "Move down") as HTMLButtonElement) : null;
+  const moveRow = o.move ? h("div", { class: "flow-sheet__group" }, h("span", { class: "flow-field__label" }, "Order"), h("div", { class: "flow-inline flow-move" }, moveUp, moveDown), h("p", { class: "flow-note" }, "Moves it within its own list. Steps in its branches move with it.")) : null;
 
   // The tray sits under the first field it fills.
   const firstAt = fields.length ? sections.indexOf(fields[0].field.el) : -1;
@@ -286,6 +312,7 @@ export function openStepSheet(o: StepSheetOptions): void {
     ...sections,
     h("div", { class: "flow-sheet__group" }, h("label", { class: "flow-field__label" }, "Call it", h("span", { class: "flow-field__optional" }, " (optional)")), title),
     preview,
+    moveRow ?? "",
     error,
     h("div", { class: "flow-sheet__foot" }, done, remove)
   );
@@ -293,6 +320,33 @@ export function openStepSheet(o: StepSheetOptions): void {
 
   const verb = o.isNew ? "Add" : "Change";
   const sheet = openSheet({ label: `${verb} a step`, title: stepTitle(step, o.catalog, o.assistant?.name), body, variant: "tall" });
+
+  /** The step as the sheet has it now: its fields' words written back in. */
+  function gather(): FlowStep {
+    const out = structuredClone(step) as FlowStep;
+    if (out.kind === "tool") {
+      for (const f of fields) out.input[f.key] = f.field.get();
+      if (goLocked(out)) out.go = "ask";
+    } else if (out.kind === "ask") {
+      out.question = fields[0].field.get();
+      out.choices = out.choices.map((c, i) => ({ ...c, label: c.label.trim() || `Choice ${i + 1}` }));
+    } else if (out.kind === "notify") out.text = fields[0].field.get();
+    else if (out.kind === "think") {
+      out.task = fields[0].field.get();
+      const used = new Set<string>();
+      out.gives = out.gives
+        .filter((g) => g.label.trim())
+        .map((g): FlowValue => {
+          let key = g.key || slug(g.label);
+          while (used.has(key)) key = `${key}_2`;
+          used.add(key);
+          return { key, label: g.label.trim(), kind: g.kind };
+        });
+      if (!out.gives.length) out.gives = [{ key: "answer", label: "the answer", kind: "text" }];
+    } else if (out.kind === "assignment") out.brief = fields[0].field.get();
+    out.title = title.value.trim() || null;
+    return out;
+  }
 
   done.addEventListener("click", () => {
     for (const f of fields) {
@@ -304,28 +358,21 @@ export function openStepSheet(o: StepSheetOptions): void {
         return;
       }
     }
-    if (step.kind === "tool") for (const f of fields) step.input[f.key] = f.field.get();
-    else if (step.kind === "ask") {
-      step.question = fields[0].field.get();
-      step.choices = step.choices.map((c, i) => ({ ...c, label: c.label.trim() || `Choice ${i + 1}` }));
-    } else if (step.kind === "notify") step.text = fields[0].field.get();
-    else if (step.kind === "think") {
-      step.task = fields[0].field.get();
-      const used = new Set<string>();
-      step.gives = step.gives
-        .filter((g) => g.label.trim())
-        .map((g): FlowValue => {
-          let key = g.key || slug(g.label);
-          while (used.has(key)) key = `${key}_2`;
-          used.add(key);
-          return { key, label: g.label.trim(), kind: g.kind };
-        });
-      if (!step.gives.length) step.gives = [{ key: "answer", label: "the answer", kind: "text" }];
-    } else if (step.kind === "assignment") step.brief = fields[0].field.get();
-    step.title = title.value.trim() || null;
+    const out = gather();
     sheet.close();
-    o.onDone(step);
+    o.onDone(out);
   });
+  const tryMove = (by: -1 | 1) => {
+    const why = o.move?.onMove(by, gather());
+    if (why) {
+      error.textContent = why;
+      error.hidden = false;
+      return;
+    }
+    sheet.close();
+  };
+  moveUp?.addEventListener("click", () => tryMove(-1));
+  moveDown?.addEventListener("click", () => tryMove(1));
   remove?.addEventListener("click", async () => {
     const n = countSteps([step]) - 1;
     const ok = await confirmDialog({

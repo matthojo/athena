@@ -7,6 +7,7 @@ import type { CatalogEntry, CheckOp, Flow, FlowCondition, FlowRun, FlowStep, Flo
 import { clockWords, daysWords, EMAIL_KINDS, eventWords as teamEventWords, prefers12h } from "../team/trigger-editor-words";
 import type { EventFilter } from "../../../lib/team-types";
 import { countSteps } from "./tree";
+import { isDraftTool } from "./steps";
 
 // ---------- what starts it ----------
 
@@ -142,7 +143,7 @@ export function stepTone(step: FlowStep): Tone {
 }
 
 /** Does this step change something, and wait for the owner's Go first? */
-export const waitsForGo = (step: FlowStep): boolean => step.kind === "tool" && step.go === "ask";
+export const waitsForGo = (step: FlowStep): boolean => step.kind === "tool" && (step.go === "ask" || isDraftTool(step.tool));
 
 /** The graph's colour for a kind of value (--graph-* in tokens.css). */
 export function valueColour(kind: ValueKind): string {
@@ -324,4 +325,16 @@ export function lastRunLine(run: (Pick<FlowRun, "started_at" | "summary" | "stat
   if (run.status === "waiting" && !run.dry) return `${when} · ${runStateWords({ ...run, waits_for: run.waits_for ?? null }, hour12, now)}`;
   const what = run.summary ?? (run.status === "failed" ? run.error : null) ?? [...run.steps].reverse().find((s) => s.status !== "skipped")?.line ?? null;
   return what ? `${when} · ${what}` : when;
+}
+
+/**
+ * Why a step can't move, in words. `moved` is the step being moved; titles
+ * and the value's label come from the editor.
+ */
+export function moveRefusal(p: { step: string; giver: string | null }, moved: string, by: -1 | 1, words: { title: (id: string) => string; value: string }): string {
+  const where = by < 0 ? "above" : "below";
+  if (p.step === moved && p.giver) return `This step uses ${words.value} from “${words.title(p.giver)}”, so it can't go ${where} it.`;
+  if (p.giver === moved) return `“${words.title(p.step)}” uses ${words.value} from this step, so this step can't go ${where} it.`;
+  if (p.giver) return `“${words.title(p.step)}” uses ${words.value} from “${words.title(p.giver)}”, which it wouldn't reach after this move.`;
+  return `“${words.title(p.step)}” uses ${words.value}, which it wouldn't reach after this move.`;
 }

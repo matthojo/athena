@@ -1,9 +1,9 @@
 // Run: npx tsx --test app/src/flows/words.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { conditionWords, flowBadge, lastRunLine, listLede, resumeWords, runHeading, runStateWords, stepTitle, triggerTitle, triggerWords, tryWords } from "./words";
+import { conditionWords, flowBadge, moveRefusal, waitsForGo, lastRunLine, listLede, resumeWords, runHeading, runStateWords, stepTitle, triggerTitle, triggerWords, tryWords } from "./words";
 import { normaliseText, swapRef } from "./text";
-import { searchCatalog, stepFromEntry, unavailable } from "./steps";
+import { changes, defaultGo, goLocked, searchCatalog, stepFromEntry, unavailable } from "./steps";
 import { sampleCatalog } from "../db/sample-flows";
 import { NOTE_STYLE } from "../../../lib/writing-style";
 
@@ -81,8 +81,11 @@ test("the catalogue: search, what's locked, and new steps", () => {
   assert.equal(unavailable(think, { hasAssistant: true, canBranch: true }), null);
   const check = cat.find((e) => e.kind === "check")!;
   assert.match(unavailable(check, { hasAssistant: true, canBranch: false }) ?? "", /deeper/);
+  // A to-do may run alone (owner, 21 Nov 2026); a note waits for your Go.
   const todo = stepFromEntry(cat.find((e) => e.tool === "add_todo")!, "s1", []);
-  assert.equal(todo.kind === "tool" && todo.go, "ask");
+  assert.equal(todo.kind === "tool" && todo.go, "auto");
+  const note = stepFromEntry(cat.find((e) => e.tool === "save_note")!, "s3", []);
+  assert.equal(note.kind === "tool" && note.go, "ask");
   const c = stepFromEntry(check, "s2", [{ key: "price", label: "the price", kind: "money", ref: { from: "trigger", key: "price" }, fromStep: null }]);
   assert.deepEqual(c.kind === "check" && c.condition, { left: { from: "trigger", key: "price" }, op: "exists" });
 });
@@ -91,4 +94,39 @@ test("words people read have no em dashes", () => {
   const strings = [...sampleCatalog().flatMap((e) => [e.label, e.hint])];
   for (const s of strings) assert.ok(!/—|--/.test(s), s);
   assert.ok(NOTE_STYLE.includes("No em dashes"));
+});
+
+test("a refused move says why", () => {
+  const title = (id: string) => ({ paid: "Look up spending", up: "Check the price" })[id] ?? id;
+  const value = "last year's price";
+  assert.equal(moveRefusal({ step: "up", giver: "paid" }, "up", -1, { title, value }), "This step uses last year's price from “Look up spending”, so it can't go above it.");
+  assert.equal(moveRefusal({ step: "up", giver: "paid" }, "paid", 1, { title, value }), "“Check the price” uses last year's price from this step, so this step can't go below it.");
+  assert.match(moveRefusal({ step: "up", giver: "paid" }, "other", -1, { title, value }), /wouldn't reach it after this move|wouldn't reach after this move/);
+});
+
+test("new tool steps: only reminders, to-dos and list lines run alone; drafts always wait", () => {
+  const cat = sampleCatalog();
+  const go = (tool: string) => defaultGo(cat.find((e) => e.tool === tool)!);
+  assert.equal(go("add_reminder"), "auto");
+  assert.equal(go("add_todo"), "auto");
+  assert.equal(go("add_to_list"), "auto");
+  assert.equal(go("save_note"), "ask");
+  assert.equal(go("draft_email"), "ask");
+  assert.equal(go("draft_message"), "ask");
+  // A look has nothing to wait for.
+  assert.equal(go("weather"), "auto");
+  assert.equal(defaultGo({ tool: "something_new", changes: true }), "ask");
+
+  for (const tool of ["draft_email", "draft_message"]) {
+    const e = cat.find((x) => x.tool === tool)!;
+    assert.equal(e.group, "tell");
+    const step = stepFromEntry(e, "s1", []);
+    assert.equal(step.kind === "tool" && step.go, "ask");
+    assert.deepEqual(Object.keys(step.kind === "tool" ? step.input : {}), ["to", "subject", "body"]);
+    assert.equal(goLocked(step), true);
+    assert.equal(changes(step, []), true);
+    // Even saved as "auto" somewhere else, a draft still waits.
+    assert.equal(waitsForGo({ ...step, go: "auto" } as typeof step), true);
+  }
+  assert.equal(goLocked(stepFromEntry(cat.find((x) => x.tool === "add_todo")!, "s2", [])), false);
 });

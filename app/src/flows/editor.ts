@@ -15,12 +15,13 @@ import { icons } from "../components/icons";
 import { openSheet } from "../components/sheet";
 import { showToast } from "../components/toast";
 import { confirmDialog } from "../components/confirm";
-import { deleteFlow, getFlow, loadCatalog, onFlowsChange, previewValues, runFlow, takeBack, updateFlow, type Flow, type FlowRun } from "../db/flows";
+import { deleteFlow, getFlow, loadCatalog, onFlowsChange, runFlow, takeBack, updateFlow, type Flow, type FlowRun } from "../db/flows";
 import { getAssistant, listTeam, type TeamAssistant } from "../db/team";
 import { FLOW_LIMITS, type CatalogEntry, type FlowStep, type FlowValue, type ValueRef } from "../../../lib/flow-types";
 import { badge, face, flowIcon, givesRow, stepTile, switchInput, textWithChips, triggerTile, type Lookup } from "./parts";
-import { brokenSteps, branchesOf, canBranchAt, countSteps, findStep, hasRoom, insertStep, newStepId, removeStep, replaceStep, valuesBefore, valuesForStep, walk, type Branch, type ListPath } from "./tree";
-import { BRANCH_WORDS, conditionWords, flowKindWords, runHeading, stepTitle, triggerTitle, tryWords, waitsForGo } from "./words";
+import { brokenSteps, branchesOf, canBranchAt, canMove, countSteps, findStep, hasRoom, insertStep, moveProblem, moveStep, newStepId, removeStep, replaceStep, valuesBefore, valuesForStep, walk, type Branch, type ListPath } from "./tree";
+import { BRANCH_WORDS, conditionWords, flowKindWords, moveRefusal, runHeading, stepTitle, triggerTitle, tryWords, waitsForGo } from "./words";
+import { previewRun } from "./preview";
 import { changes, entryFor, stepFromEntry } from "./steps";
 import { openAddStep } from "./add-step";
 import { openStepSheet } from "./step-sheet";
@@ -146,8 +147,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
           allValues: [...allValues().values()],
           catalog,
           assistant,
-          preview: previewValues(flow.id),
-          previewFrom: tryWords(flow.trigger).replace(/^Try it on /, "").replace(/^Try it now$/, "the last run"),
+          ...preview(),
           onDone: (s) => void saveSteps(insertStep(flow.steps, path, index, s), entry.money && !flow.money ? { money: true } : {}),
         });
       },
@@ -162,11 +162,33 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
       allValues: [...allValues().values()],
       catalog,
       assistant,
-      preview: previewValues(flow.id),
-      previewFrom: tryWords(flow.trigger).replace(/^Try it on /, "").replace(/^Try it now$/, "the last run"),
+      ...preview(),
       onDone: (s) => void saveSteps(replaceStep(flow.steps, s)),
       onRemove: () => void saveSteps(removeStep(flow.steps, step.id)),
+      move: { up: canMove(flow.steps, step.id, -1), down: canMove(flow.steps, step.id, 1), onMove: (by, s) => moveTo(s, by) },
     });
+  }
+
+  /** The step settings preview: the newest run's values (FlowRun.values), or chip labels when there's no run yet. */
+  function preview(): { preview: Record<string, string>; previewFrom: string } {
+    const p = previewRun(runs);
+    return p ? { preview: p.values, previewFrom: `${runHeading(p.run.started_at)} · ${p.run.label}` } : { preview: {}, previewFrom: "" };
+  }
+
+  /** Move a step (with what the sheet changed) up or down its list, unless a step would lose a value it uses: then say why. */
+  function moveTo(step: FlowStep, by: -1 | 1): string | null {
+    const edited = { ...flow, steps: replaceStep(flow.steps, step) };
+    const problem = moveProblem(edited, step.id, by);
+    if (problem) {
+      const label = allValues().get(refKey(problem.ref))?.label ?? "a value";
+      const title = (id: string) => {
+        const s = findStep(edited.steps, id)?.step;
+        return s ? stepTitle(s, catalog, assistant?.name) : "a step";
+      };
+      return moveRefusal(problem, step.id, by, { title, value: label });
+    }
+    void saveSteps(moveStep(edited.steps, step.id, by)).then((ok) => ok && showToast(by < 0 ? "Moved up" : "Moved down"));
+    return null;
   }
 
   function handed(f: Flow) {

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Flow, FlowStep } from "../../../lib/flow-types";
 import { FLOW_LIMITS } from "../../../lib/flow-types";
-import { brokenSteps, canBranchAt, countSteps, depthOf, findStep, hasRoom, insertStep, listAt, moveStep, newStepId, removeStep, replaceStep, valuesBefore, valuesForStep } from "./tree";
+import { brokenSteps, canBranchAt, canMove, countSteps, moveProblem, depthOf, findStep, hasRoom, insertStep, listAt, moveStep, newStepId, removeStep, replaceStep, valuesBefore, valuesForStep } from "./tree";
 
 const T = (key: string) => ({ from: "trigger", key });
 
@@ -101,4 +101,31 @@ test("new ids don't clash and the step limit holds", () => {
   const many: FlowStep[] = Array.from({ length: FLOW_LIMITS.steps }, (_, i) => ({ id: `n${i}`, kind: "notify", title: null, text: ["hi"] }));
   assert.equal(hasRoom(many), false);
   assert.equal(hasRoom(f.steps), true);
+});
+
+test("moving a step: only within its list, and never past what it needs", () => {
+  const f = sample();
+  assert.equal(canMove(f.steps, "paid", -1), false);
+  assert.equal(canMove(f.steps, "paid", 1), true);
+  assert.equal(canMove(f.steps, "end", 1), false);
+  assert.equal(canMove(f.steps, "think", 1), true);
+  assert.equal(canMove(f.steps, "todo", 1), false);
+  assert.equal(canMove(f.steps, "gone", 1), false);
+  // The Check uses last year's price: it can't go above the step that finds it…
+  assert.deepEqual(moveProblem(f, "up", -1), { step: "up", ref: { from: "paid", key: "last" }, giver: "paid" });
+  // …and that step can't go below it.
+  assert.deepEqual(moveProblem(f, "paid", 1), { step: "up", ref: { from: "paid", key: "last" }, giver: "paid" });
+  // Inside a branch too.
+  assert.deepEqual(moveProblem(f, "todo", -1), { step: "todo", ref: { from: "think", key: "deal" }, giver: "think" });
+  // Using only the trigger's values, a step moves freely.
+  assert.equal(moveProblem(f, "end", -1), null);
+  // At the end of its list there's nothing to refuse.
+  assert.equal(moveProblem(f, "end", 1), null);
+});
+
+test("a step that was already broken doesn't block a move", () => {
+  const f = sample();
+  f.steps.push({ id: "lost", kind: "notify", title: null, text: [{ from: "nowhere", key: "x" }] });
+  assert.ok(brokenSteps(f).has("lost"));
+  assert.equal(moveProblem(f, "lost", -1), null);
 });

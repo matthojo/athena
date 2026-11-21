@@ -236,6 +236,15 @@ button.flow-chip {
   box-shadow: var(--shadow-card);
 }
 
+/* A draft's Go: shown, but it always waits. */
+.flow-seg.is-locked .flow-seg__item {
+  cursor: not-allowed;
+}
+
+.flow-seg.is-locked .flow-seg__item[aria-pressed="false"] {
+  opacity: 0.5;
+}
+
 .flow-switch-row {
   display: flex;
   align-items: center;
@@ -1075,6 +1084,17 @@ button.flow-chip {
 .flow-preview__line {
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
+}
+
+.flow-preview__from {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+.flow-move > .btn {
+  flex: 1 1 0;
 }
 
 .flow-select {

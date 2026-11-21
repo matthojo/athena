@@ -20,7 +20,7 @@ import { h } from "../lib/dom";
 import { icons, type IconName } from "./icons";
 import { showToast } from "./toast";
 import { DEFAULT_PREFS, type NotificationPrefs, type NudgeKind } from "../../../lib/nudges";
-import { RULES } from "../lib/nudge-rules";
+import { RULES, settingsRuleIds } from "../lib/nudge-rules";
 import { DEFAULT_PROACTIVE, fetchProactive, saveProactive, unmuteRule, type JourneyPlanners, type ProactivePatch, type ProactivePrefs, type RuleId } from "../db/nudges";
 import { RULE_IDS, TRAVEL_MODES, type TravelMode } from "../../../lib/proactive/types";
 import { TRAVEL_WORDS } from "../lib/travel-words";
@@ -283,11 +283,14 @@ export function notificationsSection(): { el: HTMLElement; destroy: () => void }
   function paintAthena() {
     const day = (iso: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" }).format(new Date(iso));
     athena.replaceChildren(
-      ...RULE_IDS.map((id) => {
-        const r = RULES[id];
+      ...settingsRuleIds(RULE_IDS).map((aid) => {
+        // "flow" may not be a RuleId yet (the engine adds it): the prefs are read as if it were, on by default like Team's.
+        const id = aid as RuleId;
+        const r = RULES[aid];
+        const on = proactive.rules[id] ?? true;
         const muted = mutes[id] && Date.parse(mutes[id]!) > Date.now() ? mutes[id]! : null;
         let extra: HTMLElement | undefined;
-        if (muted && proactive.rules[id]) {
+        if (muted && on) {
           const resume = h("button", { class: "btn btn--ghost btn--sm", type: "button" }, COPY.resume);
           resume.addEventListener("click", async () => {
             await unmuteRule(id).catch(() => showToast(COPY.saveFailed, { icon: "wifiOff" }));
@@ -295,7 +298,7 @@ export function notificationsSection(): { el: HTMLElement; destroy: () => void }
             paintAthena();
           });
           extra = h("div", { class: "nudge-extra" }, h("span", { class: "nudge-extra__label" }, COPY.pausedUntil(day(muted))), resume);
-        } else if (id === "leave_by" && proactive.rules[id]) {
+        } else if (id === "leave_by" && on) {
           // How the owner usually travels (each event can choose its own), then what's missing for it (Sources → Places and travel).
           const pick = h("select", { class: "field nudge-time", "aria-label": COPY.usualTravel }, ...TRAVEL_MODES.map((m) => h("option", { value: m, selected: m === proactive.travel_mode }, TRAVEL_WORDS[m]))) as HTMLSelectElement;
           pick.addEventListener("change", () => void saveRule({ travel_mode: pick.value as TravelMode }));
@@ -307,12 +310,12 @@ export function notificationsSection(): { el: HTMLElement; destroy: () => void }
             rows.push(h("div", { class: "nudge-extra nudge-extra--stack" }, h("span", { class: "nudge-extra__label" }, COPY.noPlanner), h("a", { class: "btn btn--soft btn--sm", href: "#/settings/sources?add=travel" }, COPY.addPlanner)));
           }
           extra = h("div", { class: "nudge-extras" }, ...rows);
-        } else if (id === "awaiting_reply" && proactive.rules[id]) {
+        } else if (id === "awaiting_reply" && on) {
           const pick = h("select", { class: "field nudge-time", "aria-label": COPY.replyAfter }, ...[2, 3, 4, 5, 7].map((n) => h("option", { value: String(n), selected: n === proactive.reply_days }, COPY.replyDays(n)))) as HTMLSelectElement;
           pick.addEventListener("change", () => void saveRule({ reply_days: Number(pick.value) }));
           extra = h("label", { class: "nudge-extra" }, h("span", { class: "nudge-extra__label" }, COPY.replyAfter), pick);
         }
-        return switchRow(r.icon, r.name, r.meta, proactive.rules[id], (on) => void saveRule({ rules: { [id]: on } }), extra);
+        return switchRow(r.icon, r.name, r.meta, on, (next) => void saveRule({ rules: { [id]: next } }), extra);
       })
     );
   }

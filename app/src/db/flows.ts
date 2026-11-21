@@ -49,11 +49,6 @@ function sampleApply(f: Flow, input: FlowInput): Flow {
   return next;
 }
 
-/** Only in sample mode: what each value was on the last run, for a step's preview. The server doesn't say. */
-export function previewValues(flowId: string): Record<string, string> {
-  return isSampleMode() ? { ...(store().values[flowId] ?? {}) } : {};
-}
-
 // ---------- flows ----------
 
 export async function listFlows(): Promise<FlowListResponse> {

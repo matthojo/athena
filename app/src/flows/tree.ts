@@ -193,3 +193,38 @@ export function brokenSteps(flow: Pick<Flow, "trigger_gives" | "steps">): Set<st
   });
   return broken;
 }
+
+/** Whether a step has a neighbour to swap with, up (-1) or down (1), in its own list. */
+export function canMove(steps: readonly FlowStep[], id: string, by: -1 | 1): boolean {
+  const at = findStep(steps, id);
+  if (!at) return false;
+  const list = listAt(steps as FlowStep[], at.path);
+  const j = at.index + by;
+  return !!list && j >= 0 && j < list.length;
+}
+
+/** Why a move is refused: `step` would use `ref`, which `giver` (null: the trigger) no longer gives before it. */
+export interface MoveProblem {
+  step: string;
+  ref: ValueRef;
+  giver: string | null;
+}
+
+/**
+ * What moving a step would break, or null when it's safe: the first step
+ * that reached all its values before the move and wouldn't after it. Steps
+ * that were already broken aren't counted against the move.
+ */
+export function moveProblem(flow: Pick<Flow, "trigger_gives" | "steps">, id: string, by: -1 | 1): MoveProblem | null {
+  if (!canMove(flow.steps, id, by)) return null;
+  const was = brokenSteps(flow);
+  const after = { trigger_gives: flow.trigger_gives, steps: moveStep(flow.steps, id, by) };
+  let hit: MoveProblem | null = null;
+  walk(after.steps, (s, path, index) => {
+    if (hit || was.has(s.id)) return;
+    const ok = new Set(valuesBefore(after, path, index).map((v) => `${v.ref.from}\u0000${v.ref.key}`));
+    const bad = refsIn(s).find((r) => !ok.has(`${r.from}\u0000${r.key}`));
+    if (bad) hit = { step: s.id, ref: bad, giver: bad.from === "trigger" ? null : bad.from };
+  });
+  return hit;
+}

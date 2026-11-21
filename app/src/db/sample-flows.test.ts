@@ -89,3 +89,12 @@ test("sample data is made up", () => {
   for (const m of text.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) ?? []) assert.match(m, /@example\.com$/);
   for (const real of ["Smyths", "Lego", "Amazon", "Argos", "Virgin", "BT ", "Sky "]) assert.ok(!text.includes(real), real);
 });
+
+test("sample runs keep their values, so the step preview has something real to read", () => {
+  const s = sampleFlows();
+  const renewal = s.runs.filter((r) => r.run.flow_id === SAMPLE_FLOW_IDS.renewal).map((r) => r.run);
+  assert.ok(renewal.length);
+  for (const r of renewal) assert.ok(r.values && Object.keys(r.values).length, "every sample run carries values");
+  const newest = [...renewal].sort((a, b) => b.started_at.localeCompare(a.started_at))[0];
+  assert.equal(newest.values?.trigger?.company, "Northwind Broadband");
+});

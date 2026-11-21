@@ -8,6 +8,7 @@
  */
 import type { CatalogEntry, Flow, FlowRun, FlowRunStep, FlowStep, FlowSuggestion, FlowTrigger, FlowValue, ValueRef } from "../../../lib/flow-types";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
+import { nestValues } from "../flows/preview";
 
 const DAY = 86_400_000;
 
@@ -252,7 +253,8 @@ export function sampleCatalog(): CatalogEntry[] {
     { kind: "wait", group: "decide", label: "Wait", hint: "For some days, or until a day before a date", changes: false, fields: [], gives: [] },
     { kind: "ask", group: "decide", label: "Ask me", hint: "A question with choices, each one a branch", changes: false, fields: [], gives: [] },
     { kind: "notify", group: "tell", label: "Notification", hint: "On your phone and Home, within your quiet hours", changes: false, fields: [], gives: [] },
-    { kind: "tool", tool: "draft_email", group: "tell", label: "Draft an email", hint: "Never sent. It waits in your drafts.", changes: true, fields: [f("to", "To", "person"), f("about", "About", "text")], gives: [v("draft", "the draft", "email")] },
+    { kind: "tool", tool: "draft_email", group: "tell", label: "Draft an email", hint: "Never sent. It waits for your Go, then sits in your drafts.", changes: true, fields: [f("to", "To", "person"), f("subject", "Subject", "text"), f("body", "Email", "text")], gives: [v("draft", "the draft", "email")] },
+    { kind: "tool", tool: "draft_message", group: "tell", label: "Draft a message", hint: "Never sent. It waits for your Go, then sits in your drafts.", changes: true, fields: [f("to", "To", "person"), f("subject", "Subject", "text", false), f("body", "Message", "text")], gives: [v("draft", "the draft", "text")] },
     { kind: "think", group: "team", label: "Let an assistant think", hint: "It thinks it through and gives you what it found", changes: false, needsAssistant: true, fields: [], gives: [v("answer", "the answer", "text")] },
     { kind: "assignment", group: "team", label: "Start an assignment", hint: "A lineup of assistants takes it from here", changes: false, fields: [], gives: [] },
   ];
@@ -462,6 +464,8 @@ export function sampleRunFrom(store: Pick<SampleFlows, "values" | "lines" | "che
     assistant_id: fl.assistant_id,
     summary: finished ? (o.summary ?? null) : null,
     steps: walked.steps,
+    // What each value was, as the engine keeps it (FlowRun.values): the step settings preview reads the newest run's.
+    values: nestValues(store.values[fl.id] ?? {}),
     dry: o.dry,
     error: null,
     started_at: iso(o.at),
