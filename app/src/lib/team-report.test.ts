@@ -33,7 +33,7 @@ test("Waits and Review read naturally for one and many", () => {
 });
 
 test("Working words start with the name", () => {
-  assert.equal(workingWords("Muse", { status: "running", step: "Checking prices…" }), "Muse is checking prices");
+  assert.equal(workingWords("Moss", { status: "running", step: "Checking prices…" }), "Moss is checking prices");
   assert.equal(workingWords("Wren", { status: "running", step: null }), "Wren is getting it done");
   assert.equal(workingWords("Dot", { status: "queued" }), "Dot is about to start");
   // A second try waits for the next pass: it says so, the same on every screen.
@@ -64,9 +64,9 @@ test("Live runs: each assistant's newest, newest first", () => {
 
 test("One sentence for whoever is working", () => {
   assert.equal(teamWorkingSentence([]), null);
-  assert.equal(teamWorkingSentence(["Muse"]), "Muse is working");
-  assert.equal(teamWorkingSentence(["Muse", "Dot"]), "Muse and Dot are working");
-  assert.equal(teamWorkingSentence(["Muse", "Dot", "Wren"]), "Muse, Dot and 1 other are working");
+  assert.equal(teamWorkingSentence(["Moss"]), "Moss is working");
+  assert.equal(teamWorkingSentence(["Moss", "Dot"]), "Moss and Dot are working");
+  assert.equal(teamWorkingSentence(["Moss", "Dot", "Wren"]), "Moss, Dot and 1 other are working");
 });
 
 test("Its own words come from its last reply, in whole sentences", () => {

@@ -267,7 +267,7 @@ export function shortDay(iso: string, opts: { tz?: string; now?: Date } = {}): s
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }), timeZone: opts.tz }).format(t);
 }
 
-/** "Price", "Followers": what a check list calls the value. "When you saved it", "You", "Ask", "Muse": who checked. */
+/** "Price", "Followers": what a check list calls the value. "When you saved it", "You", "Ask", "Moss": who checked. */
 export function checkerWords(p: Pick<TrackerPoint, "checked_by" | "who">): string {
   if (p.checked_by === "save") return "When you saved it";
   if (p.checked_by === "owner") return "You";

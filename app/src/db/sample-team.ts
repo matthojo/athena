@@ -1,14 +1,14 @@
 /**
  * Sample mode's team (docs/team.md): three assistants with their triggers,
  * memory and a few runs, so the Team pages have something real to show.
- * Muse watches gift prices, Dot turns Linear issues into to-dos, and Wren
+ * Moss watches gift prices, Dot turns Linear issues into to-dos, and Wren
  * sums up the week on Fridays.
  */
 import type { TeamAssistant, TeamRun, TeamTrigger } from "../../../lib/team-types";
 import { hashText, skillBasis, type TeamQuestion, type TeamSkillMeta } from "../../../lib/team-skill";
 
 export const SAMPLE_TEAM_IDS = {
-  muse: "5a3e0000-0000-4000-8000-0000000e0001",
+  moss: "5a3e0000-0000-4000-8000-0000000e0001",
   dot: "5a3e0000-0000-4000-8000-0000000e0002",
   wren: "5a3e0000-0000-4000-8000-0000000e0003",
 } as const;
@@ -55,35 +55,35 @@ function trigger(n: number, assistant_id: string, t: Pick<TeamTrigger, "kind" | 
 
 /**
  * Who may look things up online (docs/team.md, "Looking things up online"):
- * Muse checks prices on the web; Dot and Wren don't. `web` is the contract's
+ * Moss checks prices on the web; Dot and Wren don't. `web` is the contract's
  * field, which lib/team-types.ts gains in a sibling session.
  */
-const SAMPLE_WEB: Record<string, boolean> = { [SAMPLE_TEAM_IDS.muse]: true, [SAMPLE_TEAM_IDS.dot]: false, [SAMPLE_TEAM_IDS.wren]: false };
+const SAMPLE_WEB: Record<string, boolean> = { [SAMPLE_TEAM_IDS.moss]: true, [SAMPLE_TEAM_IDS.dot]: false, [SAMPLE_TEAM_IDS.wren]: false };
 
-/** Whose job needs the web, as the server said when it drafted them: Muse's page says so if her switch goes off. */
-export const SAMPLE_WEB_HINTS: ReadonlySet<string> = new Set([SAMPLE_TEAM_IDS.muse]);
+/** Whose job needs the web, as the server said when it drafted them: Moss's page says so if her switch goes off. */
+export const SAMPLE_WEB_HINTS: ReadonlySet<string> = new Set([SAMPLE_TEAM_IDS.moss]);
 
 export function sampleTeam(): TeamAssistant[] {
   return sampleTeamBase().map((a) => ({ ...a, web: SAMPLE_WEB[a.id] === true }) as TeamAssistant);
 }
 
 function sampleTeamBase(): TeamAssistant[] {
-  const { muse, dot, wren } = SAMPLE_TEAM_IDS;
+  const { moss, dot, wren } = SAMPLE_TEAM_IDS;
   return [
     {
-      id: muse,
-      name: "Muse",
+      id: moss,
+      name: "Moss",
       job: "Finds good prices for gift ideas",
       instructions: "When a gift idea is saved, look for the best price from a shop I've bought from before. Note the price and the link on the gift idea. Mention it if the price drops.",
       personality: { tone: "warm", traits: ["thorough", "frugal"], pronoun: "she", greeting: "Hi! I'll keep an eye on prices for you." },
-      avatar: { v: 1, seed: "muse", species: "cat", fur: "snow", accent: "pink", eyes: "sparkle", mouth: "small-smile", outfit: "hoodie", outfitColor: "berry", accessories: ["glasses"] },
+      avatar: { v: 1, seed: "moss", species: "cat", fur: "snow", accent: "pink", eyes: "sparkle", mouth: "small-smile", outfit: "hoodie", outfitColor: "berry", accessories: ["glasses"] },
       allow: ["add_to_list"],
       paused: false,
       routine_id: null,
       memory: { summary: "Jordan prefers independent shops and doesn't mind waiting a week for a better price.", facts: ["Buys books from Waterstones", "Gift budget is usually under £50"] },
       memory_updated_at: ago(2 * DAY),
       last_run_at: new Date(today(41)).toISOString(),
-      triggers: [trigger(1, muse, { kind: "event", days: [], time: null, event: { source: "saved", savedAction: "gift-idea" } }, (T0 - today(42)) / MIN)],
+      triggers: [trigger(1, moss, { kind: "event", days: [], time: null, event: { source: "saved", savedAction: "gift-idea" } }, (T0 - today(42)) / MIN)],
       created_at: ago(30 * DAY),
       updated_at: ago(2 * DAY),
     },
@@ -130,10 +130,10 @@ export const sampleRunThreadId = (runId: string) => runId.replace(/^5a3e0000/, "
 const runId = (n: number) => `5a3e0000-0000-4000-8000-0000000e${n < 100 ? "02" : "05"}${String(n % 100).padStart(2, "0")}`;
 const triggerId = (k: number) => `5a3e0000-0000-4000-8000-0000000e01${String(k).padStart(2, "0")}`;
 
-/** Muse's run in progress: she started just before you opened the page, and finishes about a minute in. */
+/** Moss's run in progress: she started just before you opened the page, and finishes about a minute in. */
 const MUSE_LIVE = { started: T0 - 25_000, steps: ["Reading the gift idea", "Searching the web for Aesop hand balm", "Reading johnlewis.com", "Reading boots.com", "Comparing the three shops"], stepMs: 15_000, doneAt: T0 + 70_000 };
 
-function museLive(id: string): TeamRun {
+function mossLive(id: string): TeamRun {
   const now = Date.now();
   const base: TeamRun = { id: runId(10), assistant_id: id, trigger_id: triggerId(1), event_id: "41", status: "running", thread_id: null, summary: null, error: null, started_at: new Date(MUSE_LIVE.started).toISOString(), finished_at: null, label: "New gift idea: “Aesop hand balm”" };
   if (now >= MUSE_LIVE.doneAt) return { ...base, status: "done", thread_id: sampleRunThreadId(base.id), finished_at: new Date(MUSE_LIVE.doneAt).toISOString(), summary: "The Aesop hand balm is £27 at John Lewis, £4 less than Boots. The link is on the gift idea.", waiting: 0 };
@@ -159,15 +159,15 @@ interface Past {
 
 /**
  * The sample team's day: one run list that every Team screen reads (the
- * Team page, an assistant's page, Home's card and Ask). Muse is checking a
+ * Team page, an assistant's page, Home's card and Ask). Moss is checking a
  * price as you open the app, and checked the Lego Ferrari earlier. Dot turned
  * the morning's three Linear issues into two to-dos and left one change for
  * your Go. Wren wrote Friday's summary and is quiet until next Friday. Each
  * finished run keeps a conversation (sample-team-detail.ts writes them).
  */
 export function sampleRuns(assistantId: string): TeamRun[] {
-  const { muse, dot, wren } = SAMPLE_TEAM_IDS;
-  const ev = assistantId === muse ? triggerId(1) : assistantId === dot ? triggerId(2) : null;
+  const { moss, dot, wren } = SAMPLE_TEAM_IDS;
+  const ev = assistantId === moss ? triggerId(1) : assistantId === dot ? triggerId(2) : null;
   const run = (p: Past): TeamRun => ({
     id: runId(p.n),
     assistant_id: assistantId,
@@ -183,9 +183,9 @@ export function sampleRuns(assistantId: string): TeamRun[] {
     waiting: p.error ? 0 : (p.waiting ?? 0),
   });
   const back = (min: number) => T0 - min * MIN;
-  if (assistantId === muse)
+  if (assistantId === moss)
     return [
-      museLive(muse),
+      mossLive(moss),
       ...[
         { n: 1, at: today(42), label: "New gift idea: “Lego Technic Ferrari Daytona”", summary: "Found the Lego Ferrari for £34 at Smyths, £8 under the price when you saved it." },
         { n: 2, at: daysBack(1, 19, 40), label: "New gift idea: “Moleskine diary”", summary: "The Moleskine diary is £18 at Waterstones. Nothing you've bought from is cheaper." },
@@ -217,11 +217,11 @@ export function sampleRuns(assistantId: string): TeamRun[] {
 // ---------- their own skills (docs/team.md, "Skills") ----------
 
 const MUSE_SKILL = `---
-name: muse-gift-prices
-description: "Muse's own skill: how Muse does its job (Finds good prices for gift ideas). Muse loads it on every chat and run."
+name: moss-gift-prices
+description: "Moss's own skill: how Moss does its job (Finds good prices for gift ideas). Moss loads it on every chat and run."
 ---
 
-# How Muse works
+# How Moss works
 
 1. When a gift idea is saved, search for it at Waterstones, Smyths and John Lewis first, then anywhere else.
 2. Keep to the budget: under £50 a gift unless the owner says otherwise.
@@ -257,10 +257,10 @@ description: "Wren's own skill: how Wren does its job (Sums up your week every F
 `;
 
 const SAMPLE_SKILL_ANSWERS: Record<string, Array<{ question: string; answer: string }>> = {
-  muse: [
+  moss: [
     { question: "Which shops do you trust?", answer: "Waterstones, Smyths and John Lewis" },
     { question: "What's your budget per gift?", answer: "Under £50" },
-    { question: "When should Muse tell you about a price?", answer: "Only drops of £5 or more" },
+    { question: "When should Moss tell you about a price?", answer: "Only drops of £5 or more" },
   ],
   dot: [
     { question: "Where should the to-dos go?", answer: "Work" },
@@ -273,16 +273,16 @@ const SAMPLE_SKILL_ANSWERS: Record<string, Array<{ question: string; answer: str
 };
 
 const SAMPLE_SUMMARIES: Record<string, string> = {
-  muse: "Checks Waterstones, Smyths and John Lewis first, keeps each gift under £50, and tells you only when a price drops by £5 or more.",
+  moss: "Checks Waterstones, Smyths and John Lewis first, keeps each gift under £50, and tells you only when a price drops by £5 or more.",
   dot: "Adds one to-do per Linear issue in your Work context, copies a due date only when the issue has one, and skips issues it has already added.",
   wren: "Writes three short parts every Friday: what got done, what slipped and who you met, in under ten lines.",
 };
 
-/** Muse, Dot and Wren's own skills, as sample mode's skill list keeps them. */
+/** Moss, Dot and Wren's own skills, as sample mode's skill list keeps them. */
 export function sampleTeamSkills(): Array<{ id: string; assistant_id: string; text: string; team: TeamSkillMeta; at: string; uses: number }> {
   const team = sampleTeam();
-  const texts: Record<string, string> = { muse: MUSE_SKILL, dot: DOT_SKILL, wren: WREN_SKILL };
-  return (["muse", "dot", "wren"] as const).map((key, i) => {
+  const texts: Record<string, string> = { moss: MUSE_SKILL, dot: DOT_SKILL, wren: WREN_SKILL };
+  return (["moss", "dot", "wren"] as const).map((key, i) => {
     const a = team.find((x) => x.id === SAMPLE_TEAM_IDS[key])!;
     const body = texts[key].split("\n---\n")[1].trim();
     return {

@@ -30,15 +30,23 @@ Each copy belongs to one person and runs on their own Netlify account, so
 the project never sees your data.
 
 <p align="center">
-  <img src=".github/readme/home.webp" alt="Athena's Home page on a desktop: a morning greeting, the Ask box, and today's train, flight, car hire and hotel in a row" width="100%">
+  <img src=".github/readme/home.webp" alt="Athena's Home page on a desktop: a morning greeting, the Ask box with your assistants beside it, and today's train, flight, car hire and hotel in a row" width="100%">
 </p>
 
 <p align="center">
-  <img src=".github/readme/days.webp" width="31%" alt="Days on a phone: last night's sleep, morning and evening questions, habits and a mood picker">
+  <img src=".github/readme/days.webp" width="31%" alt="Days on a phone: morning and evening questions, a mood picker, and last night's sleep and steps">
   &nbsp;
-  <img src=".github/readme/week.webp" width="31%" alt="Week in review on a phone: time with Priya and Tom, a four-day trip to Lisbon">
+  <img src=".github/readme/week.webp" width="31%" alt="Week in review on a phone: time with Tom and Priya, and four days in Lisbon">
   &nbsp;
-  <img src=".github/readme/team.webp" width="31%" alt="Team on a phone: assistants called Muse and Dot, one waiting for your Go">
+  <img src=".github/readme/team.webp" width="31%" alt="Team on a phone: Moss checking a gift price, and Dot waiting for your Go">
+</p>
+
+<p align="center">
+  <img src=".github/readme/flows.webp" width="31%" alt="Flows on a phone: two flows Athena suggests from your habits, and Renewal guard waiting for your Go">
+  &nbsp;
+  <img src=".github/readme/flow.webp" width="31%" alt="A flow on a phone: Renewal guard starts when something's due to renew, then finds what you paid last year">
+  &nbsp;
+  <img src=".github/readme/flow-run.webp" width="31%" alt="A run of Renewal guard: £38 is 19% more than last year, so a to-do to decide waits for your Go">
 </p>
 
 <p align="center"><sub>Screens from sample mode. Every person and number in them is made up.</sub></p>
@@ -62,11 +70,23 @@ the project never sees your data.
   Granola, Linear, Slack, GitHub, Notion or any MCP server, with read-only
   tools, and on a schedule Claude turns what's new into notes, to-dos and
   events.
-- **Team:** assistants you set up, which run on a schedule or when something
-  arrives (a new Linear issue, a saved link). A change you haven't allowed
-  waits for your **Go**. Share one as a file anyone can add to their own
-  Athena, or add one someone shared: it joins paused, and asks before
-  every change until you tick what it may do on its own.
+- **Flows:** a trigger, then steps. "When a renewal email comes in, find
+  what I paid last year, and if it's gone up, add a to-do to decide." A flow
+  starts on a schedule, when something arrives, before an event or a date,
+  or when you tap Run now. Its steps look things up, add to Athena, ask you,
+  wait or tell you, and a check can send it down one of two paths. Say
+  "whenever…" in Ask, describe one in a sentence under Flows → New, or take
+  one Athena suggests from your habits. Adding a reminder, a to-do or a line
+  on a list runs on its own; anything else waits for your **Go**, and Athena
+  never sends a draft.
+- **Team:** assistants you set up, each running its own flows on a schedule
+  or when something arrives (a new Linear issue, a saved link). Let an
+  assistant run one of your flows and it can add steps that work something
+  out, like looking online for a better price, then tell you what it found
+  in its own words. A change you haven't allowed waits for your **Go**. Share
+  an assistant as a file anyone can add to their own Athena, or add one
+  someone shared: it joins paused, and asks before every change until you
+  tick what it may do on its own.
 - **A morning briefing and reminders:** a note at 07:30 in your time zone,
   and push notifications, including on iPhone once Athena is on your Home
   Screen.

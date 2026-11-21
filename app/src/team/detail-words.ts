@@ -103,7 +103,7 @@ export function nextStart(triggers: ReadonlyArray<Pick<TeamTrigger, "kind" | "da
 
 /**
  * What the empty work list says about when it'll first start: "Acorn starts
- * on Sunday at 10:00.", "Muse starts when you save a gift idea.", or, with no
+ * on Sunday at 10:00.", "Moss starts when you save a gift idea.", or, with no
  * triggers on, "Acorn works when you ask."
  */
 export function firstStart(name: string, triggers: ReadonlyArray<TeamTrigger>, now = new Date(), hour12 = prefers12h()): string {

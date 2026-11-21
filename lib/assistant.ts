@@ -248,7 +248,7 @@ export interface AssistantReply {
   plan?: PlanCard;
   /** The owner's skills this reply used (lib/skills-ask.ts): the "Used" line under it. */
   skills?: UsedSkill[];
-  /** Team assistants main Ask checked with (check_with_assistant): "Checked with Muse". */
+  /** Team assistants main Ask checked with (check_with_assistant): "Checked with Moss". */
   checked?: CheckedAssistant[];
   /** Said by this Team assistant, not main Ask (lib/team-chat.ts). */
   assistant_id?: string;

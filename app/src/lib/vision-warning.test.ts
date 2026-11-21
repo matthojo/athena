@@ -62,9 +62,9 @@ test("no model, a model not in the catalogue, or the default: no warning", () =>
 });
 
 test("the turn's thinking model: an assistant's own, else the owner's", () => {
-  const effective = { think: { ref: FLASH }, assistants: { muse: { think: { ref: NANO } } } };
-  assert.deepEqual(thinkingModel(effective, "muse"), NANO);
+  const effective = { think: { ref: FLASH }, assistants: { moss: { think: { ref: NANO } } } };
+  assert.deepEqual(thinkingModel(effective, "moss"), NANO);
   assert.deepEqual(thinkingModel(effective, "wren"), FLASH);
   assert.deepEqual(thinkingModel(effective, null), FLASH);
-  assert.equal(thinkingModel(null, "muse"), null);
+  assert.equal(thinkingModel(null, "moss"), null);
 });

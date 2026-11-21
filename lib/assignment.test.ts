@@ -15,7 +15,7 @@ import { allowableTools } from "./team-chat";
 import { isPlannable } from "./ask-plans";
 import { asTrackerChecker } from "./trackers-store";
 
-const TEAM = [{ id: "00000000-0000-4000-8000-000000000001", name: "Muse", job: "Finds good prices for gift ideas" }];
+const TEAM = [{ id: "00000000-0000-4000-8000-000000000001", name: "Moss", job: "Finds good prices for gift ideas" }];
 const GOOD = {
   title: "Pricing page rewrite.",
   stages: [
@@ -55,7 +55,7 @@ test("a lineup is made to fit: known roles, a custom one with something to go on
   assert.equal(l.stages[2].name, "Grob", "a name is letters only");
   assert.equal(l.stages[2].instructions, "Look for quick wins.");
   assert.equal(l.stages[3].assistant_id, TEAM[0].id);
-  assert.equal(lineupLine(l.stages, TEAM), "Engineer → SEO → Grob → Muse");
+  assert.equal(lineupLine(l.stages, TEAM), "Engineer → SEO → Grob → Moss");
   assert.equal(fitLineup({ stages: [{ role: "engineer", task: "Only one" }] }, "x"), null, "fewer than two stages is no lineup");
   assert.equal(fitLineup({ title: "x" }, "x"), null);
   const many = fitLineup({ stages: Array.from({ length: 9 }, () => ({ role: "editor", task: "Tidy" })) }, "A brief with no title given at all")!;
@@ -108,7 +108,7 @@ test("a model that fails or answers junk falls back, and one that answers well i
   const good = await proposeLineup("Rewrite the pricing page", { client: fake(GOOD), team: TEAM });
   assert.equal(good.fallback, undefined);
   assert.equal(good.lineup.stages.length, 4);
-  assert.match(seen.at(-1)!.system!, /Muse, Finds good prices/, "the standing team is offered");
+  assert.match(seen.at(-1)!.system!, /Moss, Finds good prices/, "the standing team is offered");
   assert.match(JSON.stringify(seen.at(-1)!.tools![0].input_schema), /assistant_id/);
   assert.doesNotMatch(JSON.stringify(seen[0].tools![0].input_schema), /assistant_id/, "no team: no assistant to pick");
 });

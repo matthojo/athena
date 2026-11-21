@@ -59,7 +59,7 @@ test("the next scheduled start", () => {
 
 test("an empty page says when it first starts", () => {
   assert.equal(firstStart("Acorn", [trig({ days: [1], time: "10:00" })], NOW, false), "Acorn starts tomorrow at 10:00.");
-  assert.equal(firstStart("Muse", [trig({ kind: "event", event: { source: "saved", savedAction: "gift-idea" } })], NOW, false), "Muse starts when you save a gift idea.");
+  assert.equal(firstStart("Moss", [trig({ kind: "event", event: { source: "saved", savedAction: "gift-idea" } })], NOW, false), "Moss starts when you save a gift idea.");
   assert.equal(firstStart("Acorn", [], NOW, false), "Acorn works when you ask.");
 });
 

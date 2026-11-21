@@ -325,14 +325,14 @@ test("followers: an assistant tracks them on their own; its run opens the link, 
 test("who checks: Ask's track goes to the one assistant that fits, else nobody yet; the app's choice is taken as given", { skip }, async () => {
   const { createAssistant } = await import("./team");
   const { getTracker, createTracker } = await import("./trackers-store");
-  const muse = await createAssistant({ name: "Muse", job: "Finds good prices for gift ideas", web: true });
+  const moss = await createAssistant({ name: "Moss", job: "Finds good prices for gift ideas", web: true });
   const mug = await saveProduct("https://www.johnlewis.com/emma-bridgewater-mug", { name: "Emma Bridgewater mug" });
   const s = await session();
   const one = await run(s, "track", { saved_id: mug.id, preset: "price", currency: "GBP" });
-  assert.deepEqual(one.checker, { id: muse.id, name: "Muse" });
-  assert.equal(one.checks, "Muse will check it.");
-  assert.equal(s.changes[0].detail, "Tracking the price · Muse checks it");
-  assert.equal((await getTracker(one.tracker_id))!.assistant_id, muse.id);
+  assert.deepEqual(one.checker, { id: moss.id, name: "Moss" });
+  assert.equal(one.checks, "Moss will check it.");
+  assert.equal(s.changes[0].detail, "Tracking the price · Moss checks it");
+  assert.equal((await getTracker(one.tracker_id))!.assistant_id, moss.id);
   // Two fit: nobody is picked.
   const nell = await createAssistant({ name: "Nell", job: "Watches prices at my favourite shops", web: true });
   const jug = await saveProduct("https://www.johnlewis.com/emma-bridgewater-jug", { name: "Emma Bridgewater jug" });

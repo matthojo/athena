@@ -22,7 +22,7 @@ test("the allowlist offered is real change tools only", () => {
 
 test("a clean draft comes through, with a fresh seed", () => {
   const d = fitDraft(GIFT_PRICES, tools, "seed1")!;
-  assert.equal(d.name, "Muse");
+  assert.equal(d.name, "Moss");
   assert.equal(d.job, "Finds good prices for gift ideas");
   assert.deepEqual(d.allow, ["add_todo"]);
   assert.deepEqual(d.triggers, [{ kind: "event", event: { source: "saved", savedAction: "gift-idea" } }]);
@@ -74,7 +74,7 @@ test("a model that fails or answers junk falls back, and one that answers well i
   assert.equal((await draftAssistant("x", { client: fake(null, true) })).fallback, true);
   const good = await draftAssistant("When I save a gift idea, find a good price", { client: fake(GIFT_PRICES) });
   assert.equal(good.fallback, undefined);
-  assert.equal(good.draft.name, "Muse");
+  assert.equal(good.draft.name, "Moss");
 });
 
 test("web is suggested only when the job clearly needs something online, and only a true counts", () => {

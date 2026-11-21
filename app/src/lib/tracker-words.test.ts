@@ -13,7 +13,7 @@ const ago = (days: number, hour = 9) => {
   return d.toISOString();
 };
 let n = 0;
-const pt = (days: number, value: string, extra: Partial<TrackerPoint> = {}): TrackerPoint => ({ id: `p${++n}`, tracker_id: "t", value, source: null, url: null, checked_at: ago(days), checked_by: "assistant", assistant_id: "a", who: "Muse", ...extra });
+const pt = (days: number, value: string, extra: Partial<TrackerPoint> = {}): TrackerPoint => ({ id: `p${++n}`, tracker_id: "t", value, source: null, url: null, checked_at: ago(days), checked_by: "assistant", assistant_id: "a", who: "Moss", ...extra });
 const price = (points: TrackerPoint[], target: TrackerView["target"] = null): TrackerView => ({
   id: "t", saved_id: "s", name: "LEGO", url: null, label: "price", kind: "number", prefix: "£", suffix: "", currency: "GBP", states: [], direction: "lower", preset: "price", target, assistant_id: "a", created_at: ago(40), points, summary: null,
 });
@@ -149,24 +149,24 @@ test("making one: presets that fit, states cleaned", () => {
 });
 
 test("who checks it: her name and when, the owner's own, or nobody; and why she can't", () => {
-  const MUSE = "5a3e0000-0000-4000-8000-0000000e0001";
-  const muse = { id: MUSE, name: "Muse", web: true, paused: false, next: null as string | null };
-  const hers = pt(0, "34", { checked_by: "assistant", assistant_id: MUSE, who: "Muse", checked_at: new Date(NOW.getTime() - 42 * 60_000).toISOString() });
+  const MOSS = "5a3e0000-0000-4000-8000-0000000e0001";
+  const moss = { id: MOSS, name: "Moss", web: true, paused: false, next: null as string | null };
+  const hers = pt(0, "34", { checked_by: "assistant", assistant_id: MOSS, who: "Moss", checked_at: new Date(NOW.getTime() - 42 * 60_000).toISOString() });
   const ask = pt(0, "85", { checked_by: "ask", checked_at: new Date(NOW.getTime() - 42 * 60_000).toISOString() });
 
-  const on = whoState({ assistant_id: MUSE, assistant_set_by: "owner" }, muse, true);
-  assert.equal(whoWords(on), "Muse checks this");
+  const on = whoState({ assistant_id: MOSS, assistant_set_by: "owner" }, moss, true);
+  assert.equal(whoWords(on), "Moss checks this");
   assert.equal(whenWords(on, hers, NOW), "Checked 42 minutes ago", "her own check: no name twice");
   assert.equal(whenWords(on, ask, NOW), "Ask checked 42 minutes ago");
-  assert.equal(whenWords(whoState({ assistant_id: MUSE }, { ...muse, next: "Friday at 17:00" }, true), hers, NOW), "Next check Friday at 17:00", "her schedule says when");
+  assert.equal(whenWords(whoState({ assistant_id: MOSS }, { ...moss, next: "Friday at 17:00" }, true), hers, NOW), "Next check Friday at 17:00", "her schedule says when");
   assert.equal(cantWords(on), null);
 
-  const off = whoState({ assistant_id: MUSE }, { ...muse, web: false, next: "Friday at 17:00" }, true);
-  assert.deepEqual(cantWords(off), { line: "Muse can't look things up online, so nothing is checking this.", fix: "Turn on" });
+  const off = whoState({ assistant_id: MOSS }, { ...moss, web: false, next: "Friday at 17:00" }, true);
+  assert.deepEqual(cantWords(off), { line: "Moss can't look things up online, so nothing is checking this.", fix: "Turn on" });
   assert.equal(whenWords(off, hers, NOW), null, "no next check while she can't");
-  assert.equal(cantWords(whoState({ assistant_id: MUSE }, { ...muse, paused: true }, true))!.fix, "Resume");
-  assert.equal(cantWords(whoState({ assistant_id: MUSE }, muse, false))!.fix, "Open Settings");
-  assert.equal(cantWords(whoState({ assistant_id: MUSE }, muse, null)), null, "the setting not read yet isn't a block");
+  assert.equal(cantWords(whoState({ assistant_id: MOSS }, { ...moss, paused: true }, true))!.fix, "Resume");
+  assert.equal(cantWords(whoState({ assistant_id: MOSS }, moss, false))!.fix, "Open Settings");
+  assert.equal(cantWords(whoState({ assistant_id: MOSS }, moss, null)), null, "the setting not read yet isn't a block");
 
   const me = whoState({ assistant_id: null, assistant_set_by: "owner" }, null, true);
   assert.equal(whoWords(me), "You check this");
@@ -177,5 +177,5 @@ test("who checks it: her name and when, the owner's own, or nobody; and why she 
   assert.equal(whenWords(nobody, ask, NOW), "Ask checked 42 minutes ago");
   assert.equal(whenWords(nobody, pt(30, "42", { checked_by: "save" }), NOW), null, "the save isn't a check");
   // Her assistant has gone: nobody checks it.
-  assert.equal(whoState({ assistant_id: MUSE }, null, true).kind, "nobody");
+  assert.equal(whoState({ assistant_id: MOSS }, null, true).kind, "nobody");
 });

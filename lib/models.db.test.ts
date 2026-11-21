@@ -36,7 +36,7 @@ const HAIKU = { provider: "anthropic", model: "claude-haiku-5-5" } as const;
 const SONNET = { provider: "anthropic", model: "claude-sonnet-5-5" } as const;
 const GEMINI = { provider: "gemini", model: "gemini-3.1-pro-preview" } as const;
 const GEMINI_PICTURES = { provider: "gemini", model: "gemini-3-pro-image" } as const;
-const MUSE = { name: "Muse", job: "Finds good prices for gift ideas", instructions: "Only shops the owner trusts.", allow: ["add_todo"] };
+const MOSS = { name: "Moss", job: "Finds good prices for gift ideas", instructions: "Only shops the owner trusts.", allow: ["add_todo"] };
 const ENVS = ["ATHENA_ANSWER_MODEL", "ATHENA_ASSISTANT_MODEL", "ATHENA_FILE_SUMMARY_MODEL", "ATHENA_CHECKIN_DEEPER_MODEL", "ATHENA_TEAM_MEMORY_MODEL", "ATHENA_TEAM_QUESTIONS_MODEL", "ATHENA_BRIEFING_MODEL", "ATHENA_DRAFT_MODEL", "ATHENA_RECIPE_MODEL", "ATHENA_TEAM_DRAFT_MODEL", "ATHENA_TEAM_SKILL_MODEL", "ATHENA_LEARNER_MODEL", "ATHENA_COLLECTOR_MODEL"];
 
 beforeEach(async () => {
@@ -146,14 +146,14 @@ test("the owner's choices: kept, read back, null is the default, and bad input r
 test("agreements: refused without one, kept with one, and taking it back resets every choice on that provider", { skip }, async () => {
   const call = await routes();
   const { createAssistant } = await import("./team");
-  const muse = await createAssistant(MUSE);
+  const moss = await createAssistant(MOSS);
 
   const no = await call("PATCH", "/models", { think: GEMINI });
   assert.equal(no.status, 409);
   assert.equal(no.body.code, "consent_needed");
   assert.equal(no.body.provider, "gemini");
   assert.match(no.body.error, /Google/);
-  const noTeam = await call("PATCH", `/team/${muse.id}`, { models: { think: GEMINI } });
+  const noTeam = await call("PATCH", `/team/${moss.id}`, { models: { think: GEMINI } });
   assert.equal(noTeam.status, 409, "an assistant's model needs the same agreement");
   assert.equal(noTeam.body.code, "consent_needed");
   // Hand-written into the row without an agreement, it's ignored when read.
@@ -172,8 +172,8 @@ test("agreements: refused without one, kept with one, and taking it back resets 
   assert.equal((await call("POST", "/models/consent", { provider: "gemini" })).body.settings.consent.gemini, when, "agreeing again keeps the first time");
 
   assert.equal((await call("PATCH", "/models", { think: GEMINI, image: GEMINI_PICTURES, careful: OPUS, jobs: { briefing: GEMINI, drafts: HAIKU } })).status, 200);
-  assert.equal((await call("PATCH", `/team/${muse.id}`, { models: { think: GEMINI, image: GEMINI_PICTURES } })).status, 200);
-  assert.deepEqual((await resolveThinkModel({ assistantId: muse.id })).ref, GEMINI);
+  assert.equal((await call("PATCH", `/team/${moss.id}`, { models: { think: GEMINI, image: GEMINI_PICTURES } })).status, 200);
+  assert.deepEqual((await resolveThinkModel({ assistantId: moss.id })).ref, GEMINI);
 
   const taken = await call("DELETE", "/models/consent/gemini");
   assert.equal(taken.status, 200);
@@ -181,9 +181,9 @@ test("agreements: refused without one, kept with one, and taking it back resets 
   assert.deepEqual(taken.body.effective.think, { ref: SONNET, from: "default" });
   assert.equal(taken.body.effective.image, null);
   assert.deepEqual(taken.body.effective.jobs.briefing, { ref: OPUS, from: "tier" });
-  const after = (await call("GET", `/team/${muse.id}`)).body;
+  const after = (await call("GET", `/team/${moss.id}`)).body;
   assert.deepEqual(after.models, {}, "the assistant's Google models went back to Ask's");
-  const [row] = await qRaw<{ models: unknown }>(`SELECT models FROM team_assistants WHERE id = $1`, [muse.id]);
+  const [row] = await qRaw<{ models: unknown }>(`SELECT models FROM team_assistants WHERE id = $1`, [moss.id]);
   assert.deepEqual(row.models, {}, "and the row itself is reset");
   assert.equal((await call("PATCH", "/models", { think: GEMINI })).status, 409, "asked again next time");
   assert.equal((await call("DELETE", "/models/consent/anthropic")).status, 400);
@@ -210,15 +210,15 @@ test("precedence for every role and job: assistant, owner (job, then tier), env 
 
   // Thinking: env var, then the owner, then the assistant's own.
   process.env.ATHENA_ANSWER_MODEL = "claude-opus-5";
-  const muse = await createAssistant(MUSE);
-  const plain = await createAssistant({ ...MUSE, name: "Plain" });
+  const moss = await createAssistant(MOSS);
+  const plain = await createAssistant({ ...MOSS, name: "Plain" });
   assert.deepEqual(await resolveThinkModel(), { ref: { provider: "anthropic", model: "claude-opus-5" }, from: "env" });
   assert.deepEqual(await resolveThinkModel({ envName: "ATHENA_ASSISTANT_MODEL" }), { ref: { provider: "anthropic", model: "claude-fable-5-2" }, from: "env" }, "capture's env var");
   await updateModelSettings({ think: OPUS });
   assert.deepEqual(await resolveThinkModel(), { ref: OPUS, from: "owner" });
   assert.deepEqual(await resolveThinkModel({ assistantId: plain.id }), { ref: OPUS, from: "owner" }, "the same as Ask");
-  await updateAssistant(muse.id, { models: { think: HAIKU } });
-  assert.deepEqual(await resolveThinkModel({ assistantId: muse.id }), { ref: HAIKU, from: "assistant" });
+  await updateAssistant(moss.id, { models: { think: HAIKU } });
+  assert.deepEqual(await resolveThinkModel({ assistantId: moss.id }), { ref: HAIKU, from: "assistant" });
 
   // Pictures: off, the owner's, an assistant's own, or off for one assistant.
   assert.equal(await resolveImageModel(), null);
@@ -226,8 +226,8 @@ test("precedence for every role and job: assistant, owner (job, then tier), env 
   await updateModelSettings({ image: GEMINI_PICTURES });
   assert.deepEqual(await resolveImageModel(), { ref: GEMINI_PICTURES, from: "owner" });
   assert.deepEqual(await resolveImageModel({ assistantId: plain.id }), { ref: GEMINI_PICTURES, from: "owner" });
-  await updateAssistant(muse.id, { models: { think: HAIKU, image: null } });
-  assert.equal(await resolveImageModel({ assistantId: muse.id }), null, "no pictures for this one");
+  await updateAssistant(moss.id, { models: { think: HAIKU, image: null } });
+  assert.equal(await resolveImageModel({ assistantId: moss.id }), null, "no pictures for this one");
   await updateAssistant(plain.id, { models: { image: { provider: "gemini", model: "gemini-2.5-flash-image" } } });
   assert.deepEqual(await resolveImageModel({ assistantId: plain.id }), { ref: { provider: "gemini", model: "gemini-2.5-flash-image" }, from: "assistant" });
   await updateModelSettings({ image: null });
@@ -236,12 +236,12 @@ test("precedence for every role and job: assistant, owner (job, then tier), env 
 
 test("an assistant's own models through the team routes: kept, kept when left out, and checked", { skip }, async () => {
   const call = await routes();
-  const made = await call("POST", "/team", { ...MUSE, models: { think: OPUS } });
+  const made = await call("POST", "/team", { ...MOSS, models: { think: OPUS } });
   assert.equal(made.status, 201);
   assert.deepEqual(made.body.models, { think: OPUS });
   const id = made.body.id;
   assert.deepEqual((await call("GET", "/team")).body.assistants[0].models, { think: OPUS });
-  const renamed = await call("PATCH", `/team/${id}`, { name: "Muse Two" });
+  const renamed = await call("PATCH", `/team/${id}`, { name: "Moss Two" });
   assert.deepEqual(renamed.body.models, { think: OPUS }, "PATCH without models keeps them");
   const own = await call("PATCH", `/team/${id}`, { models: { image: null } });
   assert.deepEqual(own.body.models, { image: null }, "models is the whole set: think is Ask's again, no pictures");
@@ -286,10 +286,10 @@ test("used: Ask, an assistant's turn and a Team run think with the chosen model,
   assert.equal(reply.tried, undefined);
 
   // An assistant with its own model thinks with it; one without thinks with Ask's.
-  const muse = await createAssistant({ ...MUSE, models: { think: HAIKU } });
-  const plain = await createAssistant({ ...MUSE, name: "Plain" });
+  const moss = await createAssistant({ ...MOSS, models: { think: HAIKU } });
+  const plain = await createAssistant({ ...MOSS, name: "Plain" });
   const a = fakeClient(replyOrMemory("Found it."));
-  const t = await runAssistantTurn(muse.id, "Any good price for the scarf?", { mode: "chat", readOnly: true, client: a.client });
+  const t = await runAssistantTurn(moss.id, "Any good price for the scarf?", { mode: "chat", readOnly: true, client: a.client });
   assert.equal(a.models[0], "claude-haiku-5-5");
   assert.deepEqual(t.reply.model, HAIKU);
   const b = fakeClient(replyOrMemory("Found it."));
@@ -299,9 +299,9 @@ test("used: Ask, an assistant's turn and a Team run think with the chosen model,
   // A Team run keeps the model it used, and that it fell back.
   const { enqueueTeamRun, runTeamRun, getTeamRun } = await import("./team-run");
   const { updateAssistant } = await import("./team");
-  await updateAssistant(muse.id, { models: { think: OPUS } });
+  await updateAssistant(moss.id, { models: { think: OPUS } });
   const c = fakeClient(replyOrMemory("Nothing new today."), ["claude-opus-5-5"]);
-  const queued = await enqueueTeamRun(muse.id);
+  const queued = await enqueueTeamRun(moss.id);
   await runTeamRun(queued.id, { turn: (id, prompt, opts) => runAssistantTurn(id, prompt, { ...opts, client: c.client }) });
   const run = (await getTeamRun(queued.id))!;
   assert.equal(run.status, "done");
@@ -350,10 +350,10 @@ test("a hidden choice stays valid and runs; effective offers the newer one and f
   // Chosen anyway (already chosen before the list was trimmed, or by hand): accepted, since the gateway lists them.
   const set = await call("PATCH", "/models", { think: OLD_OPUS, jobs: { team_memory: SNAP_HAIKU } });
   assert.equal(set.status, 200, JSON.stringify(set.body));
-  const made = await call("POST", "/team", { ...MUSE, models: { think: OLD_SONNET } });
+  const made = await call("POST", "/team", { ...MOSS, models: { think: OLD_SONNET } });
   assert.equal(made.status, 201);
   const id = made.body.id as string;
-  await call("POST", "/team", { ...MUSE, name: "Plain" });
+  await call("POST", "/team", { ...MOSS, name: "Plain" });
 
   assert.deepEqual(await resolveThinkModel(), { ref: OLD_OPUS, from: "owner" }, "it keeps running");
   assert.deepEqual(await resolveThinkModel({ assistantId: id }), { ref: OLD_SONNET, from: "assistant" });
@@ -444,20 +444,20 @@ test("a model for one message: honoured for that turn in Ask and an assistant ch
   assert.deepEqual(await loadModelSettings(), before, "nothing stored");
 
   // An assistant chat: the same, over the assistant's own model.
-  const muse = await createAssistant({ ...MUSE, models: { think: OPUS } });
+  const moss = await createAssistant({ ...MOSS, models: { think: OPUS } });
   const a = fakeClient(replyOrMemory("Found it."));
-  const t = await runAssistantTurn(muse.id, "Is this scarf a good price?", { mode: "chat", client: a.client, model: await messageModel(SONNET) });
+  const t = await runAssistantTurn(moss.id, "Is this scarf a good price?", { mode: "chat", client: a.client, model: await messageModel(SONNET) });
   assert.equal(a.models[0], "claude-sonnet-5-5");
   assert.deepEqual(t.reply.model, SONNET);
   const b = fakeClient(replyOrMemory("Found it."));
-  await runAssistantTurn(muse.id, "And this one?", { mode: "chat", client: b.client });
+  await runAssistantTurn(moss.id, "And this one?", { mode: "chat", client: b.client });
   assert.equal(b.models[0], "claude-opus-5-5", "the assistant's own model again");
   // A check (read-only) is never a chat, so it never takes a message's model.
   const c = fakeClient(replyOrMemory("Found it."));
-  await runAssistantTurn(muse.id, "Is it cheaper?", { mode: "chat", readOnly: true, client: c.client, model: await messageModel(SONNET) });
+  await runAssistantTurn(moss.id, "Is it cheaper?", { mode: "chat", readOnly: true, client: c.client, model: await messageModel(SONNET) });
   assert.equal(c.models[0], "claude-opus-5-5");
   const { getAssistant } = await import("./team");
-  assert.deepEqual((await getAssistant(muse.id))!.models, { think: OPUS }, "the assistant's models aren't changed");
+  assert.deepEqual((await getAssistant(moss.id))!.models, { think: OPUS }, "the assistant's models aren't changed");
 
   // The one-message model fails: the default answers, and tried says which one didn't.
   const down = fakeClient(() => [answer("A cat.")], ["claude-opus-5-5"]);
@@ -488,7 +488,7 @@ test("a model for one message: honoured for that turn in Ask and an assistant ch
   const refused = await post({ question: "What's in this photo?", model: GEMINI });
   assert.equal(refused.status, 409, JSON.stringify(refused.body));
   assert.deepEqual([refused.body.code, refused.body.provider], ["consent_needed", "gemini"]);
-  const chat = await post({ question: "What's in this photo?", assistantId: muse.id, model: GEMINI });
+  const chat = await post({ question: "What's in this photo?", assistantId: moss.id, model: GEMINI });
   assert.equal(chat.status, 409, "an assistant chat is checked the same way");
   assert.equal((await post({ question: "Hi", model: { provider: "anthropic" } })).status, 400);
   assert.equal((await post({ question: "Hi", model: { provider: "anthropic", model: "claude-gone-1" } })).body.code, "unknown_model");

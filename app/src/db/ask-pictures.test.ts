@@ -50,8 +50,8 @@ test("sample mode follows the sample AI models settings: off to start, the chose
   const on = await samplePatch({ image: gemini });
   assert.deepEqual(pictureModelFor(on.effective, null), gemini);
   assert.deepEqual(pictureModelFor(on.effective, "someone-without-models"), gemini, "an assistant without its own follows Ask");
-  await sampleSaveAssistantModels("muse", { image: null });
-  assert.equal(pictureModelFor((await sampleGet()).effective, "muse"), null, "No pictures for Muse");
+  await sampleSaveAssistantModels("moss", { image: null });
+  assert.equal(pictureModelFor((await sampleGet()).effective, "moss"), null, "No pictures for Moss");
   const gpt = { provider: "openai" as const, model: "gpt-image-2" };
   // OpenAI needs agreeing to first (sample-models answers as the server would).
   await assert.rejects(sampleSaveAssistantModels("wren", { image: gpt }));
