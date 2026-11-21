@@ -99,8 +99,9 @@ if _f is None:
     _f = _film_event("flows.step1")
 FLOWSTEP = min(max(round((_f if _f is not None else 62.4) / S16) * S16, 61.2), 63.6)
 BED_AT, BED_RMS = 0.1, -31.0  # the opening reed bed: starts swelling at 0.1 s, -31 dBFS RMS over 0.9-2.4 s
-# phone voicing (cut 5: 9.5 / 8.5 / 5.0): a gentler shelf and bell, the acoustic palette is brighter at source
-AIR_DB, PRESENCE_DB, LOWCUT_DB = 6.0, 6.0, 5.0
+# phone voicing (cut 5: 9.5 / 8.5 / 5.0, no mud cut): the wooden instruments pile up at 250-500 Hz, so a broad
+# dip there (MUD_DB) and a bell / shelf a little under cut 5's: brighter than the raw band, a touch softer than cut 5
+AIR_DB, PRESENCE_DB, LOWCUT_DB, MUD_DB = 8.0, 8.0, 5.0, -3.0
 BUILD_BASS = (0.45, 0.03)     # rotation build: bass climb gain a + b*beat
 BUILD_KICK = (0.60, 0.015)    # rotation build: kick gain a + b*beat (roll hits x0.6)
 BUILD_RIDE = (-2.5, 0.5)      # the build's bed ridden from -4 to +0.5 LU against the pull-back (see ride_build)
@@ -994,7 +995,8 @@ def main():
     def bell(fr, fc, gdb, q=0.8):
         return 1.0 + (db(gdb) - 1.0) / (1.0 + (q * (fr / fc - fc / np.maximum(fr, 1.0))) ** 2)
 
-    bus = fft_filter(bus, lambda fr: shelf(fr, 4500.0, AIR_DB) * bell(fr, 2800.0, PRESENCE_DB, q=0.7) / shelf(fr, 140.0, LOWCUT_DB),
+    bus = fft_filter(bus, lambda fr: shelf(fr, 4500.0, AIR_DB) * bell(fr, 2800.0, PRESENCE_DB, q=0.7) / shelf(fr, 140.0, LOWCUT_DB)
+                     * bell(fr, 380.0, MUD_DB, q=0.9),
                      pad=False)
 
     bus = ride_build(bus)      # after the voicing EQ, so it rides what the master will hear
