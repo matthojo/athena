@@ -73,15 +73,17 @@ the project never sees your data.
 - **Flows:** a trigger, then steps. "When a renewal email comes in, find
   what I paid last year, and if it's gone up, add a to-do to decide." A flow
   starts on a schedule, when something arrives, before an event or a date,
-  or when you tap Run now. Its steps look things up, add to Athena, check a
-  value and branch, ask you, wait or tell you. Say "whenever…" in Ask,
-  describe one in a sentence, or take one Athena suggests from your habits.
-  Adding a reminder, a to-do or a line on a list runs on its own; anything
-  else waits for your **Go**, and drafts are never sent.
+  or when you tap Run now. Its steps look things up, add to Athena, ask you,
+  wait or tell you, and a check can send it down one of two paths. Say
+  "whenever…" in Ask, describe one in a sentence under Flows → New, or take
+  one Athena suggests from your habits. Adding a reminder, a to-do or a line
+  on a list runs on its own; anything else waits for your **Go**, and Athena
+  never sends a draft.
 - **Team:** assistants you set up, each running its own flows on a schedule
   or when something arrives (a new Linear issue, a saved link). Let an
-  assistant run one of your flows and it can think between the steps, in
-  its own words. A change you haven't allowed waits for your **Go**. Share
+  assistant run one of your flows and it can add steps that work something
+  out, like looking online for a better price, then tell you what it found
+  in its own words. A change you haven't allowed waits for your **Go**. Share
   an assistant as a file anyone can add to their own Athena, or add one
   someone shared: it joins paused, and asks before every change until you
   tick what it may do on its own.
