@@ -333,6 +333,16 @@ def air(dur, f0=500.0, f1=3000.0, seed=0):
 
 
 @lru_cache(maxsize=None)
+def tag_tick():
+    """The logo tag's glass tick: a 1 ms, 3-9 kHz tap on the glockenspiel bar, so the tag starts on its first ms
+    over the chord's ringing sparkles."""
+    n = int(0.03 * SR)
+    t = np.arange(n) / SR
+    ck = fft_filter(_noise(n, 77), lambda fr: g_hp(fr, 3000.0, 2) * g_lp(fr, 9000.0, 2)) * np.exp(-t / 0.0012)
+    return edges(ck / np.max(np.abs(ck)) + 0.5 * glock_note(110, 0.03, 0.5), 0.0002, 0.01)
+
+
+@lru_cache(maxsize=None)
 def tick_note(midi):
     """The swap tick: a small pitched wooden 'tock' (a xylophone bar hit with a hard rubber mallet: rosewood
     partials 1 : 3.93 : 9.2 gone in ~50 ms) over a 1.5 ms stick click. Climbs the pentatonic through the build."""
@@ -457,9 +467,11 @@ def build():
 
     # ---- eight tile notes climbing the pentatonic on the kalimba, one every half beat from 3.0 s, a glockenspiel
     #      octave above on each, softer
+    #      each note damped just before the next, as a player's thumb stops the tine it just played (the last rings)
     for j, (t, m) in enumerate(zip(TILES, TILE_NOTES)):
-        add("tile", hook_note(m, 1.2), t, 0.62 + 0.04 * j, pan=-0.28 + 0.08 * j)
-        add("tile", glock_note(m + 12, 1.0, 0.7), t, 0.16, pan=0.28 - 0.08 * j)
+        d = round(TILES[j + 1] - t - 0.004, 4) if j + 1 < len(TILES) else 1.2
+        add("tile", hook_note(m, d), t, 0.62 + 0.04 * j, pan=-0.28 + 0.08 * j)
+        add("tile", glock_note(m + 12, d if j + 1 < len(TILES) else 1.0, 0.7), t, 0.16, pan=0.28 - 0.08 * j)
 
     # ---- the band, bar by bar
     for bar in range(1, LAST_BAR + 1):
@@ -847,7 +859,7 @@ def final_chord():
     bl = END - STOP - 0.1
     br = reed((50, 57), round(bl, 4), 0.5, 7)
     tb = np.arange(len(br)) / SR
-    put(F, br / np.max(np.abs(br)) * (tb / bl)[:, None] ** 1.5, STOP + 0.1, 0.007)
+    put(F, br / np.max(np.abs(br)) * (tb / bl)[:, None] ** 1.5, STOP + 0.1, 0.005)
 
     notes = (50, 57, 62, 66, 69, 76)
     n = int(dur * SR)
@@ -873,7 +885,7 @@ def final_chord():
         tg = glock_note(m, 1.8, 1.0)
         put(F, tg, TAG + dt, g, pan=p)
         put(wet_src, tg, TAG + dt, g * 0.8, pan=p)
-        put(F, glock_note(110, 0.05, 0.5), TAG + dt, g * 0.25, pan=p)      # a tiny glass tick on each: heard first
+        put(F, tag_tick(), TAG + dt, g * 0.6, pan=p)                      # a glass tick on each: its first ms is the onset
     wet_src += 0.6 * F
     return F, wet_src
 
@@ -910,7 +922,7 @@ def main():
         sys.exit(0)
 
     # ---- a little echo on the kalimba and the tiles (less than cut 5's synth plucks: it's a room, not a delay)
-    for name, g in (("hook", 0.14), ("tile", 0.22), ("accent", 0.12), ("seek", 0.2), ("flow", 0.18)):
+    for name, g in (("hook", 0.14), ("tile", 0.12), ("accent", 0.12), ("seek", 0.2), ("flow", 0.18)):
         STEMS[name] = STEMS[name] + (g * feedback_delay(STEMS[name], 0.75 * BEAT, fb=0.35, repeats=3)).astype(np.float32)
 
     # ---- the one-beat dropout before the pull-back: only the hook (and its echoes) and the riser are left
@@ -944,7 +956,7 @@ def main():
         send += buf * sends[name]
     wet = convolve_reverb(send, make_ir(rt60=1.2, seed=11, hi=6500.0))
     tail = np.ones(N)
-    tail[b:] = db(-12.0 * np.arange(N - b) / SR)         # the tail thins quickly: a held breath
+    tail[b:] = db(-18.0 * np.arange(N - b) / SR)         # the tail thins quickly: a held breath
     wet *= tail[:, None]
 
     F, fsrc = final_chord()
