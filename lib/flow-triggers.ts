@@ -8,14 +8,17 @@
  * - event: new `team_events` rows matched against the trigger's EventFilter
  *   (Team's matchesFilter). Flows claim events with their own column
  *   (`flow_claimed_at`, migration 0081), so Team and flows each see every
- *   event once and neither takes one from the other. Every event that
- *   matches one flow in a pass makes one run, as Team batches.
+ *   event once and neither takes one from the other. A flow run by an
+ *   assistant gets all its matching events in a pass together in one run, as
+ *   Team batches; a plain flow starts one run per event, at most
+ *   FLOW_RUNS_PER_PASS a pass, and the rest wait for the next pass.
  * - before/event: `minutes` before a timed event on the calendar; with
  *   `withPeople`, only events with at least one person from People.
  * - before/date: `days` before a date (a birthday, a deadline, a renewal) at
  *   `at` in the owner's zone.
  *
- * Every fire (a schedule slot, one event's "before", one date's "before") is
+ * Every fire (a schedule slot, one event's "before", one date's "before",
+ * one flow's run for one event) is
  * claimed once per flow in `flow_trigger_fires`, so overlapping passes never
  * start it twice. A fire more than RUN_WINDOW_MINUTES late is skipped, never
  * run late in a burst (a "before" is never run after the event started), and
@@ -32,8 +35,14 @@ import type { TeamEventRow } from "./team-events";
 import type { EventFilter } from "./team-types";
 import type { FlowSource, FlowStarter, FlowTrigger, FlowValue, ValueKind } from "./flow-types";
 
-/** Events claimed in one pass, as Team's. */
+/** Events read in one pass, as Team's. */
 export const FLOW_EVENTS_PER_PASS = 200;
+/**
+ * The most runs a plain flow (no assistant) starts from events in one pass.
+ * Its other matching events stay unclaimed and come round in the next pass,
+ * 5 minutes later, so a burst of 30 emails becomes 10 runs, then 10, then 10.
+ */
+export const FLOW_RUNS_PER_PASS = 10;
 /** The furthest ahead a "before an event" trigger looks: a week. */
 export const MAX_BEFORE_MINUTES = 7 * 24 * 60;
 /** The furthest ahead a "before a date" trigger looks: a year. */
@@ -79,9 +88,15 @@ export interface FlowClaims {
   fire(flowId: string, key: string, at: Date): Promise<boolean>;
   /** Give a fire back, when its run couldn't be started: the next pass may try again in the window. */
   release(flowId: string, key: string): Promise<void>;
-  /** Take the oldest events flows haven't seen, marking them seen. */
-  events(limit: number): Promise<TeamEventRow[]>;
-  /** Take one event flows haven't seen (an owner action), or null when a pass already has it. */
+  /**
+   * Read the oldest events flows haven't finished with, without marking them.
+   * Each flow claims each event as a fire (`event:<id>`), so overlapping
+   * passes, and an owner action, never start one flow on one event twice.
+   */
+  pending(limit: number): Promise<TeamEventRow[]>;
+  /** Mark events finished with: every flow they match has had them. */
+  seen(ids: string[]): Promise<void>;
+  /** Read one event flows haven't finished with (an owner action), without marking it, or null. */
   event(id: string): Promise<TeamEventRow | null>;
   /** Drop fires that can't come round again. */
   prune?(now: Date): Promise<number>;
@@ -125,7 +140,7 @@ function eventItem(f: EventFilter): FlowValue[] {
     case "renewal":
       return [v("item", "what renews", "text"), v("company", "the company", "organisation"), v("renewal_date", "the renewal date", "date")];
     case "delivery":
-      return [v("item", "the order", "text"), v("company", "the shop", "organisation"), v("expected", "the delivery date", "date")];
+      return [v("item", "the order", "text"), v("company", "the shop", "organisation"), v("delivery_date", "the delivery date", "date")];
     case "booking":
       return [v("item", "the trip", "trip"), v("booking", "the booking", "text"), v("company", "who it's with", "organisation"), v("starts_at", "when it starts", "datetime")];
     case "event":
@@ -271,7 +286,7 @@ export function flowsForEvent(ev: Pick<TeamEventRow, "kind" | "facets" | "create
   return flows.filter((f) => f.trigger.kind === "event" && !!f.trigger.event && createdBy(f, new Date(ev.created_at)) && matchesFilter(f.trigger.event, ev));
 }
 
-/** A pass's events grouped by flow, oldest first: one run per flow. Pure. */
+/** A pass's events grouped by flow, oldest first. Pure. */
 export function batchByFlow(events: TeamEventRow[], flows: ActiveFlow[]): Array<{ flow: ActiveFlow; events: TeamEventRow[] }> {
   const out = new Map<string, { flow: ActiveFlow; events: TeamEventRow[] }>();
   for (const ev of [...events].sort((a, b) => Number(a.id) - Number(b.id))) {
@@ -309,7 +324,7 @@ export function beforeDateValues(item: DatedItem): Record<string, unknown> {
   return { event: { id: item.id, title: item.title }, person: item.person ?? null, date: item.date, years: item.years ?? null, title: item.title };
 }
 
-/** What a batch of events gives: the newest one's values, and how many came in. Pure. */
+/** What events give: the newest one's values, and how many came in (1 for a plain flow's run). Pure. */
 export function eventValues(events: TeamEventRow[]): Record<string, unknown> {
   const ev = events[events.length - 1];
   if (!ev) return { count: 0 };
@@ -357,23 +372,64 @@ async function fireOnce(deps: FlowTriggerDeps, flow: ActiveFlow, key: string, at
   }
 }
 
-async function startEventBatches(deps: Pick<FlowTriggerDeps, "starter" | "items">, events: TeamEventRow[], flows: ActiveFlow[], out: QueuedFlowRun[], tz: string): Promise<void> {
+/** Does this flow get a pass's events together (run by an assistant) or one run each (plain)? */
+export const batchesEvents = (flow: Pick<ActiveFlow, "assistant_id">) => !!flow.assistant_id;
+
+/**
+ * Start the runs a set of events gives. An assistant's flow gets its events
+ * together in one run; a plain flow gets one run per event, oldest first, at
+ * most `cap`. Each (flow, event) is claimed as a fire first. Returns the ids
+ * of events a plain flow left for later (over its cap, or a start that
+ * failed), which must stay unclaimed.
+ */
+async function startEventRuns(deps: Pick<FlowTriggerDeps, "starter" | "items" | "claims">, events: TeamEventRow[], flows: ActiveFlow[], out: QueuedFlowRun[], tz: string, cap: number): Promise<Set<string>> {
+  const left = new Set<string>();
+  const key = (e: TeamEventRow) => `event:${e.id}`;
+  const now = new Date();
   for (const { flow, events: evs } of batchByFlow(events, flows)) {
-    try {
-      const last = evs[evs.length - 1];
-      const more = deps.items ? await deps.items(last).catch(() => ({})) : {};
-      const values = pickValues(flow.trigger, { ...eventValues(evs), ...more });
-      await startOne(deps, flow, { label: fireLabel(flow.trigger, { events: evs }, tz), values, event_ids: evs.map((e) => e.id) }, out);
-    } catch (error) {
-      console.error("Athena flows: couldn't start an event's run", (error as Error)?.message?.slice(0, 120));
+    if (batchesEvents(flow)) {
+      const mine: TeamEventRow[] = [];
+      for (const e of evs) if (await deps.claims.fire(flow.id, key(e), now)) mine.push(e);
+      if (!mine.length) continue;
+      try {
+        const last = mine[mine.length - 1];
+        const more = deps.items ? await deps.items(last).catch(() => ({})) : {};
+        const values = pickValues(flow.trigger, { ...eventValues(mine), ...more });
+        await startOne(deps, flow, { label: fireLabel(flow.trigger, { events: mine }, tz), values, event_ids: mine.map((e) => e.id) }, out);
+      } catch (error) {
+        // An assistant's batch isn't retried: its events are marked seen, as Team's are.
+        console.error("Athena flows: couldn't start an event's run", (error as Error)?.message?.slice(0, 120));
+      }
+      continue;
+    }
+    let started = 0;
+    for (const e of evs) {
+      if (started >= cap) {
+        left.add(e.id);
+        continue;
+      }
+      if (!(await deps.claims.fire(flow.id, key(e), now))) continue;
+      try {
+        const more = deps.items ? await deps.items(e).catch(() => ({})) : {};
+        const values = pickValues(flow.trigger, { ...eventValues([e]), ...more });
+        await startOne(deps, flow, { label: fireLabel(flow.trigger, { events: [e] }, tz), values, event_ids: [e.id] }, out);
+        started++;
+      } catch (error) {
+        console.error("Athena flows: couldn't start an event's run; the next pass may", (error as Error)?.message?.slice(0, 120));
+        await deps.claims.release(flow.id, key(e)).catch(() => undefined);
+        left.add(e.id);
+      }
     }
   }
+  return left;
 }
 
 /**
  * One pass: due schedule slots, "before" fires and new events become runs.
- * A slot or a "before" is one run; one flow's matching events are one run
- * together. Returns the runs started.
+ * A slot or a "before" is one run. An assistant's flow gets its matching
+ * events together in one run; a plain flow gets one run per event, at most
+ * FLOW_RUNS_PER_PASS, and its other events stay unclaimed for the next pass.
+ * Returns the runs started.
  */
 export async function queueFlowRuns(deps: FlowTriggerDeps, now: Date): Promise<QueuedFlowRun[]> {
   const { tz } = deps;
@@ -412,9 +468,14 @@ export async function queueFlowRuns(deps: FlowTriggerDeps, now: Date): Promise<Q
     }
   }
 
-  // Events are claimed even when no flow waits for them, so the queue doesn't grow.
-  const events = await deps.claims.events(FLOW_EVENTS_PER_PASS);
-  if (events.length) await startEventBatches(deps, events, flows, out, tz);
+  // Events are marked seen even when no flow waits for them, so the queue doesn't grow; only the ones a
+  // plain flow left for later stay.
+  const events = await deps.claims.pending(FLOW_EVENTS_PER_PASS);
+  if (events.length) {
+    const left = await startEventRuns(deps, events, flows, out, tz, FLOW_RUNS_PER_PASS);
+    const done = events.filter((e) => !left.has(e.id)).map((e) => e.id);
+    if (done.length) await deps.claims.seen(done);
+  }
 
   await deps.claims.prune?.(now).catch(() => 0);
   return out;
@@ -422,8 +483,8 @@ export async function queueFlowRuns(deps: FlowTriggerDeps, now: Date): Promise<Q
 
 /**
  * Something the owner did (a save, a tagged note): start the flows it fires
- * now rather than at the next pass. The event is claimed first, so a pass
- * can't take it as well. Never throws: a save must not fail because a flow
+ * now rather than at the next pass. Each flow claims the event as a fire
+ * first, so a pass that reads it too can't start it again. Never throws: a save must not fail because a flow
  * couldn't start. Returns the runs started.
  */
 export async function startFlowEvent(deps: Pick<FlowTriggerDeps, "source" | "starter" | "claims" | "items"> & { tz?: string }, eventId: string): Promise<QueuedFlowRun[]> {
@@ -434,7 +495,9 @@ export async function startFlowEvent(deps: Pick<FlowTriggerDeps, "source" | "sta
     if (!flows.some((f) => f.trigger.kind === "event")) return out;
     const ev = await deps.claims.event(eventId);
     if (!ev) return out;
-    await startEventBatches(deps, [ev], flows, out, deps.tz ?? "UTC");
+    // One event: one run per flow at most. A start that failed leaves it for the pass to try again.
+    const left = await startEventRuns(deps, [ev], flows, out, deps.tz ?? "UTC", 1);
+    if (!left.size) await deps.claims.seen([ev.id]);
   } catch (error) {
     console.error("Athena flows: couldn't start an event's flows now", (error as Error)?.message?.slice(0, 120));
   }

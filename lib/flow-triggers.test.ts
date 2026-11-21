@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   batchByFlow,
+  FLOW_RUNS_PER_PASS,
   datedDays,
   dueBeforeDate,
   dueBeforeEvent,
@@ -24,16 +25,16 @@ import type { TeamEventRow } from "./team-events";
 const TZ = "Europe/London";
 const OLD = "2026-10-01T09:00:00Z";
 
-const flow = (id: string, trigger: FlowTrigger, created_at = OLD): ActiveFlow => ({ id, name: `Flow ${id}`, trigger, assistant_id: null, created_at });
+const flow = (id: string, trigger: FlowTrigger, created_at = OLD, assistant_id: string | null = null): ActiveFlow => ({ id, name: `Flow ${id}`, trigger, assistant_id, created_at });
 
 // ---------- fakes ----------
 
-function fakeClaims(events: TeamEventRow[] = []): FlowClaims & { fires: Set<string>; pending: TeamEventRow[] } {
+function fakeClaims(events: TeamEventRow[] = []): FlowClaims & { fires: Set<string>; queue: TeamEventRow[] } {
   const fires = new Set<string>();
-  const pending = [...events];
+  const queue = [...events];
   return {
     fires,
-    pending,
+    queue,
     async fire(flowId, key) {
       const k = `${flowId}|${key}`;
       if (fires.has(k)) return false;
@@ -43,23 +44,28 @@ function fakeClaims(events: TeamEventRow[] = []): FlowClaims & { fires: Set<stri
     async release(flowId, key) {
       fires.delete(`${flowId}|${key}`);
     },
-    async events(limit) {
-      return pending.splice(0, limit);
+    async pending(limit) {
+      return queue.slice(0, limit);
+    },
+    async seen(ids) {
+      for (const id of ids) {
+        const i = queue.findIndex((e) => e.id === id);
+        if (i >= 0) queue.splice(i, 1);
+      }
     },
     async event(id) {
-      const i = pending.findIndex((e) => e.id === id);
-      return i < 0 ? null : pending.splice(i, 1)[0];
+      return queue.find((e) => e.id === id) ?? null;
     },
   };
 }
 
 type Started = { flowId: string } & Parameters<FlowStarter["start"]>[1];
-function fakeStarter(opts: { fail?: boolean } = {}): FlowStarter & { started: Started[] } {
+function fakeStarter(opts: { fail?: boolean | ((start: Parameters<FlowStarter["start"]>[1]) => boolean) } = {}): FlowStarter & { started: Started[] } {
   const started: Started[] = [];
   return {
     started,
     async start(flowId, start) {
-      if (opts.fail) throw new Error("engine down");
+      if (opts.fail === true || (typeof opts.fail === "function" && opts.fail(start))) throw new Error("engine down");
       started.push({ flowId, ...start });
       return `run-${started.length}`;
     },
@@ -221,8 +227,8 @@ test("before/date: reads only the days it needs, and gives a renewal's company a
 
 // ---------- events ----------
 
-test("event: one flow's matching events in a pass make one run; nothing from before the flow", async () => {
-  const renewalFlow = flow("e", { kind: "event", event: { source: "collected", kind: "renewal" } });
+test("event: an assistant's flow gets a pass's matching events in one run; nothing from before the flow", async () => {
+  const renewalFlow = flow("e", { kind: "event", event: { source: "collected", kind: "renewal" } }, OLD, "assistant-1");
   const emailFlow = flow("m", { kind: "event", event: { source: "collected", kind: "email" } }, "2026-11-20T09:30:00Z");
   const events = [
     ev(1, { kind: "renewal", title: "Car insurance renews 2026-12-01", email: true }, { ref_kind: "asset" }),
@@ -233,11 +239,66 @@ test("event: one flow's matching events in a pass make one run; nothing from bef
   const { d, starter, claims } = deps([renewalFlow, emailFlow], { events, items });
   const out = await queueFlowRuns(d, new Date("2026-11-20T10:00:00Z"));
   assert.equal(out.length, 1);
-  assert.equal(claims.pending.length, 0);
+  assert.equal(claims.queue.length, 0);
   const run = starter.started[0];
   assert.equal(run.flowId, "e");
   assert.deepEqual(run.event_ids, ["1", "3"]);
   assert.deepEqual(run.values, { item: "Broadband", company: { id: null, name: "Example Broadband" }, renewal_date: "2026-12-14", title: "Broadband renews 2026-12-14", count: 2 });
+});
+
+test("event: a plain flow starts one run per event, each with that event's own values", async () => {
+  const renewalFlow = flow("e", { kind: "event", event: { source: "collected", kind: "renewal" } });
+  const events = [
+    ev(1, { kind: "renewal", title: "Car insurance renews 2026-12-01", email: true }, { ref_kind: "asset" }),
+    ev(2, { kind: "issue", title: "Fix the login page", connector: "linear" }),
+    ev(3, { kind: "renewal", title: "Broadband renews 2026-12-14", email: true }, { ref_kind: "asset" }),
+  ];
+  const items: FlowTriggerDeps["items"] = async (e) =>
+    e.id === "1" ? { item: "Car insurance", renewal_date: "2026-12-01" } : e.id === "3" ? { item: "Broadband", company: { id: null, name: "Example Broadband" }, renewal_date: "2026-12-14" } : {};
+  const { d, starter, claims } = deps([renewalFlow], { events, items });
+  const out = await queueFlowRuns(d, new Date("2026-11-20T10:00:00Z"));
+  assert.equal(out.length, 2);
+  assert.equal(claims.queue.length, 0);
+  assert.deepEqual(starter.started.map((r) => r.event_ids), [["1"], ["3"]]);
+  assert.deepEqual(starter.started[0].values, { item: "Car insurance", renewal_date: "2026-12-01", title: "Car insurance renews 2026-12-01", count: 1 });
+  assert.deepEqual(starter.started[1].values, { item: "Broadband", company: { id: null, name: "Example Broadband" }, renewal_date: "2026-12-14", title: "Broadband renews 2026-12-14", count: 1 });
+  assert.equal(starter.started[0].label, "New renewal: “Car insurance renews 2026-12-01”");
+});
+
+test("event: a plain flow starts at most FLOW_RUNS_PER_PASS runs a pass; the rest wait, unclaimed, and nothing runs twice", async () => {
+  const notes = flow("n", { kind: "event", event: { source: "note", tag: "recipe" } });
+  const helper = flow("h", { kind: "event", event: { source: "note", tag: "recipe" } }, OLD, "assistant-1");
+  const n = FLOW_RUNS_PER_PASS * 2 + 3;
+  const events = Array.from({ length: n }, (_, i) => ev(i + 1, { title: `Recipe ${i + 1}`, tags: ["recipe"] }, { kind: "note" }));
+  const { d, starter, claims } = deps([notes, helper], { events });
+  const t = new Date("2026-11-20T10:00:00Z");
+
+  const first = await queueFlowRuns(d, t);
+  // The plain flow's first ten, and one run for the assistant's flow with every event.
+  assert.equal(first.filter((r) => r.flow_id === "n").length, FLOW_RUNS_PER_PASS);
+  assert.equal(starter.started.find((r) => r.flowId === "h")?.event_ids?.length, n);
+  assert.equal(claims.queue.length, n - FLOW_RUNS_PER_PASS);
+
+  const second = await queueFlowRuns(d, new Date(t.getTime() + 5 * 60_000));
+  const third = await queueFlowRuns(d, new Date(t.getTime() + 10 * 60_000));
+  // The assistant's flow already had them: it doesn't run again.
+  assert.deepEqual([second.length, third.length], [FLOW_RUNS_PER_PASS, 3]);
+  assert.ok([...second, ...third].every((r) => r.flow_id === "n"));
+  assert.equal(claims.queue.length, 0);
+  const ids = starter.started.filter((r) => r.flowId === "n").map((r) => r.event_ids?.[0]);
+  assert.deepEqual(ids, events.map((e) => e.id));
+});
+
+test("event: a plain flow's run that couldn't start is tried again next pass", async () => {
+  const notes = flow("n", { kind: "event", event: { source: "note", tag: "recipe" } });
+  let down = true;
+  const starter = fakeStarter({ fail: () => down });
+  const { d, claims } = deps([notes], { events: [ev(1, { title: "Lentil soup", tags: ["recipe"] }, { kind: "note" })], starter });
+  assert.equal((await queueFlowRuns(d, new Date("2026-11-20T10:00:00Z"))).length, 0);
+  assert.equal(claims.queue.length, 1);
+  down = false;
+  assert.equal((await queueFlowRuns(d, new Date("2026-11-20T10:05:00Z"))).length, 1);
+  assert.equal(claims.queue.length, 0);
 });
 
 test("event: batches follow Team's filter, tags and saved actions included", () => {
@@ -265,6 +326,7 @@ test("owner actions start at once, and a pass doesn't start them again", async (
     assert.deepEqual(starter.started[0].values, { item: { id: "ref-7", kind: "note", title: "Lentil soup" }, tags: "recipe", title: "Lentil soup", count: 1 });
     assert.equal((await startFlowEvent(d, "7")).length, 0);
     assert.equal((await queueFlowRuns(d, new Date("2026-11-20T10:00:00Z"))).length, 0);
+    assert.equal(starter.started.length, 1);
   } finally {
     remove();
   }
@@ -273,7 +335,7 @@ test("owner actions start at once, and a pass doesn't start them again", async (
 test("owner actions are left for the pass when no flow waits for events", async () => {
   const { d, claims } = deps([flow("a", { kind: "schedule", days: [1], time: "09:00" })], { events: [ev(8, { title: "x" }, { kind: "note" })] });
   assert.equal((await startFlowEvent(d, "8")).length, 0);
-  assert.equal(claims.pending.length, 1);
+  assert.equal(claims.queue.length, 1);
 });
 
 // ---------- what each trigger gives ----------

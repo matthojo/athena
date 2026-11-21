@@ -1689,9 +1689,11 @@ Design in `docs/team.md` "Assignments"; notes in
 
 - **Plain, and only ids and times.** `flow_trigger_fires` keeps one row per
   fire a flow claimed: the flow's id, a key made of a kind, a record's id
-  and a time, and timestamps, never a title. Rows go after a week.
+  and sometimes a time (one flow's run for one event is `event:` and the
+  event's id), and timestamps, never a title. Rows go after a week.
   `team_events.flow_claimed_at` is a timestamp beside Team's
-  `processed_at`, so flows and Team each read an event once.
+  `processed_at`, set once every flow has had the event, so flows and Team
+  each read events apart.
 - **Nothing leaves the site.** Triggers read the calendar, People, life
   admin, orders and bookings from Athena's own tables and hand what they
   found (titles, names, dates) to the flow engine as a run's starting

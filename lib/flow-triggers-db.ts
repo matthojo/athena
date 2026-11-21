@@ -5,7 +5,10 @@
  *
  * The engine plugs itself in with useFlowEngine({ source, starter }). Until
  * it has, runFlowTriggers does nothing and claims nothing, so events wait
- * for it (Team prunes them after a week either way).
+ * for it (Team prunes them after a week either way). Events are read, run,
+ * then marked seen (`flow_claimed_at`); each flow's run for each event is a
+ * fire (`event:<id>`) in `flow_trigger_fires`, so an event a plain flow left
+ * for the next pass never starts another flow twice.
  */
 import { getConnectionsDetailed, getEvent, getPerson, listEvents, notDeclined, qRaw, type AthenaEvent } from "./db";
 import { getAsset, listAssets } from "./memory";
@@ -35,18 +38,21 @@ export const dbFlowClaims: FlowClaims = {
   async release(flowId, key) {
     await qRaw(`DELETE FROM flow_trigger_fires WHERE flow_id = $1 AND fire_key = $2`, [flowId, key]);
   },
-  async events(limit) {
+  async pending(limit) {
+    // Read, not marked: a plain flow may leave some for the next pass. Fires stop a run starting twice.
     const rows = await qRaw<EventRowRaw>(
-      `UPDATE team_events SET flow_claimed_at = now()
-        WHERE id IN (SELECT id FROM team_events WHERE flow_claimed_at IS NULL ORDER BY id LIMIT $1 FOR UPDATE SKIP LOCKED)
-        RETURNING id, kind, ref_id, ref_kind, facets, created_at`,
+      `SELECT id, kind, ref_id, ref_kind, facets, created_at FROM team_events WHERE flow_claimed_at IS NULL ORDER BY id LIMIT $1`,
       [limit],
     );
     return rows.map(toEventRow).sort((a, b) => Number(a.id) - Number(b.id));
   },
+  async seen(ids) {
+    if (!ids.length) return;
+    await qRaw(`UPDATE team_events SET flow_claimed_at = now() WHERE id = ANY($1::bigint[]) AND flow_claimed_at IS NULL`, [ids]);
+  },
   async event(id) {
     const [r] = await qRaw<EventRowRaw>(
-      `UPDATE team_events SET flow_claimed_at = now() WHERE id = $1::bigint AND flow_claimed_at IS NULL RETURNING id, kind, ref_id, ref_kind, facets, created_at`,
+      `SELECT id, kind, ref_id, ref_kind, facets, created_at FROM team_events WHERE id = $1::bigint AND flow_claimed_at IS NULL`,
       [id],
     );
     return r ? toEventRow(r) : null;
@@ -131,7 +137,7 @@ export async function dbItemValues(ev: TeamEventRow): Promise<Record<string, unk
       const p = await getPurchase(ev.ref_id);
       if (!p) return {};
       const items = p.items.filter(readable).join(", ");
-      return { item: items || (readable(p.retailer) ? p.retailer : null), company: readable(p.retailer) ? { id: null, name: p.retailer } : null, expected: p.expected_on };
+      return { item: items || (readable(p.retailer) ? p.retailer : null), company: readable(p.retailer) ? { id: null, name: p.retailer } : null, delivery_date: p.expected_on };
     }
     case "booking": {
       const b = await getBooking(ev.ref_id);

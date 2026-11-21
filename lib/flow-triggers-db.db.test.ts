@@ -1,5 +1,5 @@
 // Flows' trigger claims on real Postgres (migration 0081): a fire is claimed once and can be given back; flows
-// claim events with their own column, so Team's claim and theirs don't take events from each other; old fires go.
+// mark events seen with their own column, so Team's claim and theirs don't take events from each other; old fires go.
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/flow-triggers-db.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL. Empties team_events and flow_trigger_fires first.
 import { test, beforeEach } from "node:test";
@@ -29,18 +29,21 @@ test("a fire is claimed once, and can be given back", { skip }, async () => {
   assert.equal(await dbFlowClaims.fire("flow-1", "schedule:2026-11-20T16:00:00.000Z", at), true);
 });
 
-test("flows and Team each claim every event once, apart", { skip }, async () => {
+test("flows and Team each see every event, apart; flows mark theirs seen when done", { skip }, async () => {
   const { emitTeamEvent } = await import("./team-events");
   const { claimEvents } = await import("./team-triggers");
   const { dbFlowClaims } = await import("./flow-triggers-db");
   const a = await emitTeamEvent("note", null, "note", { title: "Lentil soup", tags: ["recipe"] });
   const b = await emitTeamEvent("collected", null, "note", { title: "Fix the login page", kind: "issue" });
   assert.deepEqual((await claimEvents()).map((e) => e.id), [a, b]);
-  const own = await dbFlowClaims.event(a!);
-  assert.equal(own?.facets.title, "Lentil soup");
+  assert.equal((await dbFlowClaims.event(a!))?.facets.title, "Lentil soup");
+  // Reading doesn't mark: a plain flow may leave some for the next pass.
+  assert.deepEqual((await dbFlowClaims.pending(10)).map((e) => e.id), [a, b]);
+  await dbFlowClaims.seen([a!]);
   assert.equal(await dbFlowClaims.event(a!), null);
-  assert.deepEqual((await dbFlowClaims.events(10)).map((e) => e.id), [b]);
-  assert.deepEqual(await dbFlowClaims.events(10), []);
+  assert.deepEqual((await dbFlowClaims.pending(10)).map((e) => e.id), [b]);
+  await dbFlowClaims.seen([b!]);
+  assert.deepEqual(await dbFlowClaims.pending(10), []);
 });
 
 test("fires older than a week go", { skip }, async () => {
