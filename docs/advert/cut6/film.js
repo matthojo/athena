@@ -470,8 +470,10 @@
     if (wp && hasEv("saved", "linkTap")) {
       // Framed so the page's "Watch & read" title is at the top and the frame's bottom edge sits in the gap under the
       // covers: cause (Move to Watch & read) and effect (the film first on Watch & read) in one view.
-      const tLink = evF("saved", "linkTap"), zW = NOSLIVER, wBot = wp.y + wp.h + 7;
-      to("saved-watch", tLink - 80, 380, 800, c("saved", CW / 2, wBot - (H / 2) / zW, zW));
+      // (cut 6: on the current page the title sits 268 above the covers; top edge 7 above the title, bottom edge 2.3 under
+      // the covers, at ~2.46x: neighbours still ~5 units clear)
+      const tLink = evF("saved", "linkTap"), wTop = wp.y - 275, wBot = wp.y + wp.h + 2.3, zW = H / (wBot - wTop);
+      to("saved-watch", tLink - 80, 380, 800, { x: CARDS.saved.x + CW / 2, y: CARDS.saved.y + (wTop + wBot) / 2, z: zW });
     } else drift(tMove + 1400, 30500, 1.04, 12);
     // 6: Team 1, "Tell me when": the saved gift idea's page. Lands on its header (the shop, "Cedar & sage hand balm,
     // 75ml") with the Tracking panel's sentence and chart under it, and holds; then in on the sentence, the chart and
@@ -578,7 +580,12 @@
       const fc = hr.faces || [], wren = fc.length > 1 ? fc[fc.length - 2] : null, nc2 = hr.newCard;
       const t0 = (wren ? wren.y - 21 : nc2.y - 240) - 8, t1 = nc2.y + nc2.h + 8;
       to("hire-team", T_TEAM_IN - 250, 250, 450, { x: CARDS.hire.x + CW / 2, y: CARDS.hire.y + (t0 + t1) / 2, z: H / (t1 - t0) });
-      drift(58150, T_FLOWS - 900, 1.03, 0, 0);
+      drift(58150, 59000, 1.02, 0, 0);
+      // (held 57900-59100 with both whole; then a push in on the new face's card, "... first run is Monday at 9:00",
+      // at the zoom the Flows page is framed at, so the step left to it is a pan at one zoom: nothing above the
+      // suggestion card crosses the frame's top edge while the camera settles)
+      const ncd = hr.newCard, zN = Math.min(H / (ncd.h + 60), ZMAX.hire || 3.75, H / 288);
+      to("team-acorn", 59000, 350, 700, { x: CARDS.hire.x + CW / 2, y: CARDS.hire.y + ncd.y + ncd.h / 2, z: zN });
     }
     // 11: Flows. One step left to the Flows page (its fastest frame on 60000), framed on Athena's suggestion: the
     // sentence, the flow it proposes and "Make it a flow". On the tap the camera rides the card into the flow page,
@@ -587,7 +594,7 @@
       // The suggestion card whole: top edge in the gap above it (the first suggestion's buttons out of frame), bottom
       // edge in the gap under it, above "Your flows" (measured on the capture: gaps 331-343 and 558-619).
       const sug = rect("flow", "sug"), s0 = sug.y - 8.7, s1 = Math.min(sug.y + sug.h + 60, s0 + H / 3.6);
-      to("team-flows", T_FLOWS - 700, 700, 1100, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (s0 + s1) / 2, z: H / (s1 - s0) });
+      to("team-flows", T_FLOWS - 650, 650, 1050, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (s0 + s1) / 2, z: H / (s1 - s0) });
       drift(T_FLOWS + 1100, T_FLOW_TAP - 150, 1.03, 0, 0);
       // The flow: its title, the On switch, When ... and Then ... whole; the bottom edge in the gap above "Test on the
       // last date". Its neighbours are away by now (faded while off frame), so this wider frame shows the page alone.
@@ -1178,7 +1185,7 @@
       // The hire sheet's neighbours are away while the camera is on it (faded while off frame), back for the wall.
       // (Flows, the next card left, comes back as the camera sets off for it)
       if (HIDE_BY_FLOW.has(n)) o *= 1 - inOutSoft(prog(t, T_FLOWS + 700, T_FLOWS + 1000)) * (1 - inOutSoft(prog(t, T.pull - 600, T.pull - 420)));
-      if (HIDE_BY_HIRE.has(n)) o *= 1 - inOutSoft(prog(t, 51700, 52000)) * (1 - inOutSoft(n === "flow" ? prog(t, T_FLOWS - 800, T_FLOWS - 600) : prog(t, T.pull - 600, T.pull - 420)));
+      if (HIDE_BY_HIRE.has(n)) o *= 1 - inOutSoft(prog(t, 51700, 52000)) * (1 - inOutSoft(n === "flow" ? prog(t, T_FLOWS - 650, T_FLOWS - 500) : prog(t, T.pull - 600, T.pull - 420)));
       const f0 = fallStart(c);
       const fp = prog(t, f0, f0 + 600);
       const fall = inCubic(fp) * FALL;
