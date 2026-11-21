@@ -229,7 +229,10 @@ def build_cues(film=None, verbose=True):
             continue
         if t - last < MIN_GAP:
             # one whoosh for the pair: the first, unless this one is clearly the bigger move (twice the speed)
-            if px is not None and last_px is not None and px >= 2 * last_px and cues and cues[-1] is last_cue:
+            # (or a section move, one MOVES names, at least as fast as an in-shot push just before it: the push into
+            # Acorn's card at 59.53 must not take the whoosh of the pan into Flows at 59.97)
+            section = lbl in MOVES and last_lbl not in MOVES and px is not None and last_px is not None and px >= last_px
+            if px is not None and last_px is not None and (px >= 2 * last_px or section) and cues and cues[-1] is last_cue:
                 skipped.append(f"{last_lbl}@{last:.2f} (for {lbl})")
                 cues.pop()
             else:
