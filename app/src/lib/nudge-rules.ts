@@ -12,6 +12,7 @@ export const RULES: Record<RuleId, { name: string; icon: IconName; meta: string 
   weekly_plan: { name: "Plan for the week", icon: "week", meta: "Sunday evening: next week's to-dos placed on your lighter days. Apply the parts you want." },
   drift: { name: "Drift", icon: "loop", meta: "When a habit slips on the same day three weeks running." },
   routine: { name: "Your routines", icon: "refresh", meta: "Each time one of your Ask routines runs. Set them up in Settings → Ask." },
+  flow: { name: "Your flows", icon: "refresh", meta: "When one of your flows tells you something, waits for your Go or an answer, or doesn't finish. A flow you've handed to an assistant follows Your team." },
   team: { name: "Your team", icon: "people", meta: "When one of your Team assistants runs: what it did, and anything waiting for you to tap Go." },
   car: { name: "MOT and car tax", icon: "car", meta: "About 30 days and again 7 days before your car's MOT or tax runs out. Quiet once it's renewed." },
   watch_tonight: { name: "Something to watch tonight", icon: "tv", meta: "On an evening your calendar leaves clear after 19:00: up to three picks from your own watchlist, and why each fits your taste." },
