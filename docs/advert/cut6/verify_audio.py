@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks for the cut 5 soundtrack: length, peak, loudness (ffmpeg), grid onsets, swap ticks on the musical
+"""Checks for the cut 6 soundtrack (86.4 s, -15 LUFS, true peak under -1.5 dBTP, light limiting): length, peak, loudness (ffmpeg), grid onsets, swap ticks on the musical
 steps, section levels (build momentary, chord on top, the "reached" bar second), dropout, silence; for the mix,
 every named cue against its picture event, where it really sounds (matched filter) and how far it stands over
 the music in 2-8 kHz.
@@ -56,10 +56,12 @@ def momentary(x):
 
 
 NAMED = ("chip", "send", "drop", "land", "set", "penny", "stepdown", "reached", "hello", "face1", "face2", "face3", "cut_accent",
-         "tick", "whoosh", "whoosh_big", "select", "pop")
+         "tick", "whoosh", "whoosh_big", "select", "pop", "pop2", "flowstep1", "flowstep2", "flowstep3", "flowstep4", "toggle")
+TARGET_LUFS, TP_MIX = -15.0, -1.5
 EVENT_OF = {  # cue -> (film-events key, cue time relative to the event) for the cut 5 beats
     "set": ("track.targetSet", 0.0), "penny": ("work.working", 0.0), "stepdown": ("work.stepDown", -0.6),
-    "reached": ("work.reached", 0.3), "hello": ("hire.hello", 0.0), "chip": ("home.lateChip", 0.0)}
+    "reached": ("work.reached", 0.3), "hello": ("hire.hello", 0.0), "chip": ("home.lateChip", 0.0),
+    "toggle": ("flows.on", 0.0), "pop2": ("flows.suggest", 0.0)}
 
 
 def check_cues(x):
@@ -100,7 +102,7 @@ def check_cues(x):
             if nm == "press" and fpress:
                 worst_keys = max(worst_keys, min(abs(c["at"] + 0.02 - t) for t in fpress) * 1000)
             continue
-        m = tpl[: int(0.12 * SR)].mean(axis=1)
+        m = tpl[: int(0.04 * SR)].mean(axis=1)              # the attack: a ringing bar's later periods match anywhere
         a = max(i - int(0.03 * SR), 0)
         seg = mono[a:a + len(m) + int(0.06 * SR)]
         cc = np.correlate(seg, m, "valid")
@@ -140,15 +142,16 @@ def check(name):
     print(f"  sample peak {to_db(pk):.2f} dBFS, clipped samples {clipped}, DC L/R {x[:, 0].mean():+.1e} {x[:, 1].mean():+.1e}")
     ok &= clipped == 0
     r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-af",
-                        "loudnorm=I=-14:TP=-1:LRA=11:print_format=json", "-f", "null", "-"],
+                        "loudnorm=I=-15:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"],
                        capture_output=True, text=True)
     j = json.loads(re.search(r"\{[^{}]*\}", r.stderr[r.stderr.rfind("[Parsed_loudnorm"):], re.S).group(0))
     print(f"  ffmpeg loudnorm: I {j['input_i']} LUFS, TP {j['input_tp']} dBTP, LRA {j['input_lra']}")
-    ok &= abs(float(j["input_i"]) + 14) < 0.7 and float(j["input_tp"]) < (-1.0 if name == "mix" else -0.1)   # music.wav is an intermediate
+    ok &= abs(float(j["input_i"]) - TARGET_LUFS) < 0.5 and float(j["input_tp"]) <= (TP_MIX if name == "mix" else -0.1)   # music.wav is an intermediate
 
     print("  onsets (offset from the grid in ms, dB above the preceding 30 ms):")
     hf = (1000, 9000)     # transients only: a bass note sounding just before a downbeat must not hide it
-    pts = [("groove in", 2.4, None),     # full band: the opening pad masks 1-9 kHz, and narrow low bands pre-ring ("full groove", M.HOME, hf), ("lift", M.LIFT, hf), ("pull-back", M.PULL, hf),
+    pts = [("groove in", 2.4, None),     # full band: the opening pad masks 1-9 kHz, and narrow low bands pre-ring
+           ("full groove", M.HOME, hf), ("lift", M.LIFT, hf), ("pull-back", M.PULL, hf), ("flow's steps", M.FLOWSTEP, hf),
            ("step down", M.STEP, hf), ("arrival", M.ARRIVE, (300, 9000)), ("accent 1", M.ACCENTS[0], hf), ("accent 2", M.ACCENTS[1], hf), ("final chord", M.END, hf),
            ("logo tag", M.TAG, (1400, 9000))]
     pts += [(f"tile {i + 1}", t, (350, 6000)) for i, t in enumerate(M.TILES)]
@@ -198,7 +201,8 @@ def check(name):
             ("14.4-lift thin", 14.4, L), ("lift-24 full", L, 24.0), ("24-31.2 saved", 24.0, 31.2), ("31.2-36 team1", 31.2, 36.0),
             ("36-40.8 music", 36.0, 40.8), ("40.8-43.2 habits", 40.8, 43.2),
             ("team2 search", M.TEAM2, M.STEP), ("team2 reached", M.STEP, M.HIRE),
-            ("50.4-arrive hire", M.HIRE, M.ARRIVE), ("arrival", M.ARRIVE, M.TEAMPAGE), ("team page", M.TEAMPAGE, M.DROPOUT[0]),
+            ("50.4-arrive hire", M.HIRE, M.ARRIVE), ("arrival", M.ARRIVE, M.TEAMPAGE), ("team page", M.TEAMPAGE, M.FLOWS),
+            ("flows card", M.FLOWS, M.FLOWSTEP), ("flows steps", M.FLOWSTEP, M.DROPOUT[0]),
             ("dropout", M.DROPOUT[0], M.DROPOUT[1]), ("pull-back", M.PULL, M.ROT), ("drop", M.ROT, M.BUILD0),
             ("build", M.BUILD0, M.BUILD0 + 4.0), ("build end", M.STOP - 2.0, M.STOP),
             ("breath", M.STOP + 0.1, M.END - 0.1), ("chord", M.END, M.TAG), ("lockup", M.TAG, M.TAG + 3.0),
@@ -215,9 +219,9 @@ def check(name):
     for i in range(int(round(M.STOP - M.BUILD0))):
         m = (tM > M.BUILD0 + i + 0.4) & (tM <= M.BUILD0 + i + 1 + 1e-9)
         per.append(float(10 * np.log10(np.mean(10 ** (mom[m] / 10)))))
-    rising = all(b > a - 0.6 for a, b in zip(per, per[1:])) and per[-1] > per[0] + 0.8 and per[0] >= -15.5
+    rising = all(b > a - 0.6 for a, b in zip(per, per[1:])) and per[-1] > per[0] + 0.8 and per[0] >= TARGET_LUFS - 1.5
     print(f"  build loudness per second from {M.BUILD0} (LUFS): " + " ".join(f"{v:.1f}" for v in per) +
-          f" -> {'rising, no hole' if rising else 'CHECK (want >= -15.5 at the start, rising)'}")
+          f" -> {'rising, no hole' if rising else 'CHECK (want >= -16.5 at the start, rising)'}")
     bmax = lm["build end"][0]
     pb = lm["pull-back"][0]
     bend_ok = pb - 0.3 <= bmax <= lm["chord"][0] - 1.0
@@ -241,7 +245,8 @@ def check(name):
     arr, stp = mx(M.ARRIVE, M.ARRIVE + 1.0), mx(M.STEP, M.STEP + 1.2)
     others = {nm_: mx(a_, b_) for nm_, a_, b_ in (("home", 9.6, 14.4), ("ask", 14.4, 24.0), ("saved", 24.0, 31.2),
               ("team 1", 31.2, 36.0), ("music", 36.0, 40.8), ("habits", 40.8, 43.4), ("search", 43.6, M.STEP),
-              ("hire", M.HIRE + 0.4, M.ARRIVE), ("team page", M.ARRIVE + 1.4, M.DROPOUT[0]))}
+              ("hire", M.HIRE + 0.4, M.ARRIVE), ("team page", M.ARRIVE + 1.4, M.FLOWS),
+              ("flows", M.FLOWS, M.DROPOUT[0]))}
     third = max(others.values())
     t_ok = tag <= cmax - 1.0
     hit, wall = mx(M.PULL, M.PULL + 1.2), mx(M.PULL + 1.2, M.ROT + 0.4)
@@ -260,9 +265,16 @@ def check(name):
     try:
         with open(os.path.join(audio_dir(), "music-limiter.json")) as f:
             lim = json.load(f)
-        l_ok = lim["step"] <= 3.0 and lim["pull"] <= 3.0
+        l_ok = lim["step"] <= 3.0 and lim["pull"] <= 3.0 and lim["chord"] <= 3.0 and lim["limited_pct"] <= 3.0
         print(f"  music master limiter (dB) at the hits: " + ", ".join(f"{k_} {v_}" for k_, v_ in lim.items()) +
-              f" -> {'OK' if l_ok else 'CHECK step / pull (want <= 3 dB)'}")
+              f" -> {'OK' if l_ok else 'CHECK (cut 6 wants <= 3 dB at step / pull / chord, <= 3% of samples limited)'}")
+        if name == "mix":
+            with open(os.path.join(audio_dir(), "mix-limiter.json")) as f:
+                ml = json.load(f)
+            m_ok = ml["max_gr"] <= 4.0 and ml["limited_pct"] <= 3.0
+            print(f"  mix master limiter: max {ml['max_gr']} dB, {ml['limited_pct']}% of samples -> "
+                  f"{'OK' if m_ok else 'CHECK (want <= 4 dB, <= 3%)'}")
+            l_ok &= m_ok
         ok &= l_ok
     except (OSError, ValueError, KeyError):
         print("  music-limiter.json missing (re-run music.py)")
@@ -272,7 +284,7 @@ def check(name):
     # cut 5: the "reached" bar is the second-biggest moment: over everything before the pull-back, under the chord
     rb = (tM > M.STEP + 0.4) & (tM <= M.STEP + M.BAR + 1e-9)
     reached = float(mom[rb].mean())
-    before = max(lm[k][0] for k in lm if k.split(" ")[-1] in ("home", "thin", "full", "saved", "team1", "music", "habits", "search", "hire", "arrival", "page"))
+    before = max(lm[k][0] for k in lm if k.split(" ")[-1] in ("home", "thin", "full", "saved", "team1", "music", "habits", "search", "hire", "arrival", "page", "card", "steps"))
     r_ok = reached >= before + (0.3 if name == 'mix' else -0.5) and reached <= lm["chord"][0] - 1.0
     print(f"  reached bar {reached:.1f} LUFS: loudest section before the pull-back otherwise {before:.1f}, chord "
           f"{lm['chord'][0]:.1f} -> {'OK' if r_ok else 'CHECK'}")

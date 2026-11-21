@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes $FILM/audio/cues.json: every interface sound, placed against the picture (cut 5, 81.6 s).
+"""Writes $FILM/audio/cues.json: every interface sound, placed against the picture (cut 6, 86.4 s).
 
 Sources, best first:
   $FILM/motion-peaks.json   the camera's fastest frame for each move (motion agent). Each whoosh starts
@@ -12,15 +12,19 @@ Sources, best first:
                             the answer lands at 19.2 s), or relative to an anchored event in a re-timed shot.
   swaps.json                the closing line (typed, two retypes; the swap ticks are in the music).
 Run this, then mix.py. Re-run both whenever motion-peaks.json, film-events.json or the manifest changes.
-(music.py reads two events itself, work.stepDown and hire.arrive: re-run it first if either moved to another
-bar / beat; this file prints a NOTE when the music on disk no longer matches.)
+(music.py reads three events itself, work.stepDown, hire.arrive and flows.steps: re-run it first if one moved;
+this file prints a NOTE when the music on disk no longer matches.)
 
 New in cut 5 (film-events keys, all optional; the plan's times stand in):
   track.tellMeWhen / atOrUnder / amount / tellMe   presses (taps come from press.NN), track.typeStart/typeEnd if
                             the amount is typed, track.targetSet -> "set"
   work.working -> Penny's voice; work.stepDown -> "stepdown" (its landing on that frame); work.reached -> "reached"
   hire.typeStart/typeEnd -> keys; hire.arrive / hire.hello -> "hello"; hire.faces -> two face blips
-  as the new face lands on the Team page, 57.6-59.4 (else straight after the hello); hire.joined -> a soft pop
+  as the new face lands on the Team page, 57.6-60.0 (else straight after the hello); hire.joined -> a soft pop
+New in cut 6 (Flows, 60.0-64.8; the music's kalimba run lands on flows.steps):
+  flows.suggest -> a soft bubble pop as the suggestion card lands; flows.make -> a tap (unless press.NN covers
+  it); flows.step1..N -> "flowstep1..4", one per step row (only flows.steps: one, on it); flows.on -> "toggle"
+Cut 6's whooshes are breathy air and sit ~3 dB lower than cut 5's (the brief: softer, quieter whooshes).
 """
 import json
 import math
@@ -34,33 +38,36 @@ from audiolib import film_dir
 BEAT, S16 = 0.6, 0.15
 WHOOSH_LEAD = 0.17          # sfx.whoosh / whoosh_big peak this far in
 SHOT_START = {"home": 9.6, "ask": 14.4, "saved": 24.0, "track": 31.2, "music": 36.0, "habits": 40.8, "work": 43.2,
-              "hire": 50.4}
-STOP, GREAT, DROPOUT = 73.2, 74.4, (59.4, 60.0)
+              "hire": 50.4, "flows": 60.0}
+STOP, GREAT, DROPOUT = 78.0, 79.2, (64.2, 64.8)
+FLOWS, FLOWSTEP_DEFAULT = 60.0, 62.4           # music.py's default for flows.steps
+LATE_FROM = 59.95           # motion data from cut 5's timeline: events after this moved by the Great's difference
 STEP_DEFAULT, ARRIVE_DEFAULT = 48.0, 55.2      # music.py's defaults for work.stepDown and hire.arrive
 STEP_LEAD, HELLO_LEN = 0.6, 0.36               # sfx.stepdown lands this far in; sfx.hello is said by here
 
-# camera moves: label -> (placeholder fastest point, sfx, gain dB). Review sound #1 asked +1; measured against the
-# brighter cut 4 music, +4 puts a move's whoosh at or above the music in 2-8 kHz.
+# camera moves: label -> (placeholder fastest point, sfx, gain dB). Cut 5 ran them at +4 over a brighter synth
+# bed; cut 6's air is quieter by brief (the sfx files are 2 dB down and the gains 3 dB down).
 MOVES = {
-    "dive": (7.2 + 0.4, "whoosh_big", 4),
-    "home-ask": (14.4 + 0.4, "whoosh", 4),
-    "ask-saved": (24.0 + 0.4, "whoosh", 4),
-    "saved-track": (31.2 + 0.4, "whoosh", 4),
-    "track-music": (36.0 + 0.4, "whoosh", 4),
-    "music-habits": (40.8 + 0.4, "whoosh", 4),
-    "habits-work": (43.2 + 0.4, "whoosh", 4),
-    "work-hire": (50.4 + 0.4, "whoosh", 4),
-    "pullback": (60.0 + 0.4, "whoosh_big", 4),
-    "wall-exit": (64.8 + 0.4, "whoosh", 2),
+    "dive": (7.2 + 0.4, "whoosh_big", 1),
+    "home-ask": (14.4 + 0.4, "whoosh", 1),
+    "ask-saved": (24.0 + 0.4, "whoosh", 1),
+    "saved-track": (31.2 + 0.4, "whoosh", 1),
+    "track-music": (36.0 + 0.4, "whoosh", 1),
+    "music-habits": (40.8 + 0.4, "whoosh", 1),
+    "habits-work": (43.2 + 0.4, "whoosh", 1),
+    "work-hire": (50.4 + 0.4, "whoosh", 1),
+    "team-flows": (60.0 + 0.4, "whoosh", 1),
+    "pullback": (64.8 + 0.4, "whoosh_big", 1),
+    "wall-exit": (69.6 + 0.4, "whoosh", -1),
 }
 PLACEHOLDER_NEAR = 1.0      # a named move the peaks file lacks gets its placeholder only if no peak is this close
 FINALE_LABELS = ("checkin", "finale", "card", "lift", "good-days")   # the card rising after the dead cut
-IN_SHOT_GAIN = -2           # in-shot reframes (saved-open, team-open, ...): a lighter touch
-LABEL_GAIN = {"saved-watch": 2}   # in-shot moves that carry a story beat (the poster flying into Watch & read)
+IN_SHOT_GAIN = -5           # in-shot reframes (saved-open, team-open, ...): a lighter touch
+LABEL_GAIN = {"saved-watch": -1}   # in-shot moves that carry a story beat (the poster flying into Watch & read)
 SKIP_LABELS = ("orb",)      # the Great -> orb morph: the logo tag carries it; a whoosh there measured inaudible
 SOFT_CUTS = ("cut.hire",)   # a state swap inside a continuous push in, not a camera cut: no accent, keep the whoosh
 CUT_NEAR = 0.35             # a camera peak this close to a hard cut is the move the cut replaced: no whoosh
-FLIGHT_GAIN = -4            # the poster's flight into Watch & read, when the camera itself barely moves
+FLIGHT_GAIN = -7            # the poster's flight into Watch & read, when the camera itself barely moves
 MIN_PX_PER_FRAME = 9        # slower than this is a drift, not a move: no whoosh (the poster's fly is 9.5)
 MIN_GAP = 0.8               # one whoosh per move: a peak within 0.8 s of the last one kept is the same move
 CAM_MIN_PX, CAM_PROM = 20.0, 8.0   # camspeed.json maxima the peaks file doesn't list (e.g. an in-shot open)
@@ -124,10 +131,10 @@ def film_events(film, verbose=False):
     gp = fev.get("checkin.press")
     late = (GREAT - gp / 1000.0) if isinstance(gp, (int, float)) and abs(gp / 1000.0 - GREAT) > 0.05 else 0.0
     if late:
-        fev = {k: (v + late * 1000.0 if isinstance(v, (int, float)) and v > 57650 else v) for k, v in fev.items()}
+        fev = {k: (v + late * 1000.0 if isinstance(v, (int, float)) and v > LATE_FROM * 1000.0 else v) for k, v in fev.items()}
         if verbose:
             print(f"  NOTE film-events.json is from another timeline (Great at {gp / 1000.0:.1f}, not {GREAT}): "
-                  f"events after 57.65 s and camera peaks after 57.0 s moved {late:+.1f} s until motion re-renders")
+                  f"events and camera peaks after {LATE_FROM} s moved {late:+.1f} s until motion re-renders")
     return fev, late
 
 
@@ -195,10 +202,10 @@ def build_cues(film=None, verbose=True):
             add("press", t, gain)
 
     # ---- whooshes: one per camera move, onset 0.17 s before its fastest frame
-    peaks = [(lbl, t + late if t > 57.0 else t, px) for lbl, t, px in motion_peaks(film)]
+    peaks = [(lbl, t + late if t > LATE_FROM else t, px) for lbl, t, px in motion_peaks(film)]
     have = {lbl for lbl, _, _ in peaks}
-    extra = cam_peaks(film, [t - late if t > 57.0 + late else t for _, t, _ in peaks]) if peaks else []
-    extra = [(lbl, t + late if t > 57.0 else t, px) for lbl, t, px in extra]
+    extra = cam_peaks(film, [t - late if t > LATE_FROM + late else t for _, t, _ in peaks]) if peaks else []
+    extra = [(lbl, t + late if t > LATE_FROM else t, px) for lbl, t, px in extra]
     if peaks:                                   # placeholders only for named moves the peaks file lacks
         real = [t for _, t, _ in peaks]         # (and only where it has nothing: the labels may differ)
         peaks += [(lbl, t, None) for lbl, (t, _, _) in MOVES.items()
@@ -218,7 +225,7 @@ def build_cues(film=None, verbose=True):
             continue
         if any(lbl.startswith(f) for f in FINALE_LABELS):
             if t >= STOP - 0.5:
-                add("whoosh", max(STOP + 0.1, t - WHOOSH_LEAD), -14)  # review: sound #8, soft, after the dead cut
+                add("whoosh", max(STOP + 0.1, t - WHOOSH_LEAD), -16)  # soft, after the dead cut
             continue
         if t - last < MIN_GAP:
             # one whoosh for the pair: the first, unless this one is clearly the bigger move (twice the speed)
@@ -231,12 +238,12 @@ def build_cues(film=None, verbose=True):
         last, last_px, last_lbl = t, px, lbl
         sfx, g = MOVES[lbl][1:] if lbl in MOVES else ("whoosh", IN_SHOT_GAIN)
         if px is not None:                          # r2: the gain follows the camera's speed
-            g = 4 if px >= 50 else (0 if px >= 25 else -2)
+            g = 1 if px >= 50 else (-3 if px >= 25 else -5)
         g = max(g, LABEL_GAIN.get(lbl, g))
         add(sfx, t - WHOOSH_LEAD, g)
         last_cue = cues[-1]
     if not any(any(l.startswith(f) for f in FINALE_LABELS) for l in have):
-        add("whoosh", STOP + 0.1, -12)                                 # the check-in card rising (fastest ~73.4)
+        add("whoosh", STOP + 0.1, -14)                                 # the check-in card rising (fastest ~78.2)
 
     # ---- opening: the orb pops under the press (the eight tiles are carried by the music's tile notes and the taps)
     tap(1.2 - 0.02, 6)
@@ -263,7 +270,7 @@ def build_cues(film=None, verbose=True):
     add("key3", t_paste, 4)                                # V: the link appears
     add("select", t_paste + 0.01, 0)
     t_land = ev("saved", "posterLoaded", "cardLand", rel=("paste", t_paste)) or t_paste + 0.6
-    add("drop", t_land, 3)                                 # a soft land as the film card fades in
+    add("drop", t_land, 5)                                 # a soft land as the film card fades in
     t_open = ev("saved", "open", anchor=27.0)
     tap(t_open - 0.04, 8)                                  # tap the card
     t_move = ev("saved", "move", anchor=28.2)
@@ -320,18 +327,18 @@ def build_cues(film=None, verbose=True):
 
     # ---- Habits: the tick
     t_tick = ev("habits", "tick", anchor=42.0)
-    add("tick", t_tick, 5)
+    add("tick", t_tick, 2)
 
     # ---- Team 2: Penny's voice when her working line shows (the music ticks and searches under her), the price
     #      stepping down so its last step lands on the frame it drops under the target, then the bright "reached"
     t_work = ev("work", "working", "workingLine", anchor=44.4)
-    add("penny", on_grid(t_work, 0.06), 8)
+    add("penny", on_grid(t_work, 0.06), 11)     # cut 6: the rounder voice has less 2-8 kHz
     t_step = ev("work", "stepDown", "result", anchor=STEP_DEFAULT)
-    add("stepdown", t_step - STEP_LEAD, 6)
+    add("stepdown", t_step - STEP_LEAD, 4)
     t_reach = ev("work", "reached", "reachedLine", film_only=True)
     if t_reach is None or t_reach < t_step + 0.2:
         t_reach = t_step + BEAT / 2                        # half a beat after the landing, so both are heard
-    add("reached", on_grid(t_reach, 0.06), 5.5)   # r1 asked +7: that put this window over the chord
+    add("reached", on_grid(t_reach, 0.06), 2)     # cut 6: the kalimba / glock versions carry more than the synth ones
     if t_work > t_step - 1.2:
         print(f"  NOTE Penny's working line ({t_work:.2f}) is under 1.2 s before the step down ({t_step:.2f})")
 
@@ -350,7 +357,7 @@ def build_cues(film=None, verbose=True):
     t_hello = on_grid(t_hello, 0.06) if on_grid(t_hello, 0.06) >= t_hello - 0.02 else t_hello   # never ahead of its bubble
     add("hello", t_hello, 9)
     t_faces = ev("hire", "faces", "team", film_only=True)
-    if t_faces is not None and t_faces > DROPOUT[0] - 3 * S16:
+    if t_faces is not None and t_faces > FLOWS - 3 * S16:
         t_faces = None       # the Team page would only show inside the pull-back: they answer the hello instead
     # r2: two blips, a fifth apart: D6 on the frame the new face lands in the list, A6 a 16th later (the list
     # answering). Without that frame: on the next 16th after the hello.
@@ -360,7 +367,7 @@ def build_cues(film=None, verbose=True):
     for j, f in enumerate(("face1", "face3")):
         add(f, t0f + j * S16, (1, 9)[j], over=5)           # level measured by mix.py: even wherever they land
     t_join = ev("hire", "joined", film_only=True)
-    if t_join is not None and t_join > t0f + 2 * S16 + 0.3 and t_join < DROPOUT[0] - 0.1:
+    if t_join is not None and t_join > t0f + 2 * S16 + 0.3 and t_join < FLOWS - 0.1:
         add("pop3", on_grid(t_join), 0)                    # "... is on your team"
     try:                                                   # the music scores two of these events: say so if it is stale
         import music as M_
@@ -368,8 +375,30 @@ def build_cues(film=None, verbose=True):
             print(f"  NOTE the step down is at {t_step:.2f} but music.py is built for {M_.STEP:.2f}: re-run music.py")
         if abs(M_.ARRIVE - t_arr) > 0.31:
             print(f"  NOTE the arrival is at {t_arr:.2f} but music.py is built for {M_.ARRIVE:.2f}: re-run music.py")
+        t_fs = fev.get("flows.steps", fev.get("flows.step1"))
+        if isinstance(t_fs, (int, float)) and abs(M_.FLOWSTEP - t_fs / 1000.0) > 0.08:
+            print(f"  NOTE the flow's steps are at {t_fs / 1000.0:.2f} but music.py is built for {M_.FLOWSTEP:.2f}: re-run music.py")
     except Exception as e:                                 # numpy missing etc.: the cue sheet doesn't need it
         print(f"  (music.py not checked: {e})")
+
+    # ---- Flows: the suggestion card lands (a soft bubble pop), "Make it a flow" is pressed, the flow's steps arrive
+    #      (the music's kalimba run lands on flows.steps; a small plink per step row on top), the switch turns on
+    t_sug = ev("flows", "suggest", "card", film_only=True)
+    if t_sug is not None and FLOWS - 0.1 <= t_sug < FLOWSTEP_DEFAULT + 1.2:
+        add("pop2", on_grid(t_sug), -2)
+    t_make = ev("flows", "make", "makeFlow", anchor=61.5)
+    tap(t_make - 0.04, 6)
+    rows = sorted(v / 1000.0 for k, v in fev.items() if k.startswith("flows.step") and k[10:].isdigit()
+                  and isinstance(v, (int, float)))
+    t_steps = ev("flows", "steps", anchor=FLOWSTEP_DEFAULT)
+    if rows:
+        for j, tr in enumerate(rows[:4]):
+            add(f"flowstep{j + 1}", on_grid(tr), -6)
+    else:
+        add("flowstep1", t_steps + BEAT / 2, -6)   # half a beat after the run's landing, so both are heard
+    t_on = ev("flows", "on", "switchOn", film_only=True)
+    if t_on is not None and t_on > t_steps:
+        add("toggle", on_grid(t_on), -2)
 
     # ---- the closing line: typed, two phrases selected and retyped. The quickening swaps are ticked by the music.
     swaps = load(os.path.join(HERE, "swaps.json")) or []
@@ -382,7 +411,7 @@ def build_cues(film=None, verbose=True):
         elif sw.get("how") == "retype":
             add("select", at, 4)
             keys(at + 0.12, at + 0.34, 5, 0)
-    # 73.2: dead cut, no pop. 74.4: "Great" on the final chord.
+    # 78.0: dead cut, no pop. 79.2: "Great" on the final chord.
     tap(GREAT - 0.02, 6)
     add("tick", GREAT, 4)
 

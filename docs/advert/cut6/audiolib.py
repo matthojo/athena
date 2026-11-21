@@ -1,10 +1,12 @@
-"""Shared numpy-only audio helpers for the cut 5 soundtrack (music.py, sfx.py, mix.py)."""
+"""Shared numpy-only audio helpers for the cut 6 soundtrack (music.py, sfx.py, mix.py), and the acoustic
+instrument models both music.py and sfx.py play (felt piano, kalimba, glockenspiel, celesta, marimba, wood,
+Karplus-Strong ukulele and upright bass, felt kick, brushes, shaker, snaps)."""
 import os
 import wave
 import numpy as np
 
 SR = 48000
-DEFAULT_FILM = "/tmp/claude-0/-home-user-athena/92254b34-7623-59d6-a458-adb54d88ca12/scratchpad/film5"
+DEFAULT_FILM = "/tmp/claude-0/-home-user-athena/92254b34-7623-59d6-a458-adb54d88ca12/scratchpad/film6"
 
 
 def film_dir():
@@ -252,7 +254,7 @@ def true_peak_db(x, os_factor=4):
 LAST_GR = None      # the limiter's gain curve from the last master() call (for reports)
 
 
-def master(bus, target_lufs=-14.0, ceiling_db=-1.5, tp_limit_db=-1.0, verbose=True):
+def master(bus, target_lufs=-15.0, ceiling_db=-1.5, tp_limit_db=-1.6, verbose=True):
     """Gain into a look-ahead limiter until integrated loudness hits the target; keep true peak under limit."""
     g = db(target_lufs - lufs(bus))
     ceil = ceiling_db
@@ -277,3 +279,338 @@ def master(bus, target_lufs=-14.0, ceiling_db=-1.5, tp_limit_db=-1.0, verbose=Tr
               f"{-to_db(gr.min()):.2f} dB at {np.argmin(gr) / SR:.2f}s, limiting {100 * np.mean(gr < 0.999):.1f}% of samples")
         print(f"  master: {L:.2f} LUFS integrated, sample peak {to_db(np.max(np.abs(y))):.2f} dBFS, true peak {tp:.2f} dBTP")
     return y
+
+
+# ================================================================ acoustic instrument models (cut 6)
+# Everything below imitates a real, played instrument: struck bars with their own inharmonic partials, a felt
+# piano with stretched partials and beating unison strings, plucked strings by Karplus-Strong. Each returns a
+# mono float64 array that starts on its onset (no lead-in) and ends at silence.
+def _t(dur):
+    n = max(1, int(round(dur * SR)))
+    return n, np.arange(n) / SR
+
+
+def _nz(n, seed):
+    return np.random.default_rng(seed).standard_normal(n)
+
+
+def struck_bar(f, dur, ratios, amps, taus, attack=0.0015, bend=0.0, seed=0, thump=0.0, thump_lp=900.0):
+    """A struck or plucked bar / tine / plate: a sum of decaying partials at its own (inharmonic) ratios.
+    attack: the mallet's or thumb's contact time (a raised-cosine rise; felt is slow, metal is fast).
+    bend: the note starts this fraction sharp and settles in 30 ms (a tine bending as it is let go).
+    thump: a little low-passed noise for the contact itself (a thumb, a felt mallet)."""
+    n, t = _t(dur)
+    out = np.zeros(n)
+    fb = 1.0 + bend * np.exp(-t / 0.03)
+    for r, a, tau in zip(ratios, amps, taus):
+        fk = f * r
+        if fk > 15000.0 or a == 0:
+            continue
+        ph = 2 * np.pi * np.cumsum(fk * fb) / SR
+        out += a * np.sin(ph) * np.exp(-t / tau)
+    if thump:
+        th = fft_filter(_nz(n, 400 + seed), lambda fr: g_lp(fr, thump_lp, 2)) * np.exp(-t / 0.004)
+        out += thump * th / (np.max(np.abs(th[: int(0.01 * SR) + 1])) + 1e-9)
+    a = max(2, int(attack * SR))
+    out[:a] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(a) / a)
+    return edges(out, 0.0002, min(0.15, dur * 0.3))
+
+
+def kalimba(midi, dur=1.4, vel=1.0, seed=0):
+    """Kalimba: a steel tine plucked by a thumb. Clamped-free tine partials (1 : 6.27 : 17.5) whose overtones
+    die in tens of ms, a few cents' bend as the tine is released, a soft thumb thump, a ~3 ms rise (skin, not a
+    plectrum). The fundamental rings longer on low tines."""
+    f = mtof(midi)
+    tau = 0.6 * (523.0 / f) ** 0.45
+    return struck_bar(f, dur, (1.0, 2.0, 6.27, 17.5), (1.0, 0.05, 0.22 * vel, 0.05 * vel),
+                      (tau, tau * 0.25, 0.045, 0.012), attack=0.0028, bend=0.004, seed=seed, thump=0.10 * vel)
+
+
+def glock(midi, dur=1.6, vel=1.0, seed=0):
+    """Glockenspiel with soft (rubber) mallets: free-free bar partials 1 : 2.76 : 5.40 : 8.93, long fundamental,
+    the upper modes gone in a few tenths; a 1.2 ms contact."""
+    f = mtof(midi)
+    tau = 1.1 * (1047.0 / f) ** 0.3
+    return struck_bar(f, dur, (1.0, 2.76, 5.40, 8.93), (1.0, 0.28 * vel, 0.10 * vel, 0.04 * vel),
+                      (tau, 0.28, 0.08, 0.03), attack=0.0012, seed=seed)
+
+
+def celesta(midi, dur=1.6, vel=1.0, seed=0):
+    """Celesta: felt hammers on steel plates over wooden resonators, so rounder than the glockenspiel: a strong
+    fundamental, a quiet octave, a short 4.1x 'ping' at the strike and a 4 ms felt contact."""
+    f = mtof(midi)
+    tau = 0.8 * (1047.0 / f) ** 0.4
+    return struck_bar(f, dur, (1.0, 2.0, 3.0, 4.1), (1.0, 0.10, 0.03, 0.10 * vel),
+                      (tau, tau * 0.4, tau * 0.2, 0.035), attack=0.004, seed=seed, thump=0.04, thump_lp=1500.0)
+
+
+def marimba(midi, dur=0.6, vel=1.0, seed=0):
+    """Marimba with soft yarn mallets: a rosewood bar tuned so its 2nd mode is two octaves up (1 : 3.93 : 9.2),
+    the tube resonator holding the fundamental a little longer; quick decay, a felt contact of ~2.5 ms."""
+    f = mtof(midi)
+    tau = 0.35 * (440.0 / f) ** 0.6
+    return struck_bar(f, dur, (1.0, 3.93, 9.2), (1.0, 0.20 * vel, 0.05 * vel), (tau, 0.035, 0.010),
+                      attack=0.0025, seed=seed, thump=0.06 * vel, thump_lp=1200.0)
+
+
+def wood(f, dur=0.09, vel=1.0, seed=0):
+    """Woodblock / temple block 'tock': a hollow block's two low modes (1 : 1.53 : 2.31) gone in ~25 ms, over a
+    2 ms stick click. f is its pitch (the block's size)."""
+    n, t = _t(dur)
+    out = struck_bar(f, dur, (1.0, 1.53, 2.31), (1.0, 0.45, 0.18), (0.022, 0.012, 0.008), attack=0.0008, seed=seed)
+    ck = fft_filter(_nz(n, 410 + seed), lambda fr: g_hp(fr, 1500.0, 2) * g_lp(fr, 6000.0, 2)) * np.exp(-t / 0.0015)
+    return edges(out + 0.25 * vel * ck / (np.max(np.abs(ck)) + 1e-9), 0.0003, 0.02)
+
+
+def felt_piano(midi, dur=1.5, vel=0.7, seed=0, release=0.12):
+    """Soft felt piano ("una corda" with a felt strip): partials stretched by string stiffness
+    f_k = k f sqrt(1 + B k^2); a felt hammer's spectrum (highs rolled off, more so when played softly); each
+    partial with a fast 'prompt' decay and a slow aftersound; three unison strings a cent apart, so the tone
+    beats slowly; a 5 ms rise and a low felt thump; the damper comes down over `release` s at the end."""
+    f = mtof(midi)
+    n, t = _t(dur)
+    B = 0.00025 * (f / 261.6) ** 0.7
+    fc = 600.0 + 1200.0 * vel
+    tau1 = 0.9 * (261.6 / f) ** 0.55
+    rng = np.random.default_rng(int(midi) * 7 + seed)
+    out = np.zeros(n)
+    for k in range(1, 30):
+        fk = k * f * np.sqrt(1 + B * k * k)
+        if fk > 9000.0:
+            break
+        a = (1.0 / k ** 0.9) / (1.0 + (fk / fc) ** 3)
+        if a < 1e-3:
+            continue
+        tp = tau1 / (1.0 + 0.7 * (k - 1))
+        env = 0.75 * np.exp(-t / tp) + 0.25 * np.exp(-t / (tp * 5.0))
+        beat = 1.0 - 0.18 * (1 - np.cos(2 * np.pi * (0.4 + 0.25 * k) * t + rng.uniform(0, 6.28)))
+        out += a * env * beat * np.sin(2 * np.pi * fk * t + rng.uniform(0, 6.28))
+    th = fft_filter(_nz(n, 420 + seed), lambda fr: g_lp(fr, 350.0, 2)) * np.exp(-t / 0.012)
+    out += 0.05 * th / (np.std(th[: int(0.02 * SR)]) * 3 + 1e-9)
+    a = int(0.005 * SR)
+    out[:a] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(a) / a)
+    return edges(out, 0.0002, min(release, dur * 0.4))
+
+
+def ks_string(f, dur, t60=1.5, soft=1, pluck_pos=0.18, exc_lp=3000.0, seed=0):
+    """Karplus-Strong plucked string, block-vectorised (the loop runs once per period, not per sample).
+    The loop filter is a 2- or 3-tap average (soft=1: [.25 .5 .25], a nylon/gut string; soft=0: [.5 .5]) convolved
+    with a linear fractional delay so the pitch is exact; a loss per period sets the decay (t60, seconds to
+    -60 dB at the fundamental). The excitation is a burst of low-passed noise with a pluck-position comb
+    (a finger plucking 18% along the string: no harsh pick)."""
+    P = SR / f
+    kernel = np.array([0.25, 0.5, 0.25]) if soft else np.array([0.5, 0.5])
+    kd = (len(kernel) - 1) / 2.0
+    L = int(np.floor(P - kd))
+    w = P - kd - L
+    taps = np.convolve(kernel, [1.0 - w, w])
+    g = 10.0 ** (-3.0 / (t60 * f))
+    n = int(round(dur * SR))
+    O = len(taps) + 1
+    y = np.zeros(n + O + L)
+    rng = np.random.default_rng(seed)
+    e = rng.standard_normal(L * 3)
+    e = fft_filter(e, lambda fr: g_lp(fr, exc_lp, 2))[L:2 * L]
+    e = e - np.roll(e, int(round(pluck_pos * L)))
+    e -= e.mean()
+    y[O:O + L] = e / (np.max(np.abs(e)) + 1e-9)
+    s = O + L
+    while s < O + n:
+        m = min(L, O + n - s)
+        acc = np.zeros(m)
+        for j, a in enumerate(taps):
+            acc += a * y[s - L - j:s - L - j + m]
+        y[s:s + m] = g * acc
+        s += m
+    out = y[O:O + n]
+    return out
+
+
+def body_filter(x, modes, seed=0):
+    """A wooden body: the string's signal plus a few damped resonances (Hz, gain, decay s) excited by it."""
+    n_ir = int(0.12 * SR)
+    t = np.arange(n_ir) / SR
+    ir = np.zeros(n_ir)
+    ir[0] = 1.0
+    for fr, gn, tau in modes:
+        ir += gn * np.sin(2 * np.pi * fr * t) * np.exp(-t / tau) * (2 * np.pi * fr / SR)
+    from scipy.signal import fftconvolve
+    return fftconvolve(x, ir)[: len(x)]
+
+
+UKE_STRINGS = (67, 60, 64, 69)        # G4 C4 E4 A4, re-entrant tuning
+UKE_BODY = ((260.0, 9.0, 0.020), (440.0, 6.0, 0.012), (610.0, 4.0, 0.010), (1050.0, 2.0, 0.006))
+
+
+def uke_string(midi, dur=1.2, vel=0.8, seed=0):
+    """One ukulele string: nylon Karplus-Strong (soft loop filter, a finger's low-passed pluck) through a small
+    spruce body (resonances at 260, 440, 610, 1050 Hz)."""
+    f = mtof(midi)
+    x = ks_string(f, dur, t60=1.1 * (330.0 / f) ** 0.3, soft=1, pluck_pos=0.2, exc_lp=1800.0 + 2200.0 * vel, seed=seed)
+    y = body_filter(x, UKE_BODY) * 0.5 + 0.5 * x
+    return edges(y, 0.0015, min(0.06, dur * 0.3))
+
+
+def upright_bass(midi, dur=0.8, vel=0.8, seed=0):
+    """Plucked upright (or acoustic) bass: a gut-like Karplus-Strong string with a very soft, low-passed finger
+    pluck, a woody body (110 / 210 / 330 Hz) and a short finger 'thup'; the hand mutes it at `dur`."""
+    f = mtof(midi)
+    n, t = _t(dur)
+    x = ks_string(f, dur, t60=1.6, soft=1, pluck_pos=0.25, exc_lp=450.0 + 300.0 * vel, seed=seed)
+    y = 0.6 * x + 0.4 * body_filter(x, ((110.0, 6.0, 0.03), (210.0, 5.0, 0.02), (330.0, 3.0, 0.012)))
+    thup = fft_filter(_nz(n, 430 + seed), lambda fr: g_lp(fr, 500.0, 2) * g_hp(fr, 60.0, 1)) * np.exp(-t / 0.008)
+    y += 0.12 * vel * thup / (np.max(np.abs(thup)) + 1e-9) * np.max(np.abs(y[: int(0.05 * SR)]) + 1e-9)
+    return edges(y, 0.002, min(0.05, dur * 0.3))
+
+
+def felt_kick(vel=1.0, short=False):
+    """A concert bass drum hit with a felt beater, close and small: the head's modes (1 : 1.59 : 2.14) around
+    55 Hz with a slight pitch drop, a 4 ms felt contact (no click), a woody shell knock at 150 Hz. Round, no
+    808 boom: 0.25 s (0.11 s for rolls)."""
+    dur = 0.11 if short else 0.28
+    n, t = _t(dur)
+    f = 55.0 * (1.0 + 0.25 * np.exp(-t / 0.02))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    body = (np.sin(ph) * np.exp(-t / (0.05 if short else 0.11)) + 0.30 * np.sin(1.59 * ph) * np.exp(-t / 0.05)
+            + 0.15 * np.sin(2.14 * ph) * np.exp(-t / 0.03))
+    knock = np.sin(2 * np.pi * 150.0 * t) * np.exp(-t / 0.018) * 0.25
+    felt = fft_filter(_nz(n, 440), lambda fr: g_lp(fr, 700.0, 2)) * np.exp(-t / 0.006)
+    out = body + knock + 0.12 * vel * felt / (np.max(np.abs(felt)) + 1e-9)
+    a = int(0.004 * SR)
+    out[:a] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(a) / a)
+    return edges(out * vel, 0.0002, 0.03)
+
+
+def low_tom(midi=45, vel=1.0):
+    """A soft floor tom hit with a felt mallet: modes 1 : 1.5 : 1.98 with a little pitch drop, ~0.3 s."""
+    n, t = _t(0.35)
+    f = mtof(midi) * (1.0 + 0.12 * np.exp(-t / 0.03))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    out = np.sin(ph) * np.exp(-t / 0.14) + 0.35 * np.sin(1.5 * ph) * np.exp(-t / 0.06) + 0.18 * np.sin(1.98 * ph) * np.exp(-t / 0.04)
+    a = int(0.003 * SR)
+    out[:a] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(a) / a)
+    return edges(out * vel, 0.0002, 0.04)
+
+
+def brush_tap(var=0, dur=0.22):
+    """A brushed snare backbeat: hundreds of wires landing over ~5 ms (a softened noise attack), a breathy
+    1-8 kHz splash that decays over ~0.1 s, the snares under it, and a faint 190 Hz drum body. Stereo."""
+    n, t = _t(dur)
+    rng = np.random.default_rng(450 + var)
+    nz = fft_filter(rng.standard_normal((n, 2)), lambda fr: g_hp(fr, 900.0, 2) * g_lp(fr, 7500.0, 2))
+    env = (1 - np.exp(-t / 0.0025)) * (np.exp(-t / 0.035) + 0.25 * np.exp(-t / 0.12))
+    body = np.sin(2 * np.pi * (190.0 + 10 * var) * t) * np.exp(-t / 0.03) * 0.25
+    common = nz.mean(axis=1, keepdims=True)
+    sig = (0.6 * common + 0.5 * nz) * env[:, None] / 2.0 + body[:, None]
+    return edges(sig, 0.0005, 0.03)
+
+
+def brush_swish(dur=0.5, seed=0):
+    """A brush swept across the head (the jazz circle): a soft band of noise that rises and falls over `dur`,
+    its centre drifting with the stroke. Stereo, very breathy."""
+    n, t = _t(dur)
+    rng = np.random.default_rng(460 + seed)
+    nz = fft_filter(rng.standard_normal((n, 2)), lambda fr: g_hp(fr, 1800.0, 2) * g_lp(fr, 6500.0, 2))
+    x = t / dur
+    env = np.sin(np.pi * x) ** 1.5 * (0.7 + 0.3 * np.sin(2 * np.pi * x))
+    return edges(nz * env[:, None] / 2.0, 0.003, 0.02)
+
+
+def shaker_hit(var=0, vel=1.0):
+    """An egg shaker: beads hitting the shell as a burst of tiny grains (sparse impulses, 3-9 kHz), a soft
+    ~8 ms rise and ~40 ms fall. Stereo."""
+    n, t = _t(0.12)
+    rng = np.random.default_rng(470 + var)
+    grains = (rng.random((n, 2)) < 0.25) * rng.standard_normal((n, 2))
+    nz = fft_filter(grains, lambda fr: g_hp(fr, 3000.0, 3) * g_lp(fr, 9000.0, 2))
+    env = (1 - np.exp(-t / 0.008)) * np.exp(-t / 0.030)
+    return edges(nz * env[:, None] * vel, 0.002, 0.02)
+
+
+def finger_snap(var=0):
+    """A finger snap: the finger hitting the palm, a short 1.4-3.5 kHz pop with a little skin resonance, gone in
+    ~30 ms. Stereo."""
+    n, t = _t(0.08)
+    rng = np.random.default_rng(480 + var)
+    nz = fft_filter(rng.standard_normal((n, 2)), lambda fr: g_hp(fr, 1200.0, 2) * g_lp(fr, 3600.0, 2))
+    env = np.exp(-t / 0.006) + 0.15 * np.exp(-t / 0.02)
+    tone = np.sin(2 * np.pi * (1850.0 + 70 * var) * t) * np.exp(-t / 0.008) * 0.6
+    common = nz.mean(axis=1, keepdims=True)
+    sig = (0.8 * common + 0.3 * nz) * env[:, None] / 2.5 + tone[:, None] * 0.5
+    return edges(sig, 0.0006, 0.02)
+
+
+def soft_clap(var=0):
+    """A soft hand clap (cupped hands): three skin bursts 9 ms apart, then a short room, all under 4 kHz."""
+    n, t = _t(0.2)
+    rng = np.random.default_rng(490 + var)
+    nz = fft_filter(rng.standard_normal((n, 2)), lambda fr: g_hp(fr, 600.0, 2) * g_lp(fr, 3800.0, 2))
+    env = np.zeros(n)
+    for d in (0.0, 0.009, 0.019):
+        i = int(d * SR)
+        env[i:] += np.exp(-t[: n - i] / 0.005)
+    i = int(0.026 * SR)
+    env[i:] += 0.5 * np.exp(-t[: n - i] / 0.04)
+    common = nz.mean(axis=1, keepdims=True)
+    return edges((0.6 * common + 0.5 * nz) * env[:, None] / 2.5, 0.0008, 0.03)
+
+
+def mark_tree(n_bars=9, dur=1.4, down=True, seed=0):
+    """A mark tree (bar chimes) brushed by a finger: n small brass rods, each a glassy inharmonic ping, 22 ms
+    apart, high to low. A sparkle, not a cymbal. Stereo."""
+    rng = np.random.default_rng(500 + seed)
+    nn, _ = _t(dur)
+    out = np.zeros((nn, 2))
+    fr = np.geomspace(6200.0, 2600.0, n_bars) if down else np.geomspace(2600.0, 6200.0, n_bars)
+    for j, f in enumerate(fr):
+        f *= 1.0 + rng.uniform(-0.01, 0.01)
+        s = struck_bar(f, dur - 0.022 * j, (1.0, 2.76, 5.4), (1.0, 0.2, 0.05), (0.45, 0.1, 0.03), attack=0.0006)
+        i = int(0.022 * j * SR)
+        p = -0.6 + 1.2 * j / max(1, n_bars - 1)
+        l, r = pan_gains(p)
+        out[i:i + len(s), 0] += s * l * (0.9 ** j)
+        out[i:i + len(s), 1] += s * r * (0.9 ** j)
+    return edges(out, 0.0005, 0.1)
+
+
+def breath_air(dur, f0=500.0, f1=3000.0, seed=0, shape=2.0):
+    """Soft breathy air (a long exhale): noise through a gentle band whose centre glides f0 -> f1, the band
+    wide and the slopes shallow so it never whistles; swells by t^shape and ends on its last sample. Stereo."""
+    n, t = _t(dur)
+    rng = np.random.default_rng(510 + seed)
+    nz = rng.standard_normal((n, 2))
+    X = np.fft.rfft(nz, axis=0)
+    fr = np.fft.rfftfreq(n, 1.0 / SR)
+    # time-varying band done in a few overlapping segments (cheap, no sweep artefacts at this softness)
+    out = np.zeros((n, 2))
+    segs = 8
+    for s in range(segs):
+        c = f0 * (f1 / f0) ** ((s + 0.5) / segs)
+        g = g_hp(fr, c * 0.55, 1) * g_lp(fr, c * 1.6, 2)
+        y = np.fft.irfft(X * g[:, None], n=n, axis=0)
+        w = np.clip(1 - np.abs((t / dur) * segs - (s + 0.5)), 0, 1)
+        out += y * w[:, None]
+    env = (t / dur) ** shape
+    return edges(out * env[:, None], 0.01, 0.02)
+
+
+def reed_chord(notes, dur, bright=1.0, seed=0):
+    """A small harmonium / reed organ, played softly: each note two free reeds (a few cents apart), the reed's
+    full harmonic series rolled off above ~1.6 kHz by the cabinet, a bellows swell (0.18 s), a slight bellows
+    wobble and a little wind noise. Stereo (one reed per side mostly)."""
+    n, t = _t(dur)
+    rng = np.random.default_rng(520 + seed)
+    out = np.zeros((n, 2))
+    fc = 1300.0 * bright
+    wob = 1.0 + 0.025 * np.sin(2 * np.pi * 4.6 * t + rng.uniform(0, 6.28))
+    for m in notes:
+        for ch, det in ((0, -3.0), (1, 3.0)):
+            f = mtof(m) * 2 ** (det / 1200.0)
+            kmax = max(1, min(18, int(6000.0 / f)))
+            for k in range(1, kmax + 1):
+                a = (1.0 / k ** 0.8) / (1.0 + (k * f / fc) ** 3)
+                out[:, ch] += a * np.sin(2 * np.pi * f * k * t + rng.uniform(0, 6.28))
+    out /= max(1, len(notes))
+    wind = fft_filter(rng.standard_normal((n, 2)), lambda fr: g_hp(fr, 800.0, 1) * g_lp(fr, 3000.0, 2)) * 0.01
+    sw = np.sin(0.5 * np.pi * np.clip(t / 0.18, 0, 1)) ** 2
+    return edges((out + wind) * (sw * wob)[:, None], 0.002, min(0.2, dur * 0.3))

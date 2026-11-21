@@ -1,6 +1,6 @@
-# Athena launch film, cut 5: "Athena remembers the good days"
+# Athena launch film, cut 6: "Athena remembers the good days"
 
-81.6s, 1920x1080, 30fps (2448 frames), stereo 48kHz. No voiceover, no live action. `PLAN.md` is the source
+86.4s, 1920x1080, 30fps (2592 frames), stereo 48kHz. No voiceover, no live action. `PLAN.md` is the source
 for what is in this cut; this brief is the motion spec that `film.js` implements.
 
 ## The idea
@@ -10,13 +10,16 @@ and everything that happens is something it did. The real app screens sit on the
 with no device bezel, laid out like a map; the camera glides and pushes between them and gets close
 enough that the UI nearly fills the frame. Almost no words. Light, playful, unhurried confidence.
 
-Tempo 100 BPM: one beat = 600ms, one bar = 2400ms, 34 bars = 81.6s.
+Tempo 100 BPM: one beat = 600ms, one bar = 2400ms, 36 bars = 86.4s.
+
+Cut 6 is cut 5 re-fitted to captures of the current app (every rect re-measured; every cut 5 review fix kept), plus
+one new bar and a half: **Flows** (60000–64800). Everything from the pull-back on is cut 5's, 4800 ms later.
 
 ## Paths
-- Source: `docs/advert/cut5/` (film.html/css/js, render.cjs, swaps.json).
-- Working output: `$FILM` = `/tmp/claude-0/-home-user-athena/92254b34-7623-59d6-a458-adb54d88ca12/scratchpad/film5`
-  - `$FILM/cap-r1/<shot>/0000.jpg…` app captures (390x844 CSS at 3x or more), `$FILM/cap-r1/manifest.json`, `$FILM/cap-r1/stills/<name>.jpg` (round 1's re-shoots; `$FILM/cap` is round 0)
-  - `$FILM/frames/000000.jpg…` final picture frames; `$FILM/motion-peaks.json`, `$FILM/camspeed.json` for the sound.
+- Source: `docs/advert/cut6/` (film.html/css/js, render.cjs, swaps.json).
+- Working output: `$FILM` = `/tmp/claude-0/-home-user-athena/92254b34-7623-59d6-a458-adb54d88ca12/scratchpad/film6`
+  - `$FILM/cap/<shot>/0000.jpg…` app captures (390x844 CSS at 3x or more), `$FILM/cap/manifest.json`, `$FILM/cap/stills/<name>.jpg`
+  - `$FILM/frames/000000.jpg…` final picture frames; `$FILM/motion-peaks.json`, `$FILM/camspeed.json`, `$FILM/film-events.json` for the sound (hard cuts carry `cut: true`).
 
 ## Look
 - Canvas #f4f6f8 with the soft blue/mint aurora haze, ink #15181e, cobalt #2c5fdd, the blue orb. Funnel Display, Geist.

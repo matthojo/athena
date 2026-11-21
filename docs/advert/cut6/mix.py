@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Athena cut 5 final mix: music + interface sounds placed from a cue file.
+"""Athena cut 6 final mix: music + interface sounds placed from a cue file.
 
-Run: python3 mix.py   ->  $FILM/audio/mix.wav (exactly 81.600 s, -14 LUFS, true peak under -1 dBTP,
-digital silence from 81.4 s)
+Run: python3 mix.py   ->  $FILM/audio/mix.wav (exactly 86.400 s, -15 LUFS, true peak under -1.5 dBTP,
+digital silence from 86.2 s)
 
 Cue file $FILM/audio/cues.json: [{"sfx": "key", "at": 22.20, "gain": -6}, ...]
   at    seconds from the start of the film (the sound's onset)
@@ -21,10 +21,11 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from audiolib import SR, audio_dir, db, to_db, read_wav, write_wav, master, lufs, cue_gain
 
-DUR = 81.6
-SILENT = 81.4
+DUR = 86.4
+SILENT = 86.2
 N = int(round(DUR * SR))
 ROTATE = {"key": 4, "pop": 3}
+TARGET_LUFS, TP_LIMIT = -15.0, -1.6     # cut 6: a tad softer (cut 5: -14 / -1.1); ffmpeg reads ~0.1 dB over our meter
 MUSIC_TRIM_DB = -3.0     # the music bed under the effects before the bus is re-mastered (review: sound #1)
 
 
@@ -92,7 +93,10 @@ def main():
         print("  WARNING skipped cues (unknown sfx or outside the film):", ", ".join(sorted(set(skipped))))
 
     print(f"  {placed} cues placed over music at {music_lufs:.2f} LUFS")
-    y = master(bus, target_lufs=-14.0, tp_limit_db=-1.1)     # ffmpeg reads ~0.1 dB over our true-peak meter
+    y = master(bus, target_lufs=TARGET_LUFS, tp_limit_db=TP_LIMIT)
+    gr = __import__("audiolib").LAST_GR
+    with open(os.path.join(d, "mix-limiter.json"), "w") as f:
+        json.dump({"max_gr": round(-to_db(gr.min()), 2), "limited_pct": round(100 * float(np.mean(gr < 0.999)), 2)}, f)
     z = int(round(SILENT * SR))
     if np.any(np.abs(bus[z:]) > 1e-9):
         print("  WARNING sound after the silence point: faded")

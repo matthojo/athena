@@ -1,4 +1,4 @@
-/* Athena launch film, cut 5: "Athena remembers the good days".
+/* Athena launch film, cut 6: "Athena remembers the good days".
  *
  * One continuous take. Everything on the 1920x1080 stage is computed from `ms`:
  *   window.seek(ms) -> Promise that resolves once that frame is fully drawn.
@@ -21,10 +21,10 @@
   "use strict";
 
   const W = 1920, H = 1080, FPS = 30, FRAME = 1000 / FPS;
-  const FILM = "/tmp/claude-0/-home-user-athena/92254b34-7623-59d6-a458-adb54d88ca12/scratchpad/film5";
+  const FILM = "/tmp/claude-0/-home-user-athena/92254b34-7623-59d6-a458-adb54d88ca12/scratchpad/film6";
   const q = new URLSearchParams(location.search);
   const CFG = Object.assign(
-    { cap: q.get("cap") || "file://" + FILM + "/cap-r1", look: q.get("look") || "file://" + FILM + "/../look", manifest: null },
+    { cap: q.get("cap") || "file://" + FILM + "/cap", look: q.get("look") || "file://" + FILM + "/../look", manifest: null },
     window.__FILM_CFG__ || {}
   );
 
@@ -68,17 +68,21 @@
   const ASK_Q_LAG = 200; // capture ms from send to the first frame with the sent question fully drawn
   const T_SAYS_OUT = 56950, T_TEAM_IN = 57600; // hire: her chat gives way to "... is on your team"; then the Team page
   const T_PENNY_TAP = 43800, T_HABITS_CUT = 43200, T_STEP_DOWN = 48000, T_ARRIVE = 55200;
+  // Flows (cut 6): the camera lands on Athena's suggestion on 60000; "Make it a flow" on 61800; the card is carried into
+  // the flow and its steps are there on the 62400 downbeat; switched on on 63600; dropout 64200, the wall on 64800.
+  const T_FLOWS = 60000, T_FLOW_TAP = 61800, T_FLOW_STEPS = 62400, T_FLOW_ON = 63600;
   const T = {
     orbPop: 1200, orbPress: 2400, tile0: 3000, tileStep: 300, line1: 5400, dive: 7200,
     home: 9600, ask: 14400, saved: 24000, track: 31200, music: 36000, habits: 40800,
     work: 43200, hire: 50400,
-    team: 57600,
-    pull: 60000, wallFall: 64050, line2: 64700,
-    final: 73200, lift: 73450, lifted: 74050, great: 74400, morph: 76200, word: 77400,
-    fade: 81300, end: 81600,
+    team: 57600, flows: T_FLOWS,
+    // (everything from the pull-back on is cut 5's, 4800 ms later)
+    pull: 64800, wallFall: 68850, line2: 69500,
+    final: 78000, lift: 78250, lifted: 78850, great: 79200, morph: 81000, word: 82200,
+    fade: 86100, end: 86400,
   };
   window.FILM_DURATION_MS = T.end;
-  const SHOT_START = { home: T.home, ask: T.ask, saved: T.saved, track: T.track, music: T.music, habits: T.habits, work: T.work, workDone: T.work, hire: T.hire };
+  const SHOT_START = { home: T.home, ask: T.ask, saved: T.saved, track: T.track, music: T.music, habits: T.habits, work: T.work, workDone: T.work, hire: T.hire, flow: T.flows };
 
   // ---------- the wall ----------
   const CW = 390, CH = 844, GAP = 200, PITCH_X = CW + GAP, ROW2 = CH + GAP;
@@ -87,13 +91,16 @@
   // The camera travels the top row left to right (Home ... Habits), drops to `work` under Habits and steps left to `hire`.
   const TOP = ["home", "ask", "saved", "track", "music", "habits"];
   // (`work` is Home with Penny at work; `workDone` the saved thing's Tracking page when her check comes in.)
-  const BOTTOM = ["days", "watch", "health", "hire", "workDone", "work"];
-  const SHOTS = new Set(["home", "ask", "saved", "track", "music", "habits", "work", "workDone", "hire"]);
-  const STILL = { track: "tracking", hire: "team", work: "home", workDone: "tracking" };
+  // (cut 6: Flows takes Health's place, left of the Team page: from Team the camera steps left once more to it)
+  const BOTTOM = ["days", "watch", "flow", "hire", "workDone", "work"];
+  const SHOTS = new Set(["home", "ask", "saved", "track", "music", "habits", "work", "workDone", "hire", "flow"]);
+  const STILL = { track: "tracking", hire: "team", work: "home", workDone: "tracking", flow: "flowEditor" };
   // For the wall: cards the camera has long left show a still instead of their last frame (no page twice on the wall).
   const WALL_STILL = { track: "tracking", work: "money" }, T_WALL_STILL = 53000;
-  const HIDE_BY_HIRE = new Set(["health", "workDone"]);
-  const LOOK = { watch: "library", track: "home", work: "home", workDone: "home", hire: "graph" };
+  const HIDE_BY_HIRE = new Set(["flow", "workDone"]);
+  // And the flow page's neighbours (Watch & read, the Team page) while the camera is on it, back for the wall.
+  const HIDE_BY_FLOW = new Set(["watch", "hire"]);
+  const LOOK = { watch: "library", track: "home", work: "home", workDone: "home", hire: "graph", flow: "days" };
   const CARDS = {};
   TOP.forEach((n, i) => (CARDS[n] = { name: n, x: i * PITCH_X, y: 0, col: i, row: 0, shot: SHOTS.has(n) }));
   // The second row sits ABOVE the first: from Habits the camera climbs to `work` and arrives on its chips from below
@@ -113,15 +120,27 @@
     music: { playlists: { x: 16, y: 430, w: 358, h: 300 }, tile: { x: 16, y: 470, w: 170, h: 170 }, sheet: { x: 0, y: 190, w: 390, h: 654 } },
     habits: { tick: { x: 26, y: 318, w: 46, h: 46 } },
     checkin: { card: { x: 33, y: 462, w: 324, h: 95 }, great: { x: 297, y: 493, w: 60, h: 65 } },
+    // (stand-ins for the Flows shot until its manifest has them)
+    flow: { sug: { x: 16, y: 200, w: 358, h: 250 }, sugWhy: { x: 76, y: 240, w: 282, h: 80 }, makeBtn: { x: 32, y: 400, w: 130, h: 36 },
+      steps: { x: 16, y: 160, w: 358, h: 300 }, switch: { x: 316, y: 110, w: 52, h: 32 } },
   };
   const FALLBACK_EVENTS = {
     ask: { typeStart: 600, send: 3000, answer: 6000, answerDone: 9600 },
     saved: { typeStart: 600, paste: 600, add: 1500, cardLand: 1900, open: 3000, detail: 3400, move: 4400, filed: 4700, goWatch: 5400, landed: 5900 },
     team: { scrollStart: 300, cardVisible: 1200, tap: 3000, opened: 3400, send: 3800, reply: 4200, replyDone: 4900 },
     music: { open: 1800, sheet: 2100 },
-    habits: { tick: 1200 }, checkin: { press: 1200 }, home: {}, graph: {},
+    habits: { tick: 1200 }, checkin: { press: 1200 }, home: {}, graph: {}, flow: { make: 1800, opened: 2300, switchTap: 3600, on: 3700 },
   };
-  const rect = (shot, name) => (M[shot] && M[shot].rects && M[shot].rects[name]) || (FALLBACK_RECTS[shot] || {})[name];
+  const rect0 = (shot, name) => (M[shot] && M[shot].rects && M[shot].rects[name]) || (FALLBACK_RECTS[shot] || {})[name];
+  const union = (rs) => { const x0 = Math.min(...rs.map((r) => r.x)), y0 = Math.min(...rs.map((r) => r.y)); return { x: x0, y: y0, w: Math.max(...rs.map((r) => r.x + r.w)) - x0, h: Math.max(...rs.map((r) => r.y + r.h)) - y0 }; };
+  const rect = (shot, name) => {
+    // The flow's steps: its step cards (When ..., Then ...) that sit clear of the page's foot, as one block.
+    if (shot === "flow" && name === "steps" && !(M.flow && M.flow.rects && M.flow.rects.steps)) {
+      const rows = M.flow && M.flow.rects && (M.flow.rects.stepRows || []).filter((r) => r && r.clear !== false);
+      if (rows && rows.length) return union(rows);
+    }
+    return rect0(shot, name);
+  };
   const hasEv = (shot, name) => !!(M[shot] && M[shot].events && typeof M[shot].events[name] === "number");
   // Capture-local time of an event (manifest, else fallback; the fallbacks only stand in for older captures).
   const capEv = (shot, name) => {
@@ -207,6 +226,13 @@
         [L("hire", T_ARRIVE), after("arrive", "arrive")], [L("hire", 55400), Math.max(e("hello"), after("arrive", "arrive") + 1), "stretch"], [L("hire", 55600), e("says"), "stretch"],
         [L("hire", T_SAYS_OUT), after("add", "joined")], [L("hire", T_TEAM_IN), capLen("hire") - FRAME]];
     }
+    // Flows: the suggestion held from the landing; "Make it a flow" on 61800; the flow page is carried in over 600 ms
+    // (see buildMorphs) and its steps are there on 62400; the switch pressed on 63600; then it plays on (held at its end).
+    if (M.flow && M.flow.frames) {
+      const e = (n) => capEv("flow", n), mk = e("make");
+      MAP.flow = [[L("flow", T_FLOW_TAP - 1700), Math.max(0, mk - 1700)], [L("flow", T_FLOW_TAP), mk]];
+      if (hasEv("flow", "switchTap")) MAP.flow.push([L("flow", T_FLOW_ON), e("switchTap")]);
+    }
     // Music: lands on Playlists; "Evening run" tapped on 37800; the sheet's own entrance is replaced by a grow (300 ms).
     {
       const op = capEv("music", "open"), sh = Math.max(capEv("music", "sheet") ?? op + 300, op + FRAME);
@@ -231,7 +257,7 @@
     // slides home as the clip grows: the tapped card itself carries on into the page it opens.
     const g = (shot, at, dur, from, to, capA, capB, fromB) => ({ kind: "grow", at, dur, from, to, capA, capB, fromB });
     const full = { x: 0, y: 0, w: CW, h: CH };
-    MORPH = { ask: [], saved: [], track: [], music: [], work: [], workDone: [], hire: [] };
+    MORPH = { ask: [], saved: [], track: [], music: [], work: [], workDone: [], hire: [], flow: [] };
     // Ask: the question leaves the box on send and flies up to its place as the sent bubble, the camera riding it.
     // Until it lands, its place on the page is covered by a patch of the page's own background (no second copy).
     const aq = rect("ask", "question"), ain = rect("ask", "input");
@@ -314,6 +340,34 @@
       // (round 2: onto the Team page it comes in from the left of the column, its own tile from that page, opaque, and
       // ends exactly on its rect at 57900: nothing crosses Wren's card, nothing settles)
       { const to = box(hrm.newFace); MORPH.hire.push({ kind: "fly", at: T_TEAM_IN, dur: 300, from: { x: to.x - 120, y: to.y, w: to.w, h: to.h }, to, srcRect: to, capA: capLen("hire") - FRAME, mixAt: [2, 3], slot, onCap: true, hold: true }); }
+    }
+    // Flows: Athena's suggestion card is carried into the flow it makes: the flow page grows out of the card, starting
+    // shifted so the flow's own name (or its chain of steps) sits where the card's was, and slides home on the camera's
+    // curve; the steps are whole on 62400. Never a blend of the two pages.
+    if (M.flow && M.flow.frames) {
+      const fr = M.flow.rects || {}, sug = rect("flow", "sug"), dur = T_FLOW_STEPS - T_FLOW_TAP;
+      const cov = (M.flow.covers || []).find((h) => h.at === "open" || h.at === "make" || h.at === "makeTap");
+      const capB = Math.max(capEv("flow", "steps") ?? 0, cov ? (cov.to + 1) * FRAME + 1 : (capEv("flow", "opened") ?? capEv("flow", "make") + 500));
+      // (carried by its head: the flow's title "Birthday heads-up" starts where the suggestion's title was, the card's own
+      // left edge kept, so no part of the clip ever falls outside the new page)
+      const pairA = fr.sugTitle, pairB = fr.flowTitle || fr.flowName;
+      const fromB = pairA && pairB ? { x: sug.x, y: pairB.y - (pairA.y - sug.y), w: sug.w, h: sug.h } : undefined;
+      const gf = g("flow", T_FLOW_TAP, dur, sug, full, capEv("flow", "make") - FRAME, capB, fromB);
+      if (!fromB) gf.ease = "lop";
+      else {
+        // The page rides the camera: its title moves on screen along one lopsided curve from where the suggestion's title
+        // was to where it rests when the grow ends (the camera zooming out cannot keep up with a plain slide).
+        const tyA = pairA.y, tyB = pairB.y, t0 = T_FLOW_TAP, t1 = T_FLOW_STEPS;
+        const scr = (t, wy) => { const cam = cameraAt(t); return [H / 2 + (CARDS.flow.y + wy - cam.y) * cam.z, cam]; };
+        gf.shiftFn = (t) => {
+          const p = prog(t, t0, t1);
+          if (p >= 1) return [0, 0];
+          const sy = lerp(scr(t0, tyA)[0], scr(t1, tyB)[0], lopP(p, 0.35)), cam = cameraAt(t);
+          return [0, cam.y + (sy - H / 2) / cam.z - CARDS.flow.y - tyB];
+        };
+      }
+      MORPH.flow = [gf]; window.__gf = gf; window.__cam = (t) => cameraAt(t);
+      MAP.flow.splice(2, 0, [T_FLOW_STEPS - SHOT_START.flow, capB, "stretch"]);
     }
     // Every time map must run forward in film time.
     for (const [shot, A] of Object.entries(MAP)) for (let i = 1; i < A.length; i++) if (A[i][0] <= A[i - 1][0]) throw new Error(`MAP.${shot} not in order at ${i}`);
@@ -524,9 +578,25 @@
       const fc = hr.faces || [], wren = fc.length > 1 ? fc[fc.length - 2] : null, nc2 = hr.newCard;
       const t0 = (wren ? wren.y - 21 : nc2.y - 240) - 8, t1 = nc2.y + nc2.h + 8;
       to("hire-team", T_TEAM_IN - 250, 250, 450, { x: CARDS.hire.x + CW / 2, y: CARDS.hire.y + (t0 + t1) / 2, z: H / (t1 - t0) });
-      drift(58150, T.pull - 600, 1.03, 0, 0);
+      drift(58150, T_FLOWS - 900, 1.03, 0, 0);
     }
-    // 9: the pull-back, fast early so most of the reveal lands on the 60000 downbeat, a long settle after.
+    // 11: Flows. One step left to the Flows page (its fastest frame on 60000), framed on Athena's suggestion: the
+    // sentence, the flow it proposes and "Make it a flow". On the tap the camera rides the card into the flow page,
+    // framing its steps and the switch; then holds (a drift) to the pull-back.
+    {
+      // The suggestion card whole: top edge in the gap above it (the first suggestion's buttons out of frame), bottom
+      // edge in the gap under it, above "Your flows" (measured on the capture: gaps 331-343 and 558-619).
+      const sug = rect("flow", "sug"), s0 = sug.y - 8.7, s1 = Math.min(sug.y + sug.h + 60, s0 + H / 3.6);
+      to("team-flows", T_FLOWS - 700, 700, 1100, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (s0 + s1) / 2, z: H / (s1 - s0) });
+      drift(T_FLOWS + 1100, T_FLOW_TAP - 150, 1.03, 0, 0);
+      // The flow: its title, the On switch, When ... and Then ... whole; the bottom edge in the gap above "Test on the
+      // last date". Its neighbours are away by now (faded while off frame), so this wider frame shows the page alone.
+      const st = rect("flow", "steps"), ft = rect("flow", "flowTitle") || rect("flow", "flowHead") || st;
+      const f0 = Math.min(st.y, ft.y) - 12, f1 = st.y + st.h - 5; // (just above the Then card's divider: "Gift ideas for the person" whole)
+      to("flow-open", T_FLOW_TAP - 100, 250, 900, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (f0 + f1) / 2, z: H / (f1 - f0) }, 6); // (fast early: the framing is nearly reached as the grow ends on 62400)
+      drift(T_FLOW_STEPS + 1200, T.pull - 600, 1.03, 0, 0);
+    }
+    // 12: the pull-back, fast early so most of the reveal lands on the 64800 downbeat, a long settle after.
     const zWall = 0.9 * Math.min(H / WALL.h, W / WALL.w);
     to("pullback", T.pull - 600, 300, 2600, { x: WALL.cx, y: WALL.cy, z: zWall }, 6);
     // Drift in to 1.10x until the wall goes.
@@ -848,13 +918,29 @@
       const bigP = cd("hire", cb.x + cb.w + 34, cb.y + cb.h * 0.8);
       at(T_SAYS_OUT + 300, bigP, 0.3); at(T_TEAM_IN - 300, bigP, 0);
       const nn = hrr.newName, nameP = cd("hire", nn.x + nn.w + 150, nn.y + nn.h * 0.5);
-      at(T_TEAM_IN + 480, nameP, 0.4, true); rest(T_TEAM_IN + 520, T.pull - 900, nameP);
+      at(T_TEAM_IN + 480, nameP, 0.4, true); rest(T_TEAM_IN + 520, T_FLOWS - 1300, nameP);
+    }
+    // 11: Flows. Leads left (the Flows page comes from the left), waits beside the suggestion while it is read, taps
+    // "Make it a flow" on 61800, rides into the flow, presses the switch on 63600, rests beside it.
+    {
+      const sug = rect("flow", "sug"), mk = rect("flow", "makeBtn"), sw = rect("flow", "switch");
+      at(T_FLOWS - 1200, st(420, 600), 0.4, true);
+      const besideP = cd("flow", Math.min(sug.x + sug.w - 30, mk.x + mk.w + 70), mk.y + mk.h + 34);
+      at(T_FLOWS + 300, besideP, 0.3, true); at(T_FLOW_TAP - 500, besideP, 0);
+      const mkP = cd("flow", mk.x + mk.w * 0.55, mk.y + mk.h * 0.6);
+      at(T_FLOW_TAP - 70, mkP, 0.5); press(T_FLOW_TAP - 40); at(T_FLOW_TAP + 120, mkP, 0);
+      const swP = cd("flow", sw.x + sw.w * 0.5, sw.y + sw.h * 0.6), swWait = cd("flow", sw.x + sw.w * 0.3 - 40, sw.y + sw.h + 46);
+      at(T_FLOW_STEPS + 300, swWait, 0.5); at(T_FLOW_ON - 400, swWait, 0);
+      at(T_FLOW_ON - 70, swP, 0.5); press(T_FLOW_ON - 40); at(T_FLOW_ON + 130, swP, 0);
+      const restP = cd("flow", sw.x + sw.w * 0.3 - 30, sw.y + sw.h + 40);
+      at(T_FLOW_ON + 600, restP, 0.4); rest(T_FLOW_ON + 650, T.pull - 900, restP);
     }
     // 9: flicks out ahead of the pull-back, then wanders over the wall (small), and flicks down to set off the fall.
     at(T.pull - 700, st(1180, 380), 0.5, true);
-    // (first to the Team page on the wall, beside the new face)
-    at(T.pull + 600, hrr && hrr.newFace ? wd(CARDS.hire.x + hrr.newFace.x + hrr.newFace.w + 60, CARDS.hire.y + hrr.newFace.y + hrr.newFace.h * 0.7) : wd(CARDS.hire.x + CW * 0.7, CARDS.hire.y + CH * 0.6), 0.6, true);
-    at(T.pull + 1800, wd(CARDS.days.x + CW * 0.75, CARDS.days.y + CH * 0.3), 0.5);
+    // (first to the flow on the wall, beside its switch; then the new face on the Team page)
+    { const sw = rect("flow", "switch"); at(T.pull + 600, wd(CARDS.flow.x + sw.x - 30, CARDS.flow.y + sw.y + sw.h + 40), 0.6, true); }
+    at(T.pull + 1300, hrr && hrr.newFace ? wd(CARDS.hire.x + hrr.newFace.x + hrr.newFace.w + 60, CARDS.hire.y + hrr.newFace.y + hrr.newFace.h * 0.7) : wd(CARDS.hire.x + CW * 0.7, CARDS.hire.y + CH * 0.6), 0.5);
+    at(T.pull + 2200, wd(CARDS.days.x + CW * 0.75, CARDS.days.y + CH * 0.3), 0.5);
     at(T.pull + 3100, wd(CARDS.watch.x + CW * 0.4, CARDS.watch.y + CH * 0.55), 0.5);
     at(T.pull + 3750, wd(CARDS.watch.x + CW * 0.45, CARDS.watch.y + CH * 0.5), 0.2);
     at(T.wallFall + 100, st(1040, 940), 0.3, true);
@@ -1041,6 +1127,7 @@
   const scrollE = (g, t) => lopP(prog(t, g.at, g.at + g.dur), 0.42);
   function growShift(g, t) {
     if (!g.fromB) return [0, 0];
+    if (g.shiftFn) return g.shiftFn(t);
     const e = lopP(prog(t, g.at, g.at + g.dur), 0.35);
     const s0 = g.shift0 || [g.from.x - g.fromB.x, g.from.y - g.fromB.y];
     return [s0[0] * (1 - e), s0[1] * (1 - e)];
@@ -1089,7 +1176,9 @@
       // The neighbours fade in as the dive lands (they are off frame by then).
       let o = n === "home" ? (t >= T.dive ? 1 : 0) : prog(t, 8800, 9400);
       // The hire sheet's neighbours are away while the camera is on it (faded while off frame), back for the wall.
-      if (HIDE_BY_HIRE.has(n)) o *= 1 - inOutSoft(prog(t, 51700, 52000)) * (1 - inOutSoft(prog(t, T.pull - 600, T.pull - 420)));
+      // (Flows, the next card left, comes back as the camera sets off for it)
+      if (HIDE_BY_FLOW.has(n)) o *= 1 - inOutSoft(prog(t, T_FLOWS + 700, T_FLOWS + 1000)) * (1 - inOutSoft(prog(t, T.pull - 600, T.pull - 420)));
+      if (HIDE_BY_HIRE.has(n)) o *= 1 - inOutSoft(prog(t, 51700, 52000)) * (1 - inOutSoft(n === "flow" ? prog(t, T_FLOWS - 800, T_FLOWS - 600) : prog(t, T.pull - 600, T.pull - 420)));
       const f0 = fallStart(c);
       const fp = prog(t, f0, f0 + 600);
       const fall = inCubic(fp) * FALL;
@@ -1352,7 +1441,7 @@
   window.filmEvents = async () => {
     await ready;
     const o = {};
-    for (const shot of ["home", "ask", "saved", "track", "music", "habits", "work", "workDone", "hire"]) {
+    for (const shot of ["home", "ask", "saved", "track", "music", "habits", "work", "workDone", "hire", "flow"]) {
       const names = Object.keys(Object.assign({}, FALLBACK_EVENTS[shot], (M[shot] || {}).events));
       for (const e of names) { const v = evF(shot, e); if (v !== null && (hasEv(shot, e) || !M[shot])) o[shot + "." + e] = Math.round(v); }
     }
@@ -1366,6 +1455,7 @@
     if (hasEv("workDone", "reached")) { o["work.stepDown"] = o["work.result"] = o["work.reached"] = Math.round(evF("workDone", "reached")); }
     if (hasEv("hire", "joined")) { o["hire.arrive"] = T_ARRIVE; o["hire.joined"] = T_SAYS_OUT; o["hire.faces"] = T_TEAM_IN + 300; }
     o["cut.work"] = T_HABITS_CUT;
+    o["flows.suggest"] = T_FLOWS; o["flows.make"] = T_FLOW_TAP; o["flows.steps"] = T_FLOW_STEPS; o["flows.on"] = T_FLOW_ON;
     const ch = M.work && M.work.rects && M.work.rects.chips;
     if (ch) for (let f = Math.floor(42600 / FRAME); f * FRAME < 45000; f++) {
       const cam = cameraAt(f * FRAME), [x0, y0] = project(cam, CARDS.work.x + ch.x, CARDS.work.y + ch.y), [x1, y1] = project(cam, CARDS.work.x + Math.min(CW, ch.x + ch.w), CARDS.work.y + ch.y + ch.h);

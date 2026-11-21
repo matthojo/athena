@@ -28,8 +28,8 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-const FILM = process.env.FILM || '/tmp/claude-0/-home-user-athena/92254b34-7623-59d6-a458-adb54d88ca12/scratchpad/film5';
-const CAP_DIR = path.resolve(process.env.CAP_DIR || FILM + '/cap-r1');
+const FILM = process.env.FILM || '/tmp/claude-0/-home-user-athena/92254b34-7623-59d6-a458-adb54d88ca12/scratchpad/film6';
+const CAP_DIR = path.resolve(process.env.CAP_DIR || FILM + '/cap');
 const LOOK_DIR = path.resolve(process.env.LOOK_DIR || FILM + '/../look');
 const OUT_DIR = path.resolve(process.env.OUT_DIR || FILM + '/frames');
 const FPS = 30, FRAME = 1000 / FPS;

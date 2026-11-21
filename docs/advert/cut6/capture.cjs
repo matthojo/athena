@@ -100,7 +100,7 @@ const shoot = (p, file) => p.screenshot({ path: file, type: 'jpeg', quality: 95 
 async function record(p, name, durMs, { actions = [], watch = {}, each = null, post = null, steps = [], endOnSteps = false } = {}) {
   const dir = ROOT + name + '/'; fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
   const max = Math.ceil(durMs / STEP - 1e-6); let vt = 0; const todo = [...actions].sort((a, b) => a[0] - b[0]);
-  const events = {}; const pending = { ...watch }; const queue = [...steps]; let n = 0;
+  const events = {}; const pending = { ...watch }; const queue = [...steps]; let n = 0; const seenWords = {};
   for (let i = 0; i < max; i++) {
     while (todo.length && todo[0][0] <= vt + 1e-6) { const [, fn, ev] = todo.shift(); await fn(); if (ev) events[ev] = Math.round(vt); }
     while (queue.length) {
@@ -118,13 +118,32 @@ async function record(p, name, durMs, { actions = [], watch = {}, each = null, p
     // A frame shows the state at the end of its step; an event seen in frame i is on screen from i*STEP.
     for (const k of Object.keys(pending)) if (await pending[k]()) { events[k] = Math.round(i * STEP); delete pending[k]; }
     await shoot(p, `${dir}${String(i).padStart(4, '0')}.jpg`); n = i + 1;
+    // Words that must not be on screen, checked on every frame (text in the viewport only): "Muse" never; the real
+    // brands are reported so the compositor can keep them out of frame.
+    for (const w of await p.evaluate(visibleWords)) (seenWords[w] = seenWords[w] || []).push(i);
   }
+  for (const [w, fr] of Object.entries(seenWords)) console.log(`${w === 'Muse' ? 'FAIL' : 'NOTE'} ${name}: "${w}" on screen in ${fr.length} frames (${fr[0]}–${fr[fr.length - 1]})`);
   for (const k of Object.keys(pending)) console.log(`WARN ${name}: "${k}" never seen`);
   for (const s of queue) console.log(`WARN ${name}: step "${s.ev || '?'}" never fired`);
   // The assistant is Penny: the old name must never be on screen.
   if (await p.evaluate(() => /\bMuse\b/.test(document.body.innerText))) console.log(`WARN ${name}: "Muse" is on screen`);
   console.log(name, n, 'frames', JSON.stringify(events));
   return { frames: n, events };
+}
+
+// In the page: which of the watched words are in a text node painted inside the viewport.
+function visibleWords() {
+  const out = new Set(), re = /\b(Muse|Linear|Amazon|Spotify)\b/g;
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    const m = n.nodeValue.match(re); if (!m) continue;
+    const el = n.parentElement; if (!el) continue;
+    const range = document.createRange(); range.selectNodeContents(n);
+    const r = range.getBoundingClientRect(); if (!r.height || r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) continue;
+    let hidden = false; for (let e = el; e; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || +cs.opacity < 0.05 || cs.display === 'none') { hidden = true; break; } }
+    if (!hidden) m.forEach(x => out.add(x));
+  }
+  return [...out];
 }
 
 // Off-camera preparation: step the clock with the animations following it (so a route change's View Transition
@@ -266,6 +285,32 @@ async function panelRects(p) {
   if (await panel.locator('.tk-foot').count()) out.footText = (await panel.locator('.tk-foot').first().innerText()).replace(/\s+/g, ' ').trim();
   if (await panel.locator('.tk-goalwrap').count()) out.pillText = (await panel.locator('.tk-goalwrap').first().innerText()).trim();
   return out;
+}
+
+// A flow's page as it is on screen now: its title, the On switch (and its row), and the steps (When, the trigger
+// card, Then, each step card; `steps` is the union of those whose top is above the floating "Test" button).
+async function flowEditorRects(p) {
+  return p.evaluate(() => {
+    const k = v => Math.round(v * 10) / 10, rect = e => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: k(r.x), y: k(r.y), w: k(r.width), h: k(r.height) }; };
+    const q = s => document.querySelector('.flows--editor ' + s);
+    const eyebrows = [...document.querySelectorAll('.flows--editor .flow-eyebrow')];
+    const cards = [...document.querySelectorAll('.flows--editor .flow-card')];
+    const foot = q('.flow-foot'); const footTop = foot && !foot.hidden ? foot.getBoundingClientRect().top : innerHeight;
+    const parts = [...eyebrows, ...cards].filter(e => e.getBoundingClientRect().top < footTop - 20);
+    let steps = null;
+    for (const e of parts) { const r = e.getBoundingClientRect(); if (!steps) steps = { l: r.left, t: r.top, r: r.right, b: r.bottom }; else { steps.l = Math.min(steps.l, r.left); steps.t = Math.min(steps.t, r.top); steps.r = Math.max(steps.r, r.right); steps.b = Math.max(steps.b, r.bottom); } }
+    const sw = q('label.flow-on input.switch');
+    return {
+      flowTitle: rect(q('.flow-hero__name')), flowTitleText: q('.flow-hero__name') ? q('.flow-hero__name').textContent.trim() : null,
+      onToggle: rect(sw), onRow: rect(q('label.flow-on')), onState: sw ? sw.checked : null,
+      steps: steps && { x: k(steps.l), y: k(steps.t), w: k(steps.r - steps.l), h: k(Math.min(steps.b, footTop) - steps.t) },
+      whenLabel: rect(eyebrows[0]), thenLabel: rect(eyebrows[1]), whenCard: rect(cards[0]), thenCard: rect(cards[1]),
+      stepTitles: cards.map(c => (c.querySelector('.flow-card__title') || c).textContent.trim()),
+      // One per card (the trigger first), with its title, whether it is on screen above the Test button.
+      stepRows: cards.map(c => ({ ...rect(c), title: (c.querySelector('.flow-card__title') || c).textContent.trim(), clear: c.getBoundingClientRect().bottom < footTop })),
+      testBtn: rect(q('.flow-foot__try')),
+    };
+  });
 }
 
 const SHOTS = {
@@ -786,20 +831,79 @@ const SHOTS = {
     await p.context().close();
   },
 
+  // Flows (PLAN.md 60000–64800): #/flows with Athena's two suggestion cards; the second, "You look for a present
+  // a week before birthdays / Four times since September. Want Athena to do it for you?", is the one. It is left
+  // where the page puts it (second, mid-screen): dismissing the first or scrolling brings the Linear flow up under
+  // the dock. The pointer taps its "Make it a flow"; the app makes the flow (kept off) and opens its page, where
+  // the steps read down: When "A week before a birthday, at 9:00", Then "Find gift ideas", "Tell me". Then the On
+  // switch is turned on ("Birthday heads-up is on" toast).
+  async flow(b) {
+    const p = await setup(b, TEAM_AT, 3);
+    await prepare(p, '#/flows', 3500);
+    const card = p.locator('section.flow-sug', { hasText: 'present a week' }).first();
+    await card.waitFor({ timeout: 5000 });
+    const make = card.getByRole('button', { name: 'Make it a flow' }).first();
+    const rects = { card: await rectOf(card), cardTitle: await rectOf(card.locator('.flow-sug__title').first()), cardWhy: await rectOf(card.locator('.flow-sug__why').first()), makeBtn: await rectOf(make), cardShape: await rectOf(card.locator('.flow-sug__shape').first()) };
+    rects.cardText = union(rects.cardTitle, rects.cardWhy);
+    // The names motion asked for, as aliases: sug = card, sugTitle/sugWhy, sugShape (chain + name), sugName.
+    Object.assign(rects, { sug: rects.card, sugTitle: rects.cardTitle, sugWhy: rects.cardWhy, sugShape: rects.cardShape, sugName: await rectOf(card.locator('.flow-sug__name').first()), noBtn: await rectOf(card.getByRole('button', { name: 'No thanks' }).first()), flowsHead: await rectOf(p.locator('h1.page-title', { hasText: 'Flows' }).first()) });
+    rects.cardTextValue = (await card.locator('.flow-sug__title').first().innerText()).trim() + ' / ' + (await card.locator('.flow-sug__why').first().innerText()).trim();
+    const MAKE = Number(process.env.CAP_FLOW_MAKE || 1800), ON = Number(process.env.CAP_FLOW_ON || 3600);
+    const onSwitch = () => p.locator('label.flow-on input.switch').first();
+    const ev = {}; const res0 = await record(p, 'flow', Number(process.env.CAP_FLOW_MS || 6000), {
+      actions: [
+        [MAKE, () => make.click(), 'makeTap'],
+        [ON, async () => { rects.switchBefore = rects.onToggleBefore = await rectOf(onSwitch()); await onSwitch().click(); }, 'on'],
+      ],
+      watch: {
+        cardVisible: shownIn(p, 'section.flow-sug', { text: 'present a week', whole: true }),
+        opened: async () => /#\/flows\/[^/]+$/.test(p.url()) && await shownIn(p, '.flows--editor .flow-hero__name')(),
+        stepsShown: shownIn(p, '.flows--editor .flow-card--trigger'),
+        switchedOn: () => p.evaluate(() => { const s = document.querySelector('label.flow-on input.switch'); return !!s && s.checked; }),
+        toast: () => p.evaluate(() => [...document.querySelectorAll('.toast')].some(e => / is on/.test(e.textContent || '') && e.getBoundingClientRect().height > 0)),
+      },
+    });
+    const res = res0; Object.assign(ev, res.events);
+    Object.assign(rects, await flowEditorRects(p));
+    Object.assign(rects, { flowHead: rects.flowTitle, flowName: rects.flowTitle, switch: rects.onToggle, switchRow: rects.onRow });
+    // Event names motion reads: make (tap), opened (flow page drawn, View Transition over), steps, switchTap (the
+    // toggle pressed), on (drawn on). `makeTap`, `stepsShown` are the same moments under the first names.
+    ev.make = ev.makeTap; ev.steps = ev.stepsShown; ev.switchTap = ev.on; if (typeof ev.switchedOn === 'number') ev.on = ev.switchedOn;
+    res.events = Object.fromEntries(Object.entries(ev).sort((x, y) => x[1] - y[1]));
+    // The tap changes route in a View Transition: the list and the flow page are blended for three frames (55–57
+    // with the tap on 54); the flow page is whole from the 4th. `opened`/`steps` come a few frames later, when the
+    // last entrance (invisible on the frames) has finished.
+    const f = ms => Math.round(ms / STEP);
+    const covers = typeof ev.makeTap === 'number' ? [{ at: 'makeTap', from: f(ev.makeTap), to: f(ev.makeTap) + 4 }] : [];
+    saveManifest('flow', { ...res, rects, covers });
+    console.log(JSON.stringify(rects));
+    await p.context().close();
+  },
+
   async stills(b) {
     const dir = ROOT + 'stills/'; fs.mkdirSync(dir, { recursive: true });
     // `watch` is the Watch & read page, route #/reading; `team` is the Team grid (Penny, Dot, Wren). CAP_STILLS=watch,days re-shoots only those.
     // `tracking` is a Tracking page: the sample's moka pot in Saved (12 checks at 4 made-up shops, a target, its stock).
-    const routes = { days: 'days', week: 'week', trips: 'trips', money: 'money', music: 'music', watch: 'reading', health: 'health', team: 'team', tracking: 'saved' };
+    // `flows` is the Flows list (Athena's two suggestions on top); `flowEditor` is the Birthday heads-up flow's page,
+    // made from its suggestion card ("Make it a flow") and switched on, its toast left to run out.
+    const routes = { days: 'days', week: 'week', trips: 'trips', money: 'money', music: 'music', watch: 'reading', health: 'health', team: 'team', tracking: 'saved', flows: 'flows', flowEditor: 'flows' };
+    const TEAMLIKE = ['team', 'tracking', 'flows', 'flowEditor'];
     const only = (process.env.CAP_STILLS || '').split(',').filter(Boolean);
     for (const name of Object.keys(routes)) {
       if (only.length && !only.includes(name)) continue;
-      const p = await setup(b, name === 'team' || name === 'tracking' ? TEAM_AT : MORNING);
+      const p = await setup(b, TEAMLIKE.includes(name) ? TEAM_AT : MORNING);
       await prepare(p, '#/' + routes[name], 4000);
       if (name === 'tracking') {
         const id = await savedId(p, process.env.CAP_TRACKING_ITEM || 'Stovetop moka pot');
         await p.evaluate(h => { location.hash = h; }, '#/saved/' + id);
         await advance(p, 3000);
+      }
+      if (name === 'flowEditor') {
+        await p.locator('section.flow-sug', { hasText: 'present a week' }).getByRole('button', { name: 'Make it a flow' }).first().click();
+        await advance(p, 2000);
+        await p.locator('label.flow-on input.switch').first().click();
+        await advance(p, 8000);
+        saveManifest('flowEditorStill', { file: 'stills/flowEditor.jpg', rects: await flowEditorRects(p) });
       }
       await p.evaluate(() => window.__syncAnims(60000)); // every entrance finished
       await sleep(300);
@@ -822,3 +926,5 @@ if (require.main === module) (async () => {
   for (const name of Object.keys(SHOTS)) if (!which.length || which.includes(name)) { try { await SHOTS[name](b); } catch (e) { console.log(`FAIL ${name}:`, e.message.split('\n')[0]); process.exitCode = 1; } }
   await b.close();
 })();
+
+module.exports = { setup, prepare, advance, arrive, settle, record, rectOf, shownIn, savedId, SHOTS };
