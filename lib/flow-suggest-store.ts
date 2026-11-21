@@ -96,7 +96,7 @@ async function readActivity(now: Date): Promise<AskChange[]> {
     [ago(now, ACTIVITY_DAYS)],
   );
   return rows
-    .map(presentActivity)
+    .map((r) => presentActivity(r))
     .filter((e): e is NonNullable<typeof e> => !!e)
     .map((e) => ({ at: e.at, state: e.state, change: { kind: e.change.kind, action: e.change.action, title: e.change.title ?? "", detail: e.change.detail ?? "" } }));
 }
