@@ -37,9 +37,9 @@ function fakes(over: Partial<FlowEffects> = {}) {
     dropPlan: async (id) => void calls.push(["drop", id]),
     planRan: async () => null,
     assistant: async () => null,
-    think: async (id, prompt) => {
-      calls.push(["think", { id, prompt }]);
-      return { text: 'Lumen Fibre charges £29 for the same speed.\nVALUES: {"deal": "Lumen Fibre at £29.00 a month", "why": "same speed, £9 less"}', changes: [], plan: null };
+    think: async (id, prompt, opts) => {
+      calls.push(["think", { id, prompt, opts }]);
+      return { text: "Lumen Fibre charges £29 for the same speed.", values: { deal: "Lumen Fibre at £29.00 a month", why: "same speed, £9 less" }, changes: [], plan: null };
     },
     draftAssignment: async (brief) => {
       calls.push(["assignment", brief]);
@@ -72,7 +72,7 @@ const flowOf = (steps: FlowStep[], over: Partial<Flow> = {}): Flow => ({
   ...over,
 });
 
-const ctxOf = (flow: Flow, over: Partial<RunContext> = {}): RunContext => ({ flow, runId: "run-1", dry: false, assistant: null, label: "An email from Northwind Broadband", money: true, ...over });
+const ctxOf = (flow: Flow, over: Partial<RunContext> = {}): RunContext => ({ flow, runId: "run-1", dry: false, assistant: null, label: "An email from Northwind Broadband", money: true, events: [], byHand: false, teamRunId: null, ...over });
 
 const paid: FlowStep = { id: "paid", title: "Find what I paid last year", kind: "tool", tool: "money", input: { merchant: ["Northwind Broadband"] }, go: "auto", gives: [{ key: "latest", label: "last year's price", kind: "money" }] };
 const upCheck = (yes: FlowStep[], no: FlowStep[]): FlowStep => ({ id: "up", title: "Did it go up?", kind: "check", condition: { left: { from: "paid", key: "latest" }, op: "more_than", right: 30 }, yes, no });
@@ -268,13 +268,25 @@ test("Start an assignment: its lineup waits for Go; when it's done, its work is 
   assert.equal(end?.status, "stopped");
 });
 
-test("a think step's values come from its last line, or its reply when there's none", () => {
-  assert.deepEqual(thinkValues('Two deals.\nVALUES: {"deal": "Lumen", "n": 2}', [{ key: "deal" }, { key: "n" }]), { text: "Two deals.", values: { deal: "Lumen", n: 2 } });
-  assert.deepEqual(thinkValues("Nothing better out there.", [{ key: "deal" }]), { text: "Nothing better out there.", values: { deal: "Nothing better out there." } });
-  const prompt = thinkPrompt({ name: "Renewal guard" }, "Find a deal", [{ key: "deal", label: "the better deal" }], { trigger: { title: "Northwind" } }, new Map([["trigger.title", "its title"]]), false);
+test("a think step's values come from its answer's fields, or its reply when the first is empty", () => {
+  assert.deepEqual(thinkValues({ text: "Two deals.", values: { deal: "Lumen", n: "2", other: "not asked for" } }, [{ key: "deal" }, { key: "n" }]), { deal: "Lumen", n: "2" });
+  assert.deepEqual(thinkValues({ text: "Nothing better out there.", values: { deal: " " } }, [{ key: "deal" }]), { deal: "Nothing better out there." });
+  // No VALUES: line any more: a reply that still writes one is just words.
+  assert.deepEqual(thinkValues({ text: 'Two deals.\nVALUES: {"deal": "Lumen"}' }, []), {});
+  const prompt = thinkPrompt({ name: "Renewal guard" }, "Find a deal", [{ key: "deal", label: "the better deal" }], { trigger: { title: "Northwind" } }, new Map([["trigger.title", "its title"]]));
   assert.match(prompt, /- its title: Northwind/);
-  assert.match(prompt, /Don't look anything up online/);
-  assert.match(prompt, /VALUES:/);
+  assert.match(prompt, /deal \(the better deal\) in the answer's values/);
+  assert.doesNotMatch(prompt, /VALUES:/);
+});
+
+test("a think step with web off asks for a turn with web off, and its values as fields", async () => {
+  const muse = { id: "a-1", name: "Muse", avatar: {} as never, personality: { tone: "warm" as const, pronoun: "she" as const } };
+  const { fx, calls } = fakes();
+  const think: FlowStep = { id: "deal", title: null, kind: "think", task: ["Look"], web: false, gives: [{ key: "deal", label: "the better deal", kind: "text" }] };
+  await walk(emptyState({}), ctxOf(flowOf([think], { assistant_id: "a-1" }), { assistant: muse }), fx);
+  const opts = (calls.find(([k]) => k === "think")![1] as { opts: { web: boolean; gives: unknown } }).opts;
+  assert.equal(opts.web, false);
+  assert.deepEqual(opts.gives, [{ key: "deal", label: "the better deal", kind: "text" }]);
 });
 
 test("a run that changed under it stops instead of guessing", async () => {

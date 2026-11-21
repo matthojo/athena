@@ -29,6 +29,8 @@ export interface TeamEventRow {
   ref_kind: string | null;
   facets: Record<string, string | boolean | string[]>;
   created_at: string;
+  /** When Team's pass (or an owner's action) claimed it, as Flows reads it: an assistant's job flow leaves an event Team claimed before the flow was made to Team (lib/flow-triggers.ts). */
+  processed_at?: string | null;
 }
 
 /** Only short strings, flags and short string lists, lowercased where they're names. Pure. */

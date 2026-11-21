@@ -12,6 +12,7 @@ import { listTeam, type TeamAssistant } from "../db/team";
 import { chain, tile } from "./parts";
 import { flowCard } from "./card";
 import { listLede } from "./words";
+import { isJobFlow } from "../db/flows";
 import { STARTERS } from "./new-sheet";
 
 export interface ListContext {
@@ -89,7 +90,8 @@ export function renderFlowList(ctx: ListContext): { el: HTMLElement; destroy: ()
     count.hidden = !flows.length;
     count.textContent = String(flows.length);
     lede.textContent = listLede(flows, latest);
-    newBtn.disabled = flows.length >= max;
+    // An assistant's triggers are flows too (lib/team-flows.ts), counted toward its own limit, not this one.
+    newBtn.disabled = flows.filter((f) => !isJobFlow(f)).length >= max;
     newBtn.title = flows.length >= max ? `You have ${max} flows, the most Athena keeps.` : "";
     list.removeAttribute("aria-busy");
     if (!flows.length) return void list.replaceChildren(empty());

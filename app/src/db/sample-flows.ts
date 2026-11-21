@@ -42,6 +42,19 @@ export const SAMPLE_FLOW_IDS = {
   friday: "f10e0000-0000-4000-8000-000000000005",
 } as const;
 
+/**
+ * The sample team's triggers, as the flows they are (lib/team-flows.ts): each assistant's job, one think step, with
+ * the same ids as the triggers on its page (app/src/db/sample-team.ts).
+ */
+export const SAMPLE_JOB_FLOW_IDS = {
+  muse: "5a3e0000-0000-4000-8000-0000000e0101",
+  dot: "5a3e0000-0000-4000-8000-0000000e0102",
+  wren: "5a3e0000-0000-4000-8000-0000000e0103",
+} as const;
+
+/** A job flow's one step: the assistant does its job, as its runs always did. */
+const JOB: FlowStep[] = [{ id: "job", kind: "think", title: null, task: ["Do your job, as your instructions say."], web: true, gives: [] }];
+
 /** Runs other sample screens link to: What Ask did's flow row opens the delivery run. */
 export const SAMPLE_RUN_IDS = { delivery: "f10e7000-0000-4000-8000-000000000101" } as const;
 
@@ -202,6 +215,31 @@ function seeds(): Seed[] {
       check: {},
       label: "Every Friday at 5:00 pm",
       summary: "11 to-dos done, two slipped. You met Priya and Sam.",
+    },
+    // The team's triggers, as their flows (lib/team-flows.ts).
+    {
+      flow: flow(SAMPLE_JOB_FLOW_IDS.muse, { name: "When you file something as a gift idea", trigger: { kind: "event", event: { source: "saved", savedAction: "gift-idea" } }, assistant_id: SAMPLE_TEAM_IDS.muse, origin: "trigger", steps: JOB }),
+      values: { "trigger.item": "the hand balm", "trigger.title": "Rosemary hand balm" },
+      lines: { job: { line: "Found it for £22.00 at Larkspur Home, £5 under the price you saved." } },
+      check: {},
+      label: "New gift idea: “Rosemary hand balm”",
+      summary: "Found it for £22.00 at Larkspur Home, £5 under the price you saved.",
+    },
+    {
+      flow: flow(SAMPLE_JOB_FLOW_IDS.dot, { name: "When an issue arrives from Linear", trigger: { kind: "event", event: { source: "collected", connector: "linear", kind: "issue" } }, assistant_id: SAMPLE_TEAM_IDS.dot, origin: "trigger", steps: JOB }),
+      values: { "trigger.title": "Fix the sign-up email", "trigger.count": "3" },
+      lines: { job: { line: "3 new issues: 3 to-dos added." } },
+      check: {},
+      label: "3 new issues",
+      summary: "3 new issues: 3 to-dos added.",
+    },
+    {
+      flow: flow(SAMPLE_JOB_FLOW_IDS.wren, { name: "Every Friday at 17:00", trigger: { kind: "schedule", days: [5], time: "17:00" }, assistant_id: SAMPLE_TEAM_IDS.wren, origin: "trigger", steps: JOB }),
+      values: { "trigger.date": "Friday" },
+      lines: { job: { line: "You finished 11 to-dos and met Priya and Marcus. Two things slipped." } },
+      check: {},
+      label: "Every Friday at 17:00",
+      summary: "You finished 11 to-dos and met Priya and Marcus. Two things slipped.",
     },
   ];
 }
@@ -381,7 +419,7 @@ export interface SampleFlows {
   suggestions: FlowSuggestion[];
 }
 
-/** A fresh sample store: the five flows with their recent runs. */
+/** A fresh sample store: the five flows and the team's three job flows, with their recent runs. */
 export function sampleFlows(now = Date.now()): SampleFlows {
   const all = seeds();
   const store: SampleFlows = { flows: [], runs: [], values: {}, lines: {}, check: {}, suggestions: sampleSuggestions() };
@@ -404,6 +442,9 @@ export function sampleFlows(now = Date.now()): SampleFlows {
   at(delivery, todayAt(9, 40, now), { in: 0 }, { id: SAMPLE_RUN_IDS.delivery });
   at(gift, todayAt(16, 59, now) - DAY, {});
   at(friday, nextDay(5, 17, 2, now) - 7 * DAY, { plan: 1 });
+  at(SAMPLE_JOB_FLOW_IDS.muse, todayAt(10, 5, now) - DAY, {});
+  at(SAMPLE_JOB_FLOW_IDS.dot, todayAt(9, 15, now), {});
+  at(SAMPLE_JOB_FLOW_IDS.wren, nextDay(5, 17, 0, now) - 7 * DAY, {});
   for (const fl of store.flows) {
     const latest = store.runs.filter((r) => r.run.flow_id === fl.id).sort((a, b) => b.run.started_at.localeCompare(a.run.started_at))[0];
     fl.last_run_at = latest?.run.started_at ?? null;

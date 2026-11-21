@@ -56,7 +56,7 @@ import { assistantSkill } from "./skills-store";
 import { noteTurn, refreshMemory } from "./team-memory";
 import { changeWords, memoryStep, runWords } from "./team-run";
 import type { CheckedAssistant, TeamAssistant, Tone } from "./team-types";
-import type { AnswerTurn, AskReply, SourcesPort, WebTurn } from "./answer";
+import type { AnswerTurn, AskedValue, AskReply, SourcesPort, WebTurn } from "./answer";
 import type { GmailPort, SlackPort } from "./drafts";
 import type { SchedulingPort } from "./scheduling";
 import type { CalendarPort } from "./rsvp";
@@ -289,6 +289,13 @@ export interface TurnOptions {
   budgetMs?: number;
   /** run: the owner's side of the kept conversation ("Run now", "New gift idea: “…”"); the turn is still asked `prompt`. */
   shown?: string;
+  /**
+   * false: this turn never looks anything up online, whatever the assistant's own switch says (a flow's think step
+   * with web off): no search, no page, no tracking rule. Left out or true: the assistant's switch decides.
+   */
+  web?: boolean;
+  /** Values to give back as structured fields of the answer (a flow's think step): TurnResult.values. */
+  values?: AskedValue[];
   skill?: string | null;
   onStep?: StepSink;
   onText?: TextSink;
@@ -306,6 +313,11 @@ export interface TurnResult {
   thread_id: string | null;
   text: string;
   reply: AskReply;
+  /** run: what the run says it did, as Recent runs and the card show it (lib/team-run.ts runWords), and whether it was quiet. */
+  summary?: string;
+  quiet?: boolean;
+  /** The values asked for with TurnOptions.values, by key. */
+  values?: Record<string, string>;
 }
 
 const clipLine = (s: string, n: number) => {
@@ -408,7 +420,9 @@ const NO_SOURCES: SourcesPort = { open: async () => ({ accounts: [], skipped: []
  */
 export async function runAssistantTurn(assistantId: string, prompt: string, opts: TurnOptions): Promise<TurnResult> {
   // Its own skill (lib/skills-store.ts assistantSkill) goes into every chat, run and check: part of the assistant, like its instructions.
-  const [a, skill] = await Promise.all([loadAssistant(assistantId), loadOwnSkill(assistantId)]);
+  const [own, skill] = await Promise.all([loadAssistant(assistantId), loadOwnSkill(assistantId)]);
+  // A step with web off: this turn is the assistant with its switch off (no search, no page, no tracking rule).
+  const a: TeamAssistant = opts.web === false ? { ...own, web: false } : own;
   const persona = personaFor(a, { mode: opts.mode, readOnly: opts.readOnly }, skill);
   const { runAsk } = await import("./answer");
   const run = opts.mode === "run" && !opts.readOnly;
@@ -469,6 +483,7 @@ export async function runAssistantTurn(assistantId: string, prompt: string, opts
       log: opts.readOnly ? false : run ? "routine" : "ask",
       ...(chat ? { careful: opts.careful, beforeChange: opts.beforeChange } : {}),
       ...(startedBy ? { startedBy } : {}),
+      ...(opts.values?.length ? { values: opts.values } : {}),
       ...(opts.readOnly ? { maxTurns: CHECK_TURNS, budgetMs: Math.min(opts.budgetMs ?? CHECK_BUDGET_MS, CHECK_BUDGET_MS) } : run ? { maxTurns: RUN_TURNS, budgetMs: opts.budgetMs ?? RUN_BUDGET_MS } : opts.budgetMs ? { budgetMs: opts.budgetMs } : {}),
     },
     ),
@@ -488,13 +503,13 @@ export async function runAssistantTurn(assistantId: string, prompt: string, opts
         const did = [changes.length ? `Changed: ${changeWords(changes)}.` : "", reply.plan?.steps.length ? `Waiting for the owner's Go: ${reply.plan.steps.map((x) => x.label).join("; ")}.` : ""].filter(Boolean).join(" ");
         await refreshMemory(a.id, [{ asked: opts.shown?.trim() || said, said: words.text, did, run: true }], { client: opts.client }).catch((e) => console.warn("Athena team: memory refresh failed", e instanceof Error ? e.message : e));
       }
-      return { assistant_id: a.id, thread_id: threadId, text: words.text, reply: kept };
+      return { assistant_id: a.id, thread_id: threadId, text: words.text, reply: kept, summary: words.summary, quiet: words.quiet, ...(reply.values ? { values: reply.values } : {}) };
     } else {
       if (threadId) await tagThreadAssistant(threadId, a.id).catch(() => undefined);
       noteTurn(a.id, threadId ?? `chat:${a.id}`, { asked: said, said: reply.text }, { client: opts.client });
     }
   }
-  return { assistant_id: a.id, thread_id: threadId, text: reply.text, reply };
+  return { assistant_id: a.id, thread_id: threadId, text: reply.text, reply, ...(reply.values ? { values: reply.values } : {}) };
 }
 
 /** A run's conversation, as the app keeps one: the trigger's words, then the assistant's reply with what it did and what waits for Go. */

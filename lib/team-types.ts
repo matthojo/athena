@@ -134,6 +134,11 @@ export interface TeamTrigger {
   last_slot: string | null;
   last_fired_at: string | null;
   created_at: string;
+  /**
+   * The flow this trigger is (lib/team-flows.ts): once triggers moved to flows, each of an assistant's triggers is a
+   * flow it runs, and `id` is that flow's id too. Missing for a trigger that hasn't moved, and on older servers.
+   */
+  flow_id?: string;
 }
 
 /** A trigger as the app sends it: with `id` to keep an existing one (and its last slot). */
@@ -237,6 +242,9 @@ export interface TeamRun {
   fell_back?: boolean;
   /** With fell_back: the model that didn't answer. */
   tried?: ModelRef;
+  /** A run of one of its flows (lib/team-flows.ts): the flow, and the flow's run, whose page shows each step. Missing otherwise, and on older servers. */
+  flow_id?: string | null;
+  flow_run_id?: string | null;
 }
 
 /** POST /api/team/draft: what setup proposes from the owner's one sentence. */

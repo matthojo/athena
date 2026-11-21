@@ -225,19 +225,39 @@ export function dueBeforeDate(t: Extract<FlowTrigger, { kind: "before"; what: "d
   return out;
 }
 
-/** Which flows' event triggers an event fires. Pure. */
-export function flowsForEvent(ev: Pick<TeamEventRow, "kind" | "facets" | "created_at">, flows: ActiveFlow[]): ActiveFlow[] {
-  return flows.filter((f) => f.trigger.kind === "event" && !!f.trigger.event && createdBy(f, new Date(ev.created_at)) && matchesFilter(f.trigger.event, ev));
+/** One of an assistant's job flows: one of its triggers, made a flow (lib/team-flows.ts). Pure. */
+export const isJobFlow = (f: Pick<ActiveFlow, "assistant_id"> & { origin?: string }): boolean => !!f.assistant_id && (f.origin === "trigger" || f.origin === "shared");
+
+/**
+ * Which flows' event triggers an event fires. An assistant's job flows are its triggers, and an event fired each
+ * assistant once (its first matching trigger): so it fires only the first of each assistant's job flows that
+ * match. Pure.
+ */
+export function flowsForEvent(ev: Pick<TeamEventRow, "kind" | "facets" | "created_at" | "processed_at">, flows: ActiveFlow[]): ActiveFlow[] {
+  const jobs = new Set<string>();
+  return flows.filter((f) => {
+    if (f.trigger.kind !== "event" || !f.trigger.event || !createdBy(f, new Date(ev.created_at)) || !matchesFilter(f.trigger.event, ev)) return false;
+    if (!isJobFlow(f)) return true;
+    // Claimed by Team's pass before this job flow was made: the trigger it was moved from had it.
+    if (ev.processed_at && f.handed_at && Date.parse(ev.processed_at) < Date.parse(f.handed_at)) return false;
+    if (jobs.has(f.assistant_id!)) return false;
+    jobs.add(f.assistant_id!);
+    return true;
+  });
 }
 
-/** A pass's events grouped by flow, oldest first. Pure. */
+/**
+ * A pass's events grouped by flow, oldest first. An assistant's job flows go together, as its triggers did: every
+ * event that matched any of them in the pass is one batch, run by the job flow its first event fired. Pure.
+ */
 export function batchByFlow(events: TeamEventRow[], flows: ActiveFlow[]): Array<{ flow: ActiveFlow; events: TeamEventRow[] }> {
   const out = new Map<string, { flow: ActiveFlow; events: TeamEventRow[] }>();
   for (const ev of [...events].sort((a, b) => Number(a.id) - Number(b.id))) {
     for (const flow of flowsForEvent(ev, flows)) {
-      const b = out.get(flow.id) ?? { flow, events: [] };
+      const key = isJobFlow(flow) ? `job:${flow.assistant_id}` : flow.id;
+      const b = out.get(key) ?? { flow, events: [] };
       b.events.push(ev);
-      out.set(flow.id, b);
+      out.set(key, b);
     }
   }
   return [...out.values()];
@@ -441,7 +461,9 @@ export async function startFlowEvent(deps: Pick<FlowTriggerDeps, "source" | "sta
     if (!ev) return out;
     // One event: one run per flow at most. A start that failed leaves it for the pass to try again.
     const left = await startEventRuns(deps, [ev], flows, out, deps.tz ?? "UTC", 1);
-    if (!left.size) await deps.claims.seen([ev.id]);
+    // Marked seen only when a flow took it: one that matched nothing now is left for the pass, which may know more
+    // (an assistant's trigger that moved to its flow since).
+    if (!left.size && out.length) await deps.claims.seen([ev.id]);
   } catch (error) {
     console.error("Athena flows: couldn't start an event's flows now", (error as Error)?.message?.slice(0, 120));
   }

@@ -41,7 +41,7 @@ export const dbFlowClaims: FlowClaims = {
   async pending(limit) {
     // Read, not marked: a plain flow may leave some for the next pass. Fires stop a run starting twice.
     const rows = await qRaw<EventRowRaw>(
-      `SELECT id, kind, ref_id, ref_kind, facets, created_at FROM team_events WHERE flow_claimed_at IS NULL ORDER BY id LIMIT $1`,
+      `SELECT id, kind, ref_id, ref_kind, facets, created_at, processed_at FROM team_events WHERE flow_claimed_at IS NULL ORDER BY id LIMIT $1`,
       [limit],
     );
     return rows.map(toEventRow).sort((a, b) => Number(a.id) - Number(b.id));
@@ -52,7 +52,7 @@ export const dbFlowClaims: FlowClaims = {
   },
   async event(id) {
     const [r] = await qRaw<EventRowRaw>(
-      `SELECT id, kind, ref_id, ref_kind, facets, created_at FROM team_events WHERE id = $1::bigint AND flow_claimed_at IS NULL`,
+      `SELECT id, kind, ref_id, ref_kind, facets, created_at, processed_at FROM team_events WHERE id = $1::bigint AND flow_claimed_at IS NULL`,
       [id],
     );
     return r ? toEventRow(r) : null;

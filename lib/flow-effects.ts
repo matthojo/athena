@@ -99,7 +99,7 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
       // A plan with no routine and no conversation: What Ask did shows its changes as the team's once Go runs it.
       return (await savePlan([{ label: step.label, tool: step.tool, input: step.input, stands_for: randomUUID() }], { source: "routine" })).id;
     },
-    async goPlan(planId, ctx) {
+    async goPlan(planId, ctx, ticked) {
       const [{ goPlan }, { runPlanTool, runAssistantTool }, { logChanges }, { isDraftTool }, { randomUUID }] = await Promise.all([
         import("./ask-plans"),
         import("./assistant"),
@@ -113,7 +113,7 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
         if (!ports.gmail) throw new AthenaInputError(NO_DRAFT_ACCOUNT);
         return draftChanges(await runAssistantTool(tool, input, { ...ports, now: now(), tz }), randomUUID);
       };
-      const went = await goPlan(planId, undefined, { run, log: (changes, c) => logChanges(changes, flowActivity(c, ctx)) });
+      const went = await goPlan(planId, ticked, { run, log: (changes, c) => logChanges(changes, flowActivity(c, ctx)) });
       return changesOf(went.plan.ran?.results ?? null);
     },
     async dropPlan(planId) {
@@ -137,15 +137,43 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
       const a = await getAssistant(id);
       return a ? { id: a.id, name: a.name, avatar: a.avatar, personality: a.personality } : null;
     },
+    async events(ids) {
+      const { loadEvents } = await import("./team-run");
+      return loadEvents({ event_id: null, event_ids: ids });
+    },
     async think(assistantId, prompt, o) {
       const [{ runAssistantTurn }, { withSpendScope }, { randomUUID }] = await Promise.all([import("./team-chat"), import("./spend"), import("node:crypto")]);
       const threadId = o.dry ? null : randomUUID();
-      // AI spend: the step counts toward this assistant's own cap, as its runs do (lib/spend.ts).
-      const out = await withSpendScope({ area: "assistant", assistantId }, () => runAssistantTurn(assistantId, prompt, { mode: "run", readOnly: o.dry, threadId, shown: o.label, ...ports }));
+      // AI spend: the step counts toward this assistant's own cap, as its runs do (lib/spend.ts). What arrived goes in
+      // as data, as a Team run's does: the first event, and `others` for several. web: false turns looking online off.
+      const out = await withSpendScope({ area: "assistant", assistantId }, () =>
+        runAssistantTurn(assistantId, prompt, {
+          mode: "run",
+          readOnly: o.dry,
+          threadId,
+          shown: o.label,
+          event: o.events[0] ?? null,
+          ...(o.events.length > 1 ? { others: true } : {}),
+          ...(o.web ? {} : { web: false }),
+          ...(o.gives.length ? { values: o.gives.map((g) => ({ key: g.key, label: g.label })) } : {}),
+          ...(o.onStep ? { onStep: (step: { text: string; done?: boolean; dropped?: boolean }) => (!step.dropped && !step.done ? o.onStep!(step.text) : undefined) } : {}),
+          ...ports,
+        }),
+      );
       // What Ask did shows a flow step's changes as the team's, like a run's (lib/team-run.ts).
       if (out.thread_id) await qRaw(`UPDATE ask_activity SET source = 'team' WHERE thread_id = $1::uuid AND source = 'routine' AND plan_id IS NULL`, [out.thread_id]).catch(() => undefined);
       const plan = out.reply.plan?.steps.length ? { id: out.reply.plan.id, steps: out.reply.plan.steps.map((s) => s.label) } : null;
-      return { text: out.text, changes: out.reply.changes ?? [], plan };
+      return {
+        text: out.text,
+        changes: out.reply.changes ?? [],
+        plan,
+        ...(out.values ? { values: out.values } : {}),
+        thread_id: out.thread_id,
+        ...(out.summary !== undefined ? { summary: out.summary } : {}),
+        ...(out.quiet !== undefined ? { quiet: out.quiet } : {}),
+        ...(out.reply.model ? { model: out.reply.model } : {}),
+        ...(out.reply.fell_back ? { fell_back: true, ...(out.reply.tried ? { tried: out.reply.tried } : {}) } : {}),
+      };
     },
     async draftAssignment(brief) {
       const { draftAssignment } = await import("./assignment-run");
@@ -157,15 +185,60 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
       const h = await headOf(id);
       return h ? { status: h.status, title: h.title, note_id: h.note_id } : null;
     },
-    async teamActivity(assistantId, run) {
-      const { enqueueTeamRun, finishTeamRun } = await import("./team-run");
-      // Kept as a finished, quiet run of the assistant's: on Team activity with its summary, with no card of its own
-      // (the flow sends its own), and never picked up by the team-run function (it's finished at once).
-      const made = await enqueueTeamRun(assistantId, { label: run.label });
-      await finishTeamRun(made.id, run.failed ? { status: "failed", error: run.summary, quiet: true } : { status: "done", summary: run.summary, quiet: true });
+    teamRun: {
+      // One team run per flow run (a unique link): Team, Home's card, Recent runs and the waits-for-Go count read it.
+      async start(assistantId, from) {
+        const { startFlowTeamRun } = await import("./team-run");
+        return startFlowTeamRun(assistantId, from);
+      },
+      async step(teamRunId, text) {
+        const { setRunStep } = await import("./team-run");
+        await setRunStep(teamRunId, text);
+      },
+      async finish(teamRunId, assistantId, out, o) {
+        const { finishTeamRun } = await import("./team-run");
+        const { postRun } = await import("./team-posts");
+        await finishTeamRun(teamRunId, { status: out.status, summary: out.summary, error: out.error, thread_id: out.thread_id, quiet: out.quiet, model: out.model, fell_back: out.fell_back, tried: out.tried });
+        await qRaw(`UPDATE team_assistants SET last_run_at = $2 WHERE id = $1::uuid`, [assistantId, now().toISOString()]);
+        // Team chat (lib/team-posts.ts): a plan waits there for Go, anything else it has to say is an update. Once.
+        if (o.post && out.post) await postRun({ id: teamRunId, assistant_id: assistantId }, { kind: out.post, text: out.status === "failed" ? (out.error ?? "") : (out.summary ?? "") });
+      },
     },
     noteMade,
   };
+}
+
+// ---------- Go from Ask's plan card ----------
+
+/**
+ * Go on a plan a flow's run waits on, from Ask's plan card (POST /api/assistant/plan; owner, 21 Nov 2026): the same
+ * Go as the run page's (lib/flow-run.ts settleRun), so a draft is written with Ask's draft code and kept as that
+ * run's change, the run carries on at once, and What Ask did shows it as the run's. Null when no run waits on it:
+ * Ask's own Go runs it then.
+ */
+export async function goWaitingFlowPlan(planId: unknown, ticked: unknown, deps: { ports?: FlowPorts; handOff?: (runId: string) => Promise<void> } = {}): Promise<{ plan: import("./ask-plans").PlanCard; changes: Change[] } | null> {
+  if (typeof planId !== "string" || !/^[0-9a-f-]{36}$/i.test(planId)) return null;
+  const [r] = await runsWhere(`status = 'waiting' AND waits_for = 'go' AND plan_id = $1::uuid`, [planId], 1);
+  const step = r?.state.waiting?.step_id;
+  if (!r || !step) return null;
+  const { getPlan, parseTicked, planCard } = await import("./ask-plans");
+  const plan = await getPlan(planId);
+  if (!plan) return null;
+  // The same check Ask's Go makes, before anything runs.
+  const picked = ticked === undefined ? undefined : [...parseTicked(ticked, plan.steps.length)];
+  if (picked && !picked.length) throw new AthenaInputError("Tick at least one step");
+  const { settleRun } = await import("./flow-run");
+  const out = await settleRun(r.run.id, { kind: "go", step_id: step, ...(picked ? { ticked: picked } : {}) }, { fx: await flowEffects({ ports: deps.ports }) });
+  if (out.queued) {
+    const handOff = deps.handOff ?? (async (id: string) => {
+      const origin = flowOrigin();
+      if (origin) await handOffFlowRun(origin, id);
+    });
+    // A hand-off that fails leaves it queued for the next reminders pass.
+    await handOff(out.run.id).catch((e) => console.error("Athena flows: couldn't hand off a run", e instanceof Error ? e.message.slice(0, 120) : e));
+  }
+  const ran = (await getPlan(planId))!;
+  return { plan: planCard(ran), changes: (ran.results ?? []).flatMap((x) => x.changes) };
 }
 
 // ---------- handing off ----------

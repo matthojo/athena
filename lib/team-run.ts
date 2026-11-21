@@ -85,9 +85,11 @@ interface RunRow {
   model: ModelRef | null;
   fell_back: boolean | null;
   tried: ModelRef | null;
+  flow_id: string | null;
+  flow_run_id: string | null;
 }
 
-const R_COLUMNS = `id, assistant_id, trigger_id, event_id, event_ids, status, thread_id, summary, error, started_at, finished_at, label, step, quiet, retried, model, fell_back, tried`;
+const R_COLUMNS = `id, assistant_id, trigger_id, event_id, event_ids, status, thread_id, summary, error, started_at, finished_at, label, step, quiet, retried, model, fell_back, tried, flow_id, flow_run_id`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const iso = (v: string | Date | null) => (v == null ? null : new Date(v).toISOString());
 
@@ -111,6 +113,7 @@ const presentRun = (r: RunRow): TeamRun => ({
   ...(isModelRef(r.model) ? { model: { provider: r.model.provider, model: r.model.model } } : {}),
   ...(r.fell_back ? { fell_back: true } : {}),
   ...(r.fell_back && isModelRef(r.tried) ? { tried: { provider: r.tried.provider, model: r.tried.model } } : {}),
+  ...(r.flow_run_id ? { flow_id: r.flow_id, flow_run_id: r.flow_run_id } : {}),
 });
 
 /**
@@ -151,6 +154,22 @@ export async function enqueueTeamRun(
     [assistantId, from.triggerId ?? null, ids[0] ?? null, JSON.stringify(ids), label ? sealText(clip(label, 200)) : null],
   );
   return presentRun(row);
+}
+
+/**
+ * A run of one of an assistant's flows, kept as its run (lib/flow-run.ts): working now, with what set it off, linked to
+ * the flow run (one team run per flow run, by a unique index), so it's never picked up by the team-run function.
+ * Returns its id; a second start for the same flow run returns the first one's.
+ */
+export async function startFlowTeamRun(assistantId: string, from: { flowId: string; flowRunId: string; label: string; eventIds: string[] }): Promise<string> {
+  const ids = from.eventIds.map(Number).filter(Number.isSafeInteger);
+  const [row] = await qRaw<{ id: string }>(
+    `INSERT INTO team_runs (assistant_id, event_id, event_ids, status, label, step_at, flow_id, flow_run_id)
+     VALUES ($1::uuid, (SELECT id FROM team_events WHERE id = $2::bigint), $3::jsonb, 'running', $4, now(), $5::uuid, $6::uuid)
+     ON CONFLICT (flow_run_id) WHERE flow_run_id IS NOT NULL DO UPDATE SET flow_id = EXCLUDED.flow_id RETURNING id`,
+    [assistantId, ids[0] ?? null, JSON.stringify(ids), sealText(clip(from.label || RUN_NOW, 200)), from.flowId, from.flowRunId],
+  );
+  return row.id;
 }
 
 export async function getTeamRun(id: unknown): Promise<TeamRun | null> {
@@ -689,7 +708,7 @@ export function failCard(v: Voice, code: FailCode, opts: { events?: number; labe
 // ---------- the run ----------
 
 /** A run's events, oldest first. Events pruned since it was queued are left out. */
-async function loadEvents(run: Pick<TeamRun, "event_id" | "event_ids">): Promise<TeamTurnEvent[]> {
+export async function loadEvents(run: Pick<TeamRun, "event_id" | "event_ids">): Promise<TeamTurnEvent[]> {
   const ids = run.event_ids?.length ? run.event_ids : run.event_id ? [run.event_id] : [];
   if (!ids.length) return [];
   const rows = await qRaw<{ id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: TeamEventRow["facets"] | null; created_at: string | Date }>(
@@ -804,8 +823,9 @@ export interface RunRecord {
   waiting: number;
 }
 
-/** "Muse runs when you file something as a gift idea." Pure. */
-function whenLine(a: Pick<TeamAssistant, "name">, trigger: Pick<TeamTrigger, "kind" | "days" | "time" | "event"> | null): string {
+/** "Muse runs when you file something as a gift idea." A flow that isn't one of its triggers: "Muse runs your flow “…”." Pure. */
+function whenLine(a: Pick<TeamAssistant, "name">, trigger: Pick<TeamTrigger, "kind" | "days" | "time" | "event"> | null, flowName?: string): string {
+  if (flowName) return `${a.name} runs your flow “${flowName}”.`;
   if (trigger?.kind === "schedule" && trigger.time) return `${a.name} runs ${scheduleWords({ days: trigger.days, time: trigger.time }).replace(/^Every/, "every").replace(/^Weekdays/, "on weekdays").replace(/^Weekends/, "at weekends")}.`;
   if (trigger?.event) return `${a.name} runs ${eventWords(trigger.event)}.`;
   return `You asked ${a.name} to run.`;
@@ -820,6 +840,8 @@ export function teamNudge(
   run: Pick<TeamRun, "id" | "thread_id" | "summary" | "finished_at" | "started_at"> & Partial<Pick<TeamRun, "status" | "error" | "label" | "event_ids" | "retried">>,
   trigger: Pick<TeamTrigger, "kind" | "days" | "time" | "event"> | null,
   record?: RunRecord,
+  /** A run of a flow of its that isn't one of its triggers: the flow's name, for the "Why". */
+  flowName?: string,
 ): Nudge {
   const v: Voice = { name: a.name, personality: a.personality ?? { tone: "calm", pronoun: "they" } };
   const p = pronoun(v);
@@ -841,7 +863,7 @@ export function teamNudge(
     key: `team:${run.id}`,
     title: `From ${a.name}`,
     body,
-    why: [whenLine(a, trigger), what],
+    why: [whenLine(a, trigger, flowName), what],
     context: `${a.name}, from your team.`,
     prompt: "",
     about: [],
@@ -893,7 +915,7 @@ export interface DeliverDeps {
 export async function deliverTeamNudges(now: Date, tz: string, deps: DeliverDeps): Promise<{ sent: number; held: number }> {
   const rows = await q<RunRow>(`SELECT ${R_COLUMNS} FROM team_runs
       WHERE finished_at > $1 AND stage_id IS NULL AND ((status = 'done' AND thread_id IS NOT NULL AND NOT quiet)
-         OR (status = 'failed' AND trigger_id IS NOT NULL AND error IS NOT NULL AND error NOT LIKE 'Paused%' AND error NOT LIKE 'That assistant%'))
+         OR (status = 'failed' AND (trigger_id IS NOT NULL OR (flow_run_id IS NOT NULL AND NOT quiet)) AND error IS NOT NULL AND error NOT LIKE 'Paused%' AND error NOT LIKE 'That assistant%'))
       ORDER BY finished_at`, [new Date(now.getTime() - CARD_HOURS * 3_600_000).toISOString()]);
   if (!rows.length) return { sent: 0, held: 0 };
   const [{ loadProactivePrefs, loadMutes, madeOn, seenKeys, recordNudge, markPushed }, { loadWorkingHours }, { nudgeUrl, teamChatUrl }] = await Promise.all([import("./proactive/store"), import("./scheduling"), import("./proactive/urls")]);
@@ -908,7 +930,12 @@ export async function deliverTeamNudges(now: Date, tz: string, deps: DeliverDeps
   for (const run of fresh) {
     const a = await getAssistant(run.assistant_id);
     if (!a) continue;
-    const n = teamNudge(a, run, run.trigger_id ? await getTrigger(run.trigger_id) : null, await runRecord(run.thread_id));
+    // A run of one of its flows: the flow's trigger says when it runs (one of its triggers, made a flow), or its name does.
+    const flow = run.flow_id ? await (await import("./flows")).getFlow(run.flow_id).catch(() => null) : null;
+    const { isPlainJob } = await import("./team-flows");
+    const { teamTriggerOf } = await import("./flow-run");
+    const trigger = flow ? (isPlainJob(flow) ? (teamTriggerOf(flow) as TeamTrigger | null) : null) : run.trigger_id ? await getTrigger(run.trigger_id) : null;
+    const n = teamNudge(a, run, trigger, await runRecord(run.thread_id), flow && !isPlainJob(flow) ? flow.name : undefined);
     // Its card on Home and its push open Team chat at the run's post, when it made one.
     const post = await postIdForRun(run.id).catch(() => null);
     if (post) n.url = teamChatUrl(post);

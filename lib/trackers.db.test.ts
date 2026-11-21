@@ -35,6 +35,8 @@ before(async () => {
   await qRaw(`DELETE FROM ask_activity`);
   await qRaw(`DELETE FROM saved_items`);
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_plans CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
   await qRaw(`INSERT INTO settings (key, value) VALUES ('timezone', '"Europe/London"') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`);
   const { useSavedStore } = await import("./saved");
   const blobs = new Map<string, Uint8Array>();

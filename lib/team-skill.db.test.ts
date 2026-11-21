@@ -26,6 +26,8 @@ beforeEach(async () => {
   if (!url) return;
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
   await qRaw(`DELETE FROM ask_threads`);
   // The starters are added once; with the table emptied, say they were, so lists hold only these tests' skills.
   await qRaw(`INSERT INTO settings (key, value) VALUES ('skills.starters', 'true'::jsonb) ON CONFLICT (key) DO NOTHING`);

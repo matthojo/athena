@@ -21,6 +21,10 @@ export function onFlowsChange(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 const changed = () => listeners.forEach((fn) => fn());
+/** One of an assistant's triggers, made a flow (lib/team-flows.ts): it counts toward the assistant's triggers, not FLOW_LIMITS.flows. */
+export const isJobFlow = (f: Pick<Flow, "assistant_id" | "origin">): boolean => !!f.assistant_id && (f.origin === "trigger" || f.origin === "shared");
+/** Something outside Flows changed flows: an assistant's triggers are its flows (lib/team-flows.ts), so saving them does. */
+export const flowsChanged = (): void => changed();
 
 // ---------- sample mode ----------
 
@@ -87,7 +91,7 @@ export async function createFlow(input: FlowInput): Promise<Flow> {
   let made: Flow;
   if (isSampleMode()) {
     const s = store();
-    if (s.flows.length >= FLOW_LIMITS.flows) throw new Error(`You have ${FLOW_LIMITS.flows} flows, which is the most Athena keeps. Delete one first.`);
+    if (s.flows.filter((f) => !isJobFlow(f)).length >= FLOW_LIMITS.flows) throw new Error(`You have ${FLOW_LIMITS.flows} flows, which is the most Athena keeps. Delete one first.`);
     const now = new Date().toISOString();
     const trigger = input.trigger ?? { kind: "manual" };
     made = sampleApply(

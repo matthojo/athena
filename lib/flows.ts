@@ -17,6 +17,7 @@ import { eventFilterSchema } from "./team";
 import { defaultGo, flowTool, isDraftTool } from "./flow-catalog";
 import { allSteps, depthOf, eachStep, triggerValues, valueWords, type FlowValues, type Frame } from "./flow-steps";
 import { triggerGives } from "./flow-triggers";
+import type { ModelRef } from "./model-types";
 import {
   FLOW_LIMITS,
   type Flow,
@@ -257,6 +258,12 @@ export async function getFlow(id: unknown): Promise<Flow | null> {
   return row ? presentFlow(row) : null;
 }
 
+/**
+ * Flows that count toward FLOW_LIMITS.flows: not an assistant's job flows (lib/team-flows.ts), which stand for its
+ * triggers and count toward its MAX_TRIGGERS instead, as the triggers did.
+ */
+const NOT_JOB = `NOT (assistant_id IS NOT NULL AND origin IN ('trigger', 'shared'))`;
+
 const FULL = `You have ${FLOW_LIMITS.flows} flows, which is the most Athena keeps. Remove one first.`;
 
 /** A new flow. Left out: the name "New flow", a manual trigger, no steps, money off, on. Refused past FLOW_LIMITS.flows. */
@@ -268,7 +275,7 @@ export async function createFlow(raw: unknown): Promise<Flow> {
   const w: Words = { name: oneLine(input.name ?? "").slice(0, FLOW_LIMITS.name) || "New flow", trigger, steps };
   const [row] = await q<FlowRow>(
     `INSERT INTO flows (payload, trigger_kind, schedule, money, paused, origin)
-     SELECT $1, $2, $3::jsonb, $4, $5, $6 WHERE (SELECT count(*) FROM flows) < $7
+     SELECT $1, $2, $3::jsonb, $4, $5, $6 WHERE (SELECT count(*) FROM flows WHERE ${NOT_JOB}) < $7
      RETURNING ${F_COLUMNS}`,
     [sealText(JSON.stringify(w)), trigger.kind, JSON.stringify(plainSchedule(trigger)), input.money === true, input.paused === true, input.origin ?? "owner", FLOW_LIMITS.flows],
   );
@@ -349,6 +356,10 @@ export interface RunState {
   by_hand?: boolean;
   /** The owner's zone when it last ran, so its values read as words (FlowRun.values) on any read. */
   tz?: string;
+  /** Its think step's turn, when one kept a conversation: what Recent runs and the "From <Name>" card say (lib/flow-run.ts). */
+  turn?: { thread_id: string; summary: string; quiet: boolean; model?: ModelRef; fell_back?: boolean; tried?: ModelRef };
+  /** Its run on Team, while an assistant runs it, and whether that run has posted in Team chat yet. */
+  team?: { run_id: string; told?: boolean };
 }
 
 export const emptyState = (values: FlowValues = {}, byHand = false): RunState => ({ values, lines: [], stack: [{ path: [], i: 0 }], waiting: null, notices: [], changes: [], ...(byHand ? { by_hand: true } : {}) });
@@ -407,6 +418,8 @@ function readState(raw: string): RunState {
     changes: Array.isArray(s.changes) ? s.changes : [],
     ...(s.by_hand ? { by_hand: true } : {}),
     ...(typeof s.tz === "string" ? { tz: s.tz } : {}),
+    ...(s.turn && typeof s.turn.thread_id === "string" ? { turn: s.turn as RunState["turn"] } : {}),
+    ...(s.team && typeof s.team.run_id === "string" ? { team: s.team as RunState["team"] } : {}),
   };
 }
 
@@ -578,12 +591,12 @@ export async function touchFlowRun(flowId: string, now = new Date()): Promise<vo
 
 // ---------- the ports triggers uses ----------
 
-/** FlowSource: every flow that's on, with its trigger. */
+/** FlowSource: every flow that's on, with its trigger. A paused assistant's flows don't start, as its triggers didn't. */
 export function createFlowSource(): FlowSource {
   return {
     async listActive() {
-      const rows = await q<FlowRow>(`SELECT ${F_COLUMNS} FROM flows WHERE NOT paused ORDER BY created_at, id`);
-      return rows.map(presentFlow).map((f) => ({ id: f.id, name: f.name, trigger: f.trigger, assistant_id: f.assistant_id, created_at: f.created_at }));
+      const rows = await q<FlowRow>(`SELECT ${F_COLUMNS} FROM flows WHERE NOT paused AND (assistant_id IS NULL OR assistant_id NOT IN (SELECT id FROM team_assistants WHERE paused)) ORDER BY created_at, id`);
+      return rows.map(presentFlow).map((f) => ({ id: f.id, name: f.name, trigger: f.trigger, assistant_id: f.assistant_id, origin: f.origin, handed_at: f.handed_at, created_at: f.created_at }));
     },
   };
 }

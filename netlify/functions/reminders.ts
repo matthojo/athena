@@ -42,7 +42,8 @@
  *  0b. Ask's routines (lib/routines.ts): each due slot is claimed once and run in
  *     netlify/functions/routine-run.ts; its nudge waits for quiet hours to end.
  *     First each routine becomes a Team assistant (lib/team-migrate.ts); once
- *     all have, routines stop running.
+ *     all have, routines stop running. Then each assistant's trigger becomes a
+ *     flow it runs (lib/team-flows.ts), all at once; a moved trigger never fires.
  *  0c. Team assistants: due schedule slots and new events become runs, each
  *     run in netlify/functions/team-run.ts (lib/team-triggers.ts, team-run.ts).
  *  0d. Flows: due schedule slots, "before an event" and "before a date"
@@ -92,6 +93,7 @@ import { runProactive } from "../../lib/proactive/run";
 import { runCarSync } from "../lib/car-routes";
 import { claimDueRoutines, deliverRoutines, handOffRoutine } from "../../lib/routine-run";
 import { migrateRoutines } from "../../lib/team-migrate";
+import { moveTriggers } from "../../lib/team-flows";
 import { queueTeamRuns } from "../../lib/team-triggers";
 import { runFlowTriggers } from "../../lib/flow-triggers-db";
 // Plugs the engine into triggers: without it runFlowTriggers does nothing (lib/flow-engine.ts).
@@ -191,6 +193,14 @@ export async function runReminders(now: Date = new Date(), origin: string | unde
     if (moved.made || moved.failed) report.team_migration = moved;
   } catch (error) {
     console.error("Athena reminders: moving routines to Team failed", error);
+  }
+  // Assistants' triggers become flows (lib/team-flows.ts): all in one transaction, so either every trigger moves or
+  // none does and they keep firing as triggers. After the routines, so their assistants' triggers move too.
+  try {
+    const moved = await moveTriggers(now);
+    if (moved.moved || moved.skipped) report.team_flows = moved;
+  } catch (error) {
+    console.error("Athena reminders: moving assistants' triggers to flows failed; they keep running as triggers", error);
   }
   try {
     const started: string[] = [];

@@ -309,7 +309,15 @@ export type AskReply = AnswerWithImports & AskActed & {
   fell_back?: boolean;
   /** With fell_back: the model that didn't answer. */
   tried?: ModelRef;
+  /** The values a flow's think step asked for (AnswerOptions.values), by key, each a short string. Only the keys asked for. */
+  values?: Record<string, string>;
 };
+
+/** A value a turn is asked to give back with its answer (a flow's think step, lib/flow-run.ts). */
+export interface AskedValue {
+  key: string;
+  label: string;
+}
 
 export interface AnswerOptions {
   /** Earlier questions and answers in this conversation, oldest first. */
@@ -356,6 +364,8 @@ export interface AnswerOptions {
   onToolResult?: (name: string, text: string) => void;
   /** What started the turn, when it wasn't the owner typing (a Team run's event): other people's words, and whether Jev flagged them. The guard starts from there (lib/ask-guard.ts). */
   startedBy?: { read?: ReadFrom; flagged?: boolean };
+  /** Values to give back with the answer, as structured fields of the answer tool (a flow's think step): AskReply.values. */
+  values?: AskedValue[];
 }
 
 /** A web-enabled assistant's turn: how many searches and pages, and what may go in them (docs/team-notes/web-runs.md). */
@@ -941,9 +951,20 @@ const ANSWER_TOOL: Anthropic.Tool = {
  * (`needs_web`), and while money search is off that the message asked about spending (`needs_money`): the reply
  * then links to the switch. The model reads the message and says so; nothing in front of the loop guesses.
  */
-function answerToolFor(off: { web: boolean; money: boolean; picture?: boolean }): Anthropic.Tool {
-  if (!off.web && !off.money && !off.picture) return ANSWER_TOOL;
+function answerToolFor(off: { web: boolean; money: boolean; picture?: boolean }, values: readonly AskedValue[] = []): Anthropic.Tool {
+  if (!off.web && !off.money && !off.picture && !values.length) return ANSWER_TOOL;
   const extra: Record<string, unknown> = {
+    ...(values.length
+      ? {
+          values: {
+            type: "object",
+            additionalProperties: false,
+            description: "What this step gives the steps after it: each a short string with the specifics (a name, a price, a date), from what you found. An empty string when you found nothing for it.",
+            properties: Object.fromEntries(values.map((v) => [v.key, { type: "string", description: v.label }])),
+            required: values.map((v) => v.key),
+          },
+        }
+      : {}),
     ...(off.web ? { needs_web: { type: "boolean", description: "true only when the question needs something current or checkable online (news, a price, opening hours, a result) that you don't reliably know. Otherwise false." } } : {}),
     ...(off.money ? { needs_money: { type: "boolean", description: "true only when the message asks about the owner's spending, payments, transactions, subscriptions or bank accounts, which you can't read while money search is off, or asks you to log money they spent, which you can't do then either. Otherwise false." } } : {}),
     ...(off.picture ? { needs_picture: { type: "boolean", description: "true only when the message asks you to make, draw or change a picture, which you can't do while pictures are off. Otherwise false." } } : {}),
@@ -1060,6 +1081,8 @@ const AnswerInput = z.object({
   needs_money: z.boolean().default(false),
   needs_picture: z.boolean().default(false),
   from_today: z.boolean().default(false),
+  // A flow's think step's values (AnswerOptions.values): only the keys asked for are kept.
+  values: z.record(z.string().max(2000)).optional(),
   sources: z
     .array(z.object({ ref: z.string().max(2000), title: z.string().max(400).default(""), date: z.string().max(40).default("") }))
     .max(20)
@@ -1321,7 +1344,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     // Pictures: Ask's and an assistant's chats only, with a picture model for this turn (owner, 17 Nov 2026). Not in a run, a check or a careful retry.
     const picturesHere = planMode === "auto" && !opts.persona?.readOnly && !opts.careful && !!opts.thread_id;
     const pictureModel = picturesHere ? await resolveImageModel({ assistantId: opts.persona?.id ?? null }).catch(() => null) : null;
-    const answerTool = answerToolFor({ web: !webOn, money: !money, picture: picturesHere && !pictureModel });
+    const answerTool = answerToolFor({ web: !webOn, money: !money, picture: picturesHere && !pictureModel }, opts.values ?? []);
     const history = opts.history ?? [];
     // A new chat, or a later message that brings a new topic, gets short summaries of the past chats about the same thing or the same people.
     const people = mentioned.found.filter((m) => m.kind === "person").map((m) => m.title);
@@ -1961,6 +1984,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       ...(session.flow ? { flow: session.flow } : {}),
       ...(athena.tonight && !asking && failed === null && text === null ? { picks: athena.tonight.picks } : {}),
       ...(pictures.length ? { pictures } : {}),
+      ...(opts.values?.length ? { values: askedValues(answered?.values, opts.values) } : {}),
       // Read from Linear or GitHub: shown now, never kept (the app saves a placeholder; lib/ask-threads.ts scrubs it too).
       ...(LIVE_ANSWERS_NOT_KEPT && accounts.some((a) => ev.answered.has(a.key) && a.connector && LIVE_ONLY_PROVIDERS.has(a.connector.provider)) ? { live_only: true as const } : {}),
     };
@@ -1970,6 +1994,18 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
   } finally {
     await Promise.race([opened.close().catch(() => undefined), new Promise((r) => setTimeout(r, 1_500))]);
   }
+}
+
+/** The values a turn gave back, only the keys asked for, each one line and short. Pure. */
+export function askedValues(given: Record<string, string> | undefined, asked: readonly AskedValue[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const { key } of asked) {
+    const v = given?.[key];
+    if (typeof v !== "string") continue;
+    const one = v.replace(/\s+/g, " ").trim();
+    if (one) out[key] = one.length > 500 ? `${one.slice(0, 499)}…` : one;
+  }
+  return out;
 }
 
 /** The loop under the name it had while it only read: tests and callers that only ask a question still use it. */

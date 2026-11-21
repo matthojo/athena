@@ -12,6 +12,11 @@
  * Triggers belong to one assistant and go with it. PATCH with `triggers`
  * replaces the set: an entry with an existing id keeps that trigger (and the
  * slot it last ran for); the rest are made new; any left out are removed.
+ *
+ * Once triggers have moved to flows (lib/team-flows.ts, migration 0083), an
+ * assistant's triggers are its job flows: `triggers` reads them, and writing
+ * `triggers` keeps them as job flows. A trigger row that hasn't moved yet is
+ * still read and kept as before, until the next pass moves it.
  */
 import { z } from "zod";
 import { AthenaInputError, q, qRaw, tx } from "./db";
@@ -235,6 +240,18 @@ function presentTrigger(r: TriggerRow): TeamTrigger {
 /** The owner's agreements, for reading each assistant's models (a choice on a provider no longer agreed to is dropped). */
 type Consent = NonNullable<Awaited<ReturnType<typeof loadModelSettings>>["consent"]>;
 
+/** The triggers an assistant shows: its trigger rows not yet moved, then its job flows' (lib/team-flows.ts). */
+async function jobTriggers(assistantId?: string): Promise<TeamTrigger[]> {
+  try {
+    const { listJobFlows, triggerOfFlow } = await import("./team-flows");
+    return (await listJobFlows(assistantId)).map(triggerOfFlow).filter((t): t is TeamTrigger => !!t);
+  } catch (error) {
+    // Flows' table isn't there yet (a copy part-way through its migrations): its triggers are the rows.
+    console.warn("Athena team: couldn't read assistants' flows", error instanceof Error ? error.message.slice(0, 120) : error);
+    return [];
+  }
+}
+
 function present(r: AssistantRow, triggers: TeamTrigger[], consent: Consent = {}): TeamAssistant {
   const w = readJson<Words>(r.payload);
   const seed = w.avatar?.seed ?? r.id;
@@ -264,7 +281,8 @@ function present(r: AssistantRow, triggers: TeamTrigger[], consent: Consent = {}
 export async function listAssistants(): Promise<TeamAssistant[]> {
   // A guest (assignment_id set; lib/assignments.ts) isn't on the team: not listed here, to main Ask's check_with_assistant, or counted toward the 12.
   const rows = await q<AssistantRow>(`SELECT ${A_COLUMNS} FROM team_assistants WHERE assignment_id IS NULL ORDER BY created_at, id`);
-  const [triggers, { consent }] = await Promise.all([listTriggers(), loadModelSettings()]);
+  const [rowsT, flowsT, { consent }] = await Promise.all([listTriggers(), jobTriggers(), loadModelSettings()]);
+  const triggers = [...rowsT, ...flowsT];
   return rows.map((r) => present(r, triggers.filter((t) => t.assistant_id === r.id), consent));
 }
 
@@ -272,8 +290,8 @@ export async function getAssistant(id: unknown): Promise<TeamAssistant | null> {
   if (typeof id !== "string" || !UUID.test(id)) return null;
   const [row] = await q<AssistantRow>(`SELECT ${A_COLUMNS} FROM team_assistants WHERE id = $1::uuid`, [id]);
   if (!row) return null;
-  const [triggers, { consent }] = await Promise.all([listTriggers(id), loadModelSettings()]);
-  return present(row, triggers, consent);
+  const [rowsT, flowsT, { consent }] = await Promise.all([listTriggers(id), jobTriggers(id), loadModelSettings()]);
+  return present(row, [...rowsT, ...flowsT], consent);
 }
 
 const FULL = `You have ${MAX_ASSISTANTS} assistants, which is the most a team can have. Remove one first.`;
@@ -303,13 +321,25 @@ async function insertTrigger(run: Run, assistantId: string, t: CleanTrigger): Pr
   await run(`INSERT INTO team_triggers (assistant_id, kind, days, at_time, event, paused) VALUES ($1::uuid, $2, $3::smallint[], $4, $5::jsonb, $6)`, [assistantId, t.kind, t.days, t.time, t.event ? JSON.stringify(t.event) : null, t.paused]);
 }
 
-/** A new assistant, with its triggers. `routineId` marks one made from a routine (one assistant per routine). */
-export async function createAssistant(raw: unknown, opts: { routineId?: string; now?: Date } = {}): Promise<TeamAssistant> {
+/** A trigger kept as Team keeps it once triggers are flows: its job flow (lib/team-flows.ts). */
+async function insertJob(run: Run, assistantId: string, t: CleanTrigger, origin: "trigger" | "shared" = "trigger"): Promise<void> {
+  const { flowTriggerOf, insertJobFlow } = await import("./team-flows");
+  const trigger = flowTriggerOf(t);
+  if (!trigger) throw new AthenaInputError("A schedule trigger needs days and a time");
+  await insertJobFlow(run, { assistantId, trigger, paused: t.paused, origin });
+}
+
+/**
+ * A new assistant, with its triggers. `routineId` marks one made from a routine (one assistant per routine). Once
+ * triggers are flows, each trigger is kept as a job flow; `origin: "shared"` marks an imported one's.
+ */
+export async function createAssistant(raw: unknown, opts: { routineId?: string; now?: Date; origin?: "trigger" | "shared" } = {}): Promise<TeamAssistant> {
   const input = parse(inputSchema, raw ?? {});
   const w = words(input);
   const triggers = (input.triggers ?? []).map(cleanTrigger);
   const models = input.models ? await checkAssistantModels(input.models) : {};
   const now = (opts.now ?? new Date()).toISOString();
+  const asFlows = triggers.length > 0 && (await (await import("./team-flows")).triggersMoved());
   const id = await tx(async (run) => {
     const [{ n }] = await run<{ n: number }>(`SELECT count(*)::int AS n FROM team_assistants WHERE assignment_id IS NULL`);
     checkRoom(n);
@@ -321,7 +351,10 @@ export async function createAssistant(raw: unknown, opts: { routineId?: string; 
       [sealWords(w), [...new Set(input.allow ?? [])], input.paused === true, opts.routineId ?? null, now, MAX_ASSISTANTS, input.web === true, JSON.stringify(models)],
     );
     if (!row) throw new AthenaInputError(FULL);
-    for (const t of triggers) await insertTrigger(run, row.id, { ...t, id: undefined });
+    for (const t of triggers) {
+      if (asFlows) await insertJob(run, row.id, { ...t, id: undefined }, opts.origin);
+      else await insertTrigger(run, row.id, { ...t, id: undefined });
+    }
     return row.id;
   });
   return (await getAssistant(id))!;
@@ -338,6 +371,10 @@ export async function updateAssistant(id: unknown, raw: unknown): Promise<TeamAs
   // Sent: the whole set, checked. Left out: kept as it is.
   const models = input.models ? await checkAssistantModels(input.models) : (was.models ?? {});
   const keep = new Set(was.triggers.map((t) => t.id));
+  const jobs = new Map(was.triggers.filter((t) => t.flow_id).map((t) => [t.id, t]));
+  const teamFlows = await import("./team-flows");
+  const asFlows = !!triggers?.length && (await teamFlows.triggersMoved());
+  const flowsNow = jobs.size ? new Map((await teamFlows.listJobFlows(was.id)).map((f) => [f.id, f])) : new Map();
   await tx(async (run) => {
     await run(`UPDATE team_assistants SET payload = $2, allow = $3::text[], paused = $4, web = $5, models = $6::jsonb, updated_at = now() WHERE id = $1::uuid`, [
       was.id,
@@ -347,11 +384,21 @@ export async function updateAssistant(id: unknown, raw: unknown): Promise<TeamAs
       input.web ?? was.web === true,
       JSON.stringify(models),
     ]);
+    // Turned back on: an imported assistant's flows, made paused with it and never run, come on with it.
+    if (was.paused && input.paused === false && !triggers) await run(`UPDATE flows SET paused = false, updated_at = now() WHERE assistant_id = $1::uuid AND origin = 'shared' AND paused AND last_run_at IS NULL`, [was.id]);
     if (!triggers) return;
     const kept = triggers.filter((t) => t.id && keep.has(t.id)).map((t) => t.id!);
-    await run(`DELETE FROM team_triggers WHERE assistant_id = $1::uuid AND NOT (id = ANY($2::uuid[]))`, [was.id, kept]);
+    // Moved rows aren't the assistant's triggers any more (their flows are): only unmoved rows are replaced here.
+    await run(`DELETE FROM team_triggers WHERE assistant_id = $1::uuid AND moved_at IS NULL AND NOT (id = ANY($2::uuid[]))`, [was.id, kept]);
+    for (const id of jobs.keys()) if (!kept.includes(id)) await teamFlows.dropJobFlow(run, id);
     for (const t of triggers) {
-      if (t.id && keep.has(t.id)) await writeTrigger(run, t.id, t);
+      const job = t.id ? flowsNow.get(t.id) : undefined;
+      if (job) {
+        const trigger = teamFlows.flowTriggerOf(t);
+        if (!trigger) throw new AthenaInputError("A schedule trigger needs days and a time");
+        await teamFlows.writeJobFlow(run, job.id, job, trigger, t.paused);
+      } else if (t.id && keep.has(t.id)) await writeTrigger(run, t.id, t);
+      else if (asFlows) await insertJob(run, was.id, { ...t, id: undefined });
       else await insertTrigger(run, was.id, t);
     }
   });
@@ -362,6 +409,11 @@ export async function deleteAssistant(id: unknown): Promise<boolean> {
   if (typeof id !== "string" || !UUID.test(id)) return false;
   // Its "From <Name>" cards go from Home with it (their key is the run's, and its runs go below).
   await qRaw(`UPDATE nudges SET dismissed_at = now() WHERE dismissed_at IS NULL AND rule = 'team' AND key IN (SELECT 'team:' || id::text FROM team_runs WHERE assistant_id = $1::uuid)`, [id]);
+  // Its triggers go with it: its job flows too (a flow handed to it stays, as a plain flow again).
+  if (UUID.test(id)) {
+    const { listJobFlows, dropJobFlow } = await import("./team-flows");
+    for (const f of await listJobFlows(id).catch(() => [])) await tx((run) => dropJobFlow(run, f.id));
+  }
   const rows = await qRaw<{ id: string }>(`DELETE FROM team_assistants WHERE id = $1::uuid RETURNING id`, [id]);
   return rows.length > 0;
 }
@@ -381,12 +433,12 @@ async function noGuest(assistantId: string): Promise<void> {
   if (row?.guest) throw new AthenaInputError("A guest runs with its assignment. Keep it on the team to give it triggers.");
 }
 
-/** Every trigger, or one assistant's, oldest first. */
+/** Every trigger row not yet moved to a flow, or one assistant's, oldest first. */
 export async function listTriggers(assistantId?: string): Promise<TeamTrigger[]> {
   if (assistantId !== undefined && !UUID.test(assistantId)) return [];
   const rows = assistantId
-    ? await q<TriggerRow>(`SELECT ${T_COLUMNS} FROM team_triggers WHERE assistant_id = $1::uuid ORDER BY created_at, id`, [assistantId])
-    : await q<TriggerRow>(`SELECT ${T_COLUMNS} FROM team_triggers ORDER BY created_at, id`);
+    ? await q<TriggerRow>(`SELECT ${T_COLUMNS} FROM team_triggers WHERE assistant_id = $1::uuid AND moved_at IS NULL ORDER BY created_at, id`, [assistantId])
+    : await q<TriggerRow>(`SELECT ${T_COLUMNS} FROM team_triggers WHERE moved_at IS NULL ORDER BY created_at, id`);
   return rows.map(presentTrigger);
 }
 
@@ -398,10 +450,16 @@ export async function getTrigger(id: unknown): Promise<TeamTrigger | null> {
 
 export async function createTrigger(assistantId: string, raw: TeamTriggerInput | unknown): Promise<TeamTrigger> {
   const t = cleanTrigger(raw);
-  if (!(await getAssistant(assistantId))) throw new AthenaInputError("That assistant isn't there any more", 404);
+  const a = await getAssistant(assistantId);
+  if (!a) throw new AthenaInputError("That assistant isn't there any more", 404);
   await noGuest(assistantId);
-  const [{ n }] = await qRaw<{ n: number }>(`SELECT count(*)::int AS n FROM team_triggers WHERE assistant_id = $1::uuid`, [assistantId]);
-  if (n >= MAX_TRIGGERS) throw new AthenaInputError(`An assistant can have ${MAX_TRIGGERS} triggers at most`);
+  if (a.triggers.length >= MAX_TRIGGERS) throw new AthenaInputError(`An assistant can have ${MAX_TRIGGERS} triggers at most`);
+  // Once triggers are flows, a new one is a job flow (lib/team-flows.ts).
+  if (await (await import("./team-flows")).triggersMoved()) {
+    await tx((run) => insertJob(run, assistantId, { ...t, id: undefined }));
+    const made = (await getAssistant(assistantId))!.triggers.filter((x) => x.flow_id).sort((x, y) => y.created_at.localeCompare(x.created_at))[0];
+    return made;
+  }
   const [row] = await q<TriggerRow>(
     `INSERT INTO team_triggers (assistant_id, kind, days, at_time, event, paused) VALUES ($1::uuid, $2, $3::smallint[], $4, $5::jsonb, $6) RETURNING ${T_COLUMNS}`,
     [assistantId, t.kind, t.days, t.time, t.event ? JSON.stringify(t.event) : null, t.paused],
@@ -415,6 +473,16 @@ async function writeTrigger(run: Run, id: string, t: CleanTrigger): Promise<void
 
 /** Change a trigger: the whole of it, as cleanTrigger reads it. */
 export async function updateTrigger(id: unknown, raw: TeamTriggerInput | unknown): Promise<TeamTrigger> {
+  // A job flow, by its id: its trigger and on/off change, its steps stay.
+  const teamFlows = await import("./team-flows");
+  const job = typeof id === "string" && UUID.test(id) ? (await teamFlows.listJobFlows()).find((f) => f.id === id) : undefined;
+  if (job) {
+    const t = cleanTrigger(raw);
+    const trigger = teamFlows.flowTriggerOf(t);
+    if (!trigger) throw new AthenaInputError("A schedule trigger needs days and a time");
+    await tx((run) => teamFlows.writeJobFlow(run, job.id, job, trigger, t.paused));
+    return (await getAssistant(job.assistant_id))!.triggers.find((x) => x.id === job.id)!;
+  }
   const was = await getTrigger(id);
   if (!was) throw new AthenaInputError("That trigger isn't there any more", 404);
   const t = cleanTrigger(raw);
@@ -424,6 +492,11 @@ export async function updateTrigger(id: unknown, raw: TeamTriggerInput | unknown
 
 export async function deleteTrigger(id: unknown): Promise<boolean> {
   if (typeof id !== "string" || !UUID.test(id)) return false;
+  const { listJobFlows, dropJobFlow } = await import("./team-flows");
+  if ((await listJobFlows()).some((f) => f.id === id)) {
+    await tx((run) => dropJobFlow(run, id));
+    return true;
+  }
   const rows = await qRaw<{ id: string }>(`DELETE FROM team_triggers WHERE id = $1::uuid RETURNING id`, [id]);
   return rows.length > 0;
 }

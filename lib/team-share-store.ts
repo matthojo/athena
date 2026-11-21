@@ -19,6 +19,7 @@ import { AthenaInputError, q } from "./db";
 import { listFacts } from "./memory";
 import { listConnectors } from "./connectors";
 import { createAssistant, getAssistant, listAssistants } from "./team";
+import { triggersMoved } from "./team-flows";
 import { avatarFromSeed } from "./team-seed";
 import { MAX_ASSISTANTS, MAX_GREETING, MAX_INSTRUCTIONS, MAX_JOB, MAX_NAME, type TeamAssistant } from "./team-types";
 import { assistantSkill, putAssistantSkill } from "./skills-store";
@@ -270,7 +271,7 @@ function sourceOf(raw: unknown, now: Date): SkillSource {
 }
 
 /**
- * Import one: the assistant (paused, its triggers, only the ticked tools
+ * Import one: the assistant (paused, its triggers as paused flows, only the ticked tools
  * it asked for), then its skill with the owner's answers, or, with no skill,
  * one Athena writes from the job and the answers. Returns the assistant; the
  * second value is the skill still being written, when there is one.
@@ -293,6 +294,7 @@ export async function importAssistant(body: Record<string, unknown>, now = new D
     if (error instanceof ShareFormatError) throw new AthenaInputError(error.message);
     throw error;
   }
+  const asFlows = await triggersMoved();
   const a = await createAssistant({
     ...(w.name ? { name: w.name } : {}),
     job: w.job,
@@ -303,8 +305,10 @@ export async function importAssistant(body: Record<string, unknown>, now = new D
     allow: grantedTools(w, body.allow),
     web: body.web === true && w.web,
     paused: true,
-    triggers: triggerInputs(w),
-  });
+    // Once triggers are flows (lib/team-flows.ts), each becomes a paused flow of its own, marked as imported: turning
+    // the assistant on turns on the ones that have never run (lib/team.ts updateAssistant).
+    triggers: triggerInputs(w).map((t) => (asFlows ? { ...t, paused: true } : t)),
+  }, { origin: "shared" });
   const source = sourceOf(body.source, now);
   const fitted = skillBody ? fitTeamSkill({ body: withAnswers(skillBody, answers).slice(0, SKILL_LIMITS.body), summary: w.summary }, a) : null;
   if (!fitted) return { assistant: a, writing: attachSkill(a.id, answers) };

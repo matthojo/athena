@@ -333,7 +333,7 @@ function dbError(error: unknown): AthenaDbError {
   return new AthenaDbError(code, constraint);
 }
 
-type Run = <T>(text: string, params?: unknown[]) => Promise<T[]>;
+export type Run = <T>(text: string, params?: unknown[]) => Promise<T[]>;
 interface PooledClient {
   query(text: string, params?: unknown[]): Promise<{ rows: unknown[] }>;
   release(): void;

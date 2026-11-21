@@ -44,8 +44,13 @@ function lastFriday(weeks = 0): number {
   return d.getTime() - weeks * 7 * DAY * MIN;
 }
 
+/**
+ * One of a sample assistant's triggers. Triggers are flows now (lib/team-flows.ts): each is the flow of the same id
+ * in sample mode's flows (app/src/db/sample-flows.ts SAMPLE_JOB_FLOW_IDS), with the job as its one step.
+ */
 function trigger(n: number, assistant_id: string, t: Pick<TeamTrigger, "kind" | "days" | "time" | "event">, fired: number | null): TeamTrigger {
-  return { id: `5a3e0000-0000-4000-8000-0000000e01${String(n).padStart(2, "0")}`, assistant_id, ...t, paused: false, last_slot: null, last_fired_at: fired === null ? null : ago(fired), created_at: ago(30 * DAY) };
+  const id = `5a3e0000-0000-4000-8000-0000000e01${String(n).padStart(2, "0")}`;
+  return { id, flow_id: id, assistant_id, ...t, paused: false, last_slot: null, last_fired_at: fired === null ? null : ago(fired), created_at: ago(30 * DAY) };
 }
 
 /**

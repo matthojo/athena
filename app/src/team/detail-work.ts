@@ -78,6 +78,11 @@ export function workSection(opts: WorkOptions): WorkHandle {
     const said = r.summary?.trim() || "Done";
     const what = h("span", { class: "tdw-run__what" }, waits ? splitReport(said).said || said : said);
     const count = waits ? h("span", { class: "tdw-run__waits" }, h("span", { class: "tdw-run__pip", "aria-hidden": "true" }), waitsWords(waits)) : null;
+    // A run of one of its flows with no conversation (no thinking step): its run page shows each step.
+    if (!r.thread_id && r.flow_run_id) {
+      const link = h("a", { class: "tdw-run__open", href: `#/flows/runs/${encodeURIComponent(r.flow_run_id)}` }, h("span", { class: "tdw-run__mark", "aria-hidden": "true" }, icons.check()), h("span", { class: "tdw-run__main" }, meta, what, count), h("span", { class: "tdw-run__go", "aria-hidden": "true" }, icons.chevronRight()));
+      return h("li", { class: `${cls}${waits ? " is-waiting" : ""}` }, link);
+    }
     if (!r.thread_id) return h("li", { class: `${cls}${waits ? " is-waiting" : ""}` }, h("span", { class: "tdw-run__mark", "aria-hidden": "true" }, icons.check()), h("span", { class: "tdw-run__main" }, meta, what, count));
     const b = h("button", { class: "tdw-run__open", type: "button", ...(waits ? { "aria-label": `${runLabel(r, a.triggers)}: ${what.textContent} ${waitsWords(waits)}. ${reviewWords(waits)}` } : {}) }, h("span", { class: "tdw-run__mark", "aria-hidden": "true" }, icons.check()), h("span", { class: "tdw-run__main" }, meta, what, count), h("span", { class: "tdw-run__go", "aria-hidden": "true" }, icons.chevronRight()));
     b.addEventListener("click", () => opts.open(r));

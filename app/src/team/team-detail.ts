@@ -40,6 +40,7 @@ import { modelsSection } from "./detail-models";
 import { cap, isLive, liveWords, pronouns, startLine } from "./detail-words";
 import { openShareAssistant } from "./share-sheet";
 import { assistantFlowsSection } from "../flows/assistant-flows";
+import { flowsChanged } from "../db/flows";
 
 export { triggerInput };
 
@@ -116,6 +117,8 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
       // A new job or instructions: its skill may no longer match, so the section looks again (and offers an update).
       if (patch.job !== undefined || patch.instructions !== undefined) skill?.reload();
       if (patch.name !== undefined || patch.personality !== undefined) paintAll();
+      // Its triggers are its flows: "<Name>'s flows" reads them again.
+      if (patch.triggers !== undefined || patch.paused !== undefined) flowsChanged();
       return true;
     } catch (e) {
       showToast(e instanceof Error && e.message ? `Couldn't save that: ${e.message}` : "Couldn't save that. Try again.");

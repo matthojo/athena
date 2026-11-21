@@ -60,6 +60,8 @@ after(async () => {
   await qRaw(`TRUNCATE ai_usage`);
   await qRaw(`DELETE FROM settings WHERE key = 'ai_budget'`);
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_routines, ask_plans, ask_activity, nudges CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
   (await import("./spend")).forgetBudget(true);
   server?.close();
 });
@@ -137,6 +139,8 @@ test("an assistant run waits when the budget can't be checked: back in the queue
   const { createMessage } = await import("./ai");
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_routines, ask_plans, ask_activity, nudges, nudge_mutes CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
   const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" }, triggers: [{ kind: "schedule", days: [1, 2, 3, 4, 5], time: "09:00" }] });
   await setBudget(5);
   const made: string[] = [];

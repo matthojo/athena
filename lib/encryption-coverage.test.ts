@@ -38,6 +38,7 @@ const NOT_LISTED: Record<string, string> = {
   reminder_log: "blind-indexed keys, moved to the current key when next claimed (claimIndexedReminder)",
   saved_rate: "rate-limit counters",
   team_triggers: "schedules and event filters, stored readable like ask_routines' days and time (0067)",
+  flow_trigger_fires: "a flow's id, a fire's kind and time (0081): a moved trigger's last slot (lib/team-flows.ts)",
   thread_files: "ids only",
 };
 
@@ -58,6 +59,7 @@ const SETTINGS_WRITERS: Record<string, string> = {
   "lib/appliance-store.ts": "appliances",
   "lib/car-store.ts": "car",
   "lib/checkins.ts": "plain",
+  "lib/team-flows.ts": "plain",
   "lib/playlist-store.ts": "music_playlists",
   "lib/music-genre-store.ts": "music_genres",
   "lib/push.ts": "vapid",
