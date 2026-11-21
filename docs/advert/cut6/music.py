@@ -470,8 +470,8 @@ def build():
     #      each note damped just before the next, as a player's thumb stops the tine it just played (the last rings)
     for j, (t, m) in enumerate(zip(TILES, TILE_NOTES)):
         d = round(TILES[j + 1] - t - 0.004, 4) if j + 1 < len(TILES) else 1.2
-        # 2 ms early: the tine's ~3 ms soft rise then peaks on the tile's frame (the stem's level is peak_target["tile"])
-        add("tile", hook_note(m, d), t - 0.002, 0.40 + 0.03 * j, pan=-0.28 + 0.08 * j)
+        # 3.5 ms early: the tine's ~3 ms soft rise then peaks on the tile's frame (the stem's level is peak_target["tile"])
+        add("tile", hook_note(m, d), t - 0.0035, 0.40 + 0.03 * j, pan=-0.28 + 0.08 * j)
         add("tile", glock_note(m + 12, d if j + 1 < len(TILES) else 1.0, 0.7), t, 0.16, pan=0.28 - 0.08 * j)
 
     # ---- the band, bar by bar
