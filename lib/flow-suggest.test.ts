@@ -11,12 +11,15 @@ import {
   detectRepeat,
   detectSaved,
   flowTextPlain,
+  FOLLOW_KINDS,
   followUps,
   listAddition,
   MAX_SUGGESTIONS,
   normalise,
   pickSuggestions,
+  suggestedTriggerKeys,
   textKey,
+  TRIGGER_KEYS,
   weeklyHabits,
   type Found,
 } from "./flow-suggest";
@@ -46,7 +49,7 @@ test("delivery emails then a reminder: Delivery day, a reminder on the delivery 
   assert.equal(step.tool, "add_reminder");
   assert.equal(step.go, "auto");
   assert.equal(flowTextPlain(step.input.text), "Delivery today: {title}");
-  assert.deepEqual(step.input.date, [{ from: "trigger", key: "delivery_date" }]);
+  assert.deepEqual(step.input.date, [{ from: "trigger", key: "expected" }]);
   assert.deepEqual(step.input.time, ["07:45"]);
   assert.deepEqual(suggestionProblems(s), []);
 });
@@ -213,8 +216,10 @@ test("books saved and moved to Watch & read straight away: a flow that files the
   assert.equal(found.why, "Three of four books you saved in the last 60 days.");
   assert.equal(found.flow.name, "Books to Watch & read");
   assert.deepEqual(found.flow.trigger, { kind: "event", event: { source: "saved", savedAction: "saved", kind: "book" } });
-  assert.deepEqual(tool(found).input, { saved_id: [{ from: "trigger", key: "saved" }], action: ["watch_read"] });
+  assert.deepEqual(tool(found).input, { saved_id: [{ from: "trigger", key: "item" }], action: ["watch_read"] });
+  assert.equal(tool(found).go, "ask", "filing a saved item waits for Go");
   assert.deepEqual(suggestionProblems(found), []);
+  assert.match(suggestionProblems({ ...found, flow: { ...found.flow, steps: [{ ...tool(found), go: "auto" }] } }).join(), /file_saved_item must wait for Go/);
 });
 
 test("saved: filed days later, or by an action that needs a person, isn't offered", () => {
@@ -334,4 +339,15 @@ test("mergeCollected: one item per record with each time it moved on", () => {
   ]);
   assert.equal(merged.length, 2);
   assert.deepEqual(merged[0], { id: "p1", kind: "delivery", title: "Hollowbrook Books", times: ["2026-11-01T09:00:00.000Z", "2026-11-02T09:00:00.000Z"] });
+});
+
+test("trigger keys use the names triggers give (triggerGives)", () => {
+  const keys = (kind: string) => suggestedTriggerKeys({ kind: "event", event: { source: "collected", kind } });
+  assert.deepEqual(keys("delivery"), ["item", "company", "expected", "title", "count"]);
+  assert.deepEqual(keys("booking"), ["item", "booking", "company", "starts_at", "title", "count"]);
+  assert.deepEqual(keys("appointment"), ["item", "date", "title", "count"]);
+  assert.deepEqual(keys("deadline"), ["item", "date", "title", "count"]);
+  assert.deepEqual(keys("renewal"), ["item", "company", "renewal_date", "title", "count"]);
+  assert.deepEqual(suggestedTriggerKeys({ kind: "event", event: { source: "saved", savedAction: "saved", kind: "book" } }), ["item", "website", "title", "count"]);
+  for (const kind of Object.keys(FOLLOW_KINDS)) assert.ok(keys(kind).includes(TRIGGER_KEYS.date[kind]), `${kind}'s date is given`);
 });

@@ -533,7 +533,7 @@ export function detectSaved(signals: SuggestSignals, ctx: SuggestContext): Found
         flow: {
           name: clip(SAVED_ACTIONS[action].name(plural), 60),
           trigger: { kind: "event", event: { source: "saved", savedAction: "saved", kind: thing } },
-          steps: [{ id: "file", title: null, kind: "tool", tool: "file_saved_item", input: { saved_id: [ref(TRIGGER_KEYS.saved)], action: [action] }, go: "auto", gives: [] }],
+          steps: [{ id: "file", title: null, kind: "tool", tool: "file_saved_item", input: { saved_id: [ref(TRIGGER_KEYS.item)], action: [action] }, go: "ask", gives: [] }],
           origin: "suggestion",
         },
       },
