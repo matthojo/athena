@@ -20,7 +20,9 @@ export const FLOW_LIMITS = {
   steps: 24,
   /** How deep branches may nest (a Check inside a Check's branch is 2). */
   depth: 3,
-  /** Choices an Ask me step offers. */
+  /** Choices an Ask me step offers: at least this many… */
+  minChoices: 2,
+  /** …and at most this many. */
   choices: 4,
   name: 60,
   /** One piece of literal text in a step. */
@@ -197,6 +199,14 @@ export interface FlowRun {
   /** In the assistant's voice when it has one, else plain. */
   summary: string | null;
   steps: FlowRunStep[];
+  /**
+   * What the trigger and each step gave, by step id ("trigger" for the
+   * trigger), then by FlowValue key: { trigger: { company: "Northwind
+   * Broadband" }, s2: { last_price: "£32.00" } }. Shown as plain words, so a
+   * record value is its title. Sealed at rest. The step settings preview
+   * reads the newest run's. Missing on runs from before it was kept.
+   */
+  values?: Record<string, Record<string, string>>;
   /** A try on past data: nothing was changed. */
   dry: boolean;
   error: string | null;
