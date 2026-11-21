@@ -617,6 +617,9 @@ const SHOTS = {
     await settle(p);
     const job = "Every Monday at 9, tell me what's due this week";
     const rects = { input: await rectOf(field), sheet: await rectOf(sheet), silhouette: await rectOf(sheet.locator('.ts-disc').first()) };
+    // The sheet's starter ideas include "When a Linear issue is assigned to me, add a to-do" (until Continue): its
+    // line box, so the film can keep it out of frame.
+    rects.linearStarter = await p.evaluate(() => { const e = [...document.querySelectorAll('.sheet__panel button, .sheet__panel li')].find(x => /Linear/.test(x.textContent || '') && x.getBoundingClientRect().height); if (!e) return null; const r = e.getBoundingClientRect(), k = v => Math.round(v * 10) / 10; return { x: k(r.x), y: k(r.y), w: k(r.width), h: k(r.height), text: e.textContent.trim() }; });
     const actions = typeActions(p, 500, job, 50);
     actions.push([500 + job.length * 50 + 20, async () => {}, 'typeEnd']);
     actions.push([3400, async () => { const btn = sheet.locator('.ts-foot .ts-primary').first(); rects.submitBtn = await rectOf(btn); await btn.click(); }, 'submit']);
