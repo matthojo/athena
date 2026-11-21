@@ -1,171 +1,156 @@
 [
  {
-  "at": 65400,
+  "at": 70200,
   "phrase": "platform",
   "how": "type"
  },
  {
-  "at": 66000,
+  "at": 70800,
   "phrase": "pricing call",
   "how": "retype"
  },
  {
-  "at": 66600,
+  "at": 71400,
   "phrase": "film",
   "how": "retype"
  },
  {
-  "at": 67200,
+  "at": 72000,
   "phrase": "price",
   "how": "swap"
  },
  {
-  "at": 67800,
+  "at": 72600,
   "phrase": "run",
   "how": "swap"
  },
  {
-  "at": 68400,
+  "at": 73200,
   "phrase": "streak",
   "how": "swap"
  },
  {
-  "at": 69000,
+  "at": 73800,
   "phrase": "Monday list",
   "how": "swap"
  },
  {
-  "at": 69600,
-  "phrase": "albums",
-  "how": "swap"
- },
- {
-  "at": 69800,
-  "phrase": "bills",
-  "how": "swap"
- },
- {
-  "at": 70000,
-  "phrase": "flights",
-  "how": "swap"
- },
- {
-  "at": 70200,
-  "phrase": "recipes",
-  "how": "swap"
- },
- {
-  "at": 70400,
+  "at": 74400,
   "phrase": "birthdays",
   "how": "swap"
  },
  {
-  "at": 70600,
+  "at": 75000,
+  "phrase": "albums",
+  "how": "swap"
+ },
+ {
+  "at": 75200,
+  "phrase": "bills",
+  "how": "swap"
+ },
+ {
+  "at": 75400,
+  "phrase": "flights",
+  "how": "swap"
+ },
+ {
+  "at": 75600,
+  "phrase": "recipes",
+  "how": "swap"
+ },
+ {
+  "at": 75800,
   "phrase": "box sets",
   "how": "swap"
  },
  {
-  "at": 70800,
+  "at": 76000,
   "phrase": "booking codes",
   "how": "swap"
  },
  {
-  "at": 70950,
+  "at": 76150,
   "phrase": "restaurants",
   "how": "swap"
  },
  {
-  "at": 71100,
+  "at": 76300,
   "phrase": "receipts",
   "how": "swap"
  },
  {
-  "at": 71250,
+  "at": 76450,
   "phrase": "podcasts",
   "how": "swap"
  },
  {
-  "at": 71400,
+  "at": 76600,
   "phrase": "hotels",
   "how": "swap"
  },
  {
-  "at": 71550,
+  "at": 76750,
   "phrase": "names",
   "how": "swap"
  },
  {
-  "at": 71700,
+  "at": 76900,
   "phrase": "meetings",
   "how": "swap"
  },
  {
-  "at": 71850,
+  "at": 77000,
   "phrase": "books",
   "how": "swap"
  },
  {
-  "at": 72000,
+  "at": 77100,
   "phrase": "quotes",
   "how": "swap"
  },
  {
-  "at": 72100,
+  "at": 77200,
   "phrase": "photos",
   "how": "swap"
  },
  {
-  "at": 72200,
+  "at": 77300,
   "phrase": "trips",
   "how": "swap"
  },
  {
-  "at": 72300,
-  "phrase": "articles",
-  "how": "swap"
- },
- {
-  "at": 72400,
-  "phrase": "hire cars",
-  "how": "swap"
- },
- {
-  "at": 72500,
+  "at": 77400,
   "phrase": "workouts",
   "how": "swap"
  },
  {
-  "at": 72600,
+  "at": 77500,
   "phrase": "to-dos",
   "how": "swap"
  },
  {
-  "at": 72700,
+  "at": 77600,
   "phrase": "places",
   "how": "swap"
  },
  {
-  "at": 72800,
+  "at": 77700,
   "phrase": "emails",
   "how": "swap"
  },
  {
-  "at": 72900,
+  "at": 77800,
   "phrase": "episodes",
   "how": "swap"
  },
  {
-  "at": 73000,
-  "phrase": "sleep",
-  "how": "swap"
- },
- {
-  "at": 73100,
+  "at": 77900,
   "phrase": "tickets",
   "how": "swap"
  },
  {
-  "at": 73200,
+  "at": 78000,
   "phrase": "good days",
   "how": "final"
  }
