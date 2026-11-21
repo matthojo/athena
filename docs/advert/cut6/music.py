@@ -470,7 +470,7 @@ def build():
     #      each note damped just before the next, as a player's thumb stops the tine it just played (the last rings)
     for j, (t, m) in enumerate(zip(TILES, TILE_NOTES)):
         d = round(TILES[j + 1] - t - 0.004, 4) if j + 1 < len(TILES) else 1.2
-        add("tile", hook_note(m, d), t, 0.40 + 0.03 * j, pan=-0.28 + 0.08 * j)   # r1: was the 2nd-loudest moment
+        add("tile", hook_note(m, d), t, 0.40 + 0.03 * j, pan=-0.28 + 0.08 * j)   # (the stem is set by peak_target["tile"])
         add("tile", glock_note(m + 12, d if j + 1 < len(TILES) else 1.0, 0.7), t, 0.16, pan=0.28 - 0.08 * j)
 
     # ---- the band, bar by bar
@@ -903,7 +903,7 @@ def main():
     rms_target = {"bass": -21.0, "hook": -20.5, "ep": -24.0, "uke": -23.5, "pad": -31.0, "ctr": -29.5, "arp": -30.0}
     peak_target = {"kick": -10.0, "snare": -14.0, "snap": -17.0, "clap": -16.0, "wood": -17.0, "shaker": -17.0,
                    "brushsw": -25.0, "tamb": -21.0, "tom": -12.0,
-                   "fx": -21.0, "tile": -8.0, "accent": -7.0, "room": -52.0, "flow": -10.0,
+                   "fx": -21.0, "tile": -11.0, "accent": -7.0, "room": -52.0, "flow": -10.0,
                    "tick": -10.0, "build": -12.0, "bpad": -12.0, "tock": -15.0, "seek": -16.0, "warm": -5.5}
     for name, buf in STEMS.items():
         if name == "bed":
@@ -924,7 +924,7 @@ def main():
         sys.exit(0)
 
     # ---- a little echo on the kalimba and the tiles (less than cut 5's synth plucks: it's a room, not a delay)
-    for name, g in (("hook", 0.14), ("tile", 0.12), ("accent", 0.12), ("seek", 0.2), ("flow", 0.18)):
+    for name, g in (("hook", 0.14), ("tile", 0.0), ("accent", 0.12), ("seek", 0.2), ("flow", 0.18)):
         STEMS[name] = STEMS[name] + (g * feedback_delay(STEMS[name], 0.75 * BEAT, fb=0.35, repeats=3)).astype(np.float32)
 
     # ---- the one-beat dropout before the pull-back: only the hook (and its echoes) and the riser are left
