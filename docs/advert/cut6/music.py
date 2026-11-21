@@ -98,7 +98,7 @@ _f = _film_event("flows.steps")
 if _f is None:
     _f = _film_event("flows.step1")
 FLOWSTEP = min(max(round((_f if _f is not None else 62.4) / S16) * S16, 61.2), 63.6)
-BED_AT, BED_RMS = 0.1, -34.5  # the opening reed bed: starts swelling at 0.1 s, -34.5 dBFS RMS over 0.9-2.4 s
+BED_AT, BED_RMS = 0.1, -35.5  # the opening reed bed: starts swelling at 0.1 s, -35.5 dBFS RMS over 0.9-2.4 s
 # phone voicing (cut 5: 9.5 / 8.5 / 5.0, no mud cut): the wooden instruments pile up at 250-500 Hz, so a broad
 # dip there (MUD_DB) and a bell / shelf a little under cut 5's: brighter than the raw band, a touch softer than cut 5
 AIR_DB, PRESENCE_DB, LOWCUT_DB, MUD_DB = 8.0, 8.0, 5.0, -3.0
