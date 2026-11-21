@@ -57,13 +57,13 @@ export function renderRunPage(ctx: RunPageContext): { el: HTMLElement; destroy: 
 
   function line(s: FlowRunStep): HTMLElement {
     const step = stepOf(s.step_id);
-    const title = step ? stepTitle(step, [], assistant?.name) : "A step that's since changed";
+    const title = step ? stepTitle(step, [], assistant?.name) : "A step that has changed since this run";
     const lead = step?.kind === "think" && assistant ? face(assistant.avatar, 28) : null;
     const parts: Node[] = [h("span", { class: "flow-trace__title" }, title)];
     if (s.status === "waiting" && s.pending) {
       const go = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Go");
       const skip = h("button", { class: "btn btn--soft btn--sm", type: "button" }, "Skip");
-      go.addEventListener("click", () => void act(() => goRun(run.id, s.step_id), "Done. It's in Ask's list, with Undo."));
+      go.addEventListener("click", () => void act(() => goRun(run.id, s.step_id), "Done. You can undo it in What Ask did."));
       skip.addEventListener("click", () => void act(() => skipRun(run.id, s.step_id), "Skipped. The flow carries on."));
       parts.push(h("div", { class: "flow-pending" }, h("span", { class: "flow-pending__mark", "aria-hidden": "true" }, flowIcon("todo")), h("span", { class: "flow-pending__text" }, s.pending.text)), h("div", { class: "flow-pending__acts" }, go, skip));
     } else if (s.status === "waiting" && s.question) {
@@ -99,7 +99,7 @@ export function renderRunPage(ctx: RunPageContext): { el: HTMLElement; destroy: 
         "div",
         { class: "flow-run__head" },
         flow ? (assistant ? face(assistant.avatar, 44) : triggerTile(flow.trigger)) : "",
-        h("div", {}, h("h1", { class: "page-title" }, runHeading(run.started_at)), h("p", { class: "flow-run__label" }, `Set off by ${run.label.charAt(0).toLowerCase()}${run.label.slice(1)}`))
+        h("div", {}, h("h1", { class: "page-title" }, runHeading(run.started_at)), h("p", { class: "flow-run__label" }, `Started by ${run.label.charAt(0).toLowerCase()}${run.label.slice(1)}`))
       ),
       h("span", { class: `flow-badge flow-badge--${run.status === "waiting" && (run.waits_for === "go" || run.waits_for === "answer") ? "you" : run.status === "failed" ? "bad" : "quiet"}` }, h("span", { class: "flow-badge__dot", "aria-hidden": "true" }), state),
       run.summary ? h("p", { class: "flow-run__summary" }, run.summary) : "",
@@ -121,7 +121,7 @@ export function renderRunPage(ctx: RunPageContext): { el: HTMLElement; destroy: 
         "div",
         { class: "card card--flush list" },
         ...rest.map((r) => {
-          const b = h("button", { class: "row flow-run-row", type: "button" }, h("span", { class: `flow-mark flow-mark--${r.status}`, "aria-hidden": "true" }), h("span", { class: "row__body" }, h("span", { class: "row__title" }, r.summary ?? r.label), h("span", { class: "row__meta" }, `${runHeading(r.started_at)}${r.dry ? " · a try, nothing changed" : ""}`)), h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()));
+          const b = h("button", { class: "row flow-run-row", type: "button" }, h("span", { class: `flow-mark flow-mark--${r.status}`, "aria-hidden": "true" }), h("span", { class: "row__body" }, h("span", { class: "row__title" }, r.summary ?? r.label), h("span", { class: "row__meta" }, `${runHeading(r.started_at)}${r.dry ? " · test run, nothing changed" : ""}`)), h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()));
           b.addEventListener("click", () => ctx.openRun(r.id));
           return b;
         })

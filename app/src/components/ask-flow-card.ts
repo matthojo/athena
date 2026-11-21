@@ -131,7 +131,7 @@ export function askFlowCard(o: AskFlowCardOptions): HTMLElement {
     "div",
     { class: "flowcard__head" },
     h("div", { class: "flowcard__title" }, eyebrow, h("span", { class: "flowcard__name" }, flow.name)),
-    h("span", { class: "flowcard__meta" }, flow.assistant_id ? "Run by an assistant" : "Free to run"),
+    h("span", { class: "flowcard__meta" }, flow.assistant_id ? "Run by an assistant" : "No AI credits"),
   );
   const trigger = h("ol", { class: "flowcard__list flowcard__list--top" }, h("li", { class: "flowcard__row" }, tile(triggerIcon(flow.trigger), "trigger"), h("span", { class: "flowcard__line" }, words([triggerWords(flow.trigger)]))));
   const steps = flow.steps.length ? stepList(flow.steps, labels) : h("p", { class: "flowcard__empty" }, "No steps yet. Add them in Edit steps.");

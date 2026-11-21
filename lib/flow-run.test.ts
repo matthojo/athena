@@ -89,7 +89,7 @@ test("a look, a Check, then a change that waits for Go; Go runs it and the run c
   assert.equal(state.lines.find((l) => l.step_id === "paid")?.line, "Found 12 payments to Northwind Broadband: £384.00 in all");
   assert.equal(state.lines.find((l) => l.step_id === "up")?.line, "Yes: £32.00 is more than 30");
   assert.equal(state.lines.find((l) => l.step_id === "remind")?.status, "skipped");
-  assert.equal(state.lines.find((l) => l.step_id === "remind")?.line, "Not this time: that's the “Otherwise” branch");
+  assert.equal(state.lines.find((l) => l.step_id === "remind")?.line, "Not run: it's on the “Otherwise” path");
   const waiting = state.lines.find((l) => l.step_id === "todo")!;
   assert.equal(waiting.status, "waiting");
   assert.deepEqual(waiting.pending, { text: "Add a to-do: Decide on the renewal: £32.00", plan_id: "plan-1" });
@@ -115,7 +115,7 @@ test("Skip drops the waiting change and carries on; a second answer for the same
   assert.equal((await walk(state, ctxOf(flow), fx)).status, "waiting");
   await settle(state, flow, { kind: "skip", step_id: "todo" }, fx, { runId: "run-1", assistant: false });
   assert.ok(calls.some(([k, v]) => k === "drop" && v === "plan-1"));
-  assert.equal(state.lines[0].line, "Skipped: you said not this time");
+  assert.equal(state.lines[0].line, "Skipped: you tapped Skip");
   await assert.rejects(() => settle(state, flow, { kind: "go", step_id: "todo" }, fx, { runId: "run-1", assistant: false }), /isn't waiting/);
   assert.deepEqual(await walk(state, ctxOf(flow), fx), { status: "done" });
 });
@@ -172,7 +172,7 @@ test("Ask me waits for the answer, then goes down the chosen branch", async () =
   await assert.rejects(() => settle(state, flow, { kind: "answer", step_id: "ask", choice: 5 }, fx, { runId: "run-1", assistant: false }), /choice/);
   await settle(state, flow, { kind: "answer", step_id: "ask", choice: 1 }, fx, { runId: "run-1", assistant: false });
   assert.equal(state.lines[0].line, "You chose “No”");
-  assert.equal(state.lines.find((l) => l.step_id === "todo")?.line, "Not this time: you chose “No”");
+  assert.equal(state.lines.find((l) => l.step_id === "todo")?.line, "Not run: you chose “No”");
   assert.deepEqual(await walk(state, ctxOf(flow), fx), { status: "done" });
   assert.equal(state.lines.find((l) => l.step_id === "remind")?.status, "done");
 });
@@ -204,7 +204,7 @@ test("a try changes nothing: changes say what they would do, a question ends it"
   assert.equal(state.notices.length, 0);
   assert.ok(!calls.some(([k]) => k === "plan" || k === "made"));
   assert.ok(calls.some(([k, v]) => k === "tool" && (v as { name: string }).name === "money"), "looks still run");
-  assert.match(summaryOf(state, out, { dry: true }), /^A try on past data: nothing was changed\. One step would have changed something\.$/);
+  assert.match(summaryOf(state, out, { dry: true }), /^Test run on past data: nothing changed\. One step would have changed something\.$/);
 });
 
 test("a step needing a value nobody gave stops the run there, saying which", async () => {
@@ -212,7 +212,7 @@ test("a step needing a value nobody gave stops the run there, saying which", asy
   const state = emptyState({});
   const out = await walk(state, ctxOf(flowOf([paid, todo("auto")])), fx);
   assert.equal(out.status, "stopped");
-  assert.equal(state.lines.find((l) => l.step_id === "todo")?.line, "Stopped here: nothing for last year's price");
+  assert.equal(state.lines.find((l) => l.step_id === "todo")?.line, "Stopped here: nothing was found for last year's price");
 });
 
 test("money steps run only while the flow and Ask may read spending", async () => {
@@ -312,7 +312,7 @@ test("a failed run of an assistant's flow is tried once more only when nothing r
   assert.equal(triesAgain({ ...emptyState(), lines: [plan] }, busy, ctx), false, "a plan was kept");
   assert.equal(triesAgain(emptyState(), busy, { ...ctx, byHand: true }), false, "Run now is on the page the owner is looking at");
   assert.equal(triesAgain(emptyState(), busy, { ...ctx, assistant: null }), false, "a plain flow tells at once");
-  assert.equal(triesAgain(emptyState(), { status: "stopped", error: "Stopped at “Wait”: nothing for the date." }, ctx), false, "a missing value stops the same way again");
+  assert.equal(triesAgain(emptyState(), { status: "stopped", error: "Stopped at “Wait”: nothing was found for the date." }, ctx), false, "a missing value stops the same way again");
   assert.equal(triesAgain(emptyState(), { ...busy, code: "cap" }, ctx), false, "its cap ran out");
   assert.equal(triesAgain(emptyState(), { ...busy, code: "budget" }, ctx), false, "the budget ran out");
 });

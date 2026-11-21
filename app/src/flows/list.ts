@@ -119,7 +119,7 @@ export function renderFlowList(ctx: ListContext): { el: HTMLElement; destroy: ()
     } catch {
       if (alive) {
         list.removeAttribute("aria-busy");
-        list.replaceChildren(h("div", { class: "empty" }, h("p", { class: "empty__title" }, "Your flows didn't load"), h("p", { class: "empty__sub" }, "Flows need the server, like Team. Check you're online and try again.")));
+        list.replaceChildren(h("div", { class: "empty" }, h("p", { class: "empty__title" }, "Your flows didn't load"), h("p", { class: "empty__sub" }, "Flows need a connection to your Athena. Check you're online and try again.")));
       }
     }
     // Suggestions are a nice-to-have: if they don't come, the page is the same without them.

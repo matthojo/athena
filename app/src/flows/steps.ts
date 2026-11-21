@@ -41,7 +41,7 @@ export const goLocked = (step: FlowStep): boolean => step.kind === "tool" && isD
 
 /** Why an entry can't go here, or null when it can. */
 export function unavailable(e: CatalogEntry, o: { hasAssistant: boolean; canBranch: boolean }): string | null {
-  if (e.needsAssistant && !o.hasAssistant) return "Hand this flow to an assistant first";
+  if (e.needsAssistant && !o.hasAssistant) return "Needs an assistant to run this flow first";
   if ((e.kind === "check" || e.kind === "ask") && !o.canBranch) return "Branches can't go any deeper here";
   return null;
 }

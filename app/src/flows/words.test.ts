@@ -16,8 +16,8 @@ test("triggers read as sentences", () => {
   assert.equal(triggerWords({ kind: "before", what: "event", minutes: 30, withPeople: true }), "30 minutes before an event with people you know");
   assert.equal(triggerWords({ kind: "before", what: "date", days: 7, at: "09:00", eventKind: "birthday" }, false), "A week before a birthday, at 9:00");
   assert.equal(triggerWords({ kind: "manual" }), "Only when you run it");
-  assert.equal(tryWords({ kind: "event", event: { source: "collected", kind: "renewal" } }), "Try it on the last renewal");
-  assert.equal(tryWords({ kind: "manual" }), "Try it now");
+  assert.equal(tryWords({ kind: "event", event: { source: "collected", kind: "renewal" } }), "Test on the last renewal");
+  assert.equal(tryWords({ kind: "manual" }), "Test it now");
 });
 
 test("step titles: the owner's, else what it does", () => {
@@ -29,14 +29,14 @@ test("step titles: the owner's, else what it does", () => {
 
 test("conditions read plainly", () => {
   const label = (r: { key: string }) => `the ${r.key}`;
-  assert.equal(conditionWords({ left: { from: "trigger", key: "price" }, op: "up_by_pct", right: 10, against: { from: "s", key: "last" } }, label), "the price is up by at least 10% on the last");
+  assert.equal(conditionWords({ left: { from: "trigger", key: "price" }, op: "up_by_pct", right: 10, against: { from: "s", key: "last" } }, label), "the price is at least 10% higher than the last");
   assert.equal(conditionWords({ left: { from: "trigger", key: "price" }, op: "exists" }, label), "the price is there");
   assert.equal(conditionWords({ left: { from: "trigger", key: "name" }, op: "contains", right: "Ltd" }, label), "the name contains Ltd");
 });
 
 test("badges put what waits for you first", () => {
   assert.deepEqual(flowBadge({ paused: false }, { status: "waiting", waits_for: "go", dry: false }), { tone: "you", words: "Needs your Go" });
-  assert.deepEqual(flowBadge({ paused: true }, { status: "waiting", waits_for: "answer", dry: false }), { tone: "you", words: "Asks you something" });
+  assert.deepEqual(flowBadge({ paused: true }, { status: "waiting", waits_for: "answer", dry: false }), { tone: "you", words: "Needs your answer" });
   assert.deepEqual(flowBadge({ paused: true }, null), { tone: "off", words: "Off" });
   assert.deepEqual(flowBadge({ paused: false }, { status: "waiting", waits_for: "go", dry: true }), { tone: "on", words: "On" });
 });
@@ -77,7 +77,7 @@ test("the catalogue: search, what's locked, and new steps", () => {
     ["Reminder"]
   );
   const think = cat.find((e) => e.kind === "think")!;
-  assert.equal(unavailable(think, { hasAssistant: false, canBranch: true }), "Hand this flow to an assistant first");
+  assert.equal(unavailable(think, { hasAssistant: false, canBranch: true }), "Needs an assistant to run this flow first");
   assert.equal(unavailable(think, { hasAssistant: true, canBranch: true }), null);
   const check = cat.find((e) => e.kind === "check")!;
   assert.match(unavailable(check, { hasAssistant: true, canBranch: false }) ?? "", /deeper/);

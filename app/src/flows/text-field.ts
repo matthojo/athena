@@ -108,7 +108,7 @@ export function textField(o: { label: string; value: FlowText; look: Lookup; pla
 
 /** The values a step may use, as chips to tap. Fills `target()`. */
 export function valueTray(values: readonly AvailableValue[], target: () => TextField | null): HTMLElement {
-  if (!values.length) return h("p", { class: "flow-tray__none" }, "Nothing from earlier steps yet. Values the trigger or a step gives show here.");
+  if (!values.length) return h("p", { class: "flow-tray__none" }, "No values yet. What the trigger and earlier steps find shows here.");
   const tray = h("div", { class: "flow-tray__chips" });
   for (const v of values) {
     const b = chip(v, { button: true });

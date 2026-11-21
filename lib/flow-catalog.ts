@@ -60,8 +60,8 @@ export const FLOW_TOOLS: Record<string, ToolPick> = {
   save_note: { group: "add", label: "Write a note", hint: "A new note, or add to one", gives: [v("note", "the note", "note")] },
   add_to_list: { group: "add", label: "Add to a list", hint: "Gift ideas, shopping, packing", gives: [v("note", "the list", "note")] },
   add_person: { group: "add", label: "Add a person", hint: "Someone new in People", gives: [v("person", "the person", "person")] },
-  remember: { group: "add", label: "Remember a detail", hint: "Something lasting about a person", gives: [v("done", "what it kept", "text")] },
-  log_catch_up: { group: "add", label: "Log a catch-up", hint: "Fills in Last spoke", gives: [v("done", "what it kept", "text")] },
+  remember: { group: "add", label: "Remember a detail", hint: "A fact to keep about someone", gives: [v("done", "what it kept", "text")] },
+  log_catch_up: { group: "add", label: "Log a catch-up", hint: "Records when you last spoke to someone", gives: [v("done", "what it kept", "text")] },
   add_to_watch_read: { group: "add", label: "Add to Watch & read", hint: "A book, film, show or podcast", gives: [v("item", "the item", "text")] },
   update_watch_read: { group: "add", label: "Update Watch & read", hint: "Started, finished, or how far", gives: [v("item", "the item", "text")] },
   complete_todo: { group: "add", label: "Tick off a to-do", hint: "Mark it done", gives: [v("todo", "the to-do", "todo")] },
@@ -197,12 +197,12 @@ export function toolFields(tool: Anthropic.Tool): CatalogEntry["fields"] {
 // ---------- the catalogue ----------
 
 const STEPS: Array<Omit<CatalogEntry, "fields" | "gives"> & { gives?: FlowValue[] }> = [
-  { kind: "check", group: "decide", label: "Check", hint: "Two ways on: if it holds, and otherwise", changes: false },
+  { kind: "check", group: "decide", label: "Check", hint: "Splits the flow: one path if it's true, another if not", changes: false },
   { kind: "ask", group: "decide", label: "Ask me", hint: "A question with choices; it waits for your answer", changes: false },
-  { kind: "wait", group: "decide", label: "Wait", hint: "Carry on later: after some days, or before a date", changes: false },
+  { kind: "wait", group: "decide", label: "Wait", hint: "Pauses for some days, or until a set time before a date", changes: false },
   { kind: "notify", group: "tell", label: "Tell me", hint: "A push and a card on Home, outside quiet hours", changes: false },
-  { kind: "think", group: "team", label: "Think about it", hint: "The assistant that runs this flow works it out", changes: false, needsAssistant: true, gives: [v("answer", "the answer", "text")] },
-  { kind: "assignment", group: "team", label: "Start an assignment", hint: "A lineup of assistants; it waits for your Go", changes: false, gives: [v("note", "the work", "note")] },
+  { kind: "think", group: "team", label: "Think about it", hint: "The assistant running this flow works something out", changes: false, needsAssistant: true, gives: [v("answer", "the answer", "text")] },
+  { kind: "assignment", group: "team", label: "Start an assignment", hint: "A lineup of assistants takes it on, after your Go", changes: false, gives: [v("note", "the work", "note")] },
 ];
 
 /** Everything the Add a step sheet offers: Ask's tools a flow may use, then the steps that aren't tools. */
