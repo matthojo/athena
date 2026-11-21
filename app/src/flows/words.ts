@@ -259,7 +259,7 @@ export function flowKindWords(flow: Pick<Flow, "assistant_id" | "steps">, assist
   const n = countSteps(flow.steps);
   const steps = `${n} ${n === 1 ? "step" : "steps"}`;
   if (flow.assistant_id) return `${assistantName ?? "An assistant"} runs this · ${steps}`;
-  return `No assistant · no AI credits · ${steps}`;
+  return `No assistant · no AI spend · ${steps}`;
 }
 
 /**
