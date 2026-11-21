@@ -366,7 +366,7 @@
           return [0, cam.y + (sy - H / 2) / cam.z - CARDS.flow.y - tyB];
         };
       }
-      MORPH.flow = [gf]; window.__gf = gf; window.__cam = (t) => cameraAt(t);
+      MORPH.flow = [gf];
       MAP.flow.splice(2, 0, [T_FLOW_STEPS - SHOT_START.flow, capB, "stretch"]);
     }
     // Every time map must run forward in film time.
