@@ -9,6 +9,7 @@
 import type { CatalogEntry, Flow, FlowRun, FlowRunStep, FlowStep, FlowSuggestion, FlowTrigger, FlowValue, ValueRef } from "../../../lib/flow-types";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
 import { nestValues } from "../flows/preview";
+import { triggerGives } from "../../../lib/flow-trigger-gives";
 
 const DAY = 86_400_000;
 
@@ -44,37 +45,6 @@ export const SAMPLE_FLOW_IDS = {
 /** Runs other sample screens link to: What Ask did's flow row opens the delivery run. */
 export const SAMPLE_RUN_IDS = { delivery: "f10e7000-0000-4000-8000-000000000101" } as const;
 
-// ---------- what a trigger gives ----------
-
-/** What a trigger gives later steps, as the server fills `trigger_gives` (sample mode only; lenient). */
-export function sampleGives(t: FlowTrigger): FlowValue[] {
-  if (t.kind === "schedule") return [v("today", "today", "date")];
-  if (t.kind === "manual") return [];
-  if (t.kind === "before") {
-    if (t.what === "event") return [v("event", "the event", "event"), v("people", "who's coming", "person"), v("start", "when it starts", "datetime")];
-    const out = [v("date", "the date", "date"), v("what", "what it's for", "text")];
-    return t.eventKind === "birthday" || t.eventKind === "anniversary" ? [...out, v("person", "whose it is", "person")] : out;
-  }
-  const e = t.event;
-  if (e.source === "saved") return e.savedAction === "gift-idea" || e.savedAction === "gift_idea" ? [v("gift", "the gift idea", "saved"), v("price", "the price you saw", "money")] : [v("saved", "what you saved", "saved"), v("link", "the link", "text")];
-  if (e.source === "note") return [v("note", "the note", "note"), v("title", "its title", "text")];
-  if (e.connector === "linear") return [v("issue", "the issue", "text"), v("link", "the link", "text")];
-  if (e.connector === "google-calendar") return [v("event", "the event", "event"), v("start", "when it starts", "datetime")];
-  switch (e.kind) {
-    case "renewal":
-      return [v("company", "the company", "organisation"), v("price", "the price", "money"), v("renewal_date", "the renewal date", "date"), v("email", "the email", "email")];
-    case "delivery":
-      return [v("shop", "the shop", "organisation"), v("item", "what's coming", "text"), v("day", "the delivery day", "date"), v("email", "the email", "email")];
-    case "booking":
-    case "appointment":
-      return [v("what", "what's booked", "text"), v("when", "when it is", "datetime"), v("place", "where", "place"), v("email", "the email", "email")];
-    case "deadline":
-      return [v("what", "what's due", "text"), v("due", "the deadline", "date"), v("email", "the email", "email")];
-    default:
-      return [v("email", "the email", "email"), v("sender", "who sent it", "person"), v("subject", "the subject", "text")];
-  }
-}
-
 // ---------- the flows ----------
 
 interface Seed {
@@ -94,7 +64,7 @@ function flow(id: string, f: Omit<Flow, "id" | "trigger_gives" | "handed_at" | "
   const now = Date.now();
   return {
     id,
-    trigger_gives: sampleGives(f.trigger),
+    trigger_gives: triggerGives(f.trigger),
     handed_at: f.assistant_id ? iso(now - 40 * DAY) : null,
     money: false,
     paused: false,
@@ -116,18 +86,18 @@ function seeds(): Seed[] {
         money: true,
         assistant_id: null,
         steps: [
-          { id: "paid", kind: "tool", title: "Find what I paid last year", tool: "money", input: { payee: [T("company")], around: [T("renewal_date"), ", a year ago"] }, go: "auto", gives: [v("last_price", "last year's price", "money")] },
+          { id: "paid", kind: "tool", title: "Find what I paid last year", tool: "money", input: { payee: [T("company")], around: [T("renewal_date"), ", a year ago"] }, go: "auto", gives: [v("latest", "the new price", "money"), v("last_price", "last year's price", "money")] },
           {
             id: "upcheck",
             kind: "check",
             title: "Did it go up?",
-            condition: { left: T("price"), op: "up_by_pct", right: 10, against: ref("paid", "last_price") },
-            yes: [{ id: "decide", kind: "tool", title: null, tool: "add_todo", input: { title: ["Decide on ", T("company"), " renewal: ", T("price"), ", was ", ref("paid", "last_price")], due: ["A week before ", T("renewal_date")], link: [T("company")] }, go: "ask", gives: [v("todo", "the to-do", "todo")] }],
+            condition: { left: ref("paid", "latest"), op: "up_by_pct", right: 10, against: ref("paid", "last_price") },
+            yes: [{ id: "decide", kind: "tool", title: null, tool: "add_todo", input: { title: ["Decide on ", T("company"), " renewal: ", ref("paid", "latest"), ", was ", ref("paid", "last_price")], due: ["A week before ", T("renewal_date")], link: [T("company")] }, go: "ask", gives: [v("todo", "the to-do", "todo")] }],
             no: [{ id: "remind", kind: "tool", title: null, tool: "add_reminder", input: { text: [T("company"), " renews on ", T("renewal_date")], when: ["9:00, three days before ", T("renewal_date")] }, go: "auto", gives: [] }],
           },
         ],
       }),
-      values: { "trigger.company": "Northwind Broadband", "trigger.price": "£38.00 a month", "trigger.renewal_date": "4 Dec", "trigger.email": "“Your plan renews on 4 December”", "paid.last_price": "£32.00 a month", "decide.todo": "the to-do" },
+      values: { "trigger.item": "Home broadband", "trigger.company": "Northwind Broadband", "trigger.renewal_date": "4 Dec", "trigger.title": "“Your plan renews on 4 December”", "paid.latest": "£38.00 a month", "paid.last_price": "£32.00 a month", "decide.todo": "the to-do" },
       lines: {
         paid: { line: "Found 12 payments to Northwind Broadband. Last December: £32.00 a month." },
         upcheck: { line: "Yes: £38.00 is 19% more than £32.00", no: "No: about the same as last year" },
@@ -147,7 +117,7 @@ function seeds(): Seed[] {
           { id: "tell", kind: "notify", title: null, text: ["Before ", T("event"), ": ", ref("who", "owed"), ". Last met ", ref("who", "last_met"), "."] },
         ],
       }),
-      values: { "trigger.event": "Coffee with Priya", "trigger.people": "Priya Shah", "trigger.start": "2:00 pm", "who.owed": "you said you'd send her the Lisbon photos", "who.last_met": "12 Oct" },
+      values: { "trigger.event": "Coffee with Priya", "trigger.people": "Priya Shah", "trigger.starts_at": "2:00 pm", "trigger.title": "Coffee with Priya", "who.owed": "you said you'd send her the Lisbon photos", "who.last_met": "12 Oct" },
       lines: { who: { line: "Priya Shah: you said you'd send her the Lisbon photos. Last met 12 Oct." }, tell: { line: "Sent at 1:30 pm." } },
       check: {},
       label: "Coffee with Priya at 2:00 pm",
@@ -163,21 +133,21 @@ function seeds(): Seed[] {
             id: "in",
             kind: "ask",
             title: "Will I be in?",
-            question: ["Will you be in for ", T("item"), " on ", T("day"), "?"],
+            question: ["Will you be in for ", T("item"), " on ", T("delivery_date"), "?"],
             choices: [
               {
                 label: "I'll be in",
                 steps: [
-                  { id: "morning", kind: "wait", title: "Wait for the morning", days: 0, before: T("day"), at: "08:00" },
-                  { id: "today", kind: "notify", title: null, text: [T("item"), " from ", T("shop"), " arrives today"] },
+                  { id: "morning", kind: "wait", title: "Wait for the morning", days: 0, before: T("delivery_date"), at: "08:00" },
+                  { id: "today", kind: "notify", title: null, text: [T("item"), " from ", T("company"), " arrives today"] },
                 ],
               },
-              { label: "I'm out", steps: [{ id: "neighbour", kind: "tool", title: null, tool: "add_todo", input: { title: ["Ask a neighbour to take in ", T("item")], due: ["The day before ", T("day")] }, go: "auto", gives: [] }] },
+              { label: "I'm out", steps: [{ id: "neighbour", kind: "tool", title: null, tool: "add_todo", input: { title: ["Ask a neighbour to take in ", T("item")], due: ["The day before ", T("delivery_date")] }, go: "auto", gives: [] }] },
             ],
           },
         ],
       }),
-      values: { "trigger.shop": "Larkspur Home", "trigger.item": "the bedside lamp", "trigger.day": "Thursday", "trigger.email": "“Your order is on its way”" },
+      values: { "trigger.company": "Larkspur Home", "trigger.item": "the bedside lamp", "trigger.delivery_date": "Thursday", "trigger.title": "“Your order is on its way”" },
       lines: { in: { line: "You said you'll be in." } },
       check: {},
       label: "An email from Larkspur Home",
@@ -189,18 +159,18 @@ function seeds(): Seed[] {
         trigger: { kind: "event", event: { source: "saved", savedAction: "gift-idea" } },
         assistant_id: SAMPLE_TEAM_IDS.muse,
         steps: [
-          { id: "look", kind: "think", title: "Muse looks for a better price", task: ["Look for ", T("gift"), " for less than ", T("price"), " at shops I've bought from"], web: true, gives: [v("best", "the best price", "money"), v("shop", "the shop", "organisation"), v("why", "why", "text")] },
+          { id: "look", kind: "think", title: "Muse looks for a better price", task: ["Look for ", T("item"), " for less than the price on ", T("website"), " at shops I've bought from"], web: true, gives: [v("was", "the price you saw", "money"), v("best", "the best price", "money"), v("shop", "the shop", "organisation"), v("why", "why", "text")] },
           {
             id: "cheaper",
             kind: "check",
             title: "Is it cheaper?",
-            condition: { left: ref("look", "best"), op: "less_than", right: T("price") },
-            yes: [{ id: "tellme", kind: "notify", title: "Muse tells you", text: [T("gift"), " is ", ref("look", "best"), " at ", ref("look", "shop"), ". ", ref("look", "why")] }],
+            condition: { left: ref("look", "best"), op: "less_than", right: ref("look", "was") },
+            yes: [{ id: "tellme", kind: "notify", title: "Muse tells you", text: [T("item"), " is ", ref("look", "best"), " at ", ref("look", "shop"), ". ", ref("look", "why")] }],
             no: [],
           },
         ],
       }),
-      values: { "trigger.gift": "the wooden train set", "trigger.price": "£42.00", "look.best": "£34.00", "look.shop": "Toybox & Co", "look.why": "It's in their winter sale until Sunday." },
+      values: { "trigger.item": "the wooden train set", "trigger.website": "toybox.example.com", "look.was": "£42.00", "look.best": "£34.00", "look.shop": "Toybox & Co", "look.why": "It's in their winter sale until Sunday." },
       lines: { look: { line: "Found it for £34.00 at Toybox & Co, in their winter sale until Sunday." }, cheaper: { line: "Yes: £34.00 is less than £42.00" }, tellme: { line: "Sent at 4:59 pm." } },
       check: { cheaper: "yes" },
       label: "New gift idea: “the wooden train set”",
@@ -245,7 +215,7 @@ export function sampleCatalog(): CatalogEntry[] {
     { kind: "tool", tool: "find_notes", group: "find", label: "Find notes", hint: "Search your notes and what was collected", changes: false, fields: [f("query", "Look for", "text")], gives: [v("notes", "the notes", "note"), v("count", "how many", "number")] },
     { kind: "tool", tool: "find_people", group: "find", label: "Look up a person", hint: "What you owe them, when you last met", changes: false, fields: [f("who", "Who", "person")], gives: [v("owed", "what you owe them", "text"), v("last_met", "when you last met", "date")] },
     { kind: "tool", tool: "find_todos", group: "find", label: "Find to-dos", hint: "Done, due or slipping", changes: false, fields: [f("query", "Which", "text", false)], gives: [v("todos", "the to-dos", "todo"), v("count", "how many", "number")] },
-    { kind: "tool", tool: "money", group: "find", label: "Look up spending", hint: "Payments, subscriptions, last year's price", changes: false, money: true, fields: [f("payee", "Paid to", "organisation"), f("around", "Around", "date", false)], gives: [v("last_price", "last year's price", "money"), v("total", "the total", "money")] },
+    { kind: "tool", tool: "money", group: "find", label: "Look up spending", hint: "Payments, subscriptions, last year's price", changes: false, money: true, fields: [f("payee", "Paid to", "organisation"), f("around", "Around", "date", false)], gives: [v("latest", "the new price", "money"), v("last_price", "last year's price", "money"), v("total", "the total", "money")] },
     { kind: "tool", tool: "weather", group: "find", label: "Weather", hint: "For a place and a day", changes: false, fields: [f("where", "Where", "place"), f("when", "When", "date", false)], gives: [v("forecast", "the forecast", "text")] },
     { kind: "tool", tool: "flight_status", group: "find", label: "Flights and trains", hint: "Is it on time, and which gate", changes: false, fields: [f("flight", "Flight or train", "text")], gives: [v("status", "the status", "text"), v("leaves", "when it leaves", "datetime")] },
     { kind: "tool", tool: "add_todo", group: "add", label: "To-do", hint: "With a due date and what it's about", changes: true, fields: [f("title", "To-do", "text"), f("due", "Due", "date", false), f("link", "Link it to", "text", false)], gives: [v("todo", "the to-do", "todo")] },
@@ -273,7 +243,7 @@ export function sampleSuggestions(): FlowSuggestion[] {
       id: "sug-delivery",
       title: "You add a reminder after every delivery email",
       why: "Six times this month.",
-      flow: { name: "Delivery reminders", trigger: delivery, steps: [{ id: "rem", kind: "tool", title: null, tool: "add_reminder", input: { text: [T("item"), " arrives from ", T("shop")], when: ["8:00 on ", T("day")] }, go: "auto", gives: [] }] },
+      flow: { name: "Delivery reminders", trigger: delivery, steps: [{ id: "rem", kind: "tool", title: null, tool: "add_reminder", input: { text: [T("item"), " arrives from ", T("company")], when: ["8:00 on ", T("delivery_date")] }, go: "auto", gives: [] }] },
     },
     {
       id: "sug-birthday",

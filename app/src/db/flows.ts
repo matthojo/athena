@@ -6,7 +6,8 @@
  * Like Team, Flows needs the server: nothing here is kept offline.
  */
 import { isSampleMode, request } from "./api";
-import { sampleCatalog, sampleFlows, sampleGives, sampleRunFrom, type SampleFlows } from "./sample-flows";
+import { sampleCatalog, sampleFlows, sampleRunFrom, type SampleFlows } from "./sample-flows";
+import { triggerGives } from "../../../lib/flow-trigger-gives";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
 import { listTeam } from "./team";
 import { FLOW_LIMITS, type CatalogEntry, type Flow, type FlowDraft, type FlowInput, type FlowListResponse, type FlowRun, type FlowSuggestion } from "../../../lib/flow-types";
@@ -40,7 +41,7 @@ function sampleApply(f: Flow, input: FlowInput): Flow {
   const next: Flow = {
     ...f,
     ...(input.name !== undefined && { name: input.name.trim().slice(0, FLOW_LIMITS.name) || f.name }),
-    ...(input.trigger && { trigger: input.trigger, trigger_gives: sampleGives(input.trigger) }),
+    ...(input.trigger && { trigger: input.trigger, trigger_gives: triggerGives(input.trigger) }),
     ...(input.steps && { steps: structuredClone(input.steps) }),
     ...(input.money !== undefined && { money: input.money }),
     ...(input.paused !== undefined && { paused: input.paused }),
@@ -90,7 +91,7 @@ export async function createFlow(input: FlowInput): Promise<Flow> {
     const now = new Date().toISOString();
     const trigger = input.trigger ?? { kind: "manual" };
     made = sampleApply(
-      { id: uuid(), name: "New flow", trigger, trigger_gives: sampleGives(trigger), steps: [], assistant_id: null, handed_at: null, money: false, paused: true, origin: input.origin ?? "owner", last_run_at: null, created_at: now, updated_at: now },
+      { id: uuid(), name: "New flow", trigger, trigger_gives: triggerGives(trigger), steps: [], assistant_id: null, handed_at: null, money: false, paused: true, origin: input.origin ?? "owner", last_run_at: null, created_at: now, updated_at: now },
       input
     );
     s.flows.push(made);

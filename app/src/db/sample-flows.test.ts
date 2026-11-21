@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { FLOW_LIMITS, VALUE_KINDS } from "../../../lib/flow-types";
-import { SAMPLE_FLOW_IDS, sampleCatalog, sampleFlows, sampleGives, sampleRunFrom, sampleSuggestions } from "./sample-flows";
+import { SAMPLE_FLOW_IDS, sampleCatalog, sampleFlows, sampleRunFrom, sampleSuggestions } from "./sample-flows";
+import { triggerGives } from "../../../lib/flow-trigger-gives";
 import { brokenSteps, countSteps, depthOf, walk } from "../flows/tree";
 
 test("every sample flow keeps within the limits and uses only values it can reach", () => {
@@ -35,7 +36,7 @@ test("every step kind shows up in sample mode", () => {
 
 test("suggested flows use only what their trigger gives", () => {
   for (const sug of sampleSuggestions()) {
-    const f = { trigger_gives: sampleGives(sug.flow.trigger), steps: sug.flow.steps };
+    const f = { trigger_gives: triggerGives(sug.flow.trigger), steps: sug.flow.steps };
     assert.deepEqual([...brokenSteps(f)], [], sug.title);
   }
 });

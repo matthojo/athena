@@ -46,3 +46,19 @@ test("a draft step's Go: a text needs no account; an email with nowhere to keep 
   const off = { ...text, open: { kind: "draft", draft: draft({ can_enable_drafts: true }) } } as unknown as Change;
   assert.throws(() => draftChanges({ changes: [off], confirm: [] }, () => "x"), (e: Error) => e.message === DRAFTS_OFF);
 });
+
+test("a hand-off counts when the background function takes it: 202 deployed, 204 under netlify dev, never a 200 or a redirect", async () => {
+  const { handOffFlowRun } = await import("./flow-effects");
+  const before = process.env.MCP_BEARER_TOKEN;
+  process.env.MCP_BEARER_TOKEN = "test-token";
+  try {
+    const answer = (status: number) => (async () => new Response(null, { status })) as unknown as typeof fetch;
+    await handOffFlowRun("https://athena.example.com", "r1", answer(202));
+    await handOffFlowRun("https://athena.example.com", "r1", answer(204));
+    await assert.rejects(handOffFlowRun("https://athena.example.com", "r1", answer(200)), /answered 200/);
+    await assert.rejects(handOffFlowRun("https://athena.example.com", "r1", answer(302)), /answered 302/);
+  } finally {
+    if (before === undefined) delete process.env.MCP_BEARER_TOKEN;
+    else process.env.MCP_BEARER_TOKEN = before;
+  }
+});

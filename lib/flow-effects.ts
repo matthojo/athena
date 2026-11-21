@@ -190,7 +190,8 @@ export async function handOffFlowRun(origin: string, runId: string, fetchImpl: t
     // A redirect is never the background function: followed, the login page's 200 would read as "handed off".
     redirect: "manual",
   });
-  if (res.status !== 202) throw new Error(`background function answered ${res.status}`);
+  // A background function answers 202 once deployed; `netlify dev` answers 204. A 200 is never it (a login page).
+  if (res.status !== 202 && res.status !== 204) throw new Error(`background function answered ${res.status}`);
 }
 
 // ---------- cards ----------

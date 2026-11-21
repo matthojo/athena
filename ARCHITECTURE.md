@@ -1742,7 +1742,8 @@ suggestions and the app is `lib/flow-types.ts`.
   waits for Go. Every run read carries `values`: the trigger's and each step's,
   as words (`shownValues`, from the sealed state). `createFlowSource()` and `createFlowStarter()` are the
   ports triggers uses; what a trigger gives is triggers' own (`triggerGives` in
-  `lib/flow-triggers.ts`), which drafting and suggestions read too.
+  `lib/flow-triggers.ts`, kept pure in `lib/flow-trigger-gives.ts`), which
+  drafting, suggestions and the app's sample mode read too.
   `lib/flow-engine.ts` plugs the engine in: imported by `api.ts`,
   `reminders.ts` and `mcp.ts`, it hands triggers the source and starter (so
   the reminders pass and the owner's own events start runs), gives Ask's
