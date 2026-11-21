@@ -662,6 +662,8 @@ def build():
     # ---- section markers: mark-tree sparkles into the changes, soft breaths that end on the downbeat
     for t, g in ((HOME, 0.8), (LIFT, 0.7), (SAVED, 0.5), (MUSIC, 0.4), (STEP, 0.6), (ARRIVE, 0.8), (FLOWSTEP, 0.4), (PULL, 0.7)):
         add("fx", chimes(9, 1.4, True, int(t * 10) % 7), t, g)
+    for t in (HOME, PULL):                  # a finger snap on the section's downbeat: the band arrives on the 1
+        add("snap", snap(2), t, 1.0, pan=0.2)
     for t, d, g in ((HOME, 0.6, 0.9), (SAVED, 0.6, 0.45)):     # a breath in, easing off 0.15 s before the downbeat
         a_ = air(d, 600.0, 2600.0, int(t))
         a_ = a_ * np.clip((d - np.arange(len(a_)) / SR) / 0.15, 0, 1)[:, None] ** 2
@@ -885,7 +887,7 @@ def final_chord():
         tg = glock_note(m, 1.8, 1.0)
         put(F, tg, TAG + dt, g, pan=p)
         put(wet_src, tg, TAG + dt, g * 0.8, pan=p)
-        put(F, tag_tick(), TAG + dt, g * 0.6, pan=p)                      # a glass tick on each: its first ms is the onset
+        put(F, tag_tick(), TAG + dt, g * 2.0, pan=p)                      # a glass tick on each: its first ms is the onset
     wet_src += 0.6 * F
     return F, wet_src
 
