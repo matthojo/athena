@@ -588,10 +588,12 @@
       to("team-flows", T_FLOWS - 500, 500, 1000, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (s0 + s1) / 2, z: H / (s1 - s0) });
       // (round 1) Once the suggestion has been read large, the camera eases out to the flow page's framing and is at
       // rest there by ~61700, the card still legible in the middle of the frame; the tap then grows the flow out of the
-      // card under a still camera. Framing: from just above the title to just above the floating "Test on the last
-      // date" button (the Then card runs on under it), ~1.95x; the neighbours are away by then.
-      const ft = rect("flow", "flowTitle") || rect("flow", "flowHead") || rect("flow", "steps"), tb = rect("flow", "testBtn");
-      const f0 = ft.y - 12, f1 = tb ? tb.y - 3 : rect("flow", "steps").y + rect("flow", "steps").h - 5;
+      // card under a still camera. Framing (r0's f1890, kept): from just above the title to just above the Then card's
+      // divider, "Gift ideas for the person" whole (the card runs on under the floating "Test on the last date" button,
+      // so its own lower edge can never be in frame); ~2.17x, the neighbours away by then. On the suggestion page the
+      // same frame holds the card whole between the first suggestion and "Your flows".
+      const ft = rect("flow", "flowTitle") || rect("flow", "flowHead") || rect("flow", "steps"), stp = rect("flow", "steps");
+      const f0 = ft.y - 12, f1 = stp.y + stp.h - 5;
       to("flow-wide", 60900, 320, 480, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (f0 + f1) / 2, z: H / (f1 - f0) });
       drift(T_FLOW_STEPS + 100, T.pull - 600, 1.025, 0, 0);
     }
