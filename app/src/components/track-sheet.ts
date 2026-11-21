@@ -176,7 +176,7 @@ export function openTrackSheet(opts: TrackSheetOptions = {}): void {
     }
     const id = `tks-${++uid}`;
     const err = h("p", { class: "tks-error", role: "alert", hidden: true });
-    const name = h("input", { class: "tk-input", autocomplete: "off", placeholder: "Octopus tariff", maxlength: 80, enterkeyhint: "next" }) as HTMLInputElement;
+    const name = h("input", { class: "tk-input", autocomplete: "off", placeholder: "Electricity tariff", maxlength: 80, enterkeyhint: "next" }) as HTMLInputElement;
     const link = h("input", { class: "tk-input", type: "url", inputmode: "url", autocomplete: "off", placeholder: "https://", enterkeyhint: "next" }) as HTMLInputElement;
     const label = h("input", { class: "tk-input", autocomplete: "off", placeholder: item ? "rating" : "unit rate", maxlength: TRACKER_LIMITS.label, enterkeyhint: "next", autocapitalize: "none" }) as HTMLInputElement;
 
@@ -251,7 +251,7 @@ export function openTrackSheet(opts: TrackSheetOptions = {}): void {
         el?.setAttribute("aria-invalid", "true");
         el?.focus();
       };
-      if (!item && !name.value.trim()) return fail("Give it a name, like Octopus tariff.", name);
+      if (!item && !name.value.trim()) return fail("Give it a name, like Electricity tariff.", name);
       let url: string | null = null;
       try {
         url = item ? null : cleanLink(link.value);

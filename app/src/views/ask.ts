@@ -4,7 +4,7 @@
  * (components/ask-answer.ts, lib/answer.ts); offline, in sample mode or when
  * that fails, it gets an honest keyword match (lib/ask.ts): the notes, people
  * and to-dos that mention it, never invented prose. An instruction ("add the
- * Lego Ferrari to Rowan's Christmas gift ideas") goes to the assistant (lib/assistant.ts, Claude via
+ * moka pot to Rowan's Christmas gift ideas") goes to the assistant (lib/assistant.ts, Claude via
  * AI Gateway), which does the setup itself and answers with a row per
  * change, each with Open and Undo, or with choices when it needs a pick.
  *
@@ -3631,19 +3631,19 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
           const think = onlyModel(c).model ?? thinkingModel((await loadModels().catch(() => null))?.effective, c.assistant_id);
           return { text: `In sample mode I can keep and show ${names}, but not read ${one ? "it" : "them"}. Connect Athena and I'll read ${one ? "it" : "them"} for you.`, sources: [], related: [], searched: "Kept on this device", skipped: [], found: false, flagged: false, ...(think ? { model: think } : {}) } as AskReply;
         }
-        // Asking Athena about the Lego Ferrari: she checks with Penny, who watches gift prices (docs/team.md, "Checked with Penny").
-        if (!c.assistant_id && /\b(lego|ferrari)\b/i.test(q)) {
+        // Asking Athena about the moka pot: she checks with Penny, who watches gift prices (docs/team.md, "Checked with Penny").
+        if (!c.assistant_id && /\b(moka|lego|ferrari)\b/i.test(q)) {
           await playSampleSteps([["Checking with Penny", "Checked with Penny"]], step);
-          const said = "The Lego Ferrari is £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas.";
-          const checked = { text: "It's down to £34 at Smyths, £8 less than when you saved it [1].", sources: [{ n: 1, kind: "assistant", id: SAMPLE_PENNY_ID, url: null, title: "Penny", date: null, account: null } as unknown as AnswerSource], related: [], searched: "Checked with Penny", skipped: [], found: true, flagged: false, checked: [{ assistant_id: SAMPLE_PENNY_ID, name: "Penny", question: q, answer: said }] };
+          const said = "The moka pot is £34 at Copperkettle, £8 under the price when you saved it. You bought from them last Christmas.";
+          const checked = { text: "It's down to £34 at Copperkettle, £8 less than when you saved it [1].", sources: [{ n: 1, kind: "assistant", id: SAMPLE_PENNY_ID, url: null, title: "Penny", date: null, account: null } as unknown as AnswerSource], related: [], searched: "Checked with Penny", skipped: [], found: true, flagged: false, checked: [{ assistant_id: SAMPLE_PENNY_ID, name: "Penny", question: q, answer: said }] };
           if (text) await playSampleText(checked.text, text, stop.signal);
           return checked;
         }
-        // Talking to Penny about the Lego Ferrari: she answers from her own job, not Athena's sample answer.
-        if (c.assistant_id === SAMPLE_PENNY_ID && /\b(lego|ferrari|price|gift)/i.test(q)) {
+        // Talking to Penny about the moka pot: she answers from her own job, not Athena's sample answer.
+        if (c.assistant_id === SAMPLE_PENNY_ID && /\b(moka|lego|ferrari|price|gift)/i.test(q)) {
           await playSampleSteps([["Looking at your gift ideas", "Looked at your gift ideas"], ["Checking prices", "Checked prices"]], step);
           // Penny thinks with Gemini 3.5 Flash in sample mode: her replies say so (components/ask-picture.ts modelLine).
-          const own = { text: "The Lego Ferrari is £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas, so I'd get it there.", sources: [], related: [], searched: "Checked prices", skipped: [], found: true, flagged: false, model: { provider: "gemini" as const, model: "gemini-3.5-flash" } };
+          const own = { text: "The moka pot is £34 at Copperkettle, £8 under the price when you saved it. You bought from them last Christmas, so I'd get it there.", sources: [], related: [], searched: "Checked prices", skipped: [], found: true, flagged: false, model: { provider: "gemini" as const, model: "gemini-3.5-flash" } };
           if (text) await playSampleText(own.text, text, stop.signal);
           return own;
         }

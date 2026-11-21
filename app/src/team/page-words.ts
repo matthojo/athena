@@ -4,7 +4,7 @@
  * the one sentence at the top. Pure, so the tests can check the words.
  *
  *   deskFor(penny, activity)  → { state: "working", live, last, today }
- *   nowWords(run)            → "Checking prices at Smyths"
+ *   nowWords(run)            → "Checking prices at Copperkettle"
  *   nextWords(wren)          → "Next run Friday at 17:00"
  *   teamLede(team, desks)    → "Penny is working. Dot needs your Go."
  */

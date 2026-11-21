@@ -604,7 +604,7 @@ function renderItem(id: string, ctx: { go: Go; isDesktop: () => boolean }): { el
 
 // ---------- a tracker on its own ----------
 
-/** #/saved/tracker-<id>: one thing tracked on its own ("Octopus tariff"): its name and page, then its block. */
+/** #/saved/tracker-<id>: one thing tracked on its own ("Electricity tariff"): its name and page, then its block. */
 function renderTracker(id: string, ctx: { go: Go }): { el: HTMLElement; destroy: () => void } {
   const el = h("div", { class: "view saved sv-item sv-tracker", "aria-busy": "true" }, h("div", { class: "sv-item__bar" }, backBar(ctx)));
   let alive = true;

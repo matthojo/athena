@@ -19,7 +19,7 @@ export { sampleRunThreadId };
 export const sampleRunHistory = (assistantId: string): TeamRun[] => sampleRuns(assistantId);
 
 const STEPS: Record<string, string[]> = {
-  [SAMPLE_TEAM_IDS.penny]: ["Looking at your gift ideas", "Searching the web for Lego Technic prices", "Reading smyths.co.uk", "Reading johnlewis.com"],
+  [SAMPLE_TEAM_IDS.penny]: ["Looking at your gift ideas", "Searching the web for moka pot prices", "Reading copperkettle.example", "Reading fennandhale.example"],
   [SAMPLE_TEAM_IDS.dot]: ["Reading new Linear issues", "Checking your to-dos"],
   [SAMPLE_TEAM_IDS.wren]: ["Reading your week", "Writing it up"],
 };
@@ -57,16 +57,16 @@ const todo = (n: number, title: string): AssistantChange => ({
   undo: { op: "sample" },
 });
 
-/** What a few runs said in full, beyond their summary: Penny's Lego Ferrari and Dot's three issues, with Dot's plan. */
+/** What a few runs said in full, beyond their summary: Penny's moka pot and Dot's three issues, with Dot's plan. */
 const REPLIES: Record<string, () => Partial<Extract<AskThread["messages"][number], { role: "assistant" }>>> = {
-  // Penny's Lego Technic Ferrari Daytona, this afternoon.
+  // Penny's Stovetop moka pot, this afternoon.
   "5a3e0000-0000-4000-8000-0000000e0201": () => ({
     reply: {
-      text: "Found the Lego Ferrari for £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas, so I'd get it there. I've put the price and the link on Rowan's gift idea.",
-      changes: [{ kind: "record", id: changeId(31), action: "updated", title: "Lego Technic Ferrari Daytona", detail: "£34 at Smyths", label: "Lego Technic Ferrari Daytona: £34 at Smyths", open: null, undo: { op: "sample" } }],
+      text: "Found the moka pot for £34 at Copperkettle, £8 under the price when you saved it. You bought from them last Christmas, so I'd get it there. I've put the price and the link on Rowan's gift idea.",
+      changes: [{ kind: "record", id: changeId(31), action: "updated", title: "Stovetop moka pot", detail: "£34 at Copperkettle", label: "Stovetop moka pot: £34 at Copperkettle", open: null, undo: { op: "sample" } }],
       choices: [],
     },
-    steps: ["Looked at your gift ideas", "Searched the web for Lego Technic Ferrari Daytona", "Read smyths.co.uk and johnlewis.com", "Put the price on the gift idea"],
+    steps: ["Looked at your gift ideas", "Searched the web for Stovetop moka pot", "Read copperkettle.example and fennandhale.example", "Put the price on the gift idea"],
   }),
   // Dot's three issues this morning: two to-dos, and one left for your Go.
   "5a3e0000-0000-4000-8000-0000000e0204": () => ({

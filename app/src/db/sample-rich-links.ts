@@ -37,6 +37,10 @@ const SAMPLES: Array<{ match: RegExp; preview: Sample }> = [
     preview: { title: "Four Thousand Weeks", summary: "Time management for mortals.", site_name: "Bookshop.org", author: "Oliver Burkeman", kind: "book", facts: { by: "Oliver Burkeman" }, ...pic("book.webp", 800, 1200, "#c9a24a") },
   },
   {
+    match: /^https:\/\/(www\.)?letterboxd\.com\/film\//,
+    preview: { title: "Guardians of the Galaxy", summary: "A thief, a raccoon and a talking tree end up with an orb half the galaxy wants.", site_name: "Letterboxd", kind: "film", facts: { by: "James Gunn", year: "2014" }, ...pic("film.webp", 800, 1200, "#3a2050") },
+  },
+  {
     match: /^https:\/\/(www\.)?youtube\.com\/|^https:\/\/youtu\.be\//,
     preview: { title: "A slow walk along Regent's Canal", summary: "Forty minutes from Little Venice to King's Cross, with no talking.", site_name: "YouTube", ...pic("hills.webp", 1280, 720, "#4a6a4a") },
   },

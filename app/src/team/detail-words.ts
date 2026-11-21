@@ -3,7 +3,7 @@
  * the sentences without a DOM.
  *
  *   pronouns({ pronoun: "she" }) → { they: "she", them: "her", their: "her" }
- *   runLabel(run, triggers) → "New gift idea: “Lego Ferrari”", "Every Friday at 17:00", "Run now"
+ *   runLabel(run, triggers) → "New gift idea: “moka pot”", "Every Friday at 17:00", "Run now"
  *   nextStart(triggers) → "Sunday at 10:00", or null when no schedule is on
  */
 import type { AvatarSpec, Personality, TeamRun, TeamTrigger } from "../../../lib/team-types";

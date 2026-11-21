@@ -837,12 +837,10 @@ export async function sampleAnswer(question = ""): Promise<AnswerReply> {
   if (isTripQuestion(question)) return sampleTripAnswer(question);
   if (sampleAnswerSteps(question)) return sampleLifeAnswer(question);
   return {
-    text: "Elena wants to test two prices before settling on one: keep Starter where it is and try a higher Team price with new customers [1]. She asked you to read her pricing memo and reply with your view by the end of next week [2], which is still on your to-do list [3]. If you'd rather talk it through, she prefers a morning call, before 10 [4].",
+    text: "Elena wants to keep Starter where it is and try a higher Pro price with new customers [1]. She'd like your view on her pricing memo by the end of next week [2].",
     sources: [
       { n: 1, kind: "meeting", id: null, url: "https://notes.granola.ai/d/sample", title: "Pricing check-in with Elena", date: daysAgo(23), account: "Granola" },
       { n: 2, kind: "email", id: null, url: "https://mail.google.com/mail/u/0/#all/sample", title: "Pricing memo, draft 2", date: daysAgo(19), account: "Gmail (work)" },
-      { n: 3, kind: "todo", id: "5a3e0000-0000-4000-8000-000000000506", url: null, title: "Read Elena's pricing memo and reply", date: daysAgo(2), account: null },
-      { n: 4, kind: "person", id: SAMPLE_IDS.elena, url: null, title: "Dr. Elena Osei", date: null, account: null },
     ],
     related: [
       {

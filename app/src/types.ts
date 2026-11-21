@@ -888,7 +888,7 @@ export interface AssistantChange {
     | "picture";
   id: string;
   action: "created" | "updated" | "completed";
-  /** What it is ("Rowan · Christmas gift ideas") and what happened ("New list · Lego Technic Ferrari"). */
+  /** What it is ("Rowan · Christmas gift ideas") and what happened ("New list · Stovetop moka pot"). */
   title: string;
   detail: string;
   /** Both as one sentence, for screen readers. */

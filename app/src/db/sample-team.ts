@@ -80,7 +80,7 @@ function sampleTeamBase(): TeamAssistant[] {
       allow: ["add_to_list"],
       paused: false,
       routine_id: null,
-      memory: { summary: "Jordan prefers independent shops and doesn't mind waiting a week for a better price.", facts: ["Buys books from Waterstones", "Gift budget is usually under £50"] },
+      memory: { summary: "Jordan prefers independent shops and doesn't mind waiting a week for a better price.", facts: ["Buys books from Page & Stone", "Gift budget is usually under £50"] },
       memory_updated_at: ago(2 * DAY),
       last_run_at: new Date(today(41)).toISOString(),
       triggers: [trigger(1, penny, { kind: "event", days: [], time: null, event: { source: "saved", savedAction: "gift-idea" } }, (T0 - today(42)) / MIN)],
@@ -131,12 +131,12 @@ const runId = (n: number) => `5a3e0000-0000-4000-8000-0000000e${n < 100 ? "02" :
 const triggerId = (k: number) => `5a3e0000-0000-4000-8000-0000000e01${String(k).padStart(2, "0")}`;
 
 /** Penny's run in progress: she started just before you opened the page, and finishes about a minute in. */
-const PENNY_LIVE = { started: T0 - 25_000, steps: ["Reading the gift idea", "Searching the web for Aesop hand balm", "Reading johnlewis.com", "Reading boots.com", "Comparing the three shops"], stepMs: 15_000, doneAt: T0 + 70_000 };
+const PENNY_LIVE = { started: T0 - 25_000, steps: ["Reading the gift idea", "Searching the web for Cedar hand balm", "Reading fennandhale.example", "Reading greenleaf.example", "Comparing the three shops"], stepMs: 15_000, doneAt: T0 + 70_000 };
 
 function pennyLive(id: string): TeamRun {
   const now = Date.now();
-  const base: TeamRun = { id: runId(10), assistant_id: id, trigger_id: triggerId(1), event_id: "41", status: "running", thread_id: null, summary: null, error: null, started_at: new Date(PENNY_LIVE.started).toISOString(), finished_at: null, label: "New gift idea: “Aesop hand balm”" };
-  if (now >= PENNY_LIVE.doneAt) return { ...base, status: "done", thread_id: sampleRunThreadId(base.id), finished_at: new Date(PENNY_LIVE.doneAt).toISOString(), summary: "The Aesop hand balm is £27 at John Lewis, £4 less than Boots. The link is on the gift idea.", waiting: 0 };
+  const base: TeamRun = { id: runId(10), assistant_id: id, trigger_id: triggerId(1), event_id: "41", status: "running", thread_id: null, summary: null, error: null, started_at: new Date(PENNY_LIVE.started).toISOString(), finished_at: null, label: "New gift idea: “Cedar hand balm”" };
+  if (now >= PENNY_LIVE.doneAt) return { ...base, status: "done", thread_id: sampleRunThreadId(base.id), finished_at: new Date(PENNY_LIVE.doneAt).toISOString(), summary: "The Cedar hand balm is £27 at Fenn & Hale, £4 less than Greenleaf. The link is on the gift idea.", waiting: 0 };
   const i = Math.min(PENNY_LIVE.steps.length - 1, Math.floor((now - PENNY_LIVE.started) / PENNY_LIVE.stepMs));
   return { ...base, step: PENNY_LIVE.steps[i] };
 }
@@ -160,7 +160,7 @@ interface Past {
 /**
  * The sample team's day: one run list that every Team screen reads (the
  * Team page, an assistant's page, Home's card and Ask). Penny is checking a
- * price as you open the app, and checked the Lego Ferrari earlier. Dot turned
+ * price as you open the app, and checked the moka pot earlier. Dot turned
  * the morning's three Linear issues into two to-dos and left one change for
  * your Go. Wren wrote Friday's summary and is quiet until next Friday. Each
  * finished run keeps a conversation (sample-team-detail.ts writes them).
@@ -187,11 +187,11 @@ export function sampleRuns(assistantId: string): TeamRun[] {
     return [
       pennyLive(penny),
       ...[
-        { n: 1, at: today(42), label: "New gift idea: “Lego Technic Ferrari Daytona”", summary: "Found the Lego Ferrari for £34 at Smyths, £8 under the price when you saved it." },
-        { n: 2, at: daysBack(1, 19, 40), label: "New gift idea: “Moleskine diary”", summary: "The Moleskine diary is £18 at Waterstones. Nothing you've bought from is cheaper." },
-        { n: 111, at: back(DAY + 140), label: "New gift idea: “Kindle Paperwhite”", error: "Amazon didn't answer in time" },
+        { n: 1, at: today(42), label: "New gift idea: “Stovetop moka pot”", summary: "Found the moka pot for £34 at Copperkettle, £8 under the price when you saved it." },
+        { n: 2, at: daysBack(1, 19, 40), label: "New gift idea: “2027 diary”", summary: "The 2027 diary is £18 at Page & Stone. Nothing you've bought from is cheaper." },
+        { n: 111, at: back(DAY + 140), label: "New gift idea: “E-reader”", error: "Parcel House didn't answer in time" },
         { n: 3, at: daysBack(3, 12, 15), mins: 2, label: "2 new gift ideas", summary: "Added prices to two gift ideas." },
-        { n: 112, at: back(9 * DAY), label: "New gift idea: “Le Creuset mug”", summary: "The Le Creuset mug is £16 at John Lewis, the same as when you saved it. I'll keep watching." },
+        { n: 112, at: back(9 * DAY), label: "New gift idea: “stoneware mug”", summary: "The stoneware mug is £16 at Fenn & Hale, the same as when you saved it. I'll keep watching." },
         { n: 113, at: back(16 * DAY), label: "Run now", trigger: null, summary: "Checked your 6 gift ideas. None of them has dropped in price." },
       ].map(run),
     ];
@@ -223,7 +223,7 @@ description: "Penny's own skill: how Penny does its job (Finds good prices for g
 
 # How Penny works
 
-1. When a gift idea is saved, search for it at Waterstones, Smyths and John Lewis first, then anywhere else.
+1. When a gift idea is saved, search for it at Page & Stone, Copperkettle and Fenn & Hale first, then anywhere else.
 2. Keep to the budget: under £50 a gift unless the owner says otherwise.
 3. Put the best price and its link on the gift idea.
 4. Tell the owner only when the price drops by £5 or more. Smaller changes go on the gift idea quietly.
@@ -258,7 +258,7 @@ description: "Wren's own skill: how Wren does its job (Sums up your week every F
 
 const SAMPLE_SKILL_ANSWERS: Record<string, Array<{ question: string; answer: string }>> = {
   penny: [
-    { question: "Which shops do you trust?", answer: "Waterstones, Smyths and John Lewis" },
+    { question: "Which shops do you trust?", answer: "Page & Stone, Copperkettle and Fenn & Hale" },
     { question: "What's your budget per gift?", answer: "Under £50" },
     { question: "When should Penny tell you about a price?", answer: "Only drops of £5 or more" },
   ],
@@ -273,7 +273,7 @@ const SAMPLE_SKILL_ANSWERS: Record<string, Array<{ question: string; answer: str
 };
 
 const SAMPLE_SUMMARIES: Record<string, string> = {
-  penny: "Checks Waterstones, Smyths and John Lewis first, keeps each gift under £50, and tells you only when a price drops by £5 or more.",
+  penny: "Checks Page & Stone, Copperkettle and Fenn & Hale first, keeps each gift under £50, and tells you only when a price drops by £5 or more.",
   dot: "Adds one to-do per Linear issue in your Work context, copies a due date only when the issue has one, and skips issues it has already added.",
   wren: "Writes three short parts every Friday: what got done, what slipped and who you met, in under ten lines.",
 };

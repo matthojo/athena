@@ -91,6 +91,19 @@ export function artUrl(id: string, size: "sm" | "lg"): Promise<string | null> {
   return pending;
 }
 
+/** Keep a picture as an item's art on this device, both sizes: sample mode's covers come only from here. */
+export async function keepArt(id: string, blob: Blob): Promise<void> {
+  for (const size of ["sm", "lg"] as const) {
+    const key = keyFor(id, size);
+    urls.set(key, URL.createObjectURL(blob));
+    try {
+      await (await caches.open(CACHE)).put(key, new Response(blob, { headers: { "Content-Type": blob.type || "image/webp" } }));
+    } catch {
+      // not kept past this visit (a private window): fine
+    }
+  }
+}
+
 // One observer for every image on the page.
 const waiting = new WeakMap<Element, () => void>();
 let observer: IntersectionObserver | null = null;

@@ -4,7 +4,7 @@
  * sample fake all say the same thing about the same checks.
  *
  * Words first. Every tracker reads as one sentence before any picture:
- * "£34 at Smyths. You asked to hear at £30 or less." / "In stock at John
+ * "£34 at Copperkettle. You asked to hear at £30 or less." / "In stock at John
  * Lewis since Tuesday." Under it, a quieter line of where it started and how
  * many checks there are.
  *
@@ -146,7 +146,7 @@ export function agoWords(iso: string, now = new Date(), short = false): string {
 
 export const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-/** "smyths.co.uk" from a link. */
+/** "copperkettle.example" from a link. */
 export function hostOf(url: string | null | undefined): string | null {
   if (!url) return null;
   try {
@@ -328,10 +328,10 @@ export function targetWords(t: Written, target: Pick<TrackerTarget, "op" | "valu
  * The one sentence, said before any picture. `lead` is the value (and where,
  * when that matters) for the app to set apart; `lead + rest` is the sentence.
  *
- *  - "£34 at Smyths, the lowest since you saved it."
- *  - "£34 at Smyths. You asked to hear at £30 or less."
- *  - "£27 at John Lewis, under the £28 you asked for."
- *  - "In stock at John Lewis since Tuesday."
+ *  - "£34 at Copperkettle, the lowest since you saved it."
+ *  - "£34 at Copperkettle. You asked to hear at £30 or less."
+ *  - "£27 at Fenn & Hale, under the £28 you asked for."
+ *  - "In stock at Fenn & Hale since Tuesday."
  *  - "24.86p/kWh, 0.24p lower than on 3 Oct. It was 22.86p/kWh on 14 Nov."
  */
 export function trackerSentence(r: TrackerRead, now = new Date()): { lead: string; rest: string; text: string } {
@@ -423,7 +423,7 @@ export function trackerDetail(r: TrackerRead, now = new Date()): string | null {
   return parts.join(" · ");
 }
 
-/** A glance for a card or a row, in two parts: the value now, and a quieter note. "£34" / "Smyths", "In stock" / "since Tuesday", "24.86p/kWh" / "lowest so far". */
+/** A glance for a card or a row, in two parts: the value now, and a quieter note. "£34" / "Copperkettle", "In stock" / "since Tuesday", "24.86p/kWh" / "lowest so far". */
 export function trackerGlanceParts(r: TrackerRead, now = new Date()): { value: string; note: string } {
   const t = r.tracker;
   const value = t.kind === "state" ? cap(r.now.value) : valueWords(t, r.now.value);
@@ -442,7 +442,7 @@ export function trackerGlanceParts(r: TrackerRead, now = new Date()): { value: s
   return { value, note: `the same ${since}` };
 }
 
-/** The same glance on one line: "£34 · Smyths", "In stock · since Tuesday". */
+/** The same glance on one line: "£34 · Copperkettle", "In stock · since Tuesday". */
 export function trackerGlance(r: TrackerRead, now = new Date()): string {
   const g = trackerGlanceParts(r, now);
   return `${g.value} · ${g.note}`;

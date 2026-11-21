@@ -10,6 +10,7 @@ import { planSave, siteOf, type SavedItem, type SavedKind } from "../../../lib/s
 import { BUILTIN, describeActions, itemName } from "../../../lib/saved-action-rules";
 import type { SavedFacts, SavedThing } from "../../../lib/saved-kinds";
 import { sampleNotes, samplePeople } from "./sample-data";
+import { samplePreview } from "./sample-rich-links";
 import type { ActionResult, NewSaved, SavedActions, SavedPage, SavedQuery } from "./saved";
 import { PRICED_SEEDS, seedSampleTrackers, withSamplePricesNow } from "./sample-trackers";
 
@@ -264,24 +265,27 @@ export function sampleSaveNew(input: NewSaved): SavedItem {
   const plan = planSave({ ...input, hasImage: !!input.image });
   if (!plan) throw new Error("There was nothing to save");
   const now = new Date();
+  // A link with a sample preview (sample-rich-links.ts) lands as that card: title, picture and what it is.
+  const known = plan.kind === "link" && plan.url ? samplePreview(plan.url) : null;
+  const rich = known?.title ? known : null;
   const item: SavedItem = {
     id: `s-new-${now.getTime()}`,
     kind: plan.kind,
     url: plan.url,
-    title: plan.title,
-    site: siteOf(plan.url ?? plan.source_url),
-    author: null,
+    title: rich?.title ?? plan.title,
+    site: rich?.site_name ?? siteOf(plan.url ?? plan.source_url),
+    author: rich?.facts?.by ?? rich?.author ?? null,
     published_at: null,
-    excerpt: null,
+    excerpt: rich?.summary ?? null,
     quote: plan.quote,
     note: plan.note,
     tags: [],
     source: input.source,
     source_url: plan.source_url,
-    image_url: input.image ? URL.createObjectURL(input.image) : null,
-    image_w: null,
-    image_h: null,
-    image_tone: null,
+    image_url: input.image ? URL.createObjectURL(input.image) : (rich?.image_url ?? null),
+    image_w: rich?.image_w ?? null,
+    image_h: rich?.image_h ?? null,
+    image_tone: rich?.image_tone ?? null,
     saved_at: now.toISOString(),
     saved_on: localToday(),
     archived: false,
@@ -289,6 +293,7 @@ export function sampleSaveNew(input: NewSaved): SavedItem {
     fetch_status: plan.kind === "link" ? "preview" : null,
     readable: null,
     words: null,
+    ...(rich?.kind && { thing: rich.kind, facts: { name: rich.title ?? undefined, ...(rich.facts ?? {}) } }),
   };
   all().unshift(item);
   return item;
@@ -326,7 +331,10 @@ export function sampleRunAction(id: string, action: string, params: Record<strin
   const note = sampleNotes().find((n) => n.id === params.note_id);
   const name = itemName(item);
   let result: ActionResult;
-  if (action === "watch_read") result = { label: "Watch & read", href: "#/reading", filed: true, undo: null, done: "Moved to Watch & read" };
+  if (action === "watch_read") {
+    result = { label: "Watch & read", href: "#/reading", filed: true, undo: null, done: "Moved to Watch & read" };
+    void fileToWatch(item);
+  }
   else if (action === "gift_idea") {
     if (!person) throw new Error("Pick someone in People.");
     const where = `${person.name} · Gift ideas`;
@@ -357,4 +365,19 @@ export function sampleUndoAction(id: string, undo?: unknown): SavedItem {
   if (target) links.set(id, (links.get(id) ?? []).filter((l) => l.id !== target));
   else item.filed = null;
   return item;
+}
+
+const WATCH_KIND: Partial<Record<SavedThing, "film" | "tv" | "book" | "video">> = { film: "film", show: "tv", book: "book", video: "video" };
+
+/** Sample mode's half of "Move to Watch & read": the item joins Watch & read, with its picture as the cover. */
+async function fileToWatch(item: SavedItem): Promise<void> {
+  const [{ saveReading }, { keepArt }] = await Promise.all([import("./memory"), import("../components/art-img")]);
+  let art = item.image_url && item.image_w && item.image_h ? { id: `saved-${item.id}`, w: item.image_w, h: item.image_h, tone: item.image_tone ?? undefined } : undefined;
+  if (art && item.image_url) {
+    const blob = await fetch(item.image_url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+    if (blob) await keepArt(art.id, blob);
+    else art = undefined;
+  }
+  const year = Number(item.facts?.year);
+  await saveReading({ title: item.title ?? itemName(item), kind: WATCH_KIND[item.thing as SavedThing] ?? "video", author: item.author ?? item.facts?.by ?? "", url: item.url ?? "", source: "saved", ...(art && { art }), ...(year && { meta: { year } }) });
 }

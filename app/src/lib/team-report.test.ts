@@ -6,7 +6,7 @@ import { isQuiet, runWaits, jobsToday, saysNothing, jobsWords, liveRuns, ownWord
 test("A run's summary loses the runner's Go line, which becomes a count", () => {
   assert.deepEqual(splitReport("3 new issues: 2 to-dos added. One change waits for you to tap Go."), { said: "3 new issues: 2 to-dos added.", waits: 1 });
   assert.deepEqual(splitReport("Done. 4 changes wait for you to tap Go."), { said: "Done.", waits: 4 });
-  assert.deepEqual(splitReport("Found the Lego Ferrari for £34."), { said: "Found the Lego Ferrari for £34.", waits: 0 });
+  assert.deepEqual(splitReport("Found the moka pot for £34."), { said: "Found the moka pot for £34.", waits: 0 });
   // The nudge's body is clipped at 180 characters: a cut-off Go line still counts.
   assert.deepEqual(splitReport("3 new issues. Two were already on your list. One change waits for…"), { said: "3 new issues. Two were already on your list.", waits: 1 });
   assert.deepEqual(splitReport("Done. 2 changes wait for you to…"), { said: "Done.", waits: 2 });

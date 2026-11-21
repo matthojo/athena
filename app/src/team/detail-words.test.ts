@@ -22,7 +22,7 @@ test("starting sounds like the assistant", () => {
 });
 
 test("a run says what set it off", () => {
-  assert.equal(runLabel({ label: "New gift idea: “Lego”", trigger_id: null, event_id: null }), "New gift idea: “Lego”");
+  assert.equal(runLabel({ label: "New gift idea: “moka pot”", trigger_id: null, event_id: null }), "New gift idea: “moka pot”");
   const fri = trig({ id: "f", days: [5], time: "17:00" });
   assert.match(runLabel({ label: null, trigger_id: "f", event_id: null }, [fri]), /^Every Friday at (17:00|5:00 pm)$/);
   const gift = trig({ id: "g", kind: "event", event: { source: "saved", savedAction: "gift-idea" } });

@@ -15,9 +15,9 @@ const ago = (days: number, hour = 9) => {
 let n = 0;
 const pt = (days: number, value: string, extra: Partial<TrackerPoint> = {}): TrackerPoint => ({ id: `p${++n}`, tracker_id: "t", value, source: null, url: null, checked_at: ago(days), checked_by: "assistant", assistant_id: "a", who: "Penny", ...extra });
 const price = (points: TrackerPoint[], target: TrackerView["target"] = null): TrackerView => ({
-  id: "t", saved_id: "s", name: "LEGO", url: null, label: "price", kind: "number", prefix: "£", suffix: "", currency: "GBP", states: [], direction: "lower", preset: "price", target, assistant_id: "a", created_at: ago(40), points, summary: null,
+  id: "t", saved_id: "s", name: "Fellstone", url: null, label: "price", kind: "number", prefix: "£", suffix: "", currency: "GBP", states: [], direction: "lower", preset: "price", target, assistant_id: "a", created_at: ago(40), points, summary: null,
 });
-const number = (points: TrackerPoint[], over: Partial<TrackerView> = {}): TrackerView => ({ ...price(points), saved_id: null, name: "Octopus tariff", label: "unit rate", prefix: "", suffix: "p/kWh", currency: null, preset: null, ...over });
+const number = (points: TrackerPoint[], over: Partial<TrackerView> = {}): TrackerView => ({ ...price(points), saved_id: null, name: "Electricity tariff", label: "unit rate", prefix: "", suffix: "p/kWh", currency: null, preset: null, ...over });
 const state = (points: TrackerPoint[], over: Partial<TrackerView> = {}): TrackerView => ({ ...price(points), label: "stock", kind: "state", prefix: "", currency: null, states: ["in stock", "sold out"], direction: "change", preset: "stock", ...over });
 const say = (v: TrackerView) => trackerSentence(readTracker(v)!, NOW).text;
 const goal = (op: "lte" | "gte" | "eq" | "change", value: string): TrackerView["target"] => ({ op, value, set_by: "owner", assistant_id: null, set_at: ago(3) });
@@ -45,51 +45,51 @@ test("a number is cleaned, never guessed", () => {
 });
 
 test("a price: the saved price, then the lowest since", () => {
-  const saved = pt(30, "42", { checked_by: "save", source: "LEGO" });
-  assert.equal(say(price([saved])), "£42 at LEGO, the price when you saved it.");
-  assert.equal(say(price([saved, pt(2, "34", { source: "Smyths" })])), "£34 at Smyths, the lowest since you saved it.");
-  assert.equal(say(price([saved, pt(10, "32", { source: "Argos" }), pt(1, "36", { source: "Argos" })])), "£36 at Argos, £6 under the saved price. It was £32 on 6 Nov.");
-  assert.equal(say(price([saved, pt(1, "45", { source: "LEGO" })])), "£45 at LEGO, £3 more than when you saved it.");
+  const saved = pt(30, "42", { checked_by: "save", source: "Fellstone" });
+  assert.equal(say(price([saved])), "£42 at Fellstone, the price when you saved it.");
+  assert.equal(say(price([saved, pt(2, "34", { source: "Copperkettle" })])), "£34 at Copperkettle, the lowest since you saved it.");
+  assert.equal(say(price([saved, pt(10, "32", { source: "Brightside" }), pt(1, "36", { source: "Brightside" })])), "£36 at Brightside, £6 under the saved price. It was £32 on 6 Nov.");
+  assert.equal(say(price([saved, pt(1, "45", { source: "Fellstone" })])), "£45 at Fellstone, £3 more than when you saved it.");
 });
 
 test("a price's best now is across shops checked in the last 14 days", () => {
-  const saved = pt(30, "42", { checked_by: "save", source: "LEGO" });
-  const v = price([saved, pt(3, "34", { source: "Smyths" }), pt(1, "35.99", { source: "Argos" })]);
-  assert.equal(trackerSentence(readTracker(v)!, NOW).lead, "£34 at Smyths");
+  const saved = pt(30, "42", { checked_by: "save", source: "Fellstone" });
+  const v = price([saved, pt(3, "34", { source: "Copperkettle" }), pt(1, "35.99", { source: "Brightside" })]);
+  assert.equal(trackerSentence(readTracker(v)!, NOW).lead, "£34 at Copperkettle");
   assert.equal(trackerDetail(readTracker(v)!, NOW), "Saved at £42 on 17 Oct · 3 checks at 3 shops");
 });
 
 test("the target is said first: set, reached, and exactly", () => {
-  const saved = pt(30, "42", { checked_by: "save", source: "LEGO" });
-  assert.equal(say(price([saved, pt(1, "34", { source: "Smyths" })], goal("lte", "30"))), "£34 at Smyths. You asked to hear at £30 or less.");
-  assert.equal(say(price([saved, pt(1, "27", { source: "John Lewis" })], goal("lte", "28"))), "£27 at John Lewis, under the £28 you asked for.");
-  assert.equal(say(price([saved, pt(1, "30", { source: "Smyths" })], goal("lte", "30"))), "£30 at Smyths, the £30 you asked for.");
+  const saved = pt(30, "42", { checked_by: "save", source: "Fellstone" });
+  assert.equal(say(price([saved, pt(1, "34", { source: "Copperkettle" })], goal("lte", "30"))), "£34 at Copperkettle. You asked to hear at £30 or less.");
+  assert.equal(say(price([saved, pt(1, "27", { source: "Fenn & Hale" })], goal("lte", "28"))), "£27 at Fenn & Hale, under the £28 you asked for.");
+  assert.equal(say(price([saved, pt(1, "30", { source: "Copperkettle" })], goal("lte", "30"))), "£30 at Copperkettle, the £30 you asked for.");
   assert.equal(say(number([pt(5, "900"), pt(1, "1600")], { suffix: " followers", direction: "higher", target: goal("gte", "1500") })), "1,600 followers, over the 1,500 followers you asked for.");
-  // Argos's £32 is too old to count as now; it's the lowest, said in the quieter line.
-  const r = readTracker(price([saved, pt(20, "32", { source: "Argos" }), pt(1, "34", { source: "Smyths" })], goal("lte", "30")))!;
-  assert.equal(trackerSentence(r, NOW).lead, "£34 at Smyths");
+  // Brightside's £32 is too old to count as now; it's the lowest, said in the quieter line.
+  const r = readTracker(price([saved, pt(20, "32", { source: "Brightside" }), pt(1, "34", { source: "Copperkettle" })], goal("lte", "30")))!;
+  assert.equal(trackerSentence(r, NOW).lead, "£34 at Copperkettle");
   assert.equal(trackerDetail(r, NOW), "Lowest £32 on 27 Oct · Saved at £42 on 17 Oct · 3 checks at 3 shops");
 });
 
 test("reached when any shop's current price meets it, named in the sentence", () => {
-  const saved = pt(30, "20", { checked_by: "save", source: "Waterstones" });
-  const pts = [saved, pt(3, "15", { source: "WHSmith" }), pt(1, "18", { source: "Waterstones" })];
+  const saved = pt(30, "20", { checked_by: "save", source: "Page & Stone" });
+  const pts = [saved, pt(3, "15", { source: "Inkwell" }), pt(1, "18", { source: "Page & Stone" })];
   const v = price(pts, goal("lte", "16"));
-  assert.equal(say(v), "£15 at WHSmith, under the £16 you asked for.");
-  assert.equal(reachedBy(v, pts, 2)?.source, "WHSmith");
+  assert.equal(say(v), "£15 at Inkwell, under the £16 you asked for.");
+  assert.equal(reachedBy(v, pts, 2)?.source, "Inkwell");
   // A shop's price older than 14 days before the newest check doesn't count.
-  const stale = [saved, pt(20, "15", { source: "WHSmith" }), pt(1, "18", { source: "Waterstones" })];
+  const stale = [saved, pt(20, "15", { source: "Inkwell" }), pt(1, "18", { source: "Page & Stone" })];
   assert.equal(reachedBy(price(stale, goal("lte", "16")), stale, 2), null);
-  assert.equal(say(price(stale, goal("lte", "16"))), "£18 at Waterstones. You asked to hear at £16 or less.");
+  assert.equal(say(price(stale, goal("lte", "16"))), "£18 at Page & Stone. You asked to hear at £16 or less.");
   // The server's word wins, and its reached_by is the check the sentence names.
   const told = { ...v, summary: { ...summaryOf(v, NOW)!, target_reached: false, reached_by: null } };
   assert.match(say(told), /You asked to hear at £16 or less/);
   const byServer = { ...v, summary: { ...summaryOf(v, NOW)!, reached_by: pts[1] } };
-  assert.equal(trackerSentence(readTracker(byServer)!, NOW).lead, "£15 at WHSmith");
+  assert.equal(trackerSentence(readTracker(byServer)!, NOW).lead, "£15 at Inkwell");
 });
 
 test("a number of your own: neutral words, never price or shop", () => {
-  const v = number([pt(40, "24.50", { source: "Octopus" }), pt(10, "22.86", { source: "Octopus" }), pt(3, "23.18", { source: "Octopus" })]);
+  const v = number([pt(40, "24.50", { source: "Tidewell" }), pt(10, "22.86", { source: "Tidewell" }), pt(3, "23.18", { source: "Tidewell" })]);
   const text = say(v);
   assert.equal(text, "23.18p/kWh, 1.32p/kWh lower than on 7 Oct. It was 22.86p/kWh on 6 Nov.");
   assert.doesNotMatch(text + trackerDetail(readTracker(v)!, NOW), /price|shop/i);
@@ -101,16 +101,16 @@ test("a number of your own: neutral words, never price or shop", () => {
 });
 
 test("a state: since when, and what you asked to hear", () => {
-  const jl = { source: "John Lewis" };
+  const jl = { source: "Fenn & Hale" };
   const pts = [pt(20, "sold out", jl), pt(9, "sold out", jl), pt(6, "in stock", jl), pt(0, "in stock", jl)];
-  assert.equal(say(state(pts)), "In stock at John Lewis since Tuesday.");
+  assert.equal(say(state(pts)), "In stock at Fenn & Hale since Tuesday.");
   assert.equal(trackerDetail(readTracker(state(pts))!, NOW), "Sold out from 27 Oct to 10 Nov · 4 checks");
-  assert.equal(say(state(pts, { target: goal("eq", "in stock") })), "In stock at John Lewis since Tuesday. You asked to hear when it was.");
-  assert.equal(say(state([pt(9, "sold out", jl), pt(2, "sold out", jl)], { target: goal("eq", "in stock") })), "Sold out at John Lewis, every check since 7 Nov. You asked to hear when it's in stock.");
+  assert.equal(say(state(pts, { target: goal("eq", "in stock") })), "In stock at Fenn & Hale since Tuesday. You asked to hear when it was.");
+  assert.equal(say(state([pt(9, "sold out", jl), pt(2, "sold out", jl)], { target: goal("eq", "in stock") })), "Sold out at Fenn & Hale, every check since 7 Nov. You asked to hear when it's in stock.");
   assert.equal(say(state([pt(1, "approved")], { preset: null, label: "status", states: ["approved", "received"] })), "Approved, checked yesterday.");
   // The same day: a time, and no "from 16 Nov to 16 Nov".
   const today = [pt(0, "sold out", { ...jl, checked_at: new Date(2026, 10, 16, 8, 5).toISOString() }), pt(0, "in stock", { ...jl, checked_at: new Date(2026, 10, 16, 10, 30).toISOString() })];
-  assert.equal(say(state(today)), "In stock at John Lewis since 10:30.");
+  assert.equal(say(state(today)), "In stock at Fenn & Hale since 10:30.");
   assert.equal(trackerDetail(readTracker(state(today))!, NOW), "Sold out earlier on 16 Nov · 2 checks");
   assert.deepEqual(stateRuns(readTracker(state(pts))!, NOW.getTime()).map((r) => [r.value, r.points.length]), [["sold out", 2], ["in stock", 2]]);
 });
@@ -134,8 +134,8 @@ test("the summary the fake sends agrees with the words", () => {
 });
 
 test("a glance for cards and rows", () => {
-  const saved = pt(30, "42", { checked_by: "save", source: "LEGO" });
-  assert.equal(trackerGlance(readTracker(price([saved, pt(1, "34", { source: "Smyths" })]))!, NOW), "£34 · lowest so far");
+  const saved = pt(30, "42", { checked_by: "save", source: "Fellstone" });
+  assert.equal(trackerGlance(readTracker(price([saved, pt(1, "34", { source: "Copperkettle" })]))!, NOW), "£34 · lowest so far");
   assert.equal(trackerGlance(readTracker(number([pt(10, "22.86"), pt(3, "23.18")]))!, NOW), "23.18p/kWh · up 0.32p/kWh since Friday");
   assert.equal(trackerGlance(readTracker(state([pt(9, "sold out"), pt(6, "in stock")]))!, NOW), "In stock · since Tuesday");
 });

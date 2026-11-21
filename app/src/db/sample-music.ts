@@ -236,7 +236,7 @@ export async function sampleArtist(name: string): Promise<ArtistDetail | null> {
 const PLAYLISTS: Array<{ id: string; name: string; owner?: string; artists: string[]; n: number }> = [
   { id: "pl1sundaykitchen", name: "Sunday kitchen", artists: ["Juniper & Gale", "Orla Finch", "Astrid Kalm", "Iris & the Pines"], n: 42 },
   { id: "pl2deepwork", name: "Deep work", artists: ["Lumen Choir", "Theo Lindqvist", "Grey Meridian", "Halden"], n: 68 },
-  { id: "pl3morningrun", name: "Morning run", artists: ["Velvet Engines", "Kestrel", "Ferro", "Kaito Rhee"], n: 35 },
+  { id: "pl3morningrun", name: "Evening run", artists: ["Velvet Engines", "Kestrel", "Ferro", "Kaito Rhee"], n: 35 },
   { id: "pl4roadtrip", name: "Road trip 2025", artists: ["Cass Moreno", "Big Sky Collective", "The Low Arcs", "Paloma Strand"], n: 57 },
   { id: "pl5latenight", name: "Late night drive", artists: ["Neon Fathoms", "Kaito Rhee", "Mara Vell", "Delta Fold"], n: 29 },
   { id: "pl9christmas", name: "Christmas at home", artists: ["Juniper & Gale", "Halden", "Orla Finch", "Lumen Choir"], n: 38 },

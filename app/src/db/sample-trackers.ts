@@ -4,18 +4,18 @@
  * /api/trackers would, so the app is built against the contract alone.
  *
  * The sample's story, from Penny's runs (db/sample-team.ts):
- *  - the LEGO Ferrari, saved at £42, now £34 at Smyths after 12 checks at 4
- *    shops, with a target of £30; and its stock at John Lewis, out for a
+ *  - the moka pot, saved at £42, now £34 at Copperkettle after 12 checks at 4
+ *    shops, with a target of £30; and its stock at Fenn & Hale, out for a
  *    fortnight and back in since Tuesday;
- *  - the Aesop balm, saved at £31 at Boots, now £27 at John Lewis: under the
+ *  - the hand balm, saved at £31 at Greenleaf, now £27 at Fenn & Hale: under the
  *    £28 you asked for;
- *  - the Moleskine at £18 at Waterstones, checked last, but £15 at WHSmith on
+ *  - the diary at £18 at Page & Stone, checked last, but £15 at Inkwell on
  *    Friday: under the £16 you asked for, reached at another shop; the dress
  *    checked once more by Ask;
- *  - the Kindle with only its saved price (Amazon didn't answer);
+ *  - the e-reader with only its saved price (Parcel House didn't answer);
  *  - the linen dress, checked once by Ask, that nobody checks yet;
  *  - the Fellow kettle, a shop's page with nothing tracked yet;
- *  - on their own: the Octopus tariff's unit rate, read by Wren each Friday,
+ *  - on their own: the Electricity tariff's unit rate, read by Wren each Friday,
  *    and a passport renewal you check by hand ("Just me"), approved yesterday.
  *
  * `sampleTrackersFail(true)` makes the next loads fail, for the panel's
@@ -26,34 +26,34 @@ import type { SavedItem } from "../../../lib/saved-rules";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
 import { cleanNumber, currencyAffix, readTracker, sourceOf, summaryOf } from "../lib/tracker-words";
 
-const LEGO = "https://www.lego.com/en-gb/product/ferrari-daytona-sp3-42143";
-const AESOP = "https://www.boots.com/aesop-resurrection-aromatique-hand-balm-75ml";
-const MOLESKINE = "https://www.waterstones.com/book/moleskine-2027-weekly-diary";
-const KINDLE = "https://www.amazon.co.uk/dp/B0CFPJYX7P";
+const MOKA = "https://fellstone.example/products/moka-pot-6-cup";
+const BALM = "https://greenleaf.example/cedar-hand-balm-75ml";
+const DIARY = "https://pageandstone.example/2027-weekly-diary";
+const EREADER = "https://parcelhouse.example/p/e-reader-16gb";
 const DRESS = "https://marlowandfinch.example/products/sage-linen-wrap-dress";
-const JOHN_LEWIS_LEGO = "https://www.johnlewis.com/lego-technic-42143-ferrari-daytona-sp3";
-const SMYTHS = "https://www.smyths.co.uk/uk/en-gb/toys/lego/lego-technic/42143";
-const ARGOS = "https://www.argos.co.uk/product/1325411";
-const OCTOPUS = "https://octopus.energy/smart/tracker/";
+const FENN_MOKA = "https://fennandhale.example/stovetop-moka-pot-6-cup";
+const COPPERKETTLE = "https://copperkettle.example/coffee/moka-pot-6-cup";
+const BRIGHTSIDE = "https://brightside.example/product/1325411";
+const TARIFF = "https://tidewell.example/tariffs/tracker/";
 const PASSPORT = "https://www.gov.uk/track-passport-application";
 
 /** The gift ideas, as Saved seeds (db/sample-saved.ts Seed): appended after its own, so no other sample id moves. */
 export const PRICED_SEEDS = [
   {
-    id: "s-lego", days: 40, time: "20:14", kind: "link" as const, source: "share-target" as const,
-    url: LEGO, title: "LEGO Technic Ferrari Daytona SP3", site: "LEGO", fetch_status: "preview" as const,
-    excerpt: "A 1:8 replica with a working gearbox and butterfly doors.", note: "Rowan's birthday?",
-    thing: "product" as const, facts: { name: "LEGO Technic Ferrari Daytona SP3", price: "42", currency: "GBP", shop: "LEGO" },
+    id: "s-moka", days: 40, time: "20:14", kind: "link" as const, source: "share-target" as const,
+    url: MOKA, title: "Stovetop moka pot, 6 cup", site: "Fellstone", fetch_status: "preview" as const,
+    excerpt: "Aluminium, makes six small cups, for any hob but induction.", note: "Rowan's birthday?",
+    thing: "product" as const, facts: { name: "Stovetop moka pot, 6 cup", price: "42", currency: "GBP", shop: "Fellstone" },
   },
   {
-    id: "s-aesop", days: 0, time: "01:35", kind: "link" as const, source: "extension" as const,
-    url: AESOP, title: "Aesop Resurrection Aromatique Hand Balm 75ml", site: "Boots", fetch_status: "preview" as const,
-    thing: "product" as const, facts: { name: "Aesop hand balm", price: "31", currency: "GBP", shop: "Boots" },
+    id: "s-balm", days: 0, time: "01:35", kind: "link" as const, source: "extension" as const,
+    url: BALM, title: "Cedar hand balm, 75ml", site: "Greenleaf", fetch_status: "preview" as const,
+    thing: "product" as const, facts: { name: "Cedar hand balm", price: "31", currency: "GBP", shop: "Greenleaf" },
   },
   {
-    id: "s-moleskine", days: 9, time: "19:32", kind: "link" as const, source: "share-target" as const,
-    url: MOLESKINE, title: "Moleskine 2027 Weekly Diary, Large, Black", site: "Waterstones", fetch_status: "preview" as const,
-    thing: "product" as const, facts: { name: "Moleskine 2027 diary", price: "18", currency: "GBP", shop: "Waterstones" },
+    id: "s-diary", days: 9, time: "19:32", kind: "link" as const, source: "share-target" as const,
+    url: DIARY, title: "2027 weekly diary, large, black", site: "Page & Stone", fetch_status: "preview" as const,
+    thing: "product" as const, facts: { name: "2027 diary", price: "18", currency: "GBP", shop: "Page & Stone" },
   },
   {
     id: "s-kettle", days: 3, time: "21:48", kind: "link" as const, source: "share-target" as const,
@@ -62,9 +62,9 @@ export const PRICED_SEEDS = [
     thing: "product" as const, facts: { name: "Fellow Stagg EKG kettle", shop: "Fellow" },
   },
   {
-    id: "s-kindle", days: 1, time: "18:05", kind: "link" as const, source: "share-target" as const,
-    url: KINDLE, title: "Kindle Paperwhite (16 GB)", site: "Amazon", fetch_status: "preview" as const,
-    thing: "product" as const, facts: { name: "Kindle Paperwhite", price: "159.99", currency: "GBP", shop: "Amazon" },
+    id: "s-ereader", days: 1, time: "18:05", kind: "link" as const, source: "share-target" as const,
+    url: EREADER, title: "E-reader (16 GB)", site: "Parcel House", fetch_status: "preview" as const,
+    thing: "product" as const, facts: { name: "E-reader", price: "159.99", currency: "GBP", shop: "Parcel House" },
   },
 ];
 
@@ -86,64 +86,64 @@ interface Seed {
 
 const SEEDS: Seed[] = [
   {
-    key: "lego-price", item: LEGO, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny },
+    key: "moka-price", item: MOKA, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny },
     checks: [
-      [36, 8, "42", "LEGO", LEGO, M],
-      [31, 8, "39.99", "John Lewis", JOHN_LEWIS_LEGO, M],
-      [27, 8, "42", "LEGO", LEGO, M],
-      [23, 8, "37.50", "Argos", ARGOS, M],
-      [19, 12, "39.99", "John Lewis", JOHN_LEWIS_LEGO, "ask"],
-      [15, 8, "36", "Smyths", SMYTHS, M],
-      [12, 8, "38", "Smyths", SMYTHS, M],
-      [8, 21, "35.99", "Argos", ARGOS, "owner"],
-      [5, 8, "36", "Smyths", SMYTHS, M],
-      [2, 8, "35", "Smyths", SMYTHS, M],
-      [0, -1, "34", "Smyths", SMYTHS, M],
+      [36, 8, "42", "Fellstone", MOKA, M],
+      [31, 8, "39.99", "Fenn & Hale", FENN_MOKA, M],
+      [27, 8, "42", "Fellstone", MOKA, M],
+      [23, 8, "37.50", "Brightside", BRIGHTSIDE, M],
+      [19, 12, "39.99", "Fenn & Hale", FENN_MOKA, "ask"],
+      [15, 8, "36", "Copperkettle", COPPERKETTLE, M],
+      [12, 8, "38", "Copperkettle", COPPERKETTLE, M],
+      [8, 21, "35.99", "Brightside", BRIGHTSIDE, "owner"],
+      [5, 8, "36", "Copperkettle", COPPERKETTLE, M],
+      [2, 8, "35", "Copperkettle", COPPERKETTLE, M],
+      [0, -1, "34", "Copperkettle", COPPERKETTLE, M],
     ],
     target: { op: "lte", value: "30", daysBack: 6 },
   },
   {
-    key: "lego-stock", item: LEGO, tracker: { label: "stock", kind: "state", direction: "change", preset: "stock", states: ["in stock", "sold out"], assistant_id: SAMPLE_TEAM_IDS.penny, url: JOHN_LEWIS_LEGO },
+    key: "moka-stock", item: MOKA, tracker: { label: "stock", kind: "state", direction: "change", preset: "stock", states: ["in stock", "sold out"], assistant_id: SAMPLE_TEAM_IDS.penny, url: FENN_MOKA },
     checks: [
-      [20, 8, "sold out", "John Lewis", JOHN_LEWIS_LEGO, M],
-      [16, 8, "sold out", "John Lewis", JOHN_LEWIS_LEGO, M],
-      [12, 8, "sold out", "John Lewis", JOHN_LEWIS_LEGO, M],
-      [9, 8, "sold out", "John Lewis", JOHN_LEWIS_LEGO, M],
-      [6, 8, "in stock", "John Lewis", JOHN_LEWIS_LEGO, M],
-      [3, 8, "in stock", "John Lewis", JOHN_LEWIS_LEGO, M],
-      [0, -1, "in stock", "John Lewis", JOHN_LEWIS_LEGO, M],
+      [20, 8, "sold out", "Fenn & Hale", FENN_MOKA, M],
+      [16, 8, "sold out", "Fenn & Hale", FENN_MOKA, M],
+      [12, 8, "sold out", "Fenn & Hale", FENN_MOKA, M],
+      [9, 8, "sold out", "Fenn & Hale", FENN_MOKA, M],
+      [6, 8, "in stock", "Fenn & Hale", FENN_MOKA, M],
+      [3, 8, "in stock", "Fenn & Hale", FENN_MOKA, M],
+      [0, -1, "in stock", "Fenn & Hale", FENN_MOKA, M],
     ],
   },
   {
-    key: "aesop-price", item: AESOP, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny },
-    checks: [[0, -1, "27", "John Lewis", "https://www.johnlewis.com/aesop-resurrection-aromatique-hand-balm-75ml", M]],
+    key: "balm-price", item: BALM, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny },
+    checks: [[0, -1, "27", "Fenn & Hale", "https://fennandhale.example/cedar-hand-balm-75ml", M]],
     target: { op: "lte", value: "28", daysBack: 0 },
   },
   {
-    key: "moleskine-price", item: MOLESKINE, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny },
+    key: "diary-price", item: DIARY, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny },
     checks: [
-      [8, 8, "18", "Waterstones", MOLESKINE, M],
-      [3, 10, "15", "WHSmith", "https://www.whsmith.co.uk/products/moleskine-2027-weekly-diary-large-black", M],
-      [1, 19, "18", "Waterstones", MOLESKINE, M],
+      [8, 8, "18", "Page & Stone", DIARY, M],
+      [3, 10, "15", "Inkwell", "https://inkwell.example/products/2027-weekly-diary-large-black", M],
+      [1, 19, "18", "Page & Stone", DIARY, M],
     ],
-    // Reached at another shop: Waterstones checked last, WHSmith's £15 meets the £16.
+    // Reached at another shop: Page & Stone checked last, Inkwell's £15 meets the £16.
     target: { op: "lte", value: "16", daysBack: 4 },
   },
-  { key: "kindle-price", item: KINDLE, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny }, checks: [] },
+  { key: "ereader-price", item: EREADER, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny }, checks: [] },
   { key: "dress-price", item: DRESS, tracker: { label: "price", kind: "number", direction: "lower", preset: "price" }, checks: [[0, -1, "85", "Marlow & Finch", DRESS, "ask"]] },
   {
-    key: "octopus", createdDaysBack: 59,
-    tracker: { name: "Octopus tariff", url: OCTOPUS, label: "unit rate", kind: "number", suffix: "p/kWh", direction: "lower", preset: null, assistant_id: SAMPLE_TEAM_IDS.wren },
+    key: "tariff", createdDaysBack: 59,
+    tracker: { name: "Electricity tariff", url: TARIFF, label: "unit rate", kind: "number", suffix: "p/kWh", direction: "lower", preset: null, assistant_id: SAMPLE_TEAM_IDS.wren },
     checks: [
-      [59, 17, "24.50", "Octopus Energy", OCTOPUS, M],
-      [52, 17, "24.50", "Octopus Energy", OCTOPUS, M],
-      [45, 17, "24.86", "Octopus Energy", OCTOPUS, M],
-      [38, 17, "25.10", "Octopus Energy", OCTOPUS, M],
-      [31, 17, "24.12", "Octopus Energy", OCTOPUS, M],
-      [24, 17, "23.70", "Octopus Energy", OCTOPUS, M],
-      [17, 17, "23.94", "Octopus Energy", OCTOPUS, M],
-      [10, 17, "22.86", "Octopus Energy", OCTOPUS, M],
-      [3, 17, "23.18", "Octopus Energy", OCTOPUS, M],
+      [59, 17, "24.50", "Tidewell Energy", TARIFF, M],
+      [52, 17, "24.50", "Tidewell Energy", TARIFF, M],
+      [45, 17, "24.86", "Tidewell Energy", TARIFF, M],
+      [38, 17, "25.10", "Tidewell Energy", TARIFF, M],
+      [31, 17, "24.12", "Tidewell Energy", TARIFF, M],
+      [24, 17, "23.70", "Tidewell Energy", TARIFF, M],
+      [17, 17, "23.94", "Tidewell Energy", TARIFF, M],
+      [10, 17, "22.86", "Tidewell Energy", TARIFF, M],
+      [3, 17, "23.18", "Tidewell Energy", TARIFF, M],
     ],
     target: { op: "lte", value: "22", daysBack: 30 },
   },
@@ -363,7 +363,7 @@ export function withSamplePricesNow<T extends SavedItem>(items: T[]): T[] {
 
 // ---------- Ask, in sample mode ----------
 
-/** "Has the Lego ever been cheaper?", "which gift ideas have dropped in price?": sample mode answers these from the checks above. */
+/** "Has the moka pot ever been cheaper?", "which gift ideas have dropped in price?": sample mode answers these from the checks above. */
 export const isPriceHistoryQuestion = (question: string): boolean => /\b(cheaper|price history|prices? (?:moved|changed|dropped)|dropped in price|ever been (?:cheap|less))\b/i.test(question);
 
 export const SAMPLE_PRICE_QUESTION = "Which gift ideas have dropped in price?";
@@ -398,6 +398,6 @@ export async function samplePriceAnswer(): Promise<import("../../../lib/answer-t
     skipped: [],
     found: true,
     flagged: false,
-    next: ["Has the Ferrari ever been cheaper?", "Tell me when one drops again"],
+    next: ["Has the moka pot ever been cheaper?", "Tell me when one drops again"],
   };
 }

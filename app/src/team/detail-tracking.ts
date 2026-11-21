@@ -1,7 +1,7 @@
 /**
  * What an assistant tracks, on its page (team-detail.ts): each tracker it
  * checks, on a saved item or on its own, as a row that opens where it
- * lives, with a glance at where it stands ("£34 · Smyths", "In stock ·
+ * lives, with a glance at where it stands ("£34 · Copperkettle", "In stock ·
  * since Tuesday"). Hidden when it tracks nothing.
  */
 import { h } from "../lib/dom";

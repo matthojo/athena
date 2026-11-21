@@ -2,8 +2,8 @@
  * Tracking (lib/tracker-types.ts; the words are lib/tracker-words.ts). One
  * calm panel on a saved item, a standalone tracker's page and a reply:
  *
- *  - Each tracker is one block, sentence first ("£34 at Smyths. You asked to
- *    hear at £30 or less." / "In stock at John Lewis since Tuesday."), a
+ *  - Each tracker is one block, sentence first ("£34 at Copperkettle. You asked to
+ *    hear at £30 or less." / "In stock at Fenn & Hale since Tuesday."), a
  *    quieter line under it, then its picture: a step line for a number, a
  *    timeline of runs for a state. One check is the sentence alone.
  *  - Under the picture: who checked last and the page it was read on; "All

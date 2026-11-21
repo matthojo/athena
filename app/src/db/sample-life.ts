@@ -87,7 +87,7 @@ function defaultOwn(today: string): OwnStore {
   const base = { unit: null, target: null, per_week: null, archived_at: null, updated_at: at(1) };
   return {
     habits: [
-      { ...base, id: "00000000-0000-4000-8000-0000000000a1", name: "Evening walk", days: WEEKDAYS_ONLY, icon: "heart", position: 0, starts_on: addDays(today, -150), created_at: at(150) },
+      { ...base, id: "00000000-0000-4000-8000-0000000000a1", name: "Evening run", days: WEEKDAYS_ONLY, icon: "heart", position: 0, starts_on: addDays(today, -150), created_at: at(150) },
       { ...base, id: "00000000-0000-4000-8000-0000000000a2", name: "Fruit and veg", days: EVERY_DAY, target: 5, unit: "portions", icon: "leaf", position: 1, starts_on: addDays(today, -110), created_at: at(110) },
       { ...base, id: "00000000-0000-4000-8000-0000000000a3", name: "Practise piano", days: EVERY_DAY, per_week: 3, icon: "music", position: 2, starts_on: addDays(today, -90), created_at: at(90) },
     ],
@@ -122,6 +122,8 @@ function madeUp(h: OwnHabit, date: string, today: string): number {
   // This week the piano is one short, so Today has it.
   if (h.per_week) return date >= weekStartOf(today) ? (weekday(date) === 1 || weekday(date) === 3 ? 1 : 0) : r() < 0.48 ? 1 : 0;
   if (!isDueOn(h, date)) return 0;
+  // The evening run hasn't been missed in a month, so its streak is worth showing.
+  if (h.id === "00000000-0000-4000-8000-0000000000a1" && date >= addDays(today, -30)) return 1;
   if (h.target) {
     const x = r();
     return x < 0.62 ? h.target : x < 0.9 ? 2 + Math.floor(r() * (h.target - 2)) : 0;

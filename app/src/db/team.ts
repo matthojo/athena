@@ -170,10 +170,10 @@ export async function draftAssistant(text: string): Promise<TeamDraft> {
   if (isSampleMode()) {
     const seed = newSeed();
     const job = text.replace(/\s+/g, " ").trim().slice(0, 140);
-    const weekly = /\bevery\b/i.test(job);
+    // No triggers here: setup reads the day and time from the sentence itself (team/setup-guess.ts).
     // As the server does: a job that needs something online (prices, here) comes back with `web: true`.
     const web = /\b(price|prices|deal|deals|cheap|cheaper|cheapest|discount|sale|bargain|in stock)\b/i.test(job);
-    const draft: TeamDraft & { web: boolean } = { name: nameFromSeed(seed, sampleList().map((a) => a.name)), job, instructions: job, triggers: weekly ? [{ kind: "schedule", days: [5], time: "17:00" }] : [], allow: [], seed, web };
+    const draft: TeamDraft & { web: boolean } = { name: nameFromSeed(seed, sampleList().map((a) => a.name)), job, instructions: job, triggers: [], allow: [], seed, web };
     return draft;
   }
   return (await request<TeamDraftResponse>("/team/draft", { method: "POST", body: JSON.stringify({ text }) })).draft;
