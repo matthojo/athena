@@ -1,9 +1,9 @@
 /**
  * Home's Ask box (docs/team.md, Experience → Home): "Ask Athena…" with a row
  * of avatar chips under it, Athena's orb first, then each assistant. Picking
- * a chip is choosing a colleague: the box takes their face, asks "Ask Muse,
+ * a chip is choosing a colleague: the box takes their face, asks "Ask Penny,
  * or give her a job…", and a line under the chips says what they do, or
- * what they're doing right now ("Muse is checking prices"). A chip whose
+ * what they're doing right now ("Penny is checking prices"). A chip whose
  * assistant is on a job carries a small breathing dot. With no team yet, the
  * row is one quiet "Add an assistant".
  *
@@ -34,7 +34,7 @@ import { ATHENA, loadTeam, objectOf, teamLoaded, whoMark, whoOf, type Who } from
 /** Who the box asks, for this visit: the last chip picked. */
 let picked: string | null = null;
 
-/** The Team button, aloud: "Team. Muse is working. 1 thing waits for you." */
+/** The Team button, aloud: "Team. Penny is working. 1 thing waits for you." */
 export function teamLabel(p: TeamPulse): string {
   const n = p.working.length;
   const names = n > 1 ? `${p.working.slice(0, -1).join(", ")} and ${p.working[n - 1]}` : (p.working[0] ?? "");

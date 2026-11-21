@@ -9,7 +9,7 @@ import { avatarFromSeed } from "./team-seed";
 import { TONES, type TeamTrigger, type Tone } from "./team-types";
 
 const todo = { kind: "commitment", action: "created" } as const;
-const muse: Voice = { name: "Muse", personality: { tone: "warm", pronoun: "she" } };
+const penny: Voice = { name: "Penny", personality: { tone: "warm", pronoun: "she" } };
 const dot: Voice = { name: "Dot", personality: { tone: "crisp", pronoun: "they" } };
 const fig: Voice = { name: "Fig", personality: { tone: "wry", pronoun: "he" } };
 const as = (tone: Tone): Voice => ({ name: "Ada", personality: { tone, pronoun: "she" } });
@@ -23,8 +23,8 @@ test("honestText: a change the record doesn't hold is taken out; the rest stays"
   // Fig said the queued to-do was added. Nothing was: it waits for Go.
   assert.equal(honestText("Added a to-do to chase Priya about the Q3 review. Your week: 6 to-dos done, the Q3 review still slipping.", []), "Your week: 6 to-dos done, the Q3 review still slipping.");
   // "when you saved it" is the owner's doing, not a claim.
-  const muse = "Found the Lego Technic Ferrari Daytona for £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas, so I'd get it there.";
-  assert.equal(honestText(muse, []), muse);
+  const penny = "Found the Lego Technic Ferrari Daytona for £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas, so I'd get it there.";
+  assert.equal(honestText(penny, []), penny);
   // Backed by the record, kept; more than the record holds, taken out.
   assert.equal(honestText("Added 2 to-dos from the new issues.", [todo, todo]), "Added 2 to-dos from the new issues.");
   assert.equal(honestText("Added 3 to-dos. The rest were done already.", [todo, todo]), "The rest were done already.");
@@ -41,8 +41,8 @@ test("honestText: a change the record doesn't hold is taken out; the rest stays"
 });
 
 test("runWords: the three runs of the review, after", () => {
-  // Muse (warm): a find, nothing changed. Her reply is the card.
-  const m = runWords(muse, { text: "Found the Lego Technic Ferrari Daytona for £34 at Smyths, £8 under the price when you saved it [1]. You bought from them last Christmas, so I'd get it there.", changes: [], planned: 0 });
+  // Penny (warm): a find, nothing changed. Her reply is the card.
+  const m = runWords(penny, { text: "Found the Lego Technic Ferrari Daytona for £34 at Smyths, £8 under the price when you saved it [1]. You bought from them last Christmas, so I'd get it there.", changes: [], planned: 0 });
   assert.equal(m.summary, "Found the Lego Technic Ferrari Daytona for £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas, so I'd get it there.");
   assert.equal(m.quiet, false);
   assert.match(m.text, /\[1\]/, "the conversation keeps its citation");
@@ -64,13 +64,13 @@ test("runWords: a run with nothing to do is quiet, in its own words when it said
   assert.equal(runWords(dot, { text: "", changes: [], planned: 0 }).summary, "Nothing to do.");
   assert.equal(runWords(fig, { text: "", changes: [], planned: 0 }).summary, "Nothing needed me this time.");
   // Something found isn't quiet; something waiting never is.
-  assert.equal(runWords(muse, { text: "It's down to £30.", found: true, changes: [], planned: 0 }).quiet, false);
-  assert.equal(runWords(muse, { text: "Nothing else to add.", found: false, changes: [], planned: 1 }).quiet, false);
+  assert.equal(runWords(penny, { text: "It's down to £30.", found: true, changes: [], planned: 0 }).quiet, false);
+  assert.equal(runWords(penny, { text: "Nothing else to add.", found: false, changes: [], planned: 1 }).quiet, false);
   // Ask's own "nothing found" is Athena's sentence: the assistant says it its way.
   assert.equal(runWords(fig, { text: "I couldn't find anything about that.", found: false, changes: [], planned: 0 }).summary, "Nothing needed me this time.");
-  assert.equal(runWords(muse, { text: "Here's what I'd change. Nothing happens until you tap Go.", changes: [], planned: 2 }).summary, "2 changes are ready for you. Tap Go when you're happy.");
+  assert.equal(runWords(penny, { text: "Here's what I'd change. Nothing happens until you tap Go.", changes: [], planned: 2 }).summary, "2 changes are ready for you. Tap Go when you're happy.");
   // Only false claims, nothing done: quiet, never the claim.
-  const lied = runWords(muse, { text: "Added it to your list.", changes: [], planned: 0 });
+  const lied = runWords(penny, { text: "Added it to your list.", changes: [], planned: 0 });
   assert.equal(lied.quiet, true);
   assert.equal(lied.summary, "Nothing needed doing this time.");
 });
@@ -91,19 +91,19 @@ test("runWords: with no reply, a line from the record in each tone", () => {
 
 test("waitsLine: what waits for Go, in each tone, always naming Go", () => {
   for (const t of TONES) for (const n of [1, 3]) assert.match(waitsLine(as(t), n), /\bGo\b/, `${t} ${n}`);
-  assert.equal(waitsLine(muse, 1), "One change is ready for you. Tap Go when you're happy.");
+  assert.equal(waitsLine(penny, 1), "One change is ready for you. Tap Go when you're happy.");
   assert.equal(waitsLine(dot, 3), "3 changes wait for Go.");
   assert.equal(waitsLine(fig, 3), "3 changes are ready. None happen until you tap Go.");
 });
 
 test("startStep and memoryStep: what a run is doing first and last", () => {
   const issues = [1, 2, 3].map((i) => ({ kind: "collected" as const, facets: { kind: "issue", title: `Bug ${i}` } }));
-  assert.equal(startStep(muse, issues), "Reading your 3 new issues");
+  assert.equal(startStep(penny, issues), "Reading your 3 new issues");
   assert.equal(startStep(dot, issues), "Reading 3 new issues");
-  assert.equal(startStep(muse, [{ kind: "saved", facets: { savedAction: "gift_idea", title: "Lego Technic Ferrari Daytona with a very long name indeed" } }]), "Looking at “Lego Technic Ferrari Daytona with a…”");
+  assert.equal(startStep(penny, [{ kind: "saved", facets: { savedAction: "gift_idea", title: "Lego Technic Ferrari Daytona with a very long name indeed" } }]), "Looking at “Lego Technic Ferrari Daytona with a…”");
   assert.equal(startStep(fig, []), "Getting to it");
   assert.equal(startStep(dot, []), "Starting");
-  assert.equal(memoryStep(muse), "Making a note for next time");
+  assert.equal(memoryStep(penny), "Making a note for next time");
   assert.equal(memoryStep(dot), "Saving notes for next time");
 });
 
@@ -144,21 +144,21 @@ test("failures: the cause, in words the owner reads, and what to do", () => {
   assert.equal(failLine("busy"), "Athena's AI was busy. Try Run now in a few minutes.");
   assert.equal(failLine("busy", { events: 3, name: "Dot" }), "Athena's AI was busy. Ask Dot about them in a chat.");
   assert.equal(failLine("stopped"), "The run stopped partway. Anything it changed is in What Ask did. Try Run now.");
-  assert.equal(failLine("start", { events: 1, name: "Muse" }), "The run couldn't start. Ask Muse about it in a chat.");
+  assert.equal(failLine("start", { events: 1, name: "Penny" }), "The run couldn't start. Ask Penny about it in a chat.");
   assert.doesNotMatch(failLine("other"), /[{}"]/, "never raw JSON");
   assert.equal(failCard(fig, "busy"), "Didn't get there this time. Athena's AI was busy. Ask me in a few minutes, or use Run now on my page.");
-  assert.equal(failCard(muse, "busy", { events: 1, label: "New gift idea: “Lego”" }), "Sorry, I couldn't finish. Athena's AI was busy. Ask me about it and I'll pick it up.");
+  assert.equal(failCard(penny, "busy", { events: 1, label: "New gift idea: “Lego”" }), "Sorry, I couldn't finish. Athena's AI was busy. Ask me about it and I'll pick it up.");
   assert.equal(failCard(dot, "stopped", { events: 3, label: "3 new issues" }), "Didn't finish. I stopped partway; anything I changed is in What Ask did. Ask me about the 3 new issues and I'll pick them up.");
   assert.equal(failCard(dot, "start"), "Didn't start. Ask me, or use Run now on my page.");
 });
 
 test("the card: its voice, its pronoun, and a Why from the record", () => {
-  const avatar = avatarFromSeed("muse");
+  const avatar = avatarFromSeed("penny");
   const run = { id: "r1", thread_id: "t1", summary: "Found it for £34 at Smyths.", finished_at: "2026-11-12T10:00:00.000Z", started_at: "2026-11-12T09:59:00.000Z", status: "done" as const };
   const gift = { kind: "event" as const, days: [], time: null, event: { source: "saved" as const, savedAction: "gift_idea" } };
-  const n = teamNudge({ id: "a1", name: "Muse", avatar, personality: muse.personality }, run, gift, { changed: 0, waiting: 0 });
+  const n = teamNudge({ id: "a1", name: "Penny", avatar, personality: penny.personality }, run, gift, { changed: 0, waiting: 0 });
   assert.equal(n.body, "Found it for £34 at Smyths.");
-  assert.deepEqual(n.why, ["Muse runs when you file something as a gift idea.", "Muse didn't change anything."]);
+  assert.deepEqual(n.why, ["Penny runs when you file something as a gift idea.", "Penny didn't change anything."]);
   const d = teamNudge({ id: "a2", name: "Dot", avatar, personality: dot.personality }, run, null, { changed: 2, waiting: 0 });
   assert.deepEqual(d.why, ["You asked Dot to run.", "Dot made 2 changes you let them make alone."]);
   const f = teamNudge({ id: "a3", name: "Fig", avatar, personality: fig.personality }, run, { kind: "schedule", days: [5], time: "16:00", event: null }, { changed: 0, waiting: 1 });
@@ -172,6 +172,6 @@ test("the card: its voice, its pronoun, and a Why from the record", () => {
   assert.equal(twice.why[1], "Fig tried twice and won't try again on his own.");
   assert.equal(failed.thread_id, undefined);
   // The card's body ends at a sentence when it can.
-  const long = teamNudge({ id: "a1", name: "Muse", avatar }, { ...run, summary: `${"Found a good price for the thing you saved. ".repeat(5)}` }, null);
+  const long = teamNudge({ id: "a1", name: "Penny", avatar }, { ...run, summary: `${"Found a good price for the thing you saved. ".repeat(5)}` }, null);
   assert.ok(long.body.length <= 180 && long.body.endsWith("."), long.body);
 });

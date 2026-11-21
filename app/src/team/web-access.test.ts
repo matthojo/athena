@@ -16,7 +16,7 @@ type D = Parameters<typeof draftWantsWeb>[0];
 
 beforeEach(() => store.clear());
 
-const fake = (extra: Record<string, unknown>) => ({ id: "a1", name: "Muse", ...extra }) as unknown as A;
+const fake = (extra: Record<string, unknown>) => ({ id: "a1", name: "Penny", ...extra }) as unknown as A;
 
 test("the switch reads the server's `web`, and is off when it's missing", () => {
   assert.equal(webOn(fake({ web: true })), true);

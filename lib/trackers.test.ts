@@ -198,14 +198,14 @@ test("a number followed for any change: up or down is news", () => {
 });
 
 test("what the model reads, and the run's prompt line", () => {
-  const pts = [point("42", "10-07", { checked_by: "save", source: "LEGO" }), point("34", "11-14", { source: "Smyths", checked_by: "assistant", who: "Muse", assistant_id: "a1" })];
+  const pts = [point("42", "10-07", { checked_by: "save", source: "LEGO" }), point("34", "11-14", { source: "Smyths", checked_by: "assistant", who: "Penny", assistant_id: "a1" })];
   const t = { ...PRICE, id: "t9", target: { op: "lte" as const, value: "30", set_by: "owner" as const, assistant_id: null, set_at: "2026-11-01T00:00:00Z" } };
   const facts = trackerFacts(trackerView(t, pts, { now: NOW }), { now: NOW, tz: "Europe/London" }) as unknown as { tracker_id: string; better: string; target: unknown; now: { value: string }; points: Array<{ by: string }> };
   assert.equal(facts.tracker_id, "t9");
   assert.equal(facts.better, "lower is better");
   assert.deepEqual(facts.target, { wants: "£30 or less", op: "lte", value: "30", reached: false });
   assert.equal(facts.now.value, "£34");
-  assert.equal(facts.points.at(-1)!.by, "Muse");
+  assert.equal(facts.points.at(-1)!.by, "Penny");
   assert.equal(trackerPromptLine(trackerView(t, pts), { now: NOW, tz: "Europe/London" }), "Price: last £34 at Smyths on 14 Nov; lowest £34 (14 Nov); saved at £42; you want to hear at £30 or less.");
   assert.equal(trackerPromptLine(trackerView({ ...STOCK, id: "s" }, [])), "Stock: no checks yet.");
 });
@@ -237,8 +237,8 @@ test("several sources: a target is reached while any source's current value meet
 
 test("who checks: assistants that fit a tracker, best first", () => {
   const a = (name: string, job: string, more: Partial<{ web: boolean; paused: boolean; instructions: string }> = {}) => ({ id: name, name, job, web: true, paused: false, ...more });
-  const team = [a("Muse", "Finds good prices for gift ideas"), a("Wren", "Keeps an eye on my channel's followers"), a("Pip", "Checks prices", { web: false }), a("Dot", "Watches deals", { paused: true }), a("Kit", "Plans meals", { instructions: "Look for cheaper prices on ingredients" })];
-  assert.deepEqual(assistantsFor(PRICE, team).map((x) => x.name), ["Muse", "Kit"], "web on and not paused; a job match ranks above instructions");
+  const team = [a("Penny", "Finds good prices for gift ideas"), a("Wren", "Keeps an eye on my channel's followers"), a("Pip", "Checks prices", { web: false }), a("Dot", "Watches deals", { paused: true }), a("Kit", "Plans meals", { instructions: "Look for cheaper prices on ingredients" })];
+  assert.deepEqual(assistantsFor(PRICE, team).map((x) => x.name), ["Penny", "Kit"], "web on and not paused; a job match ranks above instructions");
   assert.deepEqual(assistantsFor(FOLLOWERS, team).map((x) => x.name), ["Wren"]);
   assert.deepEqual(assistantsFor(STOCK, team).map((x) => x.name), []);
   assert.deepEqual(assistantsFor(STOCK, [a("Rae", "Tells me when things are back in stock")]).map((x) => x.name), ["Rae"]);

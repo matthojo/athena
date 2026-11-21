@@ -455,8 +455,8 @@ test("guests and keeping one: off the team's lists and the 12, no triggers; kept
   const { qRaw } = await import("./db");
 
   // A standing assistant can take a stage, beside guests.
-  const muse = await createAssistant({ name: "Muse", job: "Finds good prices for gift ideas" });
-  const a0 = await startAssignment(lineup({}, [{ role: "engineer", task: "Write the spec" }, { role: "reviewer", assistant_id: muse.id, task: "Check the prices in it" }]));
+  const penny = await createAssistant({ name: "Penny", job: "Finds good prices for gift ideas" });
+  const a0 = await startAssignment(lineup({}, [{ role: "engineer", task: "Write the spec" }, { role: "reviewer", assistant_id: penny.id, task: "Check the prices in it" }]));
   await drain();
   const a = (await readAssignment(a0.id))!;
   assert.equal(a.status, "done");
@@ -465,8 +465,8 @@ test("guests and keeping one: off the team's lists and the 12, no triggers; kept
   const guest = a.stages[0].who;
 
   // Not on /api/team's list, the 12, check_with_assistant or triggers.
-  assert.deepEqual((await listAssistants()).map((x) => x.id), [muse.id]);
-  assert.deepEqual((await loadTeamDesk()).prompt().match(/- \w+:/g), ["- Muse:"]);
+  assert.deepEqual((await listAssistants()).map((x) => x.id), [penny.id]);
+  assert.deepEqual((await loadTeamDesk()).prompt().match(/- \w+:/g), ["- Penny:"]);
   await assert.rejects(updateAssistant(guest.id, { triggers: [{ kind: "schedule", days: [1], time: "09:00" }] }), /Keep it on the team/);
   await assert.rejects(createTrigger(guest.id, { kind: "schedule", days: [1], time: "09:00" }), /Keep it on the team/);
   assert.deepEqual(await queueTeamRuns(new Date(), "Europe/London"), []);
@@ -481,7 +481,7 @@ test("guests and keeping one: off the team's lists and the 12, no triggers; kept
   assert.deepEqual(await full.json(), { error: `Your team is full. Remove an assistant to keep ${guest.name}.` });
   assert.equal(memories, 1);
 
-  await qRaw(`DELETE FROM team_assistants WHERE id = (SELECT id FROM team_assistants WHERE assignment_id IS NULL AND id <> $1::uuid LIMIT 1)`, [muse.id]);
+  await qRaw(`DELETE FROM team_assistants WHERE id = (SELECT id FROM team_assistants WHERE assignment_id IS NULL AND id <> $1::uuid LIMIT 1)`, [penny.id]);
   const kept = (await keep())!;
   assert.equal(kept.status, 200);
   const body = (await kept.json()) as { assistant: { id: string; memory: { summary: string }; triggers: unknown[]; allow: string[] } };
@@ -577,7 +577,7 @@ test("Go on a stage that didn't finish settles that stage's failed post; an ordi
   await qRaw(`UPDATE team_runs SET status = 'failed', error = 'It stopped part-way.', finished_at = now() WHERE id = $1::uuid`, [runId]);
   assert.deepEqual(await sweepAssignments(), { moved: 0, failed: 1 });
   const stage = (await readAssignment(a0.id))!.stages[0];
-  const ordinary = await postToTeam({ kind: "failed", text: "Muse didn't finish.", assistant_id: stage.who!.id, waits_for: "dismiss" });
+  const ordinary = await postToTeam({ kind: "failed", text: "Penny didn't finish.", assistant_id: stage.who!.id, waits_for: "dismiss" });
   let waiting = (await listChat()).waiting;
   assert.deepEqual(waiting.map((p) => [p.kind, p.stage_id, p.waits_for]), [["failed", stage.id, "dismiss"], ["failed", null, "dismiss"]]);
   const stagePost = waiting[0].id;

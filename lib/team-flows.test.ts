@@ -45,19 +45,19 @@ const ev = (id: number, facets: TeamEventRow["facets"], processed_at: string | n
 const active = (id: string, over: Partial<ActiveFlow>): ActiveFlow => ({ id, name: id, trigger: { kind: "event", event: { source: "saved" } }, assistant_id: null, created_at: AT, ...over });
 
 test("an event fires each assistant's first matching job flow only, and its job flows' events are one batch", () => {
-  const gift = active("gift", { assistant_id: "muse", origin: "trigger", trigger: { kind: "event", event: { source: "saved", savedAction: "gift-idea" } } });
-  const anySave = active("any", { assistant_id: "muse", origin: "trigger" });
-  const handed = active("handed", { assistant_id: "muse", origin: "owner" });
+  const gift = active("gift", { assistant_id: "penny", origin: "trigger", trigger: { kind: "event", event: { source: "saved", savedAction: "gift-idea" } } });
+  const anySave = active("any", { assistant_id: "penny", origin: "trigger" });
+  const handed = active("handed", { assistant_id: "penny", origin: "owner" });
   const plain = active("plain", {});
   const flows = [gift, anySave, handed, plain];
   assert.deepEqual(flowsForEvent(ev(1, { savedAction: "gift_idea" }), flows).map((f) => f.id), ["gift", "handed", "plain"]);
   const batches = batchByFlow([ev(1, { savedAction: "gift_idea" }), ev(2, { savedAction: "saved" }), ev(3, { savedAction: "gift-idea" })], flows);
   const byFlow = Object.fromEntries(batches.map((b) => [b.flow.id, b.events.map((e) => e.id)]));
-  assert.deepEqual(byFlow, { gift: ["1", "2", "3"], handed: ["1", "2", "3"], plain: ["1", "2", "3"] }, "Muse's two job flows: one batch, run by the first that fired");
+  assert.deepEqual(byFlow, { gift: ["1", "2", "3"], handed: ["1", "2", "3"], plain: ["1", "2", "3"] }, "Penny's two job flows: one batch, run by the first that fired");
 });
 
 test("an event Team claimed before a job flow was made stays Team's; one claimed after is the flow's", () => {
-  const job = active("job", { assistant_id: "muse", origin: "trigger", handed_at: "2026-11-20T12:00:00.000Z" });
+  const job = active("job", { assistant_id: "penny", origin: "trigger", handed_at: "2026-11-20T12:00:00.000Z" });
   const plain = active("plain", {});
   assert.deepEqual(flowsForEvent(ev(1, {}, "2026-11-20T11:59:00.000Z"), [job, plain]).map((f) => f.id), ["plain"]);
   assert.deepEqual(flowsForEvent(ev(2, {}, "2026-11-20T12:01:00.000Z"), [job, plain]).map((f) => f.id), ["job", "plain"]);

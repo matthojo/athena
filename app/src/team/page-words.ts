@@ -3,10 +3,10 @@
  * each assistant is doing now, what it did today, what waits for you, and
  * the one sentence at the top. Pure, so the tests can check the words.
  *
- *   deskFor(muse, activity)  → { state: "working", live, last, today }
+ *   deskFor(penny, activity)  → { state: "working", live, last, today }
  *   nowWords(run)            → "Checking prices at Smyths"
  *   nextWords(wren)          → "Next run Friday at 17:00"
- *   teamLede(team, desks)    → "Muse is working. Dot needs your Go."
+ *   teamLede(team, desks)    → "Penny is working. Dot needs your Go."
  */
 import type { TeamAssistant, TeamRun } from "../../../lib/team-types";
 import { isQuiet, runWaits, splitReport } from "../lib/team-report";

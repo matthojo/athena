@@ -4,7 +4,7 @@
  * Team entry shows it, so you can see the team is busy without opening it.
  *
  *   planCounts(runs)        the conversations on this device that may still hold a plan, by run id
- *   readPulse()             { working: ["Muse"], waiting: 1 }
+ *   readPulse()             { working: ["Penny"], waiting: 1 }
  *   watchTeamPulse(fn)      calls fn now, after any change, and every minute while the app is visible
  *
  * Anywhere else that shows the pulse (Home's Team button on phones) uses

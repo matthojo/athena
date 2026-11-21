@@ -75,7 +75,7 @@ export function needWords(n: ImportNeed): string {
   return n.connected ? `${name} is connected` : `Needs ${name}, which isn't connected. What it does with ${name} starts once you connect it.`;
 }
 
-/** "From github.com/sample-author/athena-assistants", "From muse.zip". */
+/** "From github.com/sample-author/athena-assistants", "From penny.zip". */
 export function fromWords(p: Pick<ImportPreview, "source">): string {
   const s = p.source;
   if (s.kind === "link" && s.url) {

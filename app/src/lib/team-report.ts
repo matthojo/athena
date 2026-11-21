@@ -68,8 +68,8 @@ export const isLive = (r: Pick<TeamRun, "status">): boolean => r.status === "que
 
 /**
  * What an assistant is doing right now, as a sentence that starts with its name:
- * "Muse is checking prices", "Wren is getting it done", "Dot is about to start".
- * A step that isn't an -ing phrase follows a colon: "Muse: 3 of 5 done".
+ * "Penny is checking prices", "Wren is getting it done", "Dot is about to start".
+ * A step that isn't an -ing phrase follows a colon: "Penny: 3 of 5 done".
  */
 export function workingWords(name: string, run: Pick<TeamRun, "status" | "step"> & { retried?: boolean }): string {
   if (run.status === "queued" && run.retried) return `${name} will try again shortly`;
@@ -117,7 +117,7 @@ export function liveRuns<T extends Pick<TeamRun, "assistant_id" | "status" | "st
     .filter((r) => !seen.has(r.assistant_id) && !!seen.add(r.assistant_id));
 }
 
-/** "Muse is working" / "Muse and Dot are working" / "Muse, Dot and 2 others are working": the sidebar's and the Team page's words, for a screen reader's one line. */
+/** "Penny is working" / "Penny and Dot are working" / "Penny, Dot and 2 others are working": the sidebar's and the Team page's words, for a screen reader's one line. */
 export function teamWorkingSentence(names: readonly string[]): string | null {
   if (!names.length) return null;
   if (names.length === 1) return `${names[0]} is working`;

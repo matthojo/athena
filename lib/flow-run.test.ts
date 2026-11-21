@@ -238,20 +238,20 @@ test("Think: skipped in a plain flow; with an assistant it gives values, and its
   await walk(s1, ctxOf(flowOf([think])), plain.fx);
   assert.equal(s1.lines[0].line, "Skipped: no assistant runs this flow");
 
-  const muse = { id: "a-1", name: "Muse", avatar: {} as never, personality: { tone: "warm" as const, pronoun: "she" as const } };
+  const penny = { id: "a-1", name: "Penny", avatar: {} as never, personality: { tone: "warm" as const, pronoun: "she" as const } };
   const withA = fakes();
   const s2 = emptyState({ trigger: { title: "Northwind" } });
-  assert.deepEqual(await walk(s2, ctxOf(flowOf([think], { assistant_id: "a-1" }), { assistant: muse }), withA.fx), { status: "done" });
+  assert.deepEqual(await walk(s2, ctxOf(flowOf([think], { assistant_id: "a-1" }), { assistant: penny }), withA.fx), { status: "done" });
   assert.equal(s2.lines[0].line, "Lumen Fibre charges £29 for the same speed.");
   assert.deepEqual(s2.values.deal, { deal: "Lumen Fibre at £29.00 a month", why: "same speed, £9 less" });
   assert.match(String((withA.calls.find(([k]) => k === "think")![1] as { prompt: string }).prompt), /Find a better deal than Northwind/);
 
   const planned = fakes({ think: async () => ({ text: "One change is ready for you.", changes: [], plan: { id: "plan-7", steps: ["Add a to-do: switch to Lumen Fibre"] } }) });
   const s3 = emptyState({ trigger: { title: "Northwind" } });
-  const out = await walk(s3, ctxOf(flowOf([think], { assistant_id: "a-1" }), { assistant: muse }), planned.fx);
+  const out = await walk(s3, ctxOf(flowOf([think], { assistant_id: "a-1" }), { assistant: penny }), planned.fx);
   assert.deepEqual(out, { status: "waiting", waits_for: "go", plan_id: "plan-7" });
   assert.equal(s3.lines[0].pending?.text, "Add a to-do: switch to Lumen Fibre");
-  assert.equal(summaryOf(s3, out, { dry: false, voice: { name: "Muse", personality: muse.personality } }), "One change is ready for you. Tap Go when you're happy.");
+  assert.equal(summaryOf(s3, out, { dry: false, voice: { name: "Penny", personality: penny.personality } }), "One change is ready for you. Tap Go when you're happy.");
 });
 
 test("Start an assignment: its lineup waits for Go; when it's done, its work is the step's value", async () => {
@@ -281,10 +281,10 @@ test("a think step's values come from its answer's fields, or its reply when the
 });
 
 test("a think step with web off asks for a turn with web off, and its values as fields", async () => {
-  const muse = { id: "a-1", name: "Muse", avatar: {} as never, personality: { tone: "warm" as const, pronoun: "she" as const } };
+  const penny = { id: "a-1", name: "Penny", avatar: {} as never, personality: { tone: "warm" as const, pronoun: "she" as const } };
   const { fx, calls } = fakes();
   const think: FlowStep = { id: "deal", title: null, kind: "think", task: ["Look"], web: false, gives: [{ key: "deal", label: "the better deal", kind: "text" }] };
-  await walk(emptyState({}), ctxOf(flowOf([think], { assistant_id: "a-1" }), { assistant: muse }), fx);
+  await walk(emptyState({}), ctxOf(flowOf([think], { assistant_id: "a-1" }), { assistant: penny }), fx);
   const opts = (calls.find(([k]) => k === "think")![1] as { opts: { web: boolean; gives: unknown } }).opts;
   assert.equal(opts.web, false);
   assert.deepEqual(opts.gives, [{ key: "deal", label: "the better deal", kind: "text" }]);
@@ -299,14 +299,14 @@ test("a run that changed under it stops instead of guessing", async () => {
 });
 
 test("a failed run of an assistant's flow is tried once more only when nothing ran, and only once", () => {
-  const muse = { id: "a-1", name: "Muse", avatar: {} as never, personality: { tone: "calm" as const, pronoun: "she" as const } };
-  const ctx = { assistant: muse, dry: false, byHand: false };
+  const penny = { id: "a-1", name: "Penny", avatar: {} as never, personality: { tone: "calm" as const, pronoun: "she" as const } };
+  const ctx = { assistant: penny, dry: false, byHand: false };
   const busy = { status: "failed" as const, error: "Stopped at “Think about it”: Athena's AI was busy (529)" };
   assert.equal(triesAgain(emptyState(), busy, ctx), true, "failed before anything ran");
   assert.equal(triesAgain({ ...emptyState(), retried: true }, busy, ctx), false, "only one retry");
   assert.equal(triesAgain({ ...emptyState(), changes: [{ kind: "commitment", action: "created" }] }, busy, ctx), false, "a change was made");
   assert.equal(triesAgain({ ...emptyState(), touched: true }, busy, ctx), false, "a step may have changed something");
-  const card = { key: "flow:r:n", title: "From Muse", body: "Prices are up", until: "" } as never;
+  const card = { key: "flow:r:n", title: "From Penny", body: "Prices are up", until: "" } as never;
   assert.equal(triesAgain({ ...emptyState(), notices: [card] }, busy, ctx), false, "a card is owed");
   const plan = { step_id: "s", status: "skipped" as const, line: "Skipped", at: "", pending: { text: "Add a to-do", plan_id: "p" } };
   assert.equal(triesAgain({ ...emptyState(), lines: [plan] }, busy, ctx), false, "a plan was kept");

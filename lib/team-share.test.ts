@@ -26,11 +26,11 @@ import {
 } from "./team-share";
 import type { TeamAssistant } from "./team-types";
 
-const AVATAR = { v: 1, seed: "muse", species: "fox", fur: "ginger", accent: "peach", eyes: "round", mouth: "small-smile", outfit: "hoodie", outfitColor: "teal", accessories: ["glasses"] } as const;
+const AVATAR = { v: 1, seed: "penny", species: "fox", fur: "ginger", accent: "peach", eyes: "round", mouth: "small-smile", outfit: "hoodie", outfitColor: "teal", accessories: ["glasses"] } as const;
 const PERSONALITY = { tone: "warm", traits: ["thrifty"], pronoun: "they", greeting: "Hi! I'll keep an eye on prices." } as const;
 
-const MUSE: Pick<TeamAssistant, "name" | "job" | "instructions" | "personality" | "avatar" | "triggers" | "allow" | "web"> = {
-  name: "Muse",
+const PENNY: Pick<TeamAssistant, "name" | "job" | "instructions" | "personality" | "avatar" | "triggers" | "allow" | "web"> = {
+  name: "Penny",
   job: "Finds good prices for gift ideas",
   instructions: "Check the shops I trust for each gift idea and tell me when the price drops.",
   personality: { ...PERSONALITY, traits: [...PERSONALITY.traits] },
@@ -114,14 +114,14 @@ test("readShared: asks are tidied; more than four is refused", () => {
 });
 
 test("serialiseShared reads back as the same shared assistant", () => {
-  const w = sharedFromAssistant(MUSE, { summary: "Checks prices.", answers: [{ question: "Which shops do you trust?", answer: "Shops on Example Street" }] });
+  const w = sharedFromAssistant(PENNY, { summary: "Checks prices.", answers: [{ question: "Which shops do you trust?", answer: "Shops on Example Street" }] });
   assert.deepEqual(readShared(JSON.parse(serialiseShared(w))), w);
 });
 
 // ---------- making one ----------
 
 test("sharedFromAssistant: no ids, slots or answers; allow becomes a request", () => {
-  const w = sharedFromAssistant(MUSE, { answers: [{ question: "Which shops do you trust?", answer: "Shops on Example Street" }] });
+  const w = sharedFromAssistant(PENNY, { answers: [{ question: "Which shops do you trust?", answer: "Shops on Example Street" }] });
   const text = serialiseShared(w);
   assert.doesNotMatch(text, /"id"|last_slot|assistant_id|Example Street/);
   assert.deepEqual(w.asks, [{ question: "Which shops do you trust?", choices: [] }]);
@@ -134,7 +134,7 @@ test("sharedFromAssistant: no ids, slots or answers; allow becomes a request", (
 });
 
 test("sharedFromAssistant: edits change the file, and looks can be left out", () => {
-  const w = sharedFromAssistant(MUSE, { edits: { instructions: "Check shops for each gift idea.", asks: [{ question: "Budget per gift?", choices: [] }], no_avatar: true, author: "sample-author" } });
+  const w = sharedFromAssistant(PENNY, { edits: { instructions: "Check shops for each gift idea.", asks: [{ question: "Budget per gift?", choices: [] }], no_avatar: true, author: "sample-author" } });
   assert.equal(w.instructions, "Check shops for each gift idea.");
   assert.deepEqual(w.asks, [{ question: "Budget per gift?", choices: [] }]);
   assert.equal(w.avatar, null);
@@ -142,7 +142,7 @@ test("sharedFromAssistant: edits change the file, and looks can be left out", ()
 });
 
 test("shareSlug", () => {
-  assert.equal(shareSlug("Muse", "x"), "muse");
+  assert.equal(shareSlug("Penny", "x"), "penny");
   assert.equal(shareSlug("", "Finds good prices!"), "finds-good-prices");
   assert.equal(shareSlug("", "!!!"), "assistant");
 });
@@ -221,7 +221,7 @@ test("findPersonal: what the owner marked fine stays fine", () => {
 });
 
 test("checkFields covers every text a shared and its skill carry", () => {
-  const w = sharedFromAssistant(MUSE);
+  const w = sharedFromAssistant(PENNY);
   const fields = checkFields(w, { body: "Body", files: [{ path: "shops.md", text: "List" }] }).map((x) => x.field);
   for (const f of ["name", "job", "instructions", "greeting", "asks", "skill", "file:shops.md"]) assert.ok(fields.includes(f), f);
 });
@@ -234,7 +234,7 @@ const SKILL = "---\nname: gift-prices\ndescription: How to check gift prices.\n-
 test("bundleFromEntries: the shallowest assistant.json, with the SKILL.md and files beside it", () => {
   const b = bundleFromEntries(
     [
-      { path: "gift-prices/assistant.json", bytes: enc(JSON.stringify(minimal({ name: "Muse" }))) },
+      { path: "gift-prices/assistant.json", bytes: enc(JSON.stringify(minimal({ name: "Penny" }))) },
       { path: "gift-prices/SKILL.md", bytes: enc(SKILL) },
       { path: "gift-prices/shops.md", bytes: enc("# Shops\n") },
       { path: "gift-prices/run.sh", bytes: enc("echo") },
@@ -243,7 +243,7 @@ test("bundleFromEntries: the shallowest assistant.json, with the SKILL.md and fi
     ],
     { kind: "upload", at: "2026-11-20T00:00:00Z" },
   );
-  assert.equal(b.shared.name, "Muse");
+  assert.equal(b.shared.name, "Penny");
   assert.match(b.skill!.body, /trusted shop/);
   assert.deepEqual(b.skill!.files.map((f) => f.path), ["shops.md"]);
   assert.deepEqual(b.skill!.skipped.map((f) => f.path), ["run.sh"]);

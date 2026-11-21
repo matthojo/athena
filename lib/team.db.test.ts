@@ -13,8 +13,8 @@ if (url) {
 }
 const skip = !url && "set ATHENA_TEST_DB_URL";
 
-const MUSE = {
-  name: "Muse",
+const PENNY = {
+  name: "Penny",
   job: "Finds good prices for gift ideas",
   instructions: "Look for the best price from a shop the owner trusts.",
   allow: ["add_todo"],
@@ -33,9 +33,9 @@ test("an assistant is made, read, changed and removed, with its triggers", { ski
   const { createAssistant, getAssistant, listAssistants, updateAssistant, deleteAssistant, listTriggers } = await import("./team");
   const { qRaw } = await import("./db");
 
-  const a = await createAssistant(MUSE);
-  assert.equal(a.name, "Muse");
-  assert.equal(a.job, MUSE.job);
+  const a = await createAssistant(PENNY);
+  assert.equal(a.name, "Penny");
+  assert.equal(a.job, PENNY.job);
   assert.deepEqual(a.allow, ["add_todo"]);
   assert.equal(a.avatar.v, 1, "a character from a fresh seed");
   assert.ok(a.personality.greeting);
@@ -45,7 +45,7 @@ test("an assistant is made, read, changed and removed, with its triggers", { ski
 
   // Sealed at rest: the name and job are nowhere in the row as stored.
   const [raw] = await qRaw<{ payload: string }>(`SELECT payload FROM team_assistants WHERE id = $1`, [a.id]);
-  assert.ok(!raw.payload.includes("Muse") && !raw.payload.includes("gift"), "payload is sealed");
+  assert.ok(!raw.payload.includes("Penny") && !raw.payload.includes("gift"), "payload is sealed");
 
   assert.deepEqual((await listAssistants()).map((x) => x.id), [a.id]);
   assert.deepEqual(await getAssistant(a.id), a);
@@ -54,7 +54,7 @@ test("an assistant is made, read, changed and removed, with its triggers", { ski
   const keep = a.triggers[0].id;
   const b = await updateAssistant(a.id, { job: "Watches gift prices", paused: true, triggers: [{ id: keep, kind: "event", event: { source: "saved", savedAction: "gift-idea", match: "lego" } }, { kind: "schedule", days: ["weekdays"], time: "8am" }] });
   assert.equal(b.job, "Watches gift prices");
-  assert.equal(b.name, "Muse", "untouched words stay");
+  assert.equal(b.name, "Penny", "untouched words stay");
   assert.equal(b.paused, true);
   assert.deepEqual(b.avatar, a.avatar, "the character stays");
   assert.equal(b.triggers.length, 2);
@@ -130,14 +130,14 @@ test("routes: list, one, change, remove, 404s, draft, memory and the 501 stubs",
     return res ? { status: res.status, body: await res.json() } : null;
   };
 
-  const made = await call("POST", "/team", MUSE);
+  const made = await call("POST", "/team", PENNY);
   assert.equal(made!.status, 201);
   const id = made!.body.id as string;
   const list = await call("GET", "/team");
   assert.equal(list!.body.max, 12);
   assert.deepEqual(list!.body.assistants.map((a: { id: string }) => a.id), [id]);
-  assert.equal((await call("GET", `/team/${id}`))!.body.name, "Muse");
-  assert.equal((await call("PATCH", `/team/${id}`, { name: "Muse II" }))!.body.name, "Muse II");
+  assert.equal((await call("GET", `/team/${id}`))!.body.name, "Penny");
+  assert.equal((await call("PATCH", `/team/${id}`, { name: "Penny II" }))!.body.name, "Penny II");
   assert.equal((await call("PUT", `/team/${id}`))!.status, 405);
   assert.equal((await call("GET", "/team/not-an-id"))!.status, 404);
   assert.equal((await call("GET", "/team/00000000-0000-4000-8000-000000000000"))!.status, 404);

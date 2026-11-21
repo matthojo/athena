@@ -47,7 +47,7 @@ export const SAMPLE_FLOW_IDS = {
  * the same ids as the triggers on its page (app/src/db/sample-team.ts).
  */
 export const SAMPLE_JOB_FLOW_IDS = {
-  muse: "5a3e0000-0000-4000-8000-0000000e0101",
+  penny: "5a3e0000-0000-4000-8000-0000000e0101",
   dot: "5a3e0000-0000-4000-8000-0000000e0102",
   wren: "5a3e0000-0000-4000-8000-0000000e0103",
 } as const;
@@ -170,15 +170,15 @@ function seeds(): Seed[] {
       flow: flow(gift, {
         name: "Gift price watch",
         trigger: { kind: "event", event: { source: "saved", savedAction: "gift-idea" } },
-        assistant_id: SAMPLE_TEAM_IDS.muse,
+        assistant_id: SAMPLE_TEAM_IDS.penny,
         steps: [
-          { id: "look", kind: "think", title: "Muse looks for a better price", task: ["Look for ", T("item"), " for less than the price on ", T("website"), " at shops I've bought from"], web: true, gives: [v("was", "the price you saw", "money"), v("best", "the best price", "money"), v("shop", "the shop", "organisation"), v("why", "why", "text")] },
+          { id: "look", kind: "think", title: "Penny looks for a better price", task: ["Look for ", T("item"), " for less than the price on ", T("website"), " at shops I've bought from"], web: true, gives: [v("was", "the price you saw", "money"), v("best", "the best price", "money"), v("shop", "the shop", "organisation"), v("why", "why", "text")] },
           {
             id: "cheaper",
             kind: "check",
             title: "Is it cheaper?",
             condition: { left: ref("look", "best"), op: "less_than", right: ref("look", "was") },
-            yes: [{ id: "tellme", kind: "notify", title: "Muse tells you", text: [T("item"), " is ", ref("look", "best"), " at ", ref("look", "shop"), ". ", ref("look", "why")] }],
+            yes: [{ id: "tellme", kind: "notify", title: "Penny tells you", text: [T("item"), " is ", ref("look", "best"), " at ", ref("look", "shop"), ". ", ref("look", "why")] }],
             no: [],
           },
         ],
@@ -218,7 +218,7 @@ function seeds(): Seed[] {
     },
     // The team's triggers, as their flows (lib/team-flows.ts).
     {
-      flow: flow(SAMPLE_JOB_FLOW_IDS.muse, { name: "When you file something as a gift idea", trigger: { kind: "event", event: { source: "saved", savedAction: "gift-idea" } }, assistant_id: SAMPLE_TEAM_IDS.muse, origin: "trigger", steps: JOB }),
+      flow: flow(SAMPLE_JOB_FLOW_IDS.penny, { name: "When you file something as a gift idea", trigger: { kind: "event", event: { source: "saved", savedAction: "gift-idea" } }, assistant_id: SAMPLE_TEAM_IDS.penny, origin: "trigger", steps: JOB }),
       values: { "trigger.item": "the hand balm", "trigger.title": "Rosemary hand balm" },
       lines: { job: { line: "Found it for £22.00 at Larkspur Home, £5 under the price you saved." } },
       check: {},
@@ -442,7 +442,7 @@ export function sampleFlows(now = Date.now()): SampleFlows {
   at(delivery, todayAt(9, 40, now), { in: 0 }, { id: SAMPLE_RUN_IDS.delivery });
   at(gift, todayAt(16, 59, now) - DAY, {});
   at(friday, nextDay(5, 17, 2, now) - 7 * DAY, { plan: 1 });
-  at(SAMPLE_JOB_FLOW_IDS.muse, todayAt(10, 5, now) - DAY, {});
+  at(SAMPLE_JOB_FLOW_IDS.penny, todayAt(10, 5, now) - DAY, {});
   at(SAMPLE_JOB_FLOW_IDS.dot, todayAt(9, 15, now), {});
   at(SAMPLE_JOB_FLOW_IDS.wren, nextDay(5, 17, 0, now) - 7 * DAY, {});
   for (const fl of store.flows) {

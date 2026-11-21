@@ -142,7 +142,7 @@ export function shuffleSpec(current: AvatarSpec, locks: ReadonlySet<LockPart>, n
 
 /** Short, friendly, easy to say aloud. No duplicates; none collide with Athena or Ask. */
 export const NAMES = [
-  "Muse", "Dot", "Wren", "Pip", "Juno", "Moss", "Fig", "Bean", "Luna", "Otis",
+  "Pearl", "Dot", "Wren", "Pip", "Juno", "Moss", "Fig", "Bean", "Luna", "Otis",
   "Mabel", "Bo", "Kit", "Rue", "Ziggy", "Nell", "Pico", "Hazel", "Tate", "Clover",
   "Biscuit", "Sunny", "Pepper", "Miso", "Tofu", "Olive", "Basil", "Poppy", "Rory", "Ivy",
   "Milo", "Nova", "Remy", "Sage", "Toby", "Willa", "Arlo", "Bree", "Cosmo", "Daisy",

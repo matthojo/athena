@@ -61,13 +61,13 @@ test("a post is kept sealed and read back as the channel draws it; a plan post p
   const { postToTeam, getPost } = await import("./team-posts");
   const { createAssistant } = await import("./team");
   const { qRaw } = await import("./db");
-  const muse = await createAssistant({ name: "Muse", job: "Finds good prices" });
-  const run = await finishedRun(muse.id, { plan: true });
+  const penny = await createAssistant({ name: "Penny", job: "Finds good prices" });
+  const run = await finishedRun(penny.id, { plan: true });
 
-  const plan = await postToTeam({ kind: "plan", text: "I'd email Sam the quote. One change waits for you to tap Go.", assistant_id: muse.id, run_id: run.id, waits_for: "go" });
+  const plan = await postToTeam({ kind: "plan", text: "I'd email Sam the quote. One change waits for you to tap Go.", assistant_id: penny.id, run_id: run.id, waits_for: "go" });
   assert.equal(plan.kind, "plan");
   assert.equal(plan.from, "assistant");
-  assert.deepEqual(plan.who, { id: muse.id, name: "Muse", avatar: muse.avatar, job: "Finds good prices", role: null, guest: false });
+  assert.deepEqual(plan.who, { id: penny.id, name: "Penny", avatar: penny.avatar, job: "Finds good prices", role: null, guest: false });
   assert.equal(plan.thread_id, run.thread, "the run's conversation, where the plan card lives");
   assert.equal(plan.waits_for, "go");
   assert.equal(plan.settled_at, null);
@@ -77,9 +77,9 @@ test("a post is kept sealed and read back as the channel draws it; a plan post p
   const [raw] = await qRaw<{ body: string }>(`SELECT body FROM team_posts WHERE id = $1`, [plan.id]);
   assert.ok(!raw.body.includes("Sam"), "body is sealed");
   assert.deepEqual(await getPost(plan.id), plan);
-  assert.equal((await postToTeam({ kind: "plan", text: "Again", assistant_id: muse.id, run_id: run.id, waits_for: "go" })).id, plan.id, "one waiting post per run");
+  assert.equal((await postToTeam({ kind: "plan", text: "Again", assistant_id: penny.id, run_id: run.id, waits_for: "go" })).id, plan.id, "one waiting post per run");
 
-  const said = await postToTeam({ kind: "said", text: "  Thanks  ", assistant_id: muse.id });
+  const said = await postToTeam({ kind: "said", text: "  Thanks  ", assistant_id: penny.id });
   assert.deepEqual([said.from, said.who, said.text], ["owner", null, "Thanks"]);
   assert.equal((await postToTeam({ kind: "reply", text: "Done." })).from, "ask");
 
@@ -109,14 +109,14 @@ test("settling: an answer or an approval by stage, a Go by its plan, and the cou
   const { getTeamRun } = await import("./team-run");
   const { goPlan } = await import("./ask-plans");
   const { createAssistant } = await import("./team");
-  const muse = await createAssistant({ name: "Muse", job: "Finds good prices" });
+  const penny = await createAssistant({ name: "Penny", job: "Finds good prices" });
   const dot = await createAssistant({ name: "Dot", job: "Sorts issues" });
   const a = await assignment();
-  const one = await finishedRun(muse.id, { plan: true });
+  const one = await finishedRun(penny.id, { plan: true });
   const two = await finishedRun(dot.id, { plan: true });
 
   const q = await postToTeam({ kind: "question", text: "Which tone?", assistant_id: a.guest.id, assignment_id: a.id, stage_id: a.stage, waits_for: "answer" });
-  const p1 = await postToTeam({ kind: "plan", text: "One change waits.", assistant_id: muse.id, run_id: one.id, waits_for: "go" });
+  const p1 = await postToTeam({ kind: "plan", text: "One change waits.", assistant_id: penny.id, run_id: one.id, waits_for: "go" });
   const p2 = await postToTeam({ kind: "plan", text: "One change waits.", assistant_id: dot.id, run_id: two.id, waits_for: "go" });
   await postToTeam({ kind: "update", text: "Nothing waits here.", assistant_id: dot.id });
   assert.deepEqual((await listChat()).waiting.map((p) => p.id), [q.id, p1.id, p2.id], "oldest first");
@@ -146,7 +146,7 @@ test("settling: an answer or an approval by stage, a Go by its plan, and the cou
 
   const waits = await postToTeam({ kind: "approval", text: "Ready for you.", assistant_id: a.guest.id, assignment_id: a.id, stage_id: a.stage, waits_for: "approval" });
   // A run that didn't finish counts 1 like the rest, and only a dismissal settles it.
-  const failed = await postToTeam({ kind: "failed", text: "Muse didn't finish.", assistant_id: a.guest.id, assignment_id: a.id, run_id: one.id, waits_for: "dismiss" });
+  const failed = await postToTeam({ kind: "failed", text: "Penny didn't finish.", assistant_id: a.guest.id, assignment_id: a.id, run_id: one.id, waits_for: "dismiss" });
   assert.equal(await countWaiting(), 2);
   assert.equal(await countWaiting(), (await listChat()).waiting.length, "the count is the rows in the strip");
   assert.equal(await settlePosts({ assignment_id: a.id }), 1);
@@ -183,13 +183,13 @@ test("the sweep: posts outside an assignment go after 90 days, unless they still
   const { qRaw } = await import("./db");
   const { createAssistant } = await import("./team");
   const { ASSIGNMENT_LIMITS } = await import("./assignment-types");
-  const muse = await createAssistant({ name: "Muse", job: "Finds good prices" });
-  const run = await finishedRun(muse.id, { plan: true });
+  const penny = await createAssistant({ name: "Penny", job: "Finds good prices" });
+  const run = await finishedRun(penny.id, { plan: true });
   const a = await assignment();
-  const old = await postToTeam({ kind: "update", text: "Old news", assistant_id: muse.id });
-  const waiting = await postToTeam({ kind: "plan", text: "Still waiting", assistant_id: muse.id, run_id: run.id, waits_for: "go" });
+  const old = await postToTeam({ kind: "update", text: "Old news", assistant_id: penny.id });
+  const waiting = await postToTeam({ kind: "plan", text: "Still waiting", assistant_id: penny.id, run_id: run.id, waits_for: "go" });
   const threaded = await postToTeam({ kind: "lineup", text: "Vera, then done.", assignment_id: a.id });
-  const fresh = await postToTeam({ kind: "update", text: "New news", assistant_id: muse.id });
+  const fresh = await postToTeam({ kind: "update", text: "New news", assistant_id: penny.id });
   await qRaw(`UPDATE team_posts SET created_at = now() - make_interval(days => $2) WHERE id <> $1`, [fresh.id, ASSIGNMENT_LIMITS.postDays + 1]);
   assert.equal(await sweepPosts(), 1);
   assert.deepEqual((await listChat()).posts.map((p) => p.id), [waiting.id, threaded.id, fresh.id]);
@@ -206,20 +206,20 @@ test("a standing assistant's run: a plan waits in the channel, an update is said
   const { savePlan } = await import("./ask-plans");
   const { qRaw } = await import("./db");
   const { randomUUID } = await import("node:crypto");
-  const muse = await createAssistant({ name: "Muse", job: "Finds good prices", triggers: [{ kind: "schedule", days: [1], time: "09:00" }] });
+  const penny = await createAssistant({ name: "Penny", job: "Finds good prices", triggers: [{ kind: "schedule", days: [1], time: "09:00" }] });
   const reply = (id: string, thread: string, r: Partial<TurnResult["reply"]> & { text: string }): TurnResult => ({ assistant_id: id, thread_id: thread, text: r.text, reply: { sources: [], related: [], searched: "", skipped: [], found: true, flagged: false, ...r } });
 
   // Quiet: nothing found, nothing changed, nothing waiting.
-  const quiet = await enqueueTeamRun(muse.id, { triggerId: muse.triggers[0].id });
+  const quiet = await enqueueTeamRun(penny.id, { triggerId: penny.triggers[0].id });
   await runTeamRun(quiet.id, { turn: async (id, _p, o) => reply(id, o.threadId!, { text: "Nothing new.", found: false }) });
   assert.equal((await getTeamRun(quiet.id))!.quiet, true);
   assert.deepEqual((await listChat()).posts, []);
 
   // Something to say.
-  const told = await enqueueTeamRun(muse.id, { triggerId: muse.triggers[0].id });
+  const told = await enqueueTeamRun(penny.id, { triggerId: penny.triggers[0].id });
   await runTeamRun(told.id, { turn: async (id, _p, o) => reply(id, o.threadId!, { text: "The Lego set is £10 less at Smyths." }) });
   // Something waiting: its plan is kept in the run's conversation, as the loop keeps it.
-  const planned = await enqueueTeamRun(muse.id, { triggerId: muse.triggers[0].id });
+  const planned = await enqueueTeamRun(penny.id, { triggerId: penny.triggers[0].id });
   let thread = "";
   await runTeamRun(planned.id, {
     turn: async (id, _p, o) => {
@@ -229,20 +229,20 @@ test("a standing assistant's run: a plan waits in the channel, an update is said
     },
   });
   // Didn't finish, twice (a triggered run is tried once more first).
-  const failing = await enqueueTeamRun(muse.id, { triggerId: muse.triggers[0].id });
+  const failing = await enqueueTeamRun(penny.id, { triggerId: penny.triggers[0].id });
   const boom = { turn: async () => Promise.reject(new Error("boom")) };
   await runTeamRun(failing.id, boom);
   assert.equal((await getTeamRun(failing.id))!.status, "queued", "tried once more before anything is said");
   await runTeamRun(failing.id, boom);
   // Run now's failure is on the page the owner is looking at: not told here.
-  const now = await enqueueTeamRun(muse.id);
+  const now = await enqueueTeamRun(penny.id);
   await runTeamRun(now.id, boom);
 
   const chat = await listChat();
   assert.deepEqual(chat.posts.map((p) => [p.kind, p.run_id, p.waits_for]), [["update", told.id, null], ["plan", planned.id, "go"], ["failed", failing.id, "dismiss"]]);
   assert.equal(chat.posts[0].text, "The Lego set is £10 less at Smyths.");
   assert.equal(chat.posts[1].thread_id, thread);
-  assert.ok(chat.posts.every((p) => p.who?.name === "Muse" && p.from === "assistant"));
+  assert.ok(chat.posts.every((p) => p.who?.name === "Penny" && p.from === "assistant"));
   assert.deepEqual(chat.waiting.map((p) => p.id), [chat.posts[1].id, chat.posts[2].id], "the run that didn't finish waits too");
   assert.equal(await countWaiting(), 2);
   assert.equal((await getTeamRun(planned.id))!.waiting, 1, "the run's own count says the same");
@@ -250,8 +250,8 @@ test("a standing assistant's run: a plan waits in the channel, an update is said
   // A stage's run is the runner's to post.
   const { sealText } = await import("./data-box");
   const [a] = await qRaw<{ id: string }>(`INSERT INTO team_assignments (payload) VALUES ($1) RETURNING id`, [sealText(JSON.stringify({ title: "T", brief: "B" }))]);
-  const [s] = await qRaw<{ id: string }>(`INSERT INTO team_stages (assignment_id, position, assistant_id, words) VALUES ($1, 0, $2, $3) RETURNING id`, [a.id, muse.id, sealText("{}")]);
-  const staged = await enqueueTeamRun(muse.id, { triggerId: muse.triggers[0].id });
+  const [s] = await qRaw<{ id: string }>(`INSERT INTO team_stages (assignment_id, position, assistant_id, words) VALUES ($1, 0, $2, $3) RETURNING id`, [a.id, penny.id, sealText("{}")]);
+  const staged = await enqueueTeamRun(penny.id, { triggerId: penny.triggers[0].id });
   await qRaw(`UPDATE team_runs SET stage_id = $2 WHERE id = $1`, [staged.id, s.id]);
   await runTeamRun(staged.id, { turn: async (id) => reply(id, randomUUID(), { text: "Stage work." }) });
   assert.equal((await listChat()).posts.length, 3);
@@ -269,7 +269,7 @@ test("a standing assistant's run: a plan waits in the channel, an update is said
 test("typing: a waiting stage gets its answer, “@Name” is a chat turn, the suggestions phrase takes them, the rest goes to Ask", { skip }, async () => {
   const { handleTeamChatRoutes, CHAT_FAILED, DESK_NOT_YET } = await import("../netlify/lib/team-chat-routes");
   const { createAssistant } = await import("./team");
-  const muse = await createAssistant({ name: "Muse", job: "Finds good prices" });
+  const penny = await createAssistant({ name: "Penny", job: "Finds good prices" });
   const a = await assignment();
   const json = (data: unknown, status = 200) => Response.json(data, { status });
   const calls: string[] = [];
@@ -281,7 +281,7 @@ test("typing: a waiting stage gets its answer, “@Name” is a chat turn, the s
       waitingStage: async () => waiting,
     },
     ask: async (text: string) => (calls.push(`ask ${text}`), "Ask's answer."),
-    turn: async (id: string, text: string): Promise<{ text: string; thread_id?: string | null }> => (calls.push(`turn ${id === muse.id ? "muse" : id === a.guest.id ? "vera" : id} ${text}`), { text: "From the assistant." }),
+    turn: async (id: string, text: string): Promise<{ text: string; thread_id?: string | null }> => (calls.push(`turn ${id === penny.id ? "penny" : id === a.guest.id ? "vera" : id} ${text}`), { text: "From the assistant." }),
   };
   const post = async (body: Record<string, unknown>, d: typeof deps | Omit<typeof deps, "desk"> = deps) => {
     const u = new URL("https://athena.test/api/team/chat");
@@ -302,8 +302,8 @@ test("typing: a waiting stage gets its answer, “@Name” is a chat turn, the s
   r = await post({ text: "@Vera why warm?", assignment_id: a.id });
   assert.deepEqual(kinds(r), ["said:owner:@Vera why warm?", "reply:assistant:From the assistant."]);
   assert.deepEqual([r.body.posts![1].who?.name, r.body.posts![1].assignment_id], ["Vera", a.id]);
-  r = await post({ text: "@muse any news?" });
-  assert.deepEqual([r.body.posts![1].who?.name, r.body.posts![1].assignment_id], ["Muse", null]);
+  r = await post({ text: "@penny any news?" });
+  assert.deepEqual([r.body.posts![1].who?.name, r.body.posts![1].assignment_id], ["Penny", null]);
   assert.deepEqual([r.body.posts![1].thread_id, r.body.posts![1].waits_for], [null, null], "no plan: no card, nothing waits");
   // A guest isn't reached from outside its thread; that, and anything else, goes to Ask.
   r = await post({ text: "@Vera hello" });
@@ -320,7 +320,7 @@ test("typing: a waiting stage gets its answer, “@Name” is a chat turn, the s
     `answer true Warm, please`,
     `suggestions true true`,
     `turn vera why warm?`,
-    `turn muse any news?`,
+    `turn penny any news?`,
     `ask @Vera hello`,
     `ask How is it going?\n\n(Typed in Team chat, in the thread of the assignment “Pricing page”, id ${a.id}.)`,
     `ask continue and use all suggested routes`,
@@ -338,9 +338,9 @@ test("typing: a waiting stage gets its answer, “@Name” is a chat turn, the s
   const { randomUUID } = await import("node:crypto");
   const thread = randomUUID();
   const plan = await savePlan([STEP, STEP], { source: "ask", thread_id: thread });
-  r = await post({ text: "@Muse email Sam and add a to-do" }, { ...deps, turn: async () => ({ text: "Two changes are ready for you.", thread_id: thread }) });
+  r = await post({ text: "@Penny email Sam and add a to-do" }, { ...deps, turn: async () => ({ text: "Two changes are ready for you.", thread_id: thread }) });
   const held = r.body.posts![1];
-  assert.deepEqual([held.kind, held.who?.name, held.thread_id, held.waits_for, held.run_id], ["reply", "Muse", thread, "go", null]);
+  assert.deepEqual([held.kind, held.who?.name, held.thread_id, held.waits_for, held.run_id], ["reply", "Penny", thread, "go", null]);
   assert.deepEqual((await listChat()).waiting.map((p) => p.id), [held.id]);
   await goPlan(plan.id, undefined, { run: async () => [], log: async () => [] });
   assert.equal(await settlePlanPosts(plan.id), 1);
@@ -348,7 +348,7 @@ test("typing: a waiting stage gets its answer, “@Name” is a chat turn, the s
 
   // Dismiss: only a run that didn't finish.
   const { postToTeam } = await import("./team-posts");
-  const failed = await postToTeam({ kind: "failed", text: "Muse didn't finish.", assistant_id: muse.id, waits_for: "dismiss" });
+  const failed = await postToTeam({ kind: "failed", text: "Penny didn't finish.", assistant_id: penny.id, waits_for: "dismiss" });
   const dismiss = async (id: string | number, method = "POST") => {
     const d = new URL(`https://athena.test/api/team/chat/${id}/dismiss`);
     const res = await handleTeamChatRoutes(new Request(d, { method }), d, async () => null, json, deps);

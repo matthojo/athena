@@ -59,7 +59,7 @@ test("sharing: links into Athena go, the owner's people are flagged, and the dow
   await qRaw(`INSERT INTO places (name, address) VALUES ('Corner Bakery', '12 Example Street, Exampleton')`);
 
   const made = await call("POST", "team", {
-    name: "Muse",
+    name: "Penny",
     job: "Finds good prices for gift ideas",
     instructions: "Check prices for Priya's gift list at https://athena.example.com/#/notes/1 and [the list](athena://note/3f1c2d4e-1111-4222-8333-444455556666).",
     allow: ["add_to_list", "add_todo"],
@@ -67,7 +67,7 @@ test("sharing: links into Athena go, the owner's people are flagged, and the dow
   });
   assert.equal(made.status, 201);
   const id = made.json.id as string;
-  await putAssistantSkill(id, { name: "muse-gift-prices", description: "Muse's own skill.", body: "1. Read the gift idea.\n2. Check prices at Corner Bakery and near 12 Example Street.\n3. Email priya@mail.test if it drops.", extra: "" }, { basis: "x", made: "y", summary: "Checks prices.", answers: [{ question: "Which shops do you trust?", answer: "Corner Bakery" }] });
+  await putAssistantSkill(id, { name: "penny-gift-prices", description: "Penny's own skill.", body: "1. Read the gift idea.\n2. Check prices at Corner Bakery and near 12 Example Street.\n3. Email priya@mail.test if it drops.", extra: "" }, { basis: "x", made: "y", summary: "Checks prices.", answers: [{ question: "Which shops do you trust?", answer: "Corner Bakery" }] });
 
   const look = await call("POST", `team/${id}/export`, {});
   assert.equal(look.status, 200);
@@ -98,10 +98,10 @@ test("sharing: links into Athena go, the owner's people are flagged, and the dow
 
   // The zip previews on "another copy", and adds as a paused assistant with only the ticked tools it asked for.
   const zip = Buffer.from(ready.bytes!).toString("base64");
-  const preview = await call("POST", "team/import/preview", { zip, file: "muse.zip" });
+  const preview = await call("POST", "team/import/preview", { zip, file: "penny.zip" });
   assert.equal(preview.status, 200, JSON.stringify(preview.json));
   const p = preview.json;
-  assert.equal(p.shared.name, "Muse");
+  assert.equal(p.shared.name, "Penny");
   assert.match(p.skill.body, /each shop you trust/);
   assert.deepEqual(p.needs, [{ id: "gmail", connected: false }]);
   assert.equal(p.room, true);
@@ -123,7 +123,7 @@ test("sharing: links into Athena go, the owner's people are flagged, and the dow
 test("adding: a bad shared, a link off GitHub, and a full team are refused", { skip }, async () => {
   const call = await api();
   assert.equal((await call("POST", "team/import/preview", { assistant_json: "{\"format\": 1}" })).status, 400);
-  const off = await call("POST", "team/import/preview", { url: "https://athena.example.com/w/muse" });
+  const off = await call("POST", "team/import/preview", { url: "https://athena.example.com/w/penny" });
   assert.equal(off.status, 400);
   assert.match(off.json.error, /from GitHub/);
   assert.equal((await call("POST", "team/import", { shared: { format: 1 } })).status, 400);

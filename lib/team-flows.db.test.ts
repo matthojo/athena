@@ -51,8 +51,8 @@ test("the move: each trigger kind becomes a job flow, paused stays paused, a slo
   const { qRaw } = await import("./db");
 
   const wren = await createAssistant({ name: "Wren", job: "Sums up the week", triggers: [{ kind: "schedule", days: [5], time: "17:00" }] });
-  const muse = await createAssistant({
-    name: "Muse",
+  const penny = await createAssistant({
+    name: "Penny",
     job: "Finds prices for gift ideas",
     triggers: [
       { kind: "event", event: { source: "saved", savedAction: "gift-idea", match: "train" } },
@@ -85,9 +85,9 @@ test("the move: each trigger kind becomes a job flow, paused stays paused, a slo
   assert.equal(friday.name, "Every Friday at 17:00");
   assert.equal(friday.paused, false);
   assert.equal(friday.created_at, "2026-01-01T00:00:00.000Z", "made when its trigger was");
-  const gift = flows.find((f) => f.assistant_id === muse.id && f.trigger.kind === "event" && f.trigger.event.source === "saved")!;
+  const gift = flows.find((f) => f.assistant_id === penny.id && f.trigger.kind === "event" && f.trigger.event.source === "saved")!;
   assert.deepEqual(gift.trigger, { kind: "event", event: { source: "saved", savedAction: "gift-idea", match: "train" } });
-  const tagged = flows.find((f) => f.assistant_id === muse.id && f.trigger.kind === "event" && f.trigger.event.source === "note")!;
+  const tagged = flows.find((f) => f.assistant_id === penny.id && f.trigger.kind === "event" && f.trigger.event.source === "note")!;
   assert.equal(tagged.paused, true, "a paused trigger is a paused flow");
 
   // The slot it last ran for is claimed for the flow.
@@ -122,7 +122,7 @@ test("a move that fails part-way moves nothing: every assistant keeps running on
   const { moveTriggers, triggersMoved } = await import("./team-flows");
   const { qRaw } = await import("./db");
   await createAssistant({ name: "Wren", job: "Sums up the week", triggers: [{ kind: "schedule", days: [5], time: "17:00" }] });
-  await createAssistant({ name: "Muse", job: "Gift prices", triggers: [{ kind: "event", event: { source: "saved" } }] });
+  await createAssistant({ name: "Penny", job: "Gift prices", triggers: [{ kind: "event", event: { source: "saved" } }] });
   // The second trigger's flow can't be made (a check, added for the test, refuses event flows): the first was.
   await qRaw(`ALTER TABLE flows ADD CONSTRAINT test_no_events CHECK (trigger_kind <> 'event')`);
   try {
@@ -177,8 +177,8 @@ test("events: an assistant's job flows take a pass's events in one batch; a plai
   const { runFlowTriggers } = await import("./flow-triggers-db");
   const { qRaw } = await import("./db");
 
-  const muse = await createAssistant({
-    name: "Muse",
+  const penny = await createAssistant({
+    name: "Penny",
     job: "Finds prices for gift ideas",
     triggers: [
       { kind: "event", event: { source: "saved", savedAction: "gift-idea" } },
@@ -201,10 +201,10 @@ test("events: an assistant's job flows take a pass's events in one batch; a plai
 
   const started = (await runFlowTriggers(new Date(), TZ)) ?? [];
   const runs = await Promise.all(started.map((s) => getRun(s.run_id)));
-  const museRuns = runs.filter((r) => r!.run.assistant_id === muse.id);
-  assert.equal(museRuns.length, 1, "Muse's two job flows: one run for the pass");
-  assert.equal(museRuns[0]!.event_ids.length, 3, "all three of the pass's events, and not the one Team had");
-  assert.equal(museRuns[0]!.run.label, "3 new items");
+  const pennyRuns = runs.filter((r) => r!.run.assistant_id === penny.id);
+  assert.equal(pennyRuns.length, 1, "Penny's two job flows: one run for the pass");
+  assert.equal(pennyRuns[0]!.event_ids.length, 3, "all three of the pass's events, and not the one Team had");
+  assert.equal(pennyRuns[0]!.run.label, "3 new items");
   const plain = runs.filter((r) => !r!.run.assistant_id);
   assert.equal(plain.length, 3, "the plain flow: one run per item");
   // Nothing more on the next pass.
@@ -300,21 +300,21 @@ test("once moved: setup and Ask make job flows, editing triggers edits them, rem
   const { qRaw } = await import("./db");
   await moveTriggers(new Date());
 
-  const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas", triggers: [{ kind: "event", event: { source: "saved", savedAction: "gift-idea" } }] });
+  const penny = await createAssistant({ name: "Penny", job: "Finds prices for gift ideas", triggers: [{ kind: "event", event: { source: "saved", savedAction: "gift-idea" } }] });
   assert.equal((await qRaw<{ n: number }>(`SELECT count(*)::int AS n FROM team_triggers`))[0].n, 0, "no trigger rows");
-  const [job] = await listJobFlows(muse.id);
+  const [job] = await listJobFlows(penny.id);
   assert.equal(job.name, "When you file something as a gift idea");
-  assert.equal(muse.triggers[0].flow_id, job.id);
+  assert.equal(penny.triggers[0].flow_id, job.id);
 
   // The trigger editor sends the whole set: the kept one changes in place, a new one is a new flow.
-  const edited = await updateAssistant(muse.id, { triggers: [{ id: job.id, kind: "event", event: { source: "saved", savedAction: "gift-idea" }, paused: true }, { kind: "schedule", days: [1], time: "08:30" }] });
+  const edited = await updateAssistant(penny.id, { triggers: [{ id: job.id, kind: "event", event: { source: "saved", savedAction: "gift-idea" }, paused: true }, { kind: "schedule", days: [1], time: "08:30" }] });
   assert.equal(edited.triggers.length, 2);
-  const flows = await listJobFlows(muse.id);
+  const flows = await listJobFlows(penny.id);
   assert.equal(flows.find((f) => f.id === job.id)?.paused, true);
   assert.deepEqual(flows.find((f) => f.id !== job.id)?.trigger, { kind: "schedule", days: [1], time: "08:30" });
   // Left out: gone.
-  await updateAssistant(muse.id, { triggers: [{ kind: "schedule", days: [1], time: "09:00" }] });
-  assert.deepEqual((await listJobFlows(muse.id)).map((f) => f.trigger), [{ kind: "schedule", days: [1], time: "09:00" }]);
+  await updateAssistant(penny.id, { triggers: [{ kind: "schedule", days: [1], time: "09:00" }] });
+  assert.deepEqual((await listJobFlows(penny.id)).map((f) => f.trigger), [{ kind: "schedule", days: [1], time: "09:00" }]);
 
   // Ask's save_routine: an assistant and its flow.
   let made = "";
@@ -323,8 +323,8 @@ test("once moved: setup and Ask make job flows, editing triggers edits them, rem
   assert.equal(routine.triggers[0].flow_id, (await listJobFlows(made))[0].id);
   assert.equal((await qRaw<{ n: number }>(`SELECT count(*)::int AS n FROM team_triggers`))[0].n, 0);
 
-  await deleteAssistant(muse.id);
-  assert.deepEqual(await listJobFlows(muse.id), []);
+  await deleteAssistant(penny.id);
+  assert.deepEqual(await listJobFlows(penny.id), []);
 });
 
 test("sharing: export writes the flows' triggers in the format older copies read; import makes paused flows that come on with the assistant", { skip }, async () => {

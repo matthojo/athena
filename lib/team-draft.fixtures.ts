@@ -6,7 +6,7 @@
 
 /** "When I save a gift idea, find a good price". */
 export const GIFT_PRICES = {
-  name: "Muse",
+  name: "Penny",
   job: "Finds good prices for gift ideas",
   instructions: "When a gift idea is saved, look for the best price from a shop the owner trusts and add a to-do to buy it if it's a good deal.",
   triggers: [{ kind: "event", event: { source: "saved", savedAction: "Gift-Idea" } }],

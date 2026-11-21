@@ -476,7 +476,7 @@ function stateFor(view: TrackerView, team: TeamAssistant[], askWeb: boolean | nu
 }
 
 /**
- * Who checks it, said on every block: "Muse checks this" with her avatar, opening her page, and when (her next
+ * Who checks it, said on every block: "Penny checks this" with her avatar, opening her page, and when (her next
  * scheduled check, else the last); "You check this"; or "Nobody is checking this yet" with Choose. When its
  * checker can't check, one line says why, with the fix a tap away. The page it was read on sits at the end.
  */

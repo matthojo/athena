@@ -26,10 +26,10 @@ test("facts are one line each, without repeats or bullets", () => {
 });
 
 test("the request holds the job, the old memory and the turns, cut to size", () => {
-  const r = memoryRequest({ name: "Muse", job: "Finds good prices" }, { summary: "Old summary", facts: ["Old fact"] }, [{ asked: "Find the scarf", said: "y".repeat(5000) }]);
+  const r = memoryRequest({ name: "Penny", job: "Finds good prices" }, { summary: "Old summary", facts: ["Old fact"] }, [{ asked: "Find the scarf", said: "y".repeat(5000) }]);
   assert.match(r, /Its job: Finds good prices/);
   assert.match(r, /Old summary\n- Old fact/);
-  assert.match(r, /They said: Find the scarf\nMuse: y+…/);
+  assert.match(r, /They said: Find the scarf\nPenny: y+…/);
   assert.doesNotMatch(r, /Owner/, "the model is never shown \"Owner\" to copy");
   assert.ok(r.length < 4000);
 });

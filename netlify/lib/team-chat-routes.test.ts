@@ -35,16 +35,16 @@ test("anything else isn't that: a question, a refusal, an answer that happens to
 });
 
 test("“@Name” reaches that assistant, with the name taken out of what it's asked", () => {
-  const team = [{ id: "1", name: "Muse" }, { id: "2", name: "Dot" }, { id: "3", name: "Dot Matrix" }];
-  assert.deepEqual(mentioned("@Muse what's the best price?", team), { assistant: team[0], text: "what's the best price?" });
-  assert.deepEqual(mentioned("Can you check this, @muse?", team), { assistant: team[0], text: "Can you check this, ?" });
+  const team = [{ id: "1", name: "Penny" }, { id: "2", name: "Dot" }, { id: "3", name: "Dot Matrix" }];
+  assert.deepEqual(mentioned("@Penny what's the best price?", team), { assistant: team[0], text: "what's the best price?" });
+  assert.deepEqual(mentioned("Can you check this, @penny?", team), { assistant: team[0], text: "Can you check this, ?" });
   assert.equal(mentioned("@Dot Matrix print it", team)?.assistant.id, "3", "the longest name wins");
-  assert.equal(mentioned("@Dot, then @Muse", team)?.assistant.id, "2", "the first one named");
-  assert.deepEqual(mentioned("@Muse", team), { assistant: team[0], text: "@Muse" }, "a bare name is still a message");
-  assert.equal(mentioned("mail me@muse.example", team), null, "an email address isn't a mention");
+  assert.equal(mentioned("@Dot, then @Penny", team)?.assistant.id, "2", "the first one named");
+  assert.deepEqual(mentioned("@Penny", team), { assistant: team[0], text: "@Penny" }, "a bare name is still a message");
+  assert.equal(mentioned("mail me@penny.example", team), null, "an email address isn't a mention");
   assert.equal(mentioned("@Dotty hello", team), null);
-  assert.equal(mentioned("Muse, what's new?", team), null);
-  assert.equal(mentioned("@Muse hi", []), null);
+  assert.equal(mentioned("Penny, what's new?", team), null);
+  assert.equal(mentioned("@Penny hi", []), null);
 });
 
 test("without the assignments side, nothing waits and nothing can be answered", async () => {

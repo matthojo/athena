@@ -21,9 +21,9 @@ test("the same seed always gives the same character, name and personality", () =
     assert.deepEqual(personalityFromSeed(s), personalityFromSeed(s));
     assert.equal(avatarMarkup(avatarFromSeed(s)), avatarMarkup(avatarFromSeed(s)));
   }
-  assert.deepEqual(avatarFromSeed("muse"), {
-    ...avatarFromSeed("muse"),
-    seed: "muse",
+  assert.deepEqual(avatarFromSeed("penny"), {
+    ...avatarFromSeed("penny"),
+    seed: "penny",
     v: 1,
   });
 });
@@ -247,7 +247,7 @@ test("coats can be told apart at a glance", () => {
 });
 
 test("dark mode: every coloured fill carries its dark value; markup alone stays light", () => {
-  const svg = avatarMarkup({ ...avatarFromSeed("muse"), accessories: ["headphones"] });
+  const svg = avatarMarkup({ ...avatarFromSeed("penny"), accessories: ["headphones"] });
   const tags = svg.match(/<[a-z]+\b[^>]*\sfill="#[0-9a-f]{3,6}"[^>]*>/gi) ?? [];
   for (const t of tags) {
     const fill = /\sfill="(#[0-9a-f]+)"/i.exec(t)![1].toLowerCase();
@@ -268,11 +268,11 @@ test("the avatar stylesheet uses motion tokens and honours reduced motion", () =
 });
 
 test("nameFromSeed skips names already on the team", () => {
-  const first = nameFromSeed("muse");
-  const second = nameFromSeed("muse", [first]);
+  const first = nameFromSeed("penny");
+  const second = nameFromSeed("penny", [first]);
   assert.notEqual(first, second);
-  assert.equal(second, nameFromSeed("muse", [first.toUpperCase()]));
-  assert.equal(nameFromSeed("muse", []), first);
+  assert.equal(second, nameFromSeed("penny", [first.toUpperCase()]));
+  assert.equal(nameFromSeed("penny", []), first);
 });
 
 test("a monster's antenna stalks carry the coat's dark shade, used only in dark mode", () => {

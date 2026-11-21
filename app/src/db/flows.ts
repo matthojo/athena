@@ -142,7 +142,7 @@ export async function handFlow(id: string, assistantId: string | "new"): Promise
     if (to === "new") {
       // Sample mode has no one to make: the new assistant is played by whoever's free.
       const team = await listTeam();
-      to = team.find((a) => !store().flows.some((x) => x.assistant_id === a.id))?.id ?? team[0]?.id ?? SAMPLE_TEAM_IDS.muse;
+      to = team.find((a) => !store().flows.some((x) => x.assistant_id === a.id))?.id ?? team[0]?.id ?? SAMPLE_TEAM_IDS.penny;
     }
     f.assistant_id = to;
     f.handed_at = new Date().toISOString();

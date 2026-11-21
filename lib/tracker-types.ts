@@ -81,7 +81,7 @@ export interface TrackerPoint {
   checked_at: string;
   checked_by: TrackerChecker;
   assistant_id: string | null;
-  /** The assistant's name when it checked, for "Checked by Muse". */
+  /** The assistant's name when it checked, for "Checked by Penny". */
   who?: string | null;
 }
 

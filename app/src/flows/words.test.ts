@@ -23,7 +23,7 @@ test("triggers read as sentences", () => {
 test("step titles: the owner's, else what it does", () => {
   assert.equal(stepTitle({ id: "a", kind: "tool", title: "  My own  ", tool: "add_todo", input: {}, go: "ask", gives: [] }), "My own");
   assert.equal(stepTitle({ id: "a", kind: "tool", title: null, tool: "add_todo", input: {}, go: "ask", gives: [] }), "Add a to-do");
-  assert.equal(stepTitle({ id: "a", kind: "think", title: null, task: [], web: false, gives: [] }, [], "Muse"), "Muse thinks");
+  assert.equal(stepTitle({ id: "a", kind: "think", title: null, task: [], web: false, gives: [] }, [], "Penny"), "Penny thinks");
   assert.equal(stepTitle({ id: "a", kind: "wait", title: null, days: 7, at: null }), "Wait a week");
 });
 
@@ -132,7 +132,7 @@ test("new tool steps: only reminders, to-dos and list lines run alone; drafts al
 });
 
 test("a paused assistant's flow says why it doesn't run", () => {
-  assert.equal(pausedWords({ name: "Muse", paused: true }), "Muse is paused, so this flow doesn't run. Run now still works.");
-  assert.equal(pausedWords({ name: "Muse", paused: false }), null);
+  assert.equal(pausedWords({ name: "Penny", paused: true }), "Penny is paused, so this flow doesn't run. Run now still works.");
+  assert.equal(pausedWords({ name: "Penny", paused: false }), null);
   assert.equal(pausedWords(null), null);
 });

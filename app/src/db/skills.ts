@@ -91,7 +91,7 @@ function sampleSkills(): AppSkill[] {
       created_at: daysAgo(12),
     }),
     ...STARTER_SKILLS.map((s, i) => sampleSkill(`5a3e0000-0000-4000-8000-00000000c10${i}`, s.text, { starter: s.key, source: { kind: "starter", at: daysAgo(30) } })),
-    // Muse, Dot and Wren's own skills.
+    // Penny, Dot and Wren's own skills.
     ...sampleTeamSkills().map((t) => sampleSkill(t.id, t.text, { assistant_id: t.assistant_id, team: t.team, source: { kind: "team", at: t.at }, created_at: t.at, uses: t.uses, last_used_at: t.uses ? daysAgo(1) : null })),
   ]);
 }

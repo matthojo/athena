@@ -67,7 +67,7 @@ export function rememberWebHint(id: string, needs: boolean): void {
   }
 }
 
-/** Its job needs the web: the server's hint at hiring, kept on this device (sample mode: Muse). */
+/** Its job needs the web: the server's hint at hiring, kept on this device (sample mode: Penny). */
 export function needsWeb(a: Pick<TeamAssistant, "id">): boolean {
   if (isSampleMode() && SAMPLE_WEB_HINTS.has(a.id)) return true;
   return readHints().has(a.id);

@@ -123,7 +123,7 @@ export function skillEdited(meta: Pick<TeamSkillMeta, "made"> | null | undefined
 
 // ---------- the skill ----------
 
-/** "Muse" + "Finds good prices for gift ideas" → "muse-finds-good-prices-for-gift-ideas", within the name rules. Pure. */
+/** "Penny" + "Finds good prices for gift ideas" → "penny-finds-good-prices-for-gift-ideas", within the name rules. Pure. */
 export function assistantSkillName(name: string, job: string): string {
   const both = slugName(`${name} ${job}`);
   const cut = both.length > 48 ? both.slice(0, 48).replace(/-[^-]*$/, "") : both;

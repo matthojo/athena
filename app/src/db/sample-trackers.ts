@@ -3,7 +3,7 @@
  * in memory until the page reloads. It answers what GET/POST/PATCH/DELETE
  * /api/trackers would, so the app is built against the contract alone.
  *
- * The sample's story, from Muse's runs (db/sample-team.ts):
+ * The sample's story, from Penny's runs (db/sample-team.ts):
  *  - the LEGO Ferrari, saved at £42, now £34 at Smyths after 12 checks at 4
  *    shops, with a target of £30; and its stock at John Lewis, out for a
  *    fortnight and back in since Tuesday;
@@ -86,7 +86,7 @@ interface Seed {
 
 const SEEDS: Seed[] = [
   {
-    key: "lego-price", item: LEGO, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.muse },
+    key: "lego-price", item: LEGO, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny },
     checks: [
       [36, 8, "42", "LEGO", LEGO, M],
       [31, 8, "39.99", "John Lewis", JOHN_LEWIS_LEGO, M],
@@ -103,7 +103,7 @@ const SEEDS: Seed[] = [
     target: { op: "lte", value: "30", daysBack: 6 },
   },
   {
-    key: "lego-stock", item: LEGO, tracker: { label: "stock", kind: "state", direction: "change", preset: "stock", states: ["in stock", "sold out"], assistant_id: SAMPLE_TEAM_IDS.muse, url: JOHN_LEWIS_LEGO },
+    key: "lego-stock", item: LEGO, tracker: { label: "stock", kind: "state", direction: "change", preset: "stock", states: ["in stock", "sold out"], assistant_id: SAMPLE_TEAM_IDS.penny, url: JOHN_LEWIS_LEGO },
     checks: [
       [20, 8, "sold out", "John Lewis", JOHN_LEWIS_LEGO, M],
       [16, 8, "sold out", "John Lewis", JOHN_LEWIS_LEGO, M],
@@ -115,12 +115,12 @@ const SEEDS: Seed[] = [
     ],
   },
   {
-    key: "aesop-price", item: AESOP, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.muse },
+    key: "aesop-price", item: AESOP, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny },
     checks: [[0, -1, "27", "John Lewis", "https://www.johnlewis.com/aesop-resurrection-aromatique-hand-balm-75ml", M]],
     target: { op: "lte", value: "28", daysBack: 0 },
   },
   {
-    key: "moleskine-price", item: MOLESKINE, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.muse },
+    key: "moleskine-price", item: MOLESKINE, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny },
     checks: [
       [8, 8, "18", "Waterstones", MOLESKINE, M],
       [3, 10, "15", "WHSmith", "https://www.whsmith.co.uk/products/moleskine-2027-weekly-diary-large-black", M],
@@ -129,7 +129,7 @@ const SEEDS: Seed[] = [
     // Reached at another shop: Waterstones checked last, WHSmith's £15 meets the £16.
     target: { op: "lte", value: "16", daysBack: 4 },
   },
-  { key: "kindle-price", item: KINDLE, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.muse }, checks: [] },
+  { key: "kindle-price", item: KINDLE, tracker: { label: "price", kind: "number", direction: "lower", preset: "price", assistant_id: SAMPLE_TEAM_IDS.penny }, checks: [] },
   { key: "dress-price", item: DRESS, tracker: { label: "price", kind: "number", direction: "lower", preset: "price" }, checks: [[0, -1, "85", "Marlow & Finch", DRESS, "ask"]] },
   {
     key: "octopus", createdDaysBack: 59,
@@ -160,7 +160,7 @@ const SEEDS: Seed[] = [
   },
 ];
 
-const WHO: Record<string, string> = { [SAMPLE_TEAM_IDS.muse]: "Muse", [SAMPLE_TEAM_IDS.dot]: "Dot", [SAMPLE_TEAM_IDS.wren]: "Wren" };
+const WHO: Record<string, string> = { [SAMPLE_TEAM_IDS.penny]: "Penny", [SAMPLE_TEAM_IDS.dot]: "Dot", [SAMPLE_TEAM_IDS.wren]: "Wren" };
 
 /** A day back at an hour, local; hour -1 is "42 minutes ago" (today's live check). */
 function at(daysBack: number, hour: number): string {

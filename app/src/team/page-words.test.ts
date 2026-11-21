@@ -92,14 +92,14 @@ test("what it waits for: the event, the next slot, or you", () => {
 
 test("the page's one sentence", () => {
   const team = [
-    { id: "m", name: "Muse", paused: false },
+    { id: "m", name: "Penny", paused: false },
     { id: "d", name: "Dot", paused: false },
     { id: "w", name: "Wren", paused: false },
   ];
   const desk = (state: Desk["state"], today = 0, asks = false): Desk => ({ state, live: null, last: null, today: Array.from({ length: today }, (_, i) => run({ id: String(i) })), asks, waits: asks ? 1 : 0, dismissed: false });
   const lede = (m: Desk, d: Desk, w: Desk) => teamLede(team, new Map([["m", m], ["d", d], ["w", w]]));
-  assert.equal(lede(desk("working"), desk("waiting", 0, true), desk("idle")), "Muse is working. Dot needs your Go.");
-  assert.equal(lede(desk("working"), desk("queued"), desk("failed")), "Muse and Dot are working. Wren couldn't finish a run.");
+  assert.equal(lede(desk("working"), desk("waiting", 0, true), desk("idle")), "Penny is working. Dot needs your Go.");
+  assert.equal(lede(desk("working"), desk("queued"), desk("failed")), "Penny and Dot are working. Wren couldn't finish a run.");
   assert.equal(lede(desk("idle", 2), desk("idle", 1), desk("idle")), "All quiet. Your team has run 3 times today.");
   assert.equal(lede(desk("idle", 1), desk("idle"), desk("idle")), "All quiet. Your team has run once today.");
   assert.equal(lede(desk("idle"), desk("idle"), desk("idle")), "All quiet so far today.");

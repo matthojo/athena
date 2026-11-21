@@ -137,7 +137,7 @@ test("rotation: every sealed store is counted, re-sealed and opens under the new
     await qRaw(`INSERT INTO ask_activity (id, source, payload) VALUES ($1, 'ask', $2)`, [ROW, box.sealText(JSON.stringify({ did: "Added a reminder" }))]);
     await qRaw(`INSERT INTO ask_skills (id, payload) VALUES ($1, $2)`, [ROW, box.sealText(JSON.stringify({ name: "rotation" }))]);
     // A Team assistant's words and memory, and one of its runs (0067).
-    await qRaw(`INSERT INTO team_assistants (id, payload, memory) VALUES ($1, $2, $3)`, [ROW, box.sealText(JSON.stringify({ name: "Muse" })), box.sealText(JSON.stringify({ summary: "Likes gifts", facts: [] }))]);
+    await qRaw(`INSERT INTO team_assistants (id, payload, memory) VALUES ($1, $2, $3)`, [ROW, box.sealText(JSON.stringify({ name: "Penny" })), box.sealText(JSON.stringify({ summary: "Likes gifts", facts: [] }))]);
     await qRaw(`INSERT INTO team_runs (id, assistant_id, summary) VALUES ($1, $1, $2)`, [ROW, box.sealText(JSON.stringify({ did: "Found a price" }))]);
     // One of its posts in Team chat (0076); it goes with the assistant.
     await qRaw(`INSERT INTO team_posts (assistant_id, kind, body) VALUES ($1, 'update', $2)`, [ROW, box.sealText(JSON.stringify({ text: "Found a price" }))]);
@@ -214,7 +214,7 @@ test("rotation: every sealed store is counted, re-sealed and opens under the new
     assert.deepEqual(await sealedText("ask_routines", "pending"), { title: "Your week" });
     assert.deepEqual(await sealedText("ask_activity"), { did: "Added a reminder" });
     assert.deepEqual(await sealedText("ask_skills"), { name: "rotation" });
-    assert.deepEqual(await sealedText("team_assistants"), { name: "Muse" });
+    assert.deepEqual(await sealedText("team_assistants"), { name: "Penny" });
     assert.deepEqual(await sealedText("team_assistants", "memory"), { summary: "Likes gifts", facts: [] });
     assert.deepEqual(await sealedText("team_runs", "summary"), { did: "Found a price" });
     assert.deepEqual(await sealedText("team_posts", "body", "assistant_id"), { text: "Found a price" });

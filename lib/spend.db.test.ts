@@ -24,7 +24,7 @@ if (url) {
 }
 const skip = !url && "set ATHENA_TEST_DB_URL";
 
-const MUSE = "00000000-0000-4000-8000-00000000a001";
+const PENNY = "00000000-0000-4000-8000-00000000a001";
 const DOT = "00000000-0000-4000-8000-00000000a002";
 
 type Usage = { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number };
@@ -104,7 +104,7 @@ test("each call through createMessage is kept at the published price, under the 
   const { qRaw } = await import("./db");
   await call("claude-haiku-5-5", { input_tokens: 2_000, output_tokens: 1_000 });
   await withSpendScope({ area: "ask" }, () => call("claude-sonnet-5-5", { input_tokens: 1_000, output_tokens: 500, cache_read_input_tokens: 10_000, cache_creation_input_tokens: 2_000 }));
-  await withSpendScope({ area: "assistant", assistantId: MUSE }, () => call("claude-opus-5-5", { input_tokens: 100_000, output_tokens: 10_000 }));
+  await withSpendScope({ area: "assistant", assistantId: PENNY }, () => call("claude-opus-5-5", { input_tokens: 100_000, output_tokens: 10_000 }));
   const rows = await qRaw<{ area: string; assistant_id: string | null; job: string | null; provider: string; model: string; usd: string; estimated: boolean; cached_tokens: number }>(`SELECT * FROM ai_usage ORDER BY id`);
   assert.deepEqual(
     rows.map((r) => [r.area, r.assistant_id, r.provider, r.model, Number(r.usd), r.estimated]),
@@ -115,7 +115,7 @@ test("each call through createMessage is kept at the published price, under the 
       // Sonnet 5.5: $2 in, $10 out, $0.10 cached, cache writes at $2 × 1.25.
       ["ask", null, "anthropic", "claude-sonnet-5-5", 0.013, false],
       // Opus 5.5: $4 in, $20 out.
-      ["assistant", MUSE, "anthropic", "claude-opus-5-5", 0.6, false],
+      ["assistant", PENNY, "anthropic", "claude-opus-5-5", 0.6, false],
     ],
   );
   assert.equal(rows[1].cached_tokens, 10_000);
@@ -127,7 +127,7 @@ test("each call through createMessage is kept at the published price, under the 
   assert.equal(view.json.rate, null);
   assert.equal(view.json.budget.state, "none");
   assert.equal(view.json.budget.limit, null);
-  assert.deepEqual(view.json.today.lines.map((l: any) => [l.area, l.assistant_id ?? null, l.spent]), [["ask", null, 0.013], ["assistant", MUSE, 0.6], ["background", null, 0.0007]]);
+  assert.deepEqual(view.json.today.lines.map((l: any) => [l.area, l.assistant_id ?? null, l.spent]), [["ask", null, 0.013], ["assistant", PENNY, 0.6], ["background", null, 0.0007]]);
   assert.equal(view.json.today.spent, 0.6137);
   assert.equal(view.json.week.days.length, 7);
   assert.equal(view.json.week.days.at(-1).day, view.json.today.day);
@@ -188,12 +188,12 @@ test("at the budget every call stops before it's made, until midnight in the own
 
 test("an assistant past its own cap stops; Ask and the other assistants carry on", { skip }, async () => {
   const { checkBudget, recordUsage, BudgetReached } = await import("./spend");
-  await budget({ daily: 5, assistants: { [MUSE]: 0.5 } });
-  await recordUsage({ model: "claude-opus-5-5", usage: { input_tokens: 125_000, output_tokens: 0 }, scope: { area: "assistant", assistantId: MUSE } });
-  const stopped = await checkBudget({ area: "assistant", assistantId: MUSE }).catch((e) => e);
+  await budget({ daily: 5, assistants: { [PENNY]: 0.5 } });
+  await recordUsage({ model: "claude-opus-5-5", usage: { input_tokens: 125_000, output_tokens: 0 }, scope: { area: "assistant", assistantId: PENNY } });
+  const stopped = await checkBudget({ area: "assistant", assistantId: PENNY }).catch((e) => e);
   assert.ok(stopped instanceof BudgetReached);
   assert.equal(stopped.notice.scope, "assistant");
-  assert.equal(stopped.notice.assistant_id, MUSE);
+  assert.equal(stopped.notice.assistant_id, PENNY);
   assert.equal(stopped.notice.limit, 0.5);
   assert.match(stopped.message, /has used today's \$0\.50, so it has stopped until midnight\. The rest of Athena carries on\./);
   await checkBudget({ area: "assistant", assistantId: DOT });
@@ -249,14 +249,14 @@ test("Allow more: under, near and reached, and tomorrow starts from the budget a
   forgetBudget();
   assert.equal((await api("POST", "spend/allow-more", {})).status, 400);
   // An assistant's cap is raised on its own.
-  await budget({ daily: null, assistants: { [MUSE]: 0.25 } });
-  const mine = await api("POST", "spend/allow-more", { assistant_id: MUSE });
+  await budget({ daily: null, assistants: { [PENNY]: 0.25 } });
+  const mine = await api("POST", "spend/allow-more", { assistant_id: PENNY });
   assert.equal(mine.status, 200);
   assert.equal((await api("POST", "spend/allow-more", { assistant_id: "nope" })).status, 400);
 });
 
 test("the budget and caps: set, cleared, and refused in words when they're not amounts", { skip }, async () => {
-  let r = await api("PATCH", "spend/budget", { daily: 3, assistants: { [MUSE]: 0.5 } });
+  let r = await api("PATCH", "spend/budget", { daily: 3, assistants: { [PENNY]: 0.5 } });
   assert.equal(r.status, 200);
   assert.equal(r.json.budget.daily, 3);
   assert.equal(r.json.budget.state, "under");
@@ -265,7 +265,7 @@ test("the budget and caps: set, cleared, and refused in words when they're not a
   assert.equal(r.json.error, "The daily budget needs to be an amount above zero, or left empty for none.");
   assert.equal((await api("PATCH", "spend/budget", {})).status, 400);
   assert.equal((await api("PATCH", "spend/budget", { assistants: { "not-an-id": 1 } })).status, 400);
-  r = await api("PATCH", "spend/budget", { daily: null, assistants: { [MUSE]: null } });
+  r = await api("PATCH", "spend/budget", { daily: null, assistants: { [PENNY]: null } });
   assert.equal(r.json.budget.daily, null);
   assert.equal(r.json.budget.state, "none");
   const { qRaw } = await import("./db");
@@ -359,11 +359,11 @@ test("a triggered run stopped by its cap isn't tried again, and sends one card t
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_routines, ask_plans, ask_activity, nudges, nudge_mutes CASCADE`);
   // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
   await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
-  const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" }, triggers: [{ kind: "schedule", days: [1, 2, 3, 4, 5], time: "09:00" }] });
-  await budget({ daily: null, assistants: { [muse.id]: 0.05 } });
-  await recordUsage({ model: "claude-opus-5-5", usage: { input_tokens: 12_500, output_tokens: 0 }, scope: { area: "assistant", assistantId: muse.id } });
+  const penny = await createAssistant({ name: "Penny", job: "Finds prices for gift ideas", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" }, triggers: [{ kind: "schedule", days: [1, 2, 3, 4, 5], time: "09:00" }] });
+  await budget({ daily: null, assistants: { [penny.id]: 0.05 } });
+  await recordUsage({ model: "claude-opus-5-5", usage: { input_tokens: 12_500, output_tokens: 0 }, scope: { area: "assistant", assistantId: penny.id } });
   const s = stub({ input_tokens: 1, output_tokens: 1 });
-  const queued = await enqueueTeamRun(muse.id, { triggerId: muse.triggers[0].id });
+  const queued = await enqueueTeamRun(penny.id, { triggerId: penny.triggers[0].id });
   const run = await runTeamRun(queued.id, {
     turn: async () => {
       await createMessage(s.client, { model: "claude-sonnet-5-5", max_tokens: 10, messages: [{ role: "user", content: "go" }] }, Date.now() + 60_000);
@@ -451,13 +451,13 @@ test("the week and the split, from real rows: each assistant by name, a deleted 
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_routines, ask_plans, ask_activity CASCADE`);
   // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
   await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
-  const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas" });
+  const penny = await createAssistant({ name: "Penny", job: "Finds prices for gift ideas" });
   const dot = await createAssistant({ name: "Dot", job: "Linear issues to to-dos" });
   const now = new Date();
   const ago = (days: number) => new Date(now.getTime() - days * 86_400_000);
   const opus = (tokens: number, scope: { area: "ask" | "assistant" | "background" | "pictures"; assistantId?: string; job?: string }, at: Date) => recordUsage({ model: "claude-opus-5-5", usage: { input_tokens: tokens, output_tokens: 0 }, scope }, { now: at });
   await opus(100_000, { area: "ask" }, now); // $0.40
-  await opus(50_000, { area: "assistant", assistantId: muse.id }, now); // $0.20
+  await opus(50_000, { area: "assistant", assistantId: penny.id }, now); // $0.20
   await opus(25_000, { area: "background", job: "briefing" }, now); // $0.10
   await recordUsage({ provider: "gemini", model: "gemini-3-pro-image", images: 1, scope: { area: "pictures", assistantId: dot.id } }, { now }); // $0.134
   await opus(250_000, { area: "assistant", assistantId: dot.id }, ago(3)); // $1.00, three days ago
@@ -466,12 +466,12 @@ test("the week and the split, from real rows: each assistant by name, a deleted 
   await deleteAssistant(dot.id);
 
   const v = (await api("GET", "spend")).json;
-  assert.deepEqual(v.today.lines.map((l: any) => [l.area, l.name ?? null, l.spent]), [["ask", null, 0.4], ["assistant", "Muse", 0.2], ["background", null, 0.1], ["pictures", null, 0.134]]);
+  assert.deepEqual(v.today.lines.map((l: any) => [l.area, l.name ?? null, l.spent]), [["ask", null, 0.4], ["assistant", "Penny", 0.2], ["background", null, 0.1], ["pictures", null, 0.134]]);
   assert.equal(v.today.spent, 0.834);
   assert.deepEqual(v.week.days.map((d: any) => d.spent), [2, 0, 0, 1, 0, 0, 0.834]);
   assert.equal(v.week.spent, 3.834);
-  assert.deepEqual(v.week.lines.map((l: any) => [l.area, l.name ?? null, l.spent]), [["ask", null, 2.4], ["assistant", null, 1], ["assistant", "Muse", 0.2], ["background", null, 0.1], ["pictures", null, 0.134]]);
-  assert.deepEqual(v.assistants.map((a: any) => [a.name, a.spent, a.cap]), [["Muse", 0.2, null]]);
+  assert.deepEqual(v.week.lines.map((l: any) => [l.area, l.name ?? null, l.spent]), [["ask", null, 2.4], ["assistant", null, 1], ["assistant", "Penny", 0.2], ["background", null, 0.1], ["pictures", null, 0.134]]);
+  assert.deepEqual(v.assistants.map((a: any) => [a.name, a.spent, a.cap]), [["Penny", 0.2, null]]);
   await qRaw(`TRUNCATE team_assistants CASCADE`);
 });
 
