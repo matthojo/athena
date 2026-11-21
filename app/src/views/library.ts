@@ -21,6 +21,7 @@ import { loadKindRecords } from "../db/custom-kinds";
 import { loadSaved } from "../db/saved";
 import { loadMusic } from "../db/music";
 import { loadWork } from "../db/work";
+import { listFlows } from "../db/flows";
 import { KIND_WORD } from "../../../lib/custom-kind-words";
 import { plural } from "../lib/format";
 import { localToday } from "../lib/time";
@@ -47,9 +48,13 @@ const ABOUT: Partial<Record<ViewId, string>> = {
   goals: "What you're working towards",
   work: "What you closed, merged and reviewed",
   graph: "How everything links together",
+  flows: "What Athena does for you when something happens",
   archived: "Put away, ready to restore",
   settings: "Sources, fields, voice and keys",
 };
+
+/** Flows sits with More: not something Athena keeps, but something it does (flows/list.ts). */
+const FLOWS: LibraryItem = { view: "flows", label: "Flows", icon: "loop" };
 
 const RECORD_KIND: Partial<Record<ViewId, [RecordKind, string, string]>> = {
   people: ["person", "person", "people"],
@@ -115,6 +120,12 @@ async function summary(view: ViewId): Promise<string | null> {
       const n = w.count.issues_closed + w.count.prs_merged;
       return n ? `${num(n)} shipped this month` : "Nothing shipped this month yet";
     }
+    case "flows": {
+      const { flows, latest } = await listFlows();
+      if (!flows.length) return null;
+      const waiting = flows.filter((f) => latest[f.id]?.status === "waiting" && !latest[f.id].dry && (latest[f.id].waits_for === "go" || latest[f.id].waits_for === "answer")).length;
+      return `${flows.length} ${plural(flows.length, "flow", "flows")}${waiting ? `, ${waiting} ${waiting === 1 ? "needs" : "need"} you` : ""}`;
+    }
     case "goals": {
       const { items } = await loadGoals();
       const active = items.filter((g) => g.status === "active").length;
@@ -169,7 +180,7 @@ export function renderLibrary(ctx: { go: (view: ViewId, opts?: { noteId?: string
       "section",
       { class: "group lib-group reveal", "data-group": g.id, style: `--i:${i}`, "aria-labelledby": `lib-${g.id}` },
       h("div", { class: "group__head" }, h("h2", { class: "lib-group__label", id: `lib-${g.id}` }, g.label)),
-      h("div", { class: "card card--flush list" }, ...(g.items.length ? g.items.map(row) : [makeKind()]))
+      h("div", { class: "card card--flush list" }, ...(g.items.length ? (g.id === "more" ? [FLOWS, ...g.items] : g.items).map(row) : [makeKind()]))
     )
   );
 

@@ -100,6 +100,8 @@ const chunks = {
   // Saved (with styles/saved.css): links, images, quotes and the share target's landing.
   saved: chunk(() => import("./views/saved")),
   team: chunk(() => import("./views/team")),
+  // Flows (with styles/flows.css): the list, the editor and a run's page.
+  flows: chunk(() => import("./views/flows")),
   // Recipes (with styles/recipes.css): the grid, a recipe, cook mode, the week plan and the grocery list.
   recipes: chunk(() => import("./views/recipes")),
   goals: chunk(() => import("./views/goals")),
@@ -359,6 +361,9 @@ function mountShell() {
     } else if (route.view === "team") {
       const param = route.noteId;
       current = lazyView(chunks.team, ({ renderTeam }) => renderTeam({ go: (view, opts) => go(view, opts), param }));
+    } else if (route.view === "flows") {
+      const param = route.noteId;
+      current = lazyView(chunks.flows, ({ renderFlows }) => renderFlows({ go: (view, opts) => go(view, opts), param }));
     } else if (route.view === "saved") {
       const itemId = route.noteId;
       current = lazyView(chunks.saved, ({ renderSaved }) => renderSaved({ go: (view, opts) => go(view, opts), itemId, isDesktop: () => desktop.matches }));

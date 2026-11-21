@@ -6,7 +6,7 @@
  *    a phone starts from Home's own button (components/new-note-button.ts),
  *    and Team from the button above Home's Ask box (components/home-ask.ts).
  *  - sidebar(): the desktop rail — "Search or jump to…" (⌘K), new note (C),
- *    then pinned, never scrolling: Home, Days, To do, Ask, and Inbox with
+ *    then pinned, never scrolling: Home, Days, To do, Ask, Team, Flows, and Inbox with
  *    This week (Week in review for the current week). Below them the Library
  *    scrolls, in the groups its index uses, each folding open on its
  *    own; which are folded is remembered on this device. Archived and
@@ -29,6 +29,7 @@ export type ViewId =
   | "notes"
   | "ask"
   | "team"
+  | "flows"
   | "people"
   | "places"
   | "organisations"
@@ -161,9 +162,11 @@ export function sidebar(
     navItem("loops", "To do", icons.loop()),
     navItem("ask", "Ask", orb()),
     navItem("team", "Team", icons.team()),
+    // Flows, under Team: something Athena does for you, like Team (owner, 21 Nov 2026). Home's pill and Library's row stay.
+    navItem("flows", "Flows", icons.loop()),
   ];
   // The Team entry keeps a pulse: a soft dot while an assistant works, and a count of what waits for you (team/page-pulse.ts).
-  const teamItem = navItems[navItems.length - 1];
+  const teamItem = navItems.find((b) => b.dataset.id === "team")!;
   // The count opens Team chat, where everything that waits is (docs/team.md "Team chat"); the name opens the Team page.
   teamItem.addEventListener("click", (e) => {
     if (!(e.target as Element).closest(".side-item__count")) return;
