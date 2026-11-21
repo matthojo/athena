@@ -166,7 +166,10 @@ export async function startFlowTeamRun(assistantId: string, from: { flowId: stri
   const [row] = await qRaw<{ id: string }>(
     `INSERT INTO team_runs (assistant_id, event_id, event_ids, status, label, step_at, flow_id, flow_run_id)
      VALUES ($1::uuid, (SELECT id FROM team_events WHERE id = $2::bigint), $3::jsonb, 'running', $4, now(), $5::uuid, $6::uuid)
-     ON CONFLICT (flow_run_id) WHERE flow_run_id IS NOT NULL DO UPDATE SET flow_id = EXCLUDED.flow_id RETURNING id`,
+     ON CONFLICT (flow_run_id) WHERE flow_run_id IS NOT NULL DO UPDATE SET flow_id = EXCLUDED.flow_id,
+       status = CASE WHEN team_runs.status = 'queued' THEN 'running' ELSE team_runs.status END,
+       step_at = CASE WHEN team_runs.status = 'queued' THEN now() ELSE team_runs.step_at END
+     RETURNING id`,
     [assistantId, ids[0] ?? null, JSON.stringify(ids), sealText(clip(from.label || RUN_NOW, 200)), from.flowId, from.flowRunId],
   );
   return row.id;
@@ -226,6 +229,20 @@ export async function retryTeamRun(id: string): Promise<boolean> {
 }
 
 /**
+ * A run of an assistant's flow that failed before anything ran waits for the next pass, once, as retryTeamRun's do
+ * (lib/flow-run.ts triesAgain puts the flow run back in the queue). Marked retried, so Recent runs says it'll try
+ * again shortly and a second failure's card says it tried twice. Its start again (startFlowTeamRun) sets it working.
+ */
+export async function retryFlowTeamRun(id: string): Promise<boolean> {
+  const rows = await qRaw<{ id: string }>(
+    `UPDATE team_runs SET status = 'queued', retried = true, started_at = now(), step = NULL, step_at = NULL, error = NULL, thread_id = NULL
+      WHERE id = $1::uuid AND status IN ('queued', 'running') AND NOT retried AND flow_run_id IS NOT NULL RETURNING id`,
+    [id],
+  );
+  return rows.length > 0;
+}
+
+/**
  * A run stopped because today's budget couldn't be checked goes back in the queue as it was, so the next reminders
  * pass hands it off again; it isn't a retry, and no card is sent. Only when it made nothing, so trying again can't
  * make anything twice. The database may be flapping, so it tries the write a few times. False when it couldn't.
@@ -249,7 +266,7 @@ export async function waitTeamRun(id: string, threadId: string, pauses: number[]
 }
 
 /** Whether a failed turn left anything behind in its conversation: a change made, or a plan kept. */
-async function madeAnything(threadId: string): Promise<boolean> {
+export async function madeAnything(threadId: string): Promise<boolean> {
   const [row] = await qRaw<{ made: boolean }>(
     `SELECT EXISTS (SELECT 1 FROM ask_activity WHERE thread_id = $1::uuid) OR EXISTS (SELECT 1 FROM ask_plans WHERE thread_id = $1::uuid) AS made`,
     [threadId],

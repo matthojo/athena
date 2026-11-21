@@ -1780,7 +1780,11 @@ suggestions and the app is `lib/flow-types.ts`.
   `team` for an assistant's).
 - **Hand and take back** (`POST /api/flows/:id/hand`, `/take-back`). Sets
   `assistant_id`; `"new"` makes an assistant from a fresh seed. A run keeps
-  the assistant that started it. A paused assistant's flows don't start.
+  the assistant that started it. A paused assistant's flows don't run, handed
+  ones included: they don't start, and a run queued or waiting when it was
+  paused stops when it's picked up ("Stopped: <Name> is paused."; its team
+  run ends "Paused before it ran.", with no card). Run now and a try still
+  run. The flow's page says why ("Muse is paused, so this flow doesn't run").
 - **An assistant's run is one record** (`FlowEffects.teamRun`, migration
   0083). A run of an assistant's flow starts a `team_runs` row linked by
   `flow_run_id` (one per flow run), so Team, Home, Recent runs, the quiet-run
@@ -1788,6 +1792,14 @@ suggestions and the app is `lib/flow-types.ts`.
   when the walk ends or waits, posts in Team chat once, and its "From <Name>"
   card is Team's (`deliverTeamNudges`). The flow then keeps no end or waits
   card of its own when a think step kept a conversation.
+- **Tried once more** (`triesAgain`, `retryFlowTeamRun`; owner, 21 Nov). A
+  run of an assistant's flow that a trigger started and that failed before
+  anything ran (no change, no plan, no card owed, and no step that may have
+  changed something: `RunState.touched`) goes back in the queue once, as this
+  go found it, marked `retried`; its team run waits marked retried too ("Trying
+  again shortly"), with no card and no post. The next pass hands it off; a
+  second failure is told as before ("tried twice"). Not for Run now, a try, a
+  plain flow, a stop, or a paused, removed or out-of-budget assistant.
 - **Assistants' triggers are flows** (`lib/team-flows.ts`). Each trigger is a
   job flow: the assistant, origin `trigger` (or `shared` for an import), one
   think step whose turn asks what a Team run asked (`thinkFor`, `runPrompt`).

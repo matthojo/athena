@@ -135,7 +135,7 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
     async assistant(id): Promise<FlowAssistant | null> {
       const { getAssistant } = await import("./team");
       const a = await getAssistant(id);
-      return a ? { id: a.id, name: a.name, avatar: a.avatar, personality: a.personality } : null;
+      return a ? { id: a.id, name: a.name, avatar: a.avatar, personality: a.personality, paused: a.paused } : null;
     },
     async events(ids) {
       const { loadEvents } = await import("./team-run");
@@ -146,7 +146,7 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
       const threadId = o.dry ? null : randomUUID();
       // AI spend: the step counts toward this assistant's own cap, as its runs do (lib/spend.ts). What arrived goes in
       // as data, as a Team run's does: the first event, and `others` for several. web: false turns looking online off.
-      const out = await withSpendScope({ area: "assistant", assistantId }, () =>
+      const turn = () =>
         runAssistantTurn(assistantId, prompt, {
           mode: "run",
           readOnly: o.dry,
@@ -158,8 +158,16 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
           ...(o.gives.length ? { values: o.gives.map((g) => ({ key: g.key, label: g.label })) } : {}),
           ...(o.onStep ? { onStep: (step: { text: string; done?: boolean; dropped?: boolean }) => (!step.dropped && !step.done ? o.onStep!(step.text) : undefined) } : {}),
           ...ports,
-        }),
-      );
+        });
+      let out: Awaited<ReturnType<typeof turn>>;
+      try {
+        out = await withSpendScope({ area: "assistant", assistantId }, turn);
+      } catch (error) {
+        // Whether the failed turn changed something or kept a plan first, as Team's retry checks: a run is tried again only when it didn't.
+        const { madeAnything } = await import("./team-run");
+        const made = threadId ? await madeAnything(threadId).catch(() => true) : false;
+        throw Object.assign(error instanceof Error ? error : new Error(String(error)), { madeSomething: made });
+      }
       // What Ask did shows a flow step's changes as the team's, like a run's (lib/team-run.ts).
       if (out.thread_id) await qRaw(`UPDATE ask_activity SET source = 'team' WHERE thread_id = $1::uuid AND source = 'routine' AND plan_id IS NULL`, [out.thread_id]).catch(() => undefined);
       const plan = out.reply.plan?.steps.length ? { id: out.reply.plan.id, steps: out.reply.plan.steps.map((s) => s.label) } : null;
@@ -199,9 +207,13 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
         const { finishTeamRun } = await import("./team-run");
         const { postRun } = await import("./team-posts");
         await finishTeamRun(teamRunId, { status: out.status, summary: out.summary, error: out.error, thread_id: out.thread_id, quiet: out.quiet, model: out.model, fell_back: out.fell_back, tried: out.tried });
-        await qRaw(`UPDATE team_assistants SET last_run_at = $2 WHERE id = $1::uuid`, [assistantId, now().toISOString()]);
+        if (o.ran !== false) await qRaw(`UPDATE team_assistants SET last_run_at = $2 WHERE id = $1::uuid`, [assistantId, now().toISOString()]);
         // Team chat (lib/team-posts.ts): a plan waits there for Go, anything else it has to say is an update. Once.
         if (o.post && out.post) await postRun({ id: teamRunId, assistant_id: assistantId }, { kind: out.post, text: out.status === "failed" ? (out.error ?? "") : (out.summary ?? "") });
+      },
+      async retry(teamRunId) {
+        const { retryFlowTeamRun } = await import("./team-run");
+        await retryFlowTeamRun(teamRunId);
       },
     },
     noteMade,

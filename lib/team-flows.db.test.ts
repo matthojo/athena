@@ -2,13 +2,15 @@
 // (each trigger kind, a paused one, a slot already run, a guest left alone, run twice), a Friday schedule that fires
 // once across the switch whichever pass comes first, an event batch for an assistant, an event Team claimed before
 // the move left to Team, a job flow's run kept as the assistant's run (its label, card, quiet run, waits-for-Go
-// count), making and editing triggers once moved, and a shared assistant's export and import round trip.
+// count), making and editing triggers once moved, a shared assistant's export and import round trip, a paused
+// assistant's flows (handed ones too) not running, and a failed run tried once more only when nothing ran.
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/team-flows.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL. Empties the team, flow, event and nudge tables first, and leaves the move
 // undone after, so other files see a copy from before it. Made-up data only.
 import { test, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import type { FlowEffects, ThinkResult } from "./flow-run";
+import type { Change } from "./assistant";
 
 const url = process.env.ATHENA_TEST_DB_URL;
 if (url) {
@@ -388,4 +390,213 @@ test("Go from Ask's plan card on a flow's waiting change is the run's own Go: ke
   const activity = (await listActivity({ limit: 5 })) as unknown as Array<{ source: string; flow_run_id?: string | null }>;
   assert.ok(activity.some((e) => e.source === "flow" && e.flow_run_id === made.run.id), "What Ask did shows it as the run's");
   assert.equal(await goWaitingFlowPlan(crypto.randomUUID(), undefined), null, "a plan no run waits on: Ask's own Go");
+});
+
+/** Wren, with a Friday 17:00 job flow, moved; and fakes for its runs' turns. */
+async function wrenWithJob() {
+  await import("./flow-engine");
+  const { createAssistant } = await import("./team");
+  const { moveTriggers } = await import("./team-flows");
+  const { flowEffects } = await import("./flow-effects");
+  const wren = await createAssistant({ name: "Wren", job: "Sums up the week", personality: { tone: "calm", traits: [], pronoun: "he", greeting: "" }, triggers: [{ kind: "schedule", days: [5], time: "17:00" }] });
+  await ageTriggers();
+  await moveTriggers(FRIDAY);
+  const real = await flowEffects({ now: () => FRIDAY });
+  return { wren, real };
+}
+
+const busy = () => new Error("Athena's AI was busy (529)");
+const deliver = async (at: Date) => (await import("./team-run")).deliverTeamNudges(at, TZ, { canPush: false, send: async () => undefined, quiet: null });
+
+test("pausing an assistant stops every flow it runs: its job flow and a flow handed to it don't start or carry on; Run now still runs", { skip }, async () => {
+  const { wren, real } = await wrenWithJob();
+  const { createFlow, setFlowAssistant, insertRun, getRun } = await import("./flows");
+  const { runFlowTriggers } = await import("./flow-triggers-db");
+  const { runFlowRun } = await import("./flow-run");
+  const { listTeamRuns } = await import("./team-run");
+  const { qRaw } = await import("./db");
+
+  // A flow of the owner's, handed to Wren: Fridays at 17:00, Wren thinks about it.
+  const made = await createFlow({ name: "Weekly money check", trigger: { kind: "schedule", days: [5], time: "17:00" }, steps: [{ id: "think", title: null, kind: "think", task: ["Look over the week's spending"], web: false, gives: [] }] });
+  const handed = await setFlowAssistant(made.id, wren.id, new Date("2026-01-01T00:00:00Z"));
+  await qRaw(`UPDATE flows SET created_at = '2026-01-01T00:00:00Z'`);
+  // A run of the handed flow queued before the pause (a pass that just fired), not yet walked.
+  const queued = (await insertRun(handed, { label: "Every Friday at 17:00", values: { trigger: {} } }))!;
+  await qRaw(`UPDATE team_assistants SET paused = true WHERE id = $1::uuid`, [wren.id]);
+
+  let thought = 0;
+  const fx: FlowEffects = { ...real, async think(_id, _p, o) { thought++; return { text: "Done.", changes: [], plan: null, thread_id: o.dry ? null : crypto.randomUUID(), summary: "Done.", quiet: false }; } };
+
+  // The pass starts neither flow.
+  assert.deepEqual((await runFlowTriggers(FRIDAY, TZ)) ?? [], []);
+  // The run queued before the pause stops, saying why, and nothing thinks.
+  const stopped = await runFlowRun(queued.run.id, { fx });
+  assert.equal(stopped?.status, "stopped");
+  assert.equal(stopped?.summary, "Stopped: Wren is paused.");
+  assert.equal(thought, 0);
+  assert.equal((await listTeamRuns(wren.id)).length, 0, "nothing ran, so nothing on Team");
+
+  // Run now, by hand, still runs a paused assistant's flow, as Team's Run now did.
+  const byHand = (await insertRun(handed, { label: "Run now", values: { trigger: {} }, byHand: true }))!;
+  assert.equal((await runFlowRun(byHand.run.id, { fx }))?.status, "done");
+  assert.equal(thought, 1);
+
+  // Turned on again: the next Friday, both run.
+  await qRaw(`UPDATE team_assistants SET paused = false WHERE id = $1::uuid`, [wren.id]);
+  const next = new Date(FRIDAY.getTime() + 7 * 86_400_000);
+  const started = (await runFlowTriggers(next, TZ))!;
+  assert.equal(started.length, 2);
+  assert.ok((await getRun(started[0].run_id))?.run);
+});
+
+test("retry: a run that failed before anything ran is tried once more on the next pass, then the owner is told once", { skip }, async () => {
+  const { wren, real } = await wrenWithJob();
+  const { runFlowTriggers } = await import("./flow-triggers-db");
+  const { runFlowRun, sweepFlowRuns } = await import("./flow-run");
+  const { getRun } = await import("./flows");
+  const { listTeamRuns } = await import("./team-run");
+  const { q, qRaw } = await import("./db");
+
+  let tries = 0;
+  const fx: FlowEffects = { ...real, async think() { tries++; throw busy(); } };
+  const [started] = (await runFlowTriggers(FRIDAY, TZ))!;
+
+  // First failure: back in the queue, marked retried, no card and no Team chat post.
+  const first = await runFlowRun(started.run_id, { fx });
+  assert.equal(first?.status, "queued");
+  const stored = (await getRun(started.run_id))!;
+  assert.equal(stored.state.retried, true);
+  assert.deepEqual(stored.state.lines, [], "it starts again from where this go started");
+  let [r] = await listTeamRuns(wren.id);
+  assert.equal(r.status, "queued");
+  assert.equal(r.retried, true, "Recent runs: Trying again shortly");
+  assert.equal((await deliver(new Date(FRIDAY.getTime() + 60_000))).sent, 0);
+  assert.equal((await qRaw<{ n: number }>(`SELECT count(*)::int AS n FROM team_posts WHERE run_id = $1::uuid`, [r.id]))[0].n, 0);
+
+  // The next pass hands it off again (it was queued over REHAND_SECONDS ago).
+  await qRaw(`UPDATE flow_runs SET updated_at = now() - interval '2 minutes' WHERE id = $1::uuid`, [started.run_id]);
+  const handed: string[] = [];
+  await sweepFlowRuns({ fx, handOff: async (id) => void handed.push(id) });
+  assert.deepEqual(handed, [started.run_id]);
+
+  // Second failure is final: told once, as before, and the card says it tried twice.
+  const second = await runFlowRun(started.run_id, { fx });
+  assert.equal(second?.status, "failed");
+  assert.equal(tries, 2);
+  [r] = await listTeamRuns(wren.id);
+  assert.equal(r.status, "failed");
+  assert.equal(r.retried, true);
+  assert.equal(r.error, "Athena's AI was busy. Try Run now in a few minutes.");
+  assert.equal((await listTeamRuns(wren.id)).length, 1, "one record for the run");
+  assert.equal((await deliver(new Date(FRIDAY.getTime() + 120_000))).sent, 1);
+  const cards = await q<{ key: string; payload: string }>(`SELECT key, payload FROM nudges WHERE key LIKE 'team:%' OR key LIKE 'flow:%'`);
+  assert.equal(cards.length, 1);
+  assert.equal(cards[0].key, `team:${r.id}`);
+  assert.ok((JSON.parse(cards[0].payload) as { why: string[] }).why.includes("Wren tried twice and won't try again on his own."));
+  assert.equal((await qRaw<{ n: number }>(`SELECT count(*)::int AS n FROM team_posts WHERE run_id = $1::uuid`, [r.id]))[0].n, 1);
+  // Never a third try.
+  assert.equal(await runFlowRun(started.run_id, { fx }), null);
+});
+
+test("retry: a run that failed after a change isn't tried again, so the change never happens twice", { skip }, async () => {
+  const { wren, real } = await wrenWithJob();
+  const { createFlow, setFlowAssistant, insertRun } = await import("./flows");
+  const { runFlowTriggers } = await import("./flow-triggers-db");
+  const { runFlowRun } = await import("./flow-run");
+  const { listTeamRuns } = await import("./team-run");
+
+  // The job's turn changed something, then failed (lib/flow-effects.ts think says so).
+  const madeThenFailed: FlowEffects = { ...real, async think() { throw Object.assign(busy(), { madeSomething: true }); } };
+  const [job] = (await runFlowTriggers(FRIDAY, TZ))!;
+  assert.equal((await runFlowRun(job.run_id, { fx: madeThenFailed }))?.status, "failed");
+  const [r] = await listTeamRuns(wren.id);
+  assert.equal(r.status, "failed");
+  assert.equal(r.retried, false);
+  assert.equal((await deliver(new Date(FRIDAY.getTime() + 60_000))).sent, 1, "told at once");
+
+  // A handed flow whose first step added a to-do, then its think step failed: the to-do isn't added again.
+  const made = await createFlow({
+    name: "Renewal guard",
+    trigger: { kind: "manual" },
+    steps: [
+      { id: "todo", title: null, kind: "tool", tool: "add_todo", input: { title: ["Decide on the renewal"], kind: ["todo"] }, go: "auto", gives: [] },
+      { id: "think", title: null, kind: "think", task: ["Say what to weigh up"], web: false, gives: [] },
+    ],
+  });
+  const handed = await setFlowAssistant(made.id, wren.id);
+  let added = 0;
+  const fx: FlowEffects = {
+    ...real,
+    async runTool() {
+      added++;
+      return { result: "{}", changes: [{ kind: "commitment", id: crypto.randomUUID(), action: "created", title: "Decide on the renewal", detail: "To do", label: "Added a to-do: Decide on the renewal", open: null, undo: null } as unknown as Change] };
+    },
+    async log(changes) {
+      return changes;
+    },
+    async think() {
+      throw busy();
+    },
+  };
+  const run = (await insertRun(handed, { label: "When something arrives", values: { trigger: {} } }))!;
+  const out = await runFlowRun(run.run.id, { fx });
+  assert.equal(out?.status, "failed");
+  assert.equal(added, 1);
+  assert.equal(await runFlowRun(run.run.id, { fx }), null, "not queued again");
+  assert.equal(added, 1);
+});
+
+test("retry: a retried run that succeeds sends one card, not two", { skip }, async () => {
+  const { wren, real } = await wrenWithJob();
+  const { runFlowTriggers } = await import("./flow-triggers-db");
+  const { runFlowRun } = await import("./flow-run");
+  const { listTeamRuns } = await import("./team-run");
+  const { q, qRaw } = await import("./db");
+
+  let tries = 0;
+  const fx: FlowEffects = {
+    ...real,
+    async think() {
+      if (++tries === 1) throw busy();
+      const thread = crypto.randomUUID();
+      return { text: "Two things slipped this week.", changes: [], plan: null, thread_id: thread, summary: "Two things slipped this week: the dentist and the boiler service.", quiet: false };
+    },
+  };
+  const [started] = (await runFlowTriggers(FRIDAY, TZ))!;
+  assert.equal((await runFlowRun(started.run_id, { fx }))?.status, "queued");
+  assert.equal((await deliver(new Date(FRIDAY.getTime() + 60_000))).sent, 0);
+  // Picked up again: its run on Team works again, then finishes.
+  assert.equal((await runFlowRun(started.run_id, { fx }))?.status, "done");
+  const runs = await listTeamRuns(wren.id);
+  assert.equal(runs.length, 1, "one record for the run");
+  assert.equal(runs[0].status, "done");
+  assert.equal(runs[0].retried, true);
+  assert.equal(runs[0].summary, "Two things slipped this week: the dentist and the boiler service.");
+  assert.equal((await deliver(new Date(FRIDAY.getTime() + 120_000))).sent, 1);
+  assert.equal((await deliver(new Date(FRIDAY.getTime() + 180_000))).sent, 0);
+  const cards = await q<{ key: string }>(`SELECT key FROM nudges WHERE key LIKE 'team:%' OR key LIKE 'flow:%'`);
+  assert.deepEqual(cards.map((c) => c.key), [`team:${runs[0].id}`]);
+  assert.equal((await qRaw<{ n: number }>(`SELECT count(*)::int AS n FROM team_posts WHERE run_id = $1::uuid`, [runs[0].id]))[0].n, 1, "one Team chat post");
+});
+
+test("a run waiting to be tried again stops if its assistant is paused first: Team's record says so, with no card", { skip }, async () => {
+  const { wren, real } = await wrenWithJob();
+  const { runFlowTriggers } = await import("./flow-triggers-db");
+  const { runFlowRun } = await import("./flow-run");
+  const { listTeamRuns } = await import("./team-run");
+  const { qRaw } = await import("./db");
+
+  let tries = 0;
+  const fx: FlowEffects = { ...real, async think() { tries++; throw busy(); } };
+  const [started] = (await runFlowTriggers(FRIDAY, TZ))!;
+  assert.equal((await runFlowRun(started.run_id, { fx }))?.status, "queued");
+  await qRaw(`UPDATE team_assistants SET paused = true WHERE id = $1::uuid`, [wren.id]);
+  const out = await runFlowRun(started.run_id, { fx });
+  assert.equal(out?.status, "stopped");
+  assert.equal(out?.summary, "Stopped: Wren is paused.");
+  assert.equal(tries, 1);
+  const [r] = await listTeamRuns(wren.id);
+  assert.equal(r.status, "failed");
+  assert.equal(r.error, "Paused before it ran.");
+  assert.equal((await deliver(new Date(FRIDAY.getTime() + 60_000))).sent, 0);
 });

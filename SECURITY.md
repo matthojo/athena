@@ -1807,7 +1807,15 @@ is kept.
   (`failLine`), never the flow's, so that plain column holds no owner's words.
   Its "From <Name>" card goes through Team's delivery and the same gate; the
   flow sends no card of its own for the same thing. A paused assistant's flows
-  don't start.
+  don't run, handed ones included: a run queued or waiting when it was paused
+  stops when it's picked up, with no turn, card or post. Run now still runs.
+- **Tried once more, never twice a change.** A failed run of an assistant's
+  flow is queued once more only when nothing ran: no change recorded, no plan
+  kept, no card owed, no step run that changes things (even one that then
+  failed), no assignment drafted, and a failed turn that left nothing in its
+  conversation (the same `ask_activity`/`ask_plans` check Team's retry uses).
+  Anything unexpected counts as something ran. So a retry can't repeat a
+  change. Only once (`RunState.retried`, `team_runs.retried`).
 - **Think steps.** A think step's values come back as structured fields of the
   assistant's answer (the answer tool's `values`), not parsed from its text.
   A step with `web: false` runs the assistant's turn with its web switch off:

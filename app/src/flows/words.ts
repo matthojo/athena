@@ -262,6 +262,15 @@ export function flowKindWords(flow: Pick<Flow, "assistant_id" | "steps">, assist
   return `Plain flow · free to run · ${steps}`;
 }
 
+/**
+ * Why an assistant's flow isn't running: "Muse is paused, so this flow doesn't run. Run now still works." Pausing an
+ * assistant stops every flow it runs, handed ones included (owner, 21 Nov). Null when it isn't paused. Pure.
+ */
+export function pausedWords(assistant: { name: string; paused?: boolean } | null | undefined): string | null {
+  if (!assistant?.paused) return null;
+  return `${assistant.name} is paused, so this flow doesn't run. Run now still works.`;
+}
+
 // ---------- runs ----------
 
 /** What a run waits on, for its page: "1 change waits for your Go". */

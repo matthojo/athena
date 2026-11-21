@@ -1,11 +1,12 @@
 // A flow's run (lib/flow-run.ts) with fake effects: no database, no model. Looks and changes, a change waiting
 // for Go and carrying on after it, Ask me's branches, Wait, Tell me's card, Think with and without an assistant,
-// an assignment, a try that changes nothing, a missing value, and money only when allowed. Made-up data only.
+// an assignment, a try that changes nothing, a missing value, money only when allowed, and when a failed run is
+// tried once more. Made-up data only.
 // Run: npx tsx --test lib/flow-run.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Change } from "./assistant";
-import { settle, summaryOf, thinkPrompt, thinkValues, walk, type FlowEffects, type RunContext } from "./flow-run";
+import { settle, summaryOf, thinkPrompt, thinkValues, triesAgain, walk, type FlowEffects, type RunContext } from "./flow-run";
 import { emptyState } from "./flows";
 import type { Flow, FlowStep } from "./flow-types";
 
@@ -295,4 +296,23 @@ test("a run that changed under it stops instead of guessing", async () => {
   state.stack = [{ path: [[4, "yes"]], i: 0 }];
   const out = await walk(state, ctxOf(flowOf([remind])), fx);
   assert.equal(out.status, "stopped");
+});
+
+test("a failed run of an assistant's flow is tried once more only when nothing ran, and only once", () => {
+  const muse = { id: "a-1", name: "Muse", avatar: {} as never, personality: { tone: "calm" as const, pronoun: "she" as const } };
+  const ctx = { assistant: muse, dry: false, byHand: false };
+  const busy = { status: "failed" as const, error: "Stopped at “Think about it”: Athena's AI was busy (529)" };
+  assert.equal(triesAgain(emptyState(), busy, ctx), true, "failed before anything ran");
+  assert.equal(triesAgain({ ...emptyState(), retried: true }, busy, ctx), false, "only one retry");
+  assert.equal(triesAgain({ ...emptyState(), changes: [{ kind: "commitment", action: "created" }] }, busy, ctx), false, "a change was made");
+  assert.equal(triesAgain({ ...emptyState(), touched: true }, busy, ctx), false, "a step may have changed something");
+  const card = { key: "flow:r:n", title: "From Muse", body: "Prices are up", until: "" } as never;
+  assert.equal(triesAgain({ ...emptyState(), notices: [card] }, busy, ctx), false, "a card is owed");
+  const plan = { step_id: "s", status: "skipped" as const, line: "Skipped", at: "", pending: { text: "Add a to-do", plan_id: "p" } };
+  assert.equal(triesAgain({ ...emptyState(), lines: [plan] }, busy, ctx), false, "a plan was kept");
+  assert.equal(triesAgain(emptyState(), busy, { ...ctx, byHand: true }), false, "Run now is on the page the owner is looking at");
+  assert.equal(triesAgain(emptyState(), busy, { ...ctx, assistant: null }), false, "a plain flow tells at once");
+  assert.equal(triesAgain(emptyState(), { status: "stopped", error: "Stopped at “Wait”: nothing for the date." }, ctx), false, "a missing value stops the same way again");
+  assert.equal(triesAgain(emptyState(), { ...busy, code: "cap" }, ctx), false, "its cap ran out");
+  assert.equal(triesAgain(emptyState(), { ...busy, code: "budget" }, ctx), false, "the budget ran out");
 });

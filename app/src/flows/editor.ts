@@ -20,7 +20,7 @@ import { getAssistant, listTeam, type TeamAssistant } from "../db/team";
 import { FLOW_LIMITS, type CatalogEntry, type FlowStep, type FlowValue, type ValueRef } from "../../../lib/flow-types";
 import { badge, face, flowIcon, givesRow, stepTile, switchInput, textWithChips, triggerTile, type Lookup } from "./parts";
 import { brokenSteps, branchesOf, canBranchAt, canMove, countSteps, findStep, hasRoom, insertStep, moveProblem, moveStep, newStepId, removeStep, replaceStep, valuesBefore, valuesForStep, walk, type Branch, type ListPath } from "./tree";
-import { BRANCH_WORDS, conditionWords, flowKindWords, moveRefusal, runHeading, stepTitle, triggerTitle, tryWords, waitsForGo } from "./words";
+import { BRANCH_WORDS, conditionWords, flowKindWords, moveRefusal, pausedWords, runHeading, stepTitle, triggerTitle, tryWords, waitsForGo } from "./words";
 import { previewRun } from "./preview";
 import { changes, entryFor, stepFromEntry } from "./steps";
 import { openAddStep } from "./add-step";
@@ -314,11 +314,14 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
       const take = h("button", { class: "flow-link", type: "button" }, "Take it back");
       take.addEventListener("click", () => void giveBack());
       const p = h("a", { class: "flow-hero__face", href: `#/team/${encodeURIComponent(assistant.id)}`, "aria-label": `${assistant.name}'s page` }, face(assistant.avatar, 64));
+      // Paused on Team: none of its flows run, this one included, whatever its own switch says.
+      const paused = pausedWords(assistant);
       return h(
         "div",
         { class: "flow-hero flow-hero--assistant" },
         h("div", { class: "flow-hero__row" }, p, h("div", {}, h("h1", { class: "page-title flow-hero__name" }, flow.name), h("span", { class: "flow-hero__kind" }, flowKindWords(flow, assistant.name)))),
-        h("div", { class: "flow-hero__row flow-hero__row--between" }, h("span", { class: "flow-hero__meta" }, `Handed to ${assistant.name} ${handedWords(flow.handed_at)}. `, take), onRow)
+        h("div", { class: "flow-hero__row flow-hero__row--between" }, h("span", { class: "flow-hero__meta" }, `Handed to ${assistant.name} ${handedWords(flow.handed_at)}. `, take), onRow),
+        paused ? h("p", { class: "flow-note", role: "status" }, flowIcon("pause"), h("span", {}, paused, " ", h("a", { class: "flow-link", href: `#/team/${encodeURIComponent(assistant.id)}` }, `Turn ${assistant.name} on`))) : ""
       );
     }
     return h(

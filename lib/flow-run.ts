@@ -17,6 +17,8 @@
  * flow run (FlowEffects.teamRun), so Team, Home's "From <Name>" card, Recent runs, quiet runs and the waits-for-Go
  * count read it as they read every run. A job flow (an assistant's trigger, made a flow) asks its think step what a
  * Team run asked (lib/team-run.ts runPrompt), with what set it off, so its run is the run it always was.
+ * A paused assistant's runs stop when picked up (Run now and a try still run), and a trigger's run that failed
+ * before anything ran is tried once more on the next pass (triesAgain), as Team's runs were.
  *
  * Every step leaves one line, written from what happened (lib/steps.ts's words for tools), never by a model.
  * A dry run tries the flow on the last thing that matched and changes nothing: looks run, changes say what they
@@ -55,7 +57,7 @@ import {
 import { claimRun, getFlow, getRun, noteMade, pruneRuns, runsWhere, saveRun, touchFlowRun, type Notice, type RunPatch, type RunState, type StoredRun } from "./flows";
 import { FLOW_LIMITS, type Flow, type FlowRun, type FlowRunStep, type FlowRunStepStatus, type FlowStep, type FlowWaitsFor } from "./flow-types";
 import type { AvatarSpec, Personality, TeamTrigger } from "./team-types";
-import { changeWords, didLine, failCode, failLine, nothingLine, runPrompt, waitsLine, type TeamTurnEvent, type Voice } from "./team-run";
+import { changeWords, didLine, failCode, failLine, nothingLine, runPrompt, waitsLine, type FailCode, type TeamTurnEvent, type Voice } from "./team-run";
 import { isPlainJob } from "./team-flows";
 import type { ModelRef } from "./model-types";
 
@@ -67,6 +69,8 @@ export interface FlowAssistant {
   name: string;
   avatar: AvatarSpec;
   personality: Pick<Personality, "tone" | "pronoun">;
+  /** Paused on Team: none of its flows run, but for Run now and a try. */
+  paused?: boolean;
 }
 
 /** A think step's turn: what the assistant said, what it changed alone, and a plan waiting for Go. */
@@ -159,7 +163,10 @@ export interface FlowEffects {
   teamRun?: {
     start(assistantId: string, from: { flowId: string; flowRunId: string; label: string; eventIds: string[] }): Promise<string>;
     step(teamRunId: string, text: string): Promise<void>;
-    finish(teamRunId: string, assistantId: string, out: TeamRunOutcome, opts: { post: boolean }): Promise<void>;
+    /** `ran: false`: it didn't run (its assistant was paused), so the assistant's last run stays as it was. */
+    finish(teamRunId: string, assistantId: string, out: TeamRunOutcome, opts: { post: boolean; ran?: boolean }): Promise<void>;
+    /** Tried once more: the team run waits for the next pass, marked retried (lib/team-run.ts retryFlowTeamRun). */
+    retry?(teamRunId: string): Promise<void>;
   };
   /** Keep these record ids as made by the run, at once (lib/flows.ts noteMade). */
   noteMade?(runId: string, ids: string[]): Promise<void>;
@@ -273,10 +280,10 @@ export function thinkFor(ctx: Pick<RunContext, "flow" | "events" | "byHand">, st
 
 // ---------- the walk ----------
 
-type Walked =
+export type Walked =
   | { status: "done" }
   | { status: "waiting"; waits_for: FlowWaitsFor; resumes_at?: string; plan_id?: string; assignment_id?: string }
-  | { status: "failed" | "stopped"; error: string };
+  | { status: "failed" | "stopped"; error: string; code?: FailCode };
 
 type StepOut = { kind: "next" } | { kind: "branch"; branch: "yes" | "no" | number } | { kind: "wait"; w: Extract<Walked, { status: "waiting" }> } | { kind: "end"; w: Exclude<Walked, { status: "waiting" }> };
 
@@ -330,6 +337,8 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
         state.waiting = { step_id: step.id, kind: "go", plan_id, tool: step.tool, input };
         return { kind: "wait", w: { status: "waiting", waits_for: "go", plan_id } };
       }
+      // A change may have happened from here on, even if the step fails: such a run is never tried again.
+      if (changes) state.touched = true;
       try {
         const out = await fx.runTool(step.tool, input, { money: ctx.money });
         const refused = resultError(out.result);
@@ -416,9 +425,11 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
         line("done", text || `${ctx.assistant.name} had nothing to add`);
         return { kind: "next" };
       } catch (error) {
+        // A turn that failed after it changed something or kept a plan (lib/flow-effects.ts think says so): never tried again.
+        if ((error as { madeSomething?: unknown } | null)?.madeSomething === true) state.touched = true;
         const why = readable(error);
         line("failed", why);
-        return { kind: "end", w: { status: "failed", error: `Stopped at “${name}”: ${why}` } };
+        return { kind: "end", w: { status: "failed", error: `Stopped at “${name}”: ${why}`, code: failCode(error) } };
       }
     }
     case "assignment": {
@@ -427,6 +438,7 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
         line("skipped", `Would start an assignment: ${clip(brief, 160)}`);
         return { kind: "next" };
       }
+      state.touched = true;
       try {
         const a = await fx.draftAssignment(brief);
         line("waiting", `Its lineup waits for your Go in Team chat: ${a.lineup}`);
@@ -689,7 +701,7 @@ export function teamOutcome(state: RunState, out: Walked, ctx: Pick<RunContext, 
   const turn = state.turn;
   const model = turn?.model ? { model: turn.model, ...(turn.fell_back ? { fell_back: true, ...(turn.tried ? { tried: turn.tried } : {}) } : {}) } : {};
   if (out.status === "failed" || out.status === "stopped") {
-    const line = failLine(failCode(out.error), { events: ctx.events.length, name: ctx.assistant?.name });
+    const line = failLine(out.code ?? failCode(out.error), { events: ctx.events.length, name: ctx.assistant?.name });
     // Run now's failure is on the page the owner is looking at: no card (quiet), as Team's Run now.
     return { status: "failed", summary: null, error: line, quiet: ctx.byHand, thread_id: turn?.thread_id ?? null, post: ctx.byHand ? null : "failed" };
   }
@@ -700,16 +712,70 @@ export function teamOutcome(state: RunState, out: Walked, ctx: Pick<RunContext, 
   return { status: "done", summary: job ? turn!.summary : summary, error: null, quiet, thread_id: turn?.thread_id ?? null, ...model, post: quiet ? null : out.status === "waiting" && out.waits_for === "go" ? "plan" : "update" };
 }
 
-/** An assistant's run starts on Team as it starts here (once: a run that carries on keeps it). */
+/**
+ * An assistant's run starts on Team as it starts here (once: a run that carries on keeps it). A run tried once more
+ * starts its same team run working again.
+ */
 async function startTeamRun(stored: StoredRun, ctx: RunContext, state: RunState, fx: FlowEffects): Promise<void> {
-  if (!ctx.assistant || ctx.dry || !fx.teamRun || state.team) return;
+  if (!ctx.assistant || ctx.dry || !fx.teamRun || (state.team && !state.again)) return;
+  delete state.again;
   try {
     const id = await fx.teamRun.start(ctx.assistant.id, { flowId: ctx.flow.id, flowRunId: stored.run.id, label: teamLabel(ctx.flow, stored.run.label), eventIds: stored.event_ids });
-    state.team = { run_id: id };
+    state.team = { ...state.team, run_id: id };
     ctx.teamRunId = id;
   } catch (e) {
     console.warn("Athena flows: couldn't keep a run on Team", e instanceof Error ? e.message.slice(0, 120) : e);
   }
+}
+
+/**
+ * Whether a failed run of an assistant's flow is tried once more, as Team's runs were (owner, 15 Nov: "Try once
+ * more, then tell me"; 21 Nov: the same for flows it runs). Only a run a trigger started (not Run now or a try),
+ * not tried already, that failed before anything ran: nothing changed, no plan kept, no card owed, and no step
+ * that might have changed something (lib/flow-run.ts marks it `touched`). Not when its assistant is paused or
+ * gone, or the budget or its cap ran out: those fail the same way again. Pure.
+ */
+export function triesAgain(state: RunState, out: Walked, ctx: Pick<RunContext, "assistant" | "dry" | "byHand">): boolean {
+  if (out.status !== "failed" || !ctx.assistant || ctx.dry || ctx.byHand || state.retried || state.touched) return false;
+  const code = out.code ?? failCode(out.error);
+  if (code === "paused" || code === "gone" || code === "budget" || code === "cap") return false;
+  return !state.changes.length && !state.notices.length && !state.lines.some((l) => l.pending);
+}
+
+/**
+ * Put a run back in the queue as this go found it, marked tried once more, so the next reminders pass hands it off
+ * (sweepFlowRuns). Its run on Team waits too, marked retried, so Recent runs says it'll try again shortly and a
+ * second failure's card says it tried twice. No card and no Team chat post for this failure. False when someone
+ * else wrote the run first (the owner stopped it).
+ */
+async function tryAgain(stored: StoredRun, from: RunState, fx: FlowEffects): Promise<boolean> {
+  const state: RunState = { ...from, retried: true, ...(from.team ? { again: true } : {}) };
+  const ok = await saveRun(stored.run.id, stored.version, { status: "queued", waits_for: null, resumes_at: null, plan_id: null, assignment_id: null, waiting_since: null, summary: null, error: null, state });
+  if (ok && from.team && fx.teamRun?.retry) await fx.teamRun.retry(from.team.run_id).catch(() => undefined);
+  return ok;
+}
+
+/**
+ * Its assistant was paused on Team after the run was queued, or while it waited: it stops here, saying so, and
+ * nothing more of it happens (owner, 21 Nov: pausing an assistant stops every flow it runs). A run tried once more
+ * and not yet picked up ends on Team as Team's did ("Paused before it ran."), with no card and no post.
+ */
+async function stopPaused(stored: StoredRun, state: RunState, ctx: RunContext, fx: FlowEffects): Promise<FlowRun | null> {
+  const name = ctx.assistant!.name;
+  const open = state.again;
+  delete state.again;
+  if (state.waiting) setLine(state, fx.now(), { step_id: state.waiting.step_id, status: "skipped", line: `${name} is paused` });
+  state.waiting = null;
+  const summary = `Stopped: ${name} is paused.`;
+  if (await saveRun(stored.run.id, stored.version, { status: "stopped", waits_for: null, resumes_at: null, plan_id: null, assignment_id: null, waiting_since: null, summary, state, finished: true })) {
+    // Only a run waiting to be tried again has its team run still open; one that waited already said what it did.
+    if (state.team && open && fx.teamRun) {
+      const out: TeamRunOutcome = { status: "failed", summary: null, error: failLine("paused"), quiet: true, thread_id: state.turn?.thread_id ?? null, post: null };
+      await fx.teamRun.finish(state.team.run_id, ctx.assistant!.id, out, { post: false, ran: false }).catch(() => undefined);
+    }
+    await pruneRuns(ctx.flow.id).catch(() => undefined);
+  }
+  return (await getRun(stored.run.id))?.run ?? null;
 }
 
 /** How an assistant's run ended (or waits), on Team: its summary, card and post, which goes out once. */
@@ -747,14 +813,21 @@ export async function runFlowRun(runId: string, deps: RunDeps): Promise<FlowRun 
   const state = stored.state;
   state.tz = fx.tz;
   const ctx = await contextFor(stored, flow, fx);
+  // A paused assistant's flows don't run, handed ones included; Run now and a try still do, as Team's Run now did.
+  if (ctx.assistant?.paused && !ctx.byHand && !ctx.dry) return stopPaused(stored, state, ctx, fx);
   await startTeamRun(stored, ctx, state, fx);
+  // Where this go starts: a run that fails before anything ran goes back to here, once.
+  const from = structuredClone(state);
   let out: Walked;
   try {
     out = await walk(state, ctx, fx);
   } catch (error) {
     console.error("Athena flow run failed:", error instanceof Error ? error.message : error);
+    // Something unexpected: what it did isn't known, so it isn't tried again.
+    state.touched = true;
     out = { status: "failed", error: "Something went wrong on Athena's side. Anything it changed is in What Ask did." };
   }
+  if (triesAgain(state, out, ctx) && (await tryAgain(stored, from, fx))) return (await getRun(runId))?.run ?? null;
   const patch = patchFor(state, out, ctx, fx);
   // Team chat's post goes out once: marked before the save, so a run that carries on later doesn't post again.
   const posting = !!state.team && !state.team.told && teamOutcome(state, out, ctx, patch.summary ?? "").post !== null;

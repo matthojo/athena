@@ -360,6 +360,12 @@ export interface RunState {
   turn?: { thread_id: string; summary: string; quiet: boolean; model?: ModelRef; fell_back?: boolean; tried?: ModelRef };
   /** Its run on Team, while an assistant runs it, and whether that run has posted in Team chat yet. */
   team?: { run_id: string; told?: boolean };
+  /** Tried once more after it failed before anything ran (lib/flow-run.ts triesAgain); a second failure is final. */
+  retried?: boolean;
+  /** A step ran that may have changed something (a change, a draft assignment, a turn that made something): never tried again. */
+  touched?: boolean;
+  /** Tried again and not yet picked up: its run on Team starts working again when it is. */
+  again?: boolean;
 }
 
 export const emptyState = (values: FlowValues = {}, byHand = false): RunState => ({ values, lines: [], stack: [{ path: [], i: 0 }], waiting: null, notices: [], changes: [], ...(byHand ? { by_hand: true } : {}) });
@@ -420,6 +426,9 @@ function readState(raw: string): RunState {
     ...(typeof s.tz === "string" ? { tz: s.tz } : {}),
     ...(s.turn && typeof s.turn.thread_id === "string" ? { turn: s.turn as RunState["turn"] } : {}),
     ...(s.team && typeof s.team.run_id === "string" ? { team: s.team as RunState["team"] } : {}),
+    ...(s.retried ? { retried: true } : {}),
+    ...(s.touched ? { touched: true } : {}),
+    ...(s.again ? { again: true } : {}),
   };
 }
 

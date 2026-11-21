@@ -353,7 +353,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
       const p = pronouns(a.personality);
       text.replaceChildren(
         h("span", { class: "td-allow__label" }, a.paused ? `${a.name} is paused` : `Pause ${a.name}`),
-        h("span", { class: "td-allow__detail" }, a.paused ? `Turn ${p.them} back on and ${p.their} triggers start ${p.them} again.` : `${cap(p.their)} triggers stop until you turn ${p.them} back on. You can still chat.`)
+        h("span", { class: "td-allow__detail" }, a.paused ? `Turn ${p.them} back on and ${p.their} flows run again.` : `Every flow ${p.they} ${p.plural ? "run" : "runs"} stops until you turn ${p.them} back on, handed ones too. You can still chat.`)
       );
       toggle.textContent = a.paused ? "Turn back on" : "Pause";
       del.lastElementChild!.textContent = `Delete ${a.name}`;

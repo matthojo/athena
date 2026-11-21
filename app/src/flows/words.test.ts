@@ -1,7 +1,7 @@
 // Run: npx tsx --test app/src/flows/words.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { conditionWords, flowBadge, moveRefusal, waitsForGo, lastRunLine, listLede, resumeWords, runHeading, runStateWords, stepTitle, triggerTitle, triggerWords, tryWords } from "./words";
+import { conditionWords, flowBadge, pausedWords, moveRefusal, waitsForGo, lastRunLine, listLede, resumeWords, runHeading, runStateWords, stepTitle, triggerTitle, triggerWords, tryWords } from "./words";
 import { normaliseText, swapRef } from "./text";
 import { changes, defaultGo, goLocked, searchCatalog, stepFromEntry, unavailable } from "./steps";
 import { sampleCatalog } from "../db/sample-flows";
@@ -129,4 +129,10 @@ test("new tool steps: only reminders, to-dos and list lines run alone; drafts al
     assert.equal(waitsForGo({ ...step, go: "auto" } as typeof step), true);
   }
   assert.equal(goLocked(stepFromEntry(cat.find((x) => x.tool === "add_todo")!, "s2", [])), false);
+});
+
+test("a paused assistant's flow says why it doesn't run", () => {
+  assert.equal(pausedWords({ name: "Muse", paused: true }), "Muse is paused, so this flow doesn't run. Run now still works.");
+  assert.equal(pausedWords({ name: "Muse", paused: false }), null);
+  assert.equal(pausedWords(null), null);
 });
