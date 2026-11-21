@@ -87,6 +87,8 @@ import { logChanges, undoActivity } from "../../lib/ask-activity";
 import { handleAskRoutes } from "../lib/ask-routes";
 import { handleTeamRoutes } from "../lib/team-routes";
 import { handleModelsRoutes, modelChoiceResponse } from "../lib/models-routes";
+import { handleFlowSuggestRoutes } from "../lib/flow-suggest-routes";
+import { dismissSuggestion, listDismissed, NO_FLOWS, readSignals } from "../../lib/flow-suggest-store";
 import { messageModel } from "../../lib/models";
 import { handleTeamChatRoutes, type ChatDesk } from "../lib/team-chat-routes";
 import { settlePlanPosts } from "../../lib/team-posts";
@@ -1997,6 +1999,19 @@ export default async (req: Request, _context: Context) => {
       }
       // Its routes read the path from "team" on, as its tests call it.
       const handled = await handleTeamRoutes(req, url, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s), _context?.waitUntil?.bind(_context));
+      if (handled) return handled;
+    }
+    // Flow suggestions: habits worth a flow, and dismissing one (netlify/lib/flow-suggest-routes.ts). Before the engine's
+    // /api/flows routes, so /api/flows/suggestions isn't read as a flow id. Flows are read through a port: NO_FLOWS until the
+    // engine (lib/flows.ts) is merged and gives one.
+    if (first === "flows" && second === "suggestions") {
+      const handled = await handleFlowSuggestRoutes(req, segments.slice(1), (d, s) => json(req, d, s), {
+        signals: readSignals,
+        timeZone: getOwnerTimeZone,
+        dismissed: listDismissed,
+        dismiss: dismissSuggestion,
+        flows: NO_FLOWS,
+      });
       if (handled) return handled;
     }
     // AI models: which model does each job, and the owner's agreements (netlify/lib/models-routes.ts, docs/ai-models.md).
