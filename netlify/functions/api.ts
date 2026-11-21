@@ -88,7 +88,7 @@ import { handleAskRoutes } from "../lib/ask-routes";
 import { handleTeamRoutes } from "../lib/team-routes";
 import { handleFlowDraftRoutes } from "../lib/flow-draft-routes";
 import { handleFlowRoutes } from "../lib/flow-routes";
-import { flowEffects, handOffFlowRun } from "../../lib/flow-effects";
+import { flowEffects, goWaitingFlowPlan, handOffFlowRun } from "../../lib/flow-effects";
 import { handleModelsRoutes, modelChoiceResponse } from "../lib/models-routes";
 import { handleFlowSuggestRoutes } from "../lib/flow-suggest-routes";
 import { dismissSuggestion, listDismissed, readSignals } from "../../lib/flow-suggest-store";
@@ -1495,7 +1495,10 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
   if (action === "plan") {
     // Go: the plan's ticked steps, in order, each with its receipt (lib/ask-plans.ts). Nothing was written before this.
     const run = (tool: string, input: unknown) => runPlanTool(tool, input, { gmail: mailPort, slack: slackPort, ...ports });
-    const went = await goPlan(body?.id, body?.ticked, { run, log: logChanges });
+    // A plan a flow's run waits on goes through the run's own Go (owner, 21 Nov 2026), as on the run page: a draft is
+    // kept as that run's change, and the run carries on now.
+    const viaFlow = await goWaitingFlowPlan(body?.id, body?.ticked, { ports: { gmail: mailPort, slack: slackPort, ...ports }, handOff: (id) => handOffFlowRun(new URL(req.url).origin, id) });
+    const went = viaFlow ?? (await goPlan(body?.id, body?.ticked, { run, log: logChanges }));
     // A stage of an assignment that waited on this plan moves on now, not at the next reminders pass (lib/assignment-run.ts).
     await sweepAssignments().catch((error) => console.warn("Athena assignments: sweep after a Go failed", error instanceof Error ? error.message : error));
     // A Go on a Team run's plan settles its post in Team chat (lib/team-posts.ts).

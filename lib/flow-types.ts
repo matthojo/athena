@@ -300,6 +300,6 @@ export interface FlowStarter {
 
 /** What triggers reads. The engine implements it. */
 export interface FlowSource {
-  /** Every flow that isn't paused, with its trigger. */
-  listActive(): Promise<Array<Pick<Flow, "id" | "name" | "trigger" | "assistant_id" | "created_at">>>;
+  /** Every flow that isn't paused (nor its assistant), with its trigger. `origin` tells an assistant's job flows (lib/team-flows.ts). */
+  listActive(): Promise<Array<Pick<Flow, "id" | "name" | "trigger" | "assistant_id" | "created_at"> & Partial<Pick<Flow, "origin" | "handed_at">>>>;
 }

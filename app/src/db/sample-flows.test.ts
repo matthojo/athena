@@ -12,7 +12,7 @@ test("every sample flow keeps within the limits and uses only values it can reac
   const s = sampleFlows();
   assert.deepEqual(
     s.flows.map((f) => f.name),
-    ["Renewal guard", "Before you meet", "Delivery day", "Gift price watch", "Friday review"]
+    ["Renewal guard", "Before you meet", "Delivery day", "Gift price watch", "Friday review", "When you file something as a gift idea", "When an issue arrives from Linear", "Every Friday at 17:00"]
   );
   for (const f of s.flows) {
     assert.ok(countSteps(f.steps) <= FLOW_LIMITS.steps, f.name);
@@ -98,4 +98,20 @@ test("sample runs keep their values, so the step preview has something real to r
   for (const r of renewal) assert.ok(r.values && Object.keys(r.values).length, "every sample run carries values");
   const newest = [...renewal].sort((a, b) => b.started_at.localeCompare(a.started_at))[0];
   assert.equal(newest.values?.trigger?.company, "Northwind Broadband");
+});
+
+test("sample mode: each assistant's trigger shows as one of its flows, with its job as the one step", async () => {
+  const { sampleTeam } = await import("./sample-team");
+  const flows = sampleFlows().flows;
+  for (const a of sampleTeam()) {
+    assert.ok(a.triggers.length, a.name);
+    for (const t of a.triggers) {
+      const f = flows.find((x) => x.id === t.flow_id);
+      assert.ok(f, `${a.name}: its trigger is a flow`);
+      assert.equal(f.assistant_id, a.id);
+      assert.equal(f.origin, "trigger");
+      assert.equal(f.trigger.kind, t.kind);
+      assert.deepEqual(f.steps.map((s) => s.kind), ["think"]);
+    }
+  }
 });

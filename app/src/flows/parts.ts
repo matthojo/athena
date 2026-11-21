@@ -21,6 +21,7 @@ const OWN = {
   card: () => svg(base(`<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/>`)),
   todo: () => svg(base(`<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8.5 12 2.5 2.5 4.5-5"/>`)),
   lock: () => svg(base(`<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>`)),
+  pause: () => svg(base(`<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>`)),
 };
 
 type AnyIcon = IconName | keyof typeof OWN;

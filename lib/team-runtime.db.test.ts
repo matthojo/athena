@@ -23,6 +23,8 @@ beforeEach(async () => {
   if (!url) return;
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_routines, ask_plans, ask_activity CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
   await qRaw(`DELETE FROM settings WHERE key = 'team.routines_migrated'`);
 });
 

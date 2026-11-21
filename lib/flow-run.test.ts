@@ -1,11 +1,12 @@
 // A flow's run (lib/flow-run.ts) with fake effects: no database, no model. Looks and changes, a change waiting
 // for Go and carrying on after it, Ask me's branches, Wait, Tell me's card, Think with and without an assistant,
-// an assignment, a try that changes nothing, a missing value, and money only when allowed. Made-up data only.
+// an assignment, a try that changes nothing, a missing value, money only when allowed, and when a failed run is
+// tried once more. Made-up data only.
 // Run: npx tsx --test lib/flow-run.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Change } from "./assistant";
-import { settle, summaryOf, thinkPrompt, thinkValues, walk, type FlowEffects, type RunContext } from "./flow-run";
+import { settle, summaryOf, thinkPrompt, thinkValues, triesAgain, walk, type FlowEffects, type RunContext } from "./flow-run";
 import { emptyState } from "./flows";
 import type { Flow, FlowStep } from "./flow-types";
 
@@ -37,9 +38,9 @@ function fakes(over: Partial<FlowEffects> = {}) {
     dropPlan: async (id) => void calls.push(["drop", id]),
     planRan: async () => null,
     assistant: async () => null,
-    think: async (id, prompt) => {
-      calls.push(["think", { id, prompt }]);
-      return { text: 'Lumen Fibre charges £29 for the same speed.\nVALUES: {"deal": "Lumen Fibre at £29.00 a month", "why": "same speed, £9 less"}', changes: [], plan: null };
+    think: async (id, prompt, opts) => {
+      calls.push(["think", { id, prompt, opts }]);
+      return { text: "Lumen Fibre charges £29 for the same speed.", values: { deal: "Lumen Fibre at £29.00 a month", why: "same speed, £9 less" }, changes: [], plan: null };
     },
     draftAssignment: async (brief) => {
       calls.push(["assignment", brief]);
@@ -72,7 +73,7 @@ const flowOf = (steps: FlowStep[], over: Partial<Flow> = {}): Flow => ({
   ...over,
 });
 
-const ctxOf = (flow: Flow, over: Partial<RunContext> = {}): RunContext => ({ flow, runId: "run-1", dry: false, assistant: null, label: "An email from Northwind Broadband", money: true, ...over });
+const ctxOf = (flow: Flow, over: Partial<RunContext> = {}): RunContext => ({ flow, runId: "run-1", dry: false, assistant: null, label: "An email from Northwind Broadband", money: true, events: [], byHand: false, teamRunId: null, ...over });
 
 const paid: FlowStep = { id: "paid", title: "Find what I paid last year", kind: "tool", tool: "money", input: { merchant: ["Northwind Broadband"] }, go: "auto", gives: [{ key: "latest", label: "last year's price", kind: "money" }] };
 const upCheck = (yes: FlowStep[], no: FlowStep[]): FlowStep => ({ id: "up", title: "Did it go up?", kind: "check", condition: { left: { from: "paid", key: "latest" }, op: "more_than", right: 30 }, yes, no });
@@ -268,13 +269,25 @@ test("Start an assignment: its lineup waits for Go; when it's done, its work is 
   assert.equal(end?.status, "stopped");
 });
 
-test("a think step's values come from its last line, or its reply when there's none", () => {
-  assert.deepEqual(thinkValues('Two deals.\nVALUES: {"deal": "Lumen", "n": 2}', [{ key: "deal" }, { key: "n" }]), { text: "Two deals.", values: { deal: "Lumen", n: 2 } });
-  assert.deepEqual(thinkValues("Nothing better out there.", [{ key: "deal" }]), { text: "Nothing better out there.", values: { deal: "Nothing better out there." } });
-  const prompt = thinkPrompt({ name: "Renewal guard" }, "Find a deal", [{ key: "deal", label: "the better deal" }], { trigger: { title: "Northwind" } }, new Map([["trigger.title", "its title"]]), false);
+test("a think step's values come from its answer's fields, or its reply when the first is empty", () => {
+  assert.deepEqual(thinkValues({ text: "Two deals.", values: { deal: "Lumen", n: "2", other: "not asked for" } }, [{ key: "deal" }, { key: "n" }]), { deal: "Lumen", n: "2" });
+  assert.deepEqual(thinkValues({ text: "Nothing better out there.", values: { deal: " " } }, [{ key: "deal" }]), { deal: "Nothing better out there." });
+  // No VALUES: line any more: a reply that still writes one is just words.
+  assert.deepEqual(thinkValues({ text: 'Two deals.\nVALUES: {"deal": "Lumen"}' }, []), {});
+  const prompt = thinkPrompt({ name: "Renewal guard" }, "Find a deal", [{ key: "deal", label: "the better deal" }], { trigger: { title: "Northwind" } }, new Map([["trigger.title", "its title"]]));
   assert.match(prompt, /- its title: Northwind/);
-  assert.match(prompt, /Don't look anything up online/);
-  assert.match(prompt, /VALUES:/);
+  assert.match(prompt, /deal \(the better deal\) in the answer's values/);
+  assert.doesNotMatch(prompt, /VALUES:/);
+});
+
+test("a think step with web off asks for a turn with web off, and its values as fields", async () => {
+  const muse = { id: "a-1", name: "Muse", avatar: {} as never, personality: { tone: "warm" as const, pronoun: "she" as const } };
+  const { fx, calls } = fakes();
+  const think: FlowStep = { id: "deal", title: null, kind: "think", task: ["Look"], web: false, gives: [{ key: "deal", label: "the better deal", kind: "text" }] };
+  await walk(emptyState({}), ctxOf(flowOf([think], { assistant_id: "a-1" }), { assistant: muse }), fx);
+  const opts = (calls.find(([k]) => k === "think")![1] as { opts: { web: boolean; gives: unknown } }).opts;
+  assert.equal(opts.web, false);
+  assert.deepEqual(opts.gives, [{ key: "deal", label: "the better deal", kind: "text" }]);
 });
 
 test("a run that changed under it stops instead of guessing", async () => {
@@ -283,4 +296,23 @@ test("a run that changed under it stops instead of guessing", async () => {
   state.stack = [{ path: [[4, "yes"]], i: 0 }];
   const out = await walk(state, ctxOf(flowOf([remind])), fx);
   assert.equal(out.status, "stopped");
+});
+
+test("a failed run of an assistant's flow is tried once more only when nothing ran, and only once", () => {
+  const muse = { id: "a-1", name: "Muse", avatar: {} as never, personality: { tone: "calm" as const, pronoun: "she" as const } };
+  const ctx = { assistant: muse, dry: false, byHand: false };
+  const busy = { status: "failed" as const, error: "Stopped at “Think about it”: Athena's AI was busy (529)" };
+  assert.equal(triesAgain(emptyState(), busy, ctx), true, "failed before anything ran");
+  assert.equal(triesAgain({ ...emptyState(), retried: true }, busy, ctx), false, "only one retry");
+  assert.equal(triesAgain({ ...emptyState(), changes: [{ kind: "commitment", action: "created" }] }, busy, ctx), false, "a change was made");
+  assert.equal(triesAgain({ ...emptyState(), touched: true }, busy, ctx), false, "a step may have changed something");
+  const card = { key: "flow:r:n", title: "From Muse", body: "Prices are up", until: "" } as never;
+  assert.equal(triesAgain({ ...emptyState(), notices: [card] }, busy, ctx), false, "a card is owed");
+  const plan = { step_id: "s", status: "skipped" as const, line: "Skipped", at: "", pending: { text: "Add a to-do", plan_id: "p" } };
+  assert.equal(triesAgain({ ...emptyState(), lines: [plan] }, busy, ctx), false, "a plan was kept");
+  assert.equal(triesAgain(emptyState(), busy, { ...ctx, byHand: true }), false, "Run now is on the page the owner is looking at");
+  assert.equal(triesAgain(emptyState(), busy, { ...ctx, assistant: null }), false, "a plain flow tells at once");
+  assert.equal(triesAgain(emptyState(), { status: "stopped", error: "Stopped at “Wait”: nothing for the date." }, ctx), false, "a missing value stops the same way again");
+  assert.equal(triesAgain(emptyState(), { ...busy, code: "cap" }, ctx), false, "its cap ran out");
+  assert.equal(triesAgain(emptyState(), { ...busy, code: "budget" }, ctx), false, "the budget ran out");
 });

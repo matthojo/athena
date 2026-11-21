@@ -1773,6 +1773,62 @@ none of its own.
   started, and nothing fires for a time or an event from before the flow
   was made.
 
+### Assistants' triggers are flows (migration `0083`, `lib/team-flows.ts`)
+
+Every Team assistant's trigger becomes a flow it runs, and Flows is the one way
+anything runs on a trigger. Nothing new leaves the site and no new kind of data
+is kept.
+
+- **What moves, and how.** The reminders job turns each `team_triggers` row
+  into a flow with the same trigger, the assistant's id, origin `trigger`,
+  paused if the trigger was, and one think step: the assistant's job, run as
+  a Team run always was (its instructions, memory, allowlist, web switch and
+  spend cap; `runPrompt`'s words, with what arrived quoted as data). The
+  flow's words are sealed in `flows.payload` like any flow's, so the move is
+  code with the data key, not SQL. It runs in one transaction: either every
+  trigger moves or none does, and a trigger that didn't move keeps firing as
+  before. The trigger's last schedule slot is kept as a claimed fire
+  (`flow_trigger_fires`, ids and a time), so a slot that ran isn't run again.
+- **Never both.** A moved trigger is marked (`team_triggers.moved_at`) and
+  never fires again; Team's pass claims a slot only while it isn't moved, and
+  checks under a row lock, in the transaction that queues an event's run, that
+  the trigger hasn't moved. An event Team claimed before a job flow was made
+  (`processed_at` before the flow's `handed_at`) stays Team's; one Team
+  couldn't run because its trigger moved is claimed again after the move, so
+  the flow has it. The trigger rows are kept (old runs name them).
+- **New plain columns.** `flows.trigger_id` (the trigger a flow was made from,
+  unique), `team_triggers.moved_at`, and `team_runs.flow_id` and
+  `flow_run_id`: ids and a time. A settings row (`team.triggers_moved`) says
+  the move finished, with counts.
+- **One record of a run.** A run of an assistant's flow is kept as that
+  assistant's `team_runs` row (sealed label and summary, as before), linked
+  by the flow run's id; the engine no longer writes a second, quiet one. A
+  failed run's line in `team_runs.error` is Team's own fixed words
+  (`failLine`), never the flow's, so that plain column holds no owner's words.
+  Its "From <Name>" card goes through Team's delivery and the same gate; the
+  flow sends no card of its own for the same thing. A paused assistant's flows
+  don't run, handed ones included: a run queued or waiting when it was paused
+  stops when it's picked up, with no turn, card or post. Run now still runs.
+- **Tried once more, never twice a change.** A failed run of an assistant's
+  flow is queued once more only when nothing ran: no change recorded, no plan
+  kept, no card owed, no step run that changes things (even one that then
+  failed), no assignment drafted, and a failed turn that left nothing in its
+  conversation (the same `ask_activity`/`ask_plans` check Team's retry uses).
+  Anything unexpected counts as something ran. So a retry can't repeat a
+  change. Only once (`RunState.retried`, `team_runs.retried`).
+- **Think steps.** A think step's values come back as structured fields of the
+  assistant's answer (the answer tool's `values`), not parsed from its text.
+  A step with `web: false` runs the assistant's turn with its web switch off:
+  no search, no page and no tracking rule, whatever the assistant's own
+  setting.
+- **Go from Ask's plan card.** Go on a plan a flow's run waits on runs the
+  run's own Go (as on the run page): a draft is written with Ask's draft code
+  and kept as that run's change; nothing is sent.
+- **Sharing.** A shared assistant's file is unchanged: its flows' triggers in
+  the same shape older copies read, with no flow ids. An imported assistant's
+  triggers become paused flows (origin `shared`) that come on when the owner
+  turns the assistant on.
+
 ### Drafting flows and Ask's flow card (`lib/flow-draft*.ts`)
 
 - **What goes to the model.** `POST /api/flows/draft` and Ask's

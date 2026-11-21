@@ -68,6 +68,12 @@ export async function migrateRoutines(now = new Date()): Promise<{ made: number;
       const a = await createAssistant(assistantFromRoutine(r), { routineId: r.id, now });
       // The slot the routine last ran for is the trigger's, so a run isn't repeated.
       if (r.last_slot) await qRaw(`UPDATE team_triggers SET last_slot = $2 WHERE assistant_id = $1::uuid AND kind = 'schedule'`, [a.id, r.last_slot]);
+      // Triggers are flows already (lib/team-flows.ts): the slot is the job flow's, as a claimed fire.
+      const job = a.triggers.find((t) => t.flow_id && t.kind === "schedule");
+      if (r.last_slot && job) {
+        const slot = new Date(r.last_slot).toISOString();
+        await qRaw(`INSERT INTO flow_trigger_fires (flow_id, fire_key, fire_at) VALUES ($1, $2, $3::timestamptz) ON CONFLICT DO NOTHING`, [job.flow_id, `schedule:${slot}`, slot]);
+      }
       if (r.last_run_at) await qRaw(`UPDATE team_assistants SET last_run_at = $2 WHERE id = $1::uuid`, [a.id, r.last_run_at]);
       made++;
     } catch (error) {

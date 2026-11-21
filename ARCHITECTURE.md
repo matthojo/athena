@@ -1596,7 +1596,10 @@ switches, renames and archives. Archived ones wait on the Archived page.
   allowed tools run, the rest wait as a plan, and the turn keeps the
   conversation. The runner checks `paused` and records the run. Routines became assistants (`lib/team-migrate.ts`,
   guarded by the `team.routines_migrated` setting); `save_routine` now makes
-  an assistant, and `/api/routines` answers 410 Gone, pointing at `/api/team`.
+  an assistant, and `/api/routines` answers 410 Gone, pointing at `/api/team`. Then assistants' triggers
+  became flows (`lib/team-flows.ts`, guarded by `team.triggers_moved`): a
+  moved trigger never fires here, its flow does (see Flows). Team's pass still
+  runs any trigger not yet moved, Run now and assignments' stages.
 
 ### Team
 
@@ -1777,9 +1780,42 @@ suggestions and the app is `lib/flow-types.ts`.
   `team` for an assistant's).
 - **Hand and take back** (`POST /api/flows/:id/hand`, `/take-back`). Sets
   `assistant_id`; `"new"` makes an assistant from a fresh seed. A run keeps
-  the assistant that started it. An assistant's finished run is also kept as
-  a quiet, finished `team_runs` row, so it shows on Team activity, and sends a
-  "From <Name>" card when it changed something and said nothing else.
+  the assistant that started it. A paused assistant's flows don't run, handed
+  ones included: they don't start, and a run queued or waiting when it was
+  paused stops when it's picked up ("Stopped: <Name> is paused."; its team
+  run ends "Paused before it ran.", with no card). Run now and a try still
+  run. The flow's page says why ("Muse is paused, so this flow doesn't run").
+- **An assistant's run is one record** (`FlowEffects.teamRun`, migration
+  0083). A run of an assistant's flow starts a `team_runs` row linked by
+  `flow_run_id` (one per flow run), so Team, Home, Recent runs, the quiet-run
+  rule, memory and the waits-for-Go count read it as any run; it finishes
+  when the walk ends or waits, posts in Team chat once, and its "From <Name>"
+  card is Team's (`deliverTeamNudges`). The flow then keeps no end or waits
+  card of its own when a think step kept a conversation.
+- **Tried once more** (`triesAgain`, `retryFlowTeamRun`; owner, 21 Nov). A
+  run of an assistant's flow that a trigger started and that failed before
+  anything ran (no change, no plan, no card owed, and no step that may have
+  changed something: `RunState.touched`) goes back in the queue once, as this
+  go found it, marked `retried`; its team run waits marked retried too ("Trying
+  again shortly"), with no card and no post. The next pass hands it off; a
+  second failure is told as before ("tried twice"). Not for Run now, a try, a
+  plain flow, a stop, or a paused, removed or out-of-budget assistant.
+- **Assistants' triggers are flows** (`lib/team-flows.ts`). Each trigger is a
+  job flow: the assistant, origin `trigger` (or `shared` for an import), one
+  think step whose turn asks what a Team run asked (`thinkFor`, `runPrompt`).
+  The reminders job moves every `team_triggers` row once, in one transaction
+  (`moveTriggers`: the last slot kept as a claimed fire, `moved_at` set, the
+  `team.triggers_moved` setting written); a moved trigger never fires in
+  Team's pass. Event batching follows Team: an event fires each assistant's
+  first matching job flow only, and a pass's events for its job flows are one
+  run; plain flows run per item. After the move `TeamAssistant.triggers` are
+  its job flows (`flow_id` set), and `lib/team.ts` keeps triggers it's sent
+  (setup, Ask's `save_routine`, the trigger editor, imports) as job flows.
+  Job flows count toward an assistant's 8 triggers, not the 40 flows.
+- **Think steps** give values as structured fields of the answer
+  (`AnswerOptions.values` → `AskReply.values`); `web: false` runs the turn with
+  the assistant's web switch off (`TurnOptions.web`). Go from Ask's plan card
+  on a plan a run waits on is the run's own Go (`goWaitingFlowPlan`).
 - **Routes** (`netlify/lib/flow-routes.ts`): every `/api/flows` route in the
   contract except draft and suggestions, which are drafting's and
   suggestions' own.

@@ -23,6 +23,9 @@
  * Flows hear about the same actions through onOwnerEvent (lib/flow-triggers-db.ts).
  * Collected items stay on the pass, where batching matters. Paused assistants and triggers
  * don't fire, nor do triggers on events from before they were made.
+ *
+ * Once a trigger has moved to its flow (lib/team-flows.ts, `moved_at`), it never fires here: its flow does
+ * (lib/flow-triggers.ts). An assistant's triggers that are flows (`flow_id`) are left to Flows too.
  */
 import { aiConfigured } from "./ai";
 import { qRaw, tx } from "./db";
@@ -55,9 +58,12 @@ export function matchesFilter(f: EventFilter, ev: Pick<TeamEventRow, "kind" | "f
   return true;
 }
 
+/** A trigger this pass fires: a trigger row, not one of the assistant's flows (lib/team-flows.ts). Pure. */
+export const firesHere = (t: Pick<TeamTrigger, "flow_id">): boolean => !t.flow_id;
+
 /** The schedule slot a trigger should run for now, or null. Pure. */
 export function dueTriggerSlot(t: TeamTrigger, a: Pick<TeamAssistant, "paused">, now: Date, tz: string): Date | null {
-  if (t.kind !== "schedule" || !t.time || !t.days.length) return null;
+  if (!firesHere(t) || t.kind !== "schedule" || !t.time || !t.days.length) return null;
   return dueSlot({ days: t.days, time: t.time, paused: t.paused || a.paused, last_slot: t.last_slot, created_at: t.created_at }, now, tz);
 }
 
@@ -66,7 +72,7 @@ export function eventMatches(ev: Pick<TeamEventRow, "kind" | "facets" | "created
   const out: Array<{ assistant: TeamAssistant; trigger: TeamTrigger }> = [];
   for (const a of assistants) {
     if (a.paused) continue;
-    const t = a.triggers.find((t) => t.kind === "event" && !t.paused && t.event && Date.parse(t.created_at) <= Date.parse(ev.created_at) && matchesFilter(t.event, ev));
+    const t = a.triggers.find((t) => firesHere(t) && t.kind === "event" && !t.paused && t.event && Date.parse(t.created_at) <= Date.parse(ev.created_at) && matchesFilter(t.event, ev));
     if (t) out.push({ assistant: a, trigger: t });
   }
   return out;
@@ -76,7 +82,7 @@ export function eventMatches(ev: Pick<TeamEventRow, "kind" | "facets" | "created
 export async function claimTriggerSlot(id: string, slot: Date): Promise<boolean> {
   const rows = await qRaw<{ id: string }>(
     `UPDATE team_triggers SET last_slot = $2::timestamptz, last_fired_at = now()
-      WHERE id = $1::uuid AND NOT paused AND (last_slot IS NULL OR last_slot < $2::timestamptz) RETURNING id`,
+      WHERE id = $1::uuid AND NOT paused AND moved_at IS NULL AND (last_slot IS NULL OR last_slot < $2::timestamptz) RETURNING id`,
     [id, slot.toISOString()],
   );
   return rows.length > 0;
@@ -122,18 +128,48 @@ export async function queueTeamRuns(now: Date, tz: string): Promise<TeamRun[]> {
   const events = await claimEvents();
   if (!events.length) return queued;
   for (const b of batchByAssistant(events, assistants)) {
-    await qRaw(`UPDATE team_triggers SET last_fired_at = now() WHERE id = ANY($1::uuid[])`, [[...b.triggers]]);
-    queued.push(await enqueueTeamRun(b.assistant.id, { triggerId: b.trigger.id, eventIds: b.events.map((e) => e.id), label: runLabel(b.trigger, b.events) }));
+    const run = await tx(async (r) => {
+      // Moved since this pass read the team: its flow has these events instead.
+      if (!(await stillTriggers(r, [...b.triggers])).has(b.trigger.id)) {
+        await handBack(r, b.events.map((e) => e.id));
+        return null;
+      }
+      await r(`UPDATE team_triggers SET last_fired_at = now() WHERE id = ANY($1::uuid[])`, [[...b.triggers]]);
+      return enqueueTeamRun(b.assistant.id, { triggerId: b.trigger.id, eventIds: b.events.map((e) => e.id), label: runLabel(b.trigger, b.events) }, r);
+    });
+    if (run) queued.push(run);
   }
   return queued;
 }
 
-export type EventRowRaw = { id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: TeamEventRow["facets"] | null; created_at: string | Date };
+export type EventRowRaw = { id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: TeamEventRow["facets"] | null; created_at: string | Date; processed_at?: string | Date | null };
 
 /** A team_events row as the database gives it, made plain. Pure. */
 export function toEventRow(r: EventRowRaw): TeamEventRow {
-  return { id: String(r.id), kind: r.kind, ref_id: r.ref_id, ref_kind: r.ref_kind, facets: r.facets ?? {}, created_at: new Date(r.created_at).toISOString() };
+  return {
+    id: String(r.id),
+    kind: r.kind,
+    ref_id: r.ref_id,
+    ref_kind: r.ref_kind,
+    facets: r.facets ?? {},
+    created_at: new Date(r.created_at).toISOString(),
+    ...(r.processed_at !== undefined ? { processed_at: r.processed_at == null ? null : new Date(r.processed_at).toISOString() } : {}),
+  };
 }
+
+/**
+ * Of these triggers, the ones that haven't moved to a flow, read with a share lock: the move (lib/team-flows.ts)
+ * waits for this transaction, so a trigger can't move between this check and its run being queued. Events whose
+ * triggers all moved are marked claimed again, now, after the move: then the moved trigger's flow takes them
+ * (lib/flow-triggers.ts reads an event Team claimed before a job flow was made as Team's).
+ */
+async function stillTriggers(run: <T>(text: string, params?: unknown[]) => Promise<T[]>, ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const rows = await run<{ id: string }>(`SELECT id FROM team_triggers WHERE id = ANY($1::uuid[]) AND moved_at IS NULL FOR SHARE`, [ids]);
+  return new Set(rows.map((r) => r.id));
+}
+const handBack = (run: <T>(text: string, params?: unknown[]) => Promise<T[]>, eventIds: string[]) =>
+  eventIds.length ? run(`UPDATE team_events SET processed_at = clock_timestamp() WHERE id = ANY($1::bigint[])`, [eventIds]) : Promise.resolve([]);
 
 /**
  * Flows (lib/flow-triggers.ts startFlowEvent) hear about the owner's own events here, so theirs start at once too.
@@ -178,7 +214,7 @@ export async function startTeamEvent(
   try {
     const assistants = await listAssistants();
     // Nobody waits for this kind of thing: the pass marks it seen.
-    if (!assistants.some((a) => !a.paused && a.triggers.some((t) => t.kind === "event" && !t.paused && t.event?.source === kind))) return [];
+    if (!assistants.some((a) => !a.paused && a.triggers.some((t) => firesHere(t) && t.kind === "event" && !t.paused && t.event?.source === kind))) return [];
     queued = await tx(async (run) => {
       const [r] = await run<EventRowRaw>(
         `UPDATE team_events SET processed_at = now() WHERE id = $1::bigint AND processed_at IS NULL RETURNING id, kind, ref_id, ref_kind, facets, created_at`,
@@ -188,6 +224,10 @@ export async function startTeamEvent(
       const ev: TeamEventRow = { id: String(r.id), kind: r.kind, ref_id: r.ref_id, ref_kind: r.ref_kind, facets: r.facets ?? {}, created_at: new Date(r.created_at).toISOString() };
       const out: TeamRun[] = [];
       for (const b of batchByAssistant([ev], assistants)) {
+        if (!(await stillTriggers(run, [...b.triggers])).has(b.trigger.id)) {
+          await handBack(run, [ev.id]);
+          continue;
+        }
         await run(`UPDATE team_triggers SET last_fired_at = now() WHERE id = ANY($1::uuid[])`, [[...b.triggers]]);
         out.push(await enqueueTeamRun(b.assistant.id, { triggerId: b.trigger.id, eventIds: [ev.id], label: runLabel(b.trigger, [ev]) }, run));
       }

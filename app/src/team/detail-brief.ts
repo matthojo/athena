@@ -158,10 +158,12 @@ export function briefSection(ctx: BriefContext): { el: HTMLElement; paint: () =>
     const when = a.triggers.length
       ? h("span", { class: "tdb-lines" }, ...a.triggers.map((t) => h("span", { class: `tdb-line${t.paused ? " is-off" : ""}` }, t.kind === "schedule" ? icons.clock() : icons.bell(), h("span", {}, triggerSentence(t) + (t.paused ? " (off)" : "")))))
       : `Only when you chat with ${p.them}`;
+    // Each trigger is a flow it runs (lib/team-flows.ts), listed under "<Name>'s flows", where steps can go around the job.
+    const flows = a.triggers.some((t) => t.flow_id);
     const alone = `${allowSummary(a.allow)}.`;
     const instructions = a.instructions.trim() ? a.instructions.trim() : `None yet. ${cap(p.they)} ${p.plural ? "work" : "works"} from ${p.their} job.`;
     rows.replaceChildren(
-      row({ key: "when", label: "When it runs", value: when, edit: "Change when it runs", open: editWhen }),
+      row({ key: "when", label: "When it runs", value: when, ...(flows ? { note: `Each is one of ${a.name}'s flows, below: open one to add steps around the job.` } : {}), edit: "Change when it runs", open: editWhen }),
       row({ key: "alone", label: "What it can do alone", value: alone, note: a.allow.length ? "Anything else waits for your Go." : "Every change waits for your Go.", edit: "Change what it can do alone", open: editAlone }),
       webRow({ get: ctx.get, save: ctx.save, setting: () => webSetting, repaint: paint }),
       row({ key: "instructions", label: "Instructions", value: instructions, edit: "Change the instructions", open: editInstructions, clamp: !!a.instructions.trim() })

@@ -44,6 +44,8 @@ beforeEach(async () => {
   for (const e of ENVS) delete process.env[e];
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
   await qRaw(`DELETE FROM ask_threads`);
   await qRaw(`DELETE FROM settings WHERE key IN ('ai_models', 'ai_gateway_models')`);
   // The gateway's list: the snapshot, held as if just read, so nothing goes to the network.

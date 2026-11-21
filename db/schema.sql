@@ -1636,3 +1636,13 @@ CREATE TABLE IF NOT EXISTS flow_suggestion_dismissals (
   id TEXT PRIMARY KEY CHECK (id ~ '^[a-z0-9_-]{3,80}$'),
   dismissed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Assistants' triggers become flows (0083, lib/team-flows.ts). `flows.trigger_id`: the trigger a flow was made from
+-- (one flow per trigger); `team_triggers.moved_at`: when it moved (a moved trigger never fires again);
+-- `team_runs.flow_run_id`, `flow_id`: a run of an assistant's flow, kept as the assistant's run too.
+ALTER TABLE flows ADD COLUMN IF NOT EXISTS trigger_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS flows_trigger_idx ON flows (trigger_id) WHERE trigger_id IS NOT NULL;
+ALTER TABLE team_triggers ADD COLUMN IF NOT EXISTS moved_at TIMESTAMPTZ;
+ALTER TABLE team_runs ADD COLUMN IF NOT EXISTS flow_run_id UUID;
+ALTER TABLE team_runs ADD COLUMN IF NOT EXISTS flow_id UUID;
+CREATE UNIQUE INDEX IF NOT EXISTS team_runs_flow_run_idx ON team_runs (flow_run_id) WHERE flow_run_id IS NOT NULL;

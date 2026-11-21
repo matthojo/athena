@@ -21,6 +21,8 @@ beforeEach(async () => {
   if (!url) return;
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE team_posts, team_stages, team_assignments, team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_plans, ask_activity, nudges CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
 });
 
 const midday = () => {

@@ -357,6 +357,8 @@ test("a triggered run stopped by its cap isn't tried again, and sends one card t
   const { recordUsage } = await import("./spend");
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_routines, ask_plans, ask_activity, nudges, nudge_mutes CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
   const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" }, triggers: [{ kind: "schedule", days: [1, 2, 3, 4, 5], time: "09:00" }] });
   await budget({ daily: null, assistants: { [muse.id]: 0.05 } });
   await recordUsage({ model: "claude-opus-5-5", usage: { input_tokens: 12_500, output_tokens: 0 }, scope: { area: "assistant", assistantId: muse.id } });
@@ -381,6 +383,8 @@ test("a triggered run stopped by its cap isn't tried again, and sends one card t
   assert.equal(cards.length, 1, "one card");
   assert.equal(cards[0].body, "Sorry, I couldn't finish. I reached my own cap for today, so I stopped. Allow more in Settings → AI spend, or use Run now on my page after midnight.");
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_routines, ask_plans, ask_activity, nudges CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
 });
 
 test("the pushes at 80% and at the budget go once a day each, in words, and wait out quiet hours", { skip }, async () => {
@@ -445,6 +449,8 @@ test("the week and the split, from real rows: each assistant by name, a deleted 
   const { recordUsage } = await import("./spend");
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_routines, ask_plans, ask_activity CASCADE`);
+  // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
+  await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
   const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas" });
   const dot = await createAssistant({ name: "Dot", job: "Linear issues to to-dos" });
   const now = new Date();

@@ -40,6 +40,7 @@ import { modelsSection } from "./detail-models";
 import { cap, isLive, liveWords, pronouns, startLine } from "./detail-words";
 import { openShareAssistant } from "./share-sheet";
 import { assistantFlowsSection } from "../flows/assistant-flows";
+import { flowsChanged } from "../db/flows";
 
 export { triggerInput };
 
@@ -116,6 +117,8 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
       // A new job or instructions: its skill may no longer match, so the section looks again (and offers an update).
       if (patch.job !== undefined || patch.instructions !== undefined) skill?.reload();
       if (patch.name !== undefined || patch.personality !== undefined) paintAll();
+      // Its triggers are its flows: "<Name>'s flows" reads them again.
+      if (patch.triggers !== undefined || patch.paused !== undefined) flowsChanged();
       return true;
     } catch (e) {
       showToast(e instanceof Error && e.message ? `Couldn't save that: ${e.message}` : "Couldn't save that. Try again.");
@@ -350,7 +353,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
       const p = pronouns(a.personality);
       text.replaceChildren(
         h("span", { class: "td-allow__label" }, a.paused ? `${a.name} is paused` : `Pause ${a.name}`),
-        h("span", { class: "td-allow__detail" }, a.paused ? `Turn ${p.them} back on and ${p.their} triggers start ${p.them} again.` : `${cap(p.their)} triggers stop until you turn ${p.them} back on. You can still chat.`)
+        h("span", { class: "td-allow__detail" }, a.paused ? `Turn ${p.them} back on and ${p.their} flows run again.` : `Every flow ${p.they} ${p.plural ? "run" : "runs"} stops until you turn ${p.them} back on, handed ones too. You can still chat.`)
       );
       toggle.textContent = a.paused ? "Turn back on" : "Pause";
       del.lastElementChild!.textContent = `Delete ${a.name}`;
