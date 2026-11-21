@@ -345,7 +345,9 @@
     // shifted so the flow's own name (or its chain of steps) sits where the card's was, and slides home on the camera's
     // curve; the steps are whole on 62400. Never a blend of the two pages.
     if (M.flow && M.flow.frames) {
-      const fr = M.flow.rects || {}, sug = rect("flow", "sug"), dur = T_FLOW_STEPS - T_FLOW_TAP;
+      // (round 1: the camera is already at rest on the flow's framing, so this is a plain carried grow over 560 ms on the
+      // lopsided curve, the steps at rest by 62400)
+      const fr = M.flow.rects || {}, sug = rect("flow", "sug"), dur = 560;
       const cov = (M.flow.covers || []).find((h) => h.at === "open" || h.at === "make" || h.at === "makeTap");
       const capB = Math.max(capEv("flow", "steps") ?? 0, cov ? (cov.to + 1) * FRAME + 1 : (capEv("flow", "opened") ?? capEv("flow", "make") + 500));
       // (carried by its head: the flow's title "Birthday heads-up" starts where the suggestion's title was, the card's own
@@ -355,20 +357,8 @@
       const gf = g("flow", T_FLOW_TAP, dur, sug, full, capEv("flow", "make") - FRAME, capB, fromB);
       gf.onCap = true;
       if (!fromB) gf.ease = "lop";
-      else {
-        // The page rides the camera: its title moves on screen along one lopsided curve from where the suggestion's title
-        // was to where it rests when the grow ends (the camera zooming out cannot keep up with a plain slide).
-        const tyA = pairA.y, tyB = pairB.y, t0 = T_FLOW_TAP, t1 = T_FLOW_STEPS;
-        const scr = (t, wy) => { const cam = cameraAt(t); return [H / 2 + (CARDS.flow.y + wy - cam.y) * cam.z, cam]; };
-        gf.shiftFn = (t) => {
-          const p = prog(t, t0, t1);
-          if (p >= 1) return [0, 0];
-          const sy = lerp(scr(t0, tyA)[0], scr(t1, tyB)[0], lopP(p, 0.35)), cam = cameraAt(t);
-          return [0, cam.y + (sy - H / 2) / cam.z - CARDS.flow.y - tyB];
-        };
-      }
       MORPH.flow = [gf];
-      MAP.flow.splice(2, 0, [T_FLOW_STEPS - SHOT_START.flow, capB, "stretch"]);
+      MAP.flow.splice(2, 0, [T_FLOW_TAP + dur - SHOT_START.flow, capB, "stretch"]);
     }
     // Every time map must run forward in film time.
     for (const [shot, A] of Object.entries(MAP)) for (let i = 1; i < A.length; i++) if (A[i][0] <= A[i - 1][0]) throw new Error(`MAP.${shot} not in order at ${i}`);
@@ -586,7 +576,7 @@
       // at the zoom the Flows page is framed at, so the step left to it is a pan at one zoom: nothing above the
       // suggestion card crosses the frame's top edge while the camera settles)
       const ncd = hr.newCard, zN = Math.min(H / (ncd.h + 60), ZMAX.hire || 3.75, H / 288);
-      to("team-acorn", 59000, 350, 700, { x: CARDS.hire.x + CW / 2, y: CARDS.hire.y + ncd.y + ncd.h / 2, z: zN });
+      to("team-acorn", 58900, 450, 800, { x: CARDS.hire.x + CW / 2, y: CARDS.hire.y + ncd.y + ncd.h / 2, z: zN });
     }
     // 11: Flows. One step left to the Flows page (its fastest frame on 60000), framed on Athena's suggestion: the
     // sentence, the flow it proposes and "Make it a flow". On the tap the camera rides the card into the flow page,
@@ -595,14 +585,15 @@
       // The suggestion card whole: top edge in the gap above it (the first suggestion's buttons out of frame), bottom
       // edge in the gap under it, above "Your flows" (measured on the capture: gaps 331-343 and 558-619).
       const sug = rect("flow", "sug"), s0 = sug.y - 8.7, s1 = Math.min(sug.y + sug.h + 60, s0 + H / 3.6);
-      to("team-flows", T_FLOWS - 650, 650, 1050, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (s0 + s1) / 2, z: H / (s1 - s0) });
-      drift(T_FLOWS + 1100, T_FLOW_TAP - 150, 1.03, 0, 0);
-      // The flow: its title, the On switch, When ... and Then ... whole; the bottom edge in the gap above "Test on the
-      // last date". Its neighbours are away by now (faded while off frame), so this wider frame shows the page alone.
-      const st = rect("flow", "steps"), ft = rect("flow", "flowTitle") || rect("flow", "flowHead") || st;
-      const f0 = Math.min(st.y, ft.y) - 12, f1 = st.y + st.h - 5; // (just above the Then card's divider: "Gift ideas for the person" whole)
-      to("flow-open", T_FLOW_TAP - 100, 250, 900, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (f0 + f1) / 2, z: H / (f1 - f0) }, 6); // (fast early: the framing is nearly reached as the grow ends on 62400)
-      drift(T_FLOW_STEPS + 1200, T.pull - 600, 1.03, 0, 0);
+      to("team-flows", T_FLOWS - 500, 500, 1000, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (s0 + s1) / 2, z: H / (s1 - s0) });
+      // (round 1) Once the suggestion has been read large, the camera eases out to the flow page's framing and is at
+      // rest there by ~61700, the card still legible in the middle of the frame; the tap then grows the flow out of the
+      // card under a still camera. Framing: from just above the title to just above the floating "Test on the last
+      // date" button (the Then card runs on under it), ~1.95x; the neighbours are away by then.
+      const ft = rect("flow", "flowTitle") || rect("flow", "flowHead") || rect("flow", "steps"), tb = rect("flow", "testBtn");
+      const f0 = ft.y - 12, f1 = tb ? tb.y - 3 : rect("flow", "steps").y + rect("flow", "steps").h - 5;
+      to("flow-wide", 60900, 320, 480, { x: CARDS.flow.x + CW / 2, y: CARDS.flow.y + (f0 + f1) / 2, z: H / (f1 - f0) });
+      drift(T_FLOW_STEPS + 100, T.pull - 600, 1.025, 0, 0);
     }
     // 12: the pull-back, fast early so most of the reveal lands on the 64800 downbeat, a long settle after.
     const zWall = 0.9 * Math.min(H / WALL.h, W / WALL.w);
@@ -938,7 +929,7 @@
       const mkP = cd("flow", mk.x + mk.w * 0.55, mk.y + mk.h * 0.6);
       at(T_FLOW_TAP - 70, mkP, 0.5); press(T_FLOW_TAP - 40); at(T_FLOW_TAP + 120, mkP, 0);
       const swP = cd("flow", sw.x + sw.w * 0.5, sw.y + sw.h * 0.6), swWait = cd("flow", sw.x + sw.w * 0.3 - 40, sw.y + sw.h + 46);
-      at(T_FLOW_STEPS + 300, swWait, 0.5); at(T_FLOW_ON - 400, swWait, 0);
+      at(T_FLOW_STEPS + 200, mkP, 0); at(63400, swWait, 0.5);
       at(T_FLOW_ON - 70, swP, 0.5); press(T_FLOW_ON - 40); at(T_FLOW_ON + 130, swP, 0);
       const restP = cd("flow", sw.x + sw.w * 0.3 - 30, sw.y + sw.h + 40);
       at(T_FLOW_ON + 600, restP, 0.4); rest(T_FLOW_ON + 650, T.pull - 900, restP);
