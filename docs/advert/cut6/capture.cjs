@@ -141,7 +141,10 @@ function visibleWords() {
     const range = document.createRange(); range.selectNodeContents(n);
     const r = range.getBoundingClientRect(); if (!r.height || r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) continue;
     let hidden = false; for (let e = el; e; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || +cs.opacity < 0.05 || cs.display === 'none') { hidden = true; break; } }
-    if (!hidden) m.forEach(x => out.add(x));
+    if (hidden) continue;
+    // Painted on top somewhere (not under the sticky head, the dock or a sheet): test each line box's centre.
+    const top = [...range.getClientRects()].some(q => { const cx = q.left + q.width / 2, cy = q.top + q.height / 2; if (cx < 0 || cx > innerWidth || cy < 0 || cy > innerHeight) return false; const hit = document.elementFromPoint(cx, cy); return !!hit && (el.contains(hit) || hit.contains(el)); });
+    if (top) m.forEach(x => out.add(x));
   }
   return [...out];
 }
@@ -182,6 +185,8 @@ async function settle(p, ms = 700) {
   await p.evaluate(() => window.__syncAnims(0));
 }
 async function rectOf(loc) {
+  // A part the app no longer draws is a missing rect (null), not a 30 s wait and a failed shot.
+  if (!(await loc.count())) { console.log('WARN rect: nothing matches', String(loc)); return null; }
   const r = await loc.boundingBox();
   return r && { x: Math.round(r.x * 10) / 10, y: Math.round(r.y * 10) / 10, w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10 };
 }
@@ -280,9 +285,9 @@ async function panelRects(p) {
   out.panelEnd = await rectOf(panel);
   await one('sentenceEnd', '.tk-sentence'); await one('detail', '.tk-detail'); await one('chart', '.tk-figure'); await one('chartSvg', '.tk-chart svg');
   await one('pill', '.tk-goalwrap'); await one('targetLine', '.tk-chart__goal'); await one('targetLabel', '.tk-chart__goallabel');
-  await one('line', '.tk-chart__line'); await one('endDot', '.tk-chart__end'); await one('savedLabel', '.tk-chart__reflabel'); await one('foot', '.tk-foot'); await one('toast', '.toast');
+  await one('line', '.tk-chart__line'); await one('endDot', '.tk-chart__end'); await one('savedLabel', '.tk-chart__reflabel'); await one('foot', '.tk-foot, .tk-who'); await one('toast', '.toast');
   if (await panel.locator('.tk-sentence').count()) out.sentenceEndText = (await panel.locator('.tk-sentence').first().innerText()).trim();
-  if (await panel.locator('.tk-foot').count()) out.footText = (await panel.locator('.tk-foot').first().innerText()).replace(/\s+/g, ' ').trim();
+  if (await panel.locator('.tk-foot, .tk-who').count()) out.footText = (await panel.locator('.tk-foot, .tk-who').first().innerText()).replace(/\s+/g, ' ').trim();
   if (await panel.locator('.tk-goalwrap').count()) out.pillText = (await panel.locator('.tk-goalwrap').first().innerText()).trim();
   return out;
 }
@@ -413,7 +418,10 @@ const SHOTS = {
     const url = process.env.CAP_SAVED_URL || 'https://letterboxd.com/film/guardians-of-the-galaxy/';
     const title = 'Guardians of the Galaxy';
     const PASTE = 400, ADD = 1400, OPEN = 3000, MOVE = 4600, LINK = 6200;
-    const SCROLL_FROM = LINK + 900, SCROLL_MS = 1300, FILM_TOP = Number(process.env.CAP_WATCH_TOP || 290);
+    // Watch & read now opens on a month summary (stats, genres), In progress and For Christmas before "Up next", so
+    // the Films row is ~1550 px down (cut 5: much less). The scroll takes 2 s, not 1.3, to keep it under ~80 px a
+    // frame at its fastest, and the shot runs 0.6 s longer so the hold on the row stays 1.5 s.
+    const SCROLL_FROM = LINK + 900, SCROLL_MS = Number(process.env.CAP_SAVED_SCROLL_MS || 2000), FILM_TOP = Number(process.env.CAP_WATCH_TOP || 290);
     let scroll = null; // { from, to }: Watch & read's document scroll, set when the scroll starts
     const rects = { input: await rectOf(field) };
     const poster = () => p.locator('img[src*="film.webp"]').first();
@@ -441,7 +449,7 @@ const SHOTS = {
     const filmRow = () => filmCard().locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " watch-group ")][1]');
     // The "Moved to Watch & read" toast: first frame on screen, and first frame after it has gone.
     const toastOn = () => p.evaluate(() => [...document.querySelectorAll('body *')].some(e => e.children.length < 3 && /^Moved to Watch & read/.test((e.textContent || '').trim()) && e.getBoundingClientRect().height > 0 && getComputedStyle(e).visibility !== 'hidden' && +getComputedStyle(e).opacity > 0.05));
-    const res = await record(p, 'saved', Number(process.env.CAP_SAVED_MS || 10000), {
+    const res = await record(p, 'saved', Number(process.env.CAP_SAVED_MS || 10600), {
       actions,
       // From SCROLL_FROM, ease the page down so the Films row's top sits at FILM_TOP: low enough that the "Up next"
       // heading above it clears the sticky page head (title and search, ~180 px), the toast stays below the cards.
@@ -499,7 +507,7 @@ const SHOTS = {
     rects.sentenceBeforeText = (await panel.locator('.tk-sentence').first().innerText()).trim();
     // The first frame holds the whole story of the object: its header (site, title; the sample balm has no photo),
     // the panel, and the "Gift idea for…" row under the actions (it is pushed down while the form is open).
-    Object.assign(rects, await itemRects(p)); rects.footBefore = await rectOf(panel.locator('.tk-foot').first());
+    Object.assign(rects, await itemRects(p)); rects.footBefore = await rectOf(panel.locator('.tk-foot, .tk-who').first());
     const WHEN = Number(process.env.CAP_TRACK_WHEN || 1500), UNDER = WHEN + 900, TYPE = WHEN + 1700, TELL = WHEN + 2700;
     const res = await record(p, 'track', Number(process.env.CAP_TRACK_MS || WHEN + 4800), {
       actions: [
@@ -619,12 +627,12 @@ const SHOTS = {
     // rects.saysLine says it is.
     const saysAt = { y: null, from: null, to: null }; let frame = 0;
     const SCROLL_MS = 1100;
-    const newCard = () => p.evaluate((n) => {
+    const newCard = (who = name) => p.evaluate((n) => {
       const el = [...document.querySelectorAll('.team-main *')].find(e => !e.children.length && (e.textContent || '').trim() === n); if (!el) return null;
       let c = el; while (c.parentElement && !c.parentElement.classList.contains('team-main') && c.getBoundingClientRect().height < 150) c = c.parentElement;
       const r = c.getBoundingClientRect(), k = v => Math.round(v * 10) / 10; const tile = c.querySelector('.kit-tile') || c.querySelector('svg'); const t = tile && tile.getBoundingClientRect(); const nr = el.getBoundingClientRect();
       return { card: { x: k(r.x), y: k(r.y), w: k(r.width), h: k(r.height) }, face: t && { x: k(t.x), y: k(t.y), w: k(t.width), h: k(t.height) }, name: { x: k(nr.x), y: k(nr.y), w: k(nr.width), h: k(nr.height) }, top: r.top + scrollY };
-    }, name);
+    }, who);
     const res = await record(p, 'hire', Number(process.env.CAP_HIRE_MS || 30000), {
       actions, endOnSteps: true,
       steps: [
@@ -650,7 +658,13 @@ const SHOTS = {
           const c = await newCard(); const max = await p.evaluate(() => document.scrollingElement.scrollHeight - innerHeight);
           const all = await p.evaluate(() => [...document.querySelectorAll('.team-main .kit-tile')].map(e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.x * 10) / 10, y: Math.round(r.y * 10) / 10, w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10 }; }).filter(r => r.h > 40));
           rects.facesTop = all; rects.teamCount = (await p.locator('.page-count').first().innerText()).trim();
-          scroll = { from: await p.evaluate(() => document.scrollingElement.scrollTop), to: Math.max(0, Math.min(max, Math.round(c.top - Number(process.env.CAP_HIRE_TOP || 556)))) };
+          // The current Team page has Team chat / New assignment and a "Waiting for you" card on top, so Dot, Wren
+          // and the new face no longer fit between the sticky head (144 px once scrolled) and the dock (768). The
+          // page comes to rest with Wren's card just under the head and the new face whole under it; Dot (whose
+          // job line names Linear) is scrolled out. CAP_HIRE_TOP places the new card's top instead, as cut 5 did.
+          const wren = await newCard('Wren');
+          const target = process.env.CAP_HIRE_TOP ? c.top - Number(process.env.CAP_HIRE_TOP) : (wren ? wren.top - Number(process.env.CAP_HIRE_WREN_TOP || 160) : c.top - 556);
+          scroll = { from: await p.evaluate(() => document.scrollingElement.scrollTop), to: Math.max(0, Math.min(max, Math.round(target))) };
         } },
         { after: SCROLL_MS, ev: 'scrollEnd' },
         { after: Number(process.env.CAP_HIRE_HOLD || 2600), ev: 'end' },
