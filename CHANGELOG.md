@@ -16,19 +16,20 @@ Flows, and Team assistants you can share.
   else, including drafting an email or a message, waits for your Go, and
   Athena never sends a draft. A flow's changes show in What Ask did as
   "Flow: <name>", and Settings → Notifications has a switch for Flows.
-- Team assistants run flows. Each assistant's triggers become flows it runs,
-  moved over on the first reminders pass after you update, and its runs and
-  cards look as before. Let an assistant run one of your flows and it can add
-  steps that work something out. Pausing an assistant stops every flow it
-  runs, and a run that failed before anything happened is tried once more.
-- Share an assistant as a file, and import one someone shared. Links into
-  your Athena are taken out, and anything that looks like your own people,
-  addresses or numbers is flagged. The download waits until you edit each
-  one out or mark it fine. An imported assistant joins paused and asks
-  before every change until you tick what it may do on its own.
-- Work sync reads more of the shapes GitHub's replies come in. When it can't
-  read one, the error names the reply's fields, never their values.
-- Four new migrations (0080 to 0083) add the tables and columns Flows needs.
+- Team assistants run flows. Athena turns each assistant's triggers into
+  flows it runs on the first reminders pass after you update, and its runs
+  and cards look as before. Let an assistant run one of your flows and it can
+  add steps that work something out, like looking online for a better price.
+  Pausing an assistant stops every flow it runs. If a run fails before doing
+  anything, Athena tries it once more.
+- Share an assistant as a file, and import one someone shared. Athena takes
+  out links into your Athena and flags anything that looks like your own
+  people, addresses or numbers. The download waits until you edit each one
+  out or mark it fine. An imported assistant joins paused and asks before
+  every change until you tick what it may do on its own.
+- Work sync reads GitHub replies it used to reject, including a search with
+  no results. When it can't read one, the error names the reply's fields
+  but not their values.
 
 ## 1.0.0
 
