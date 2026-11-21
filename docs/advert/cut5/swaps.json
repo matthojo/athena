@@ -1,0 +1,172 @@
+[
+ {
+  "at": 65400,
+  "phrase": "platform",
+  "how": "type"
+ },
+ {
+  "at": 66000,
+  "phrase": "pricing call",
+  "how": "retype"
+ },
+ {
+  "at": 66600,
+  "phrase": "film",
+  "how": "retype"
+ },
+ {
+  "at": 67200,
+  "phrase": "price",
+  "how": "swap"
+ },
+ {
+  "at": 67800,
+  "phrase": "run",
+  "how": "swap"
+ },
+ {
+  "at": 68400,
+  "phrase": "streak",
+  "how": "swap"
+ },
+ {
+  "at": 69000,
+  "phrase": "Monday list",
+  "how": "swap"
+ },
+ {
+  "at": 69600,
+  "phrase": "albums",
+  "how": "swap"
+ },
+ {
+  "at": 69800,
+  "phrase": "bills",
+  "how": "swap"
+ },
+ {
+  "at": 70000,
+  "phrase": "flights",
+  "how": "swap"
+ },
+ {
+  "at": 70200,
+  "phrase": "recipes",
+  "how": "swap"
+ },
+ {
+  "at": 70400,
+  "phrase": "birthdays",
+  "how": "swap"
+ },
+ {
+  "at": 70600,
+  "phrase": "box sets",
+  "how": "swap"
+ },
+ {
+  "at": 70800,
+  "phrase": "booking codes",
+  "how": "swap"
+ },
+ {
+  "at": 70950,
+  "phrase": "restaurants",
+  "how": "swap"
+ },
+ {
+  "at": 71100,
+  "phrase": "receipts",
+  "how": "swap"
+ },
+ {
+  "at": 71250,
+  "phrase": "podcasts",
+  "how": "swap"
+ },
+ {
+  "at": 71400,
+  "phrase": "hotels",
+  "how": "swap"
+ },
+ {
+  "at": 71550,
+  "phrase": "names",
+  "how": "swap"
+ },
+ {
+  "at": 71700,
+  "phrase": "meetings",
+  "how": "swap"
+ },
+ {
+  "at": 71850,
+  "phrase": "books",
+  "how": "swap"
+ },
+ {
+  "at": 72000,
+  "phrase": "quotes",
+  "how": "swap"
+ },
+ {
+  "at": 72100,
+  "phrase": "photos",
+  "how": "swap"
+ },
+ {
+  "at": 72200,
+  "phrase": "trips",
+  "how": "swap"
+ },
+ {
+  "at": 72300,
+  "phrase": "articles",
+  "how": "swap"
+ },
+ {
+  "at": 72400,
+  "phrase": "hire cars",
+  "how": "swap"
+ },
+ {
+  "at": 72500,
+  "phrase": "workouts",
+  "how": "swap"
+ },
+ {
+  "at": 72600,
+  "phrase": "to-dos",
+  "how": "swap"
+ },
+ {
+  "at": 72700,
+  "phrase": "places",
+  "how": "swap"
+ },
+ {
+  "at": 72800,
+  "phrase": "emails",
+  "how": "swap"
+ },
+ {
+  "at": 72900,
+  "phrase": "episodes",
+  "how": "swap"
+ },
+ {
+  "at": 73000,
+  "phrase": "sleep",
+  "how": "swap"
+ },
+ {
+  "at": 73100,
+  "phrase": "tickets",
+  "how": "swap"
+ },
+ {
+  "at": 73200,
+  "phrase": "good days",
+  "how": "final"
+ }
+]

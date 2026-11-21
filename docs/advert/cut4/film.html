@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Athena launch film, cut 4</title>
+<meta name="viewport" content="width=1920">
+<link rel="stylesheet" href="film.css">
+</head>
+<body>
+<!--
+  One 1920x1080 stage, one continuous take, drawn as a pure function of time.
+  window.seek(ms) -> Promise, resolves when the frame for `ms` is fully drawn (screen images decoded).
+  Nothing runs on wall-clock time: no transitions, no animations, no rAF loop.
+  Open film.html?t=18600 to look at one moment. render.cjs injects window.__FILM_CFG__ = { cap, look, manifest, swaps }.
+  The opening (orb, tiles, first line) sits in #open, which is locked to the world so the dive carries it.
+-->
+<div id="stage">
+  <div id="aurora"><span id="aurA"></span><span id="aurB"></span></div>
+  <div id="content">
+    <div id="world"></div>
+    <div id="open">
+      <div id="orb1" class="orb"><i class="orb__sheen"></i><i class="orb__gloss"></i></div>
+      <div id="tiles"></div>
+      <div id="line1" class="line"></div>
+    </div>
+    <div id="line2" class="line"><span id="l2a"></span><span id="l2sel"></span><span id="l2b"></span><i id="caret"></i></div>
+    <div id="checkin"><img alt="" decoding="sync"></div>
+    <div id="greatfly"><img alt="" decoding="sync"></div>
+    <div id="lockup">
+      <div id="orb2" class="orb"><i class="orb__sheen"></i><i class="orb__gloss"></i></div>
+      <div id="wordmark">Athena</div>
+    </div>
+  </div>
+  <div id="ripple"></div>
+  <div id="pointer"></div>
+</div>
+<script src="film.js"></script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+[
+ {
+  "at": 53400,
+  "phrase": "platform",
+  "how": "type"
+ },
+ {
+  "at": 54000,
+  "phrase": "pricing call",
+  "how": "retype"
+ },
+ {
+  "at": 54600,
+  "phrase": "quote",
+  "how": "retype"
+ },
+ {
+  "at": 55200,
+  "phrase": "playlist",
+  "how": "swap"
+ },
+ {
+  "at": 55700,
+  "phrase": "run",
+  "how": "swap"
+ },
+ {
+  "at": 56133,
+  "phrase": "birthday",
+  "how": "swap"
+ },
+ {
+  "at": 56500,
+  "phrase": "booking code",
+  "how": "swap"
+ },
+ {
+  "at": 56833,
+  "phrase": "book",
+  "how": "swap"
+ },
+ {
+  "at": 57100,
+  "phrase": "film",
+  "how": "swap"
+ },
+ {
+  "at": 57333,
+  "phrase": "album",
+  "how": "swap"
+ },
+ {
+  "at": 57567,
+  "phrase": "recipe",
+  "how": "swap"
+ },
+ {
+  "at": 57733,
+  "phrase": "bill",
+  "how": "swap"
+ },
+ {
+  "at": 57900,
+  "phrase": "flight",
+  "how": "swap"
+ },
+ {
+  "at": 58033,
+  "phrase": "hotel",
+  "how": "swap"
+ },
+ {
+  "at": 58167,
+  "phrase": "receipt",
+  "how": "swap"
+ },
+ {
+  "at": 58267,
+  "phrase": "streak",
+  "how": "swap"
+ },
+ {
+  "at": 58400,
+  "phrase": "series",
+  "how": "swap"
+ },
+ {
+  "at": 58500,
+  "phrase": "gift idea",
+  "how": "swap"
+ },
+ {
+  "at": 58600,
+  "phrase": "MOT",
+  "how": "swap"
+ },
+ {
+  "at": 58733,
+  "phrase": "hire car",
+  "how": "swap"
+ },
+ {
+  "at": 58833,
+  "phrase": "restaurant",
+  "how": "swap"
+ },
+ {
+  "at": 58967,
+  "phrase": "song",
+  "how": "swap"
+ },
+ {
+  "at": 59067,
+  "phrase": "article",
+  "how": "swap"
+ },
+ {
+  "at": 59167,
+  "phrase": "weigh-in",
+  "how": "swap"
+ },
+ {
+  "at": 59300,
+  "phrase": "workout",
+  "how": "swap"
+ },
+ {
+  "at": 59400,
+  "phrase": "parcel",
+  "how": "swap"
+ },
+ {
+  "at": 59500,
+  "phrase": "meeting",
+  "how": "swap"
+ },
+ {
+  "at": 59633,
+  "phrase": "email",
+  "how": "swap"
+ },
+ {
+  "at": 59733,
+  "phrase": "phone call",
+  "how": "swap"
+ },
+ {
+  "at": 59867,
+  "phrase": "name",
+  "how": "swap"
+ },
+ {
+  "at": 59967,
+  "phrase": "place",
+  "how": "swap"
+ },
+ {
+  "at": 60067,
+  "phrase": "trip",
+  "how": "swap"
+ },
+ {
+  "at": 60200,
+  "phrase": "photo",
+  "how": "swap"
+ },
+ {
+  "at": 60300,
+  "phrase": "goal",
+  "how": "swap"
+ },
+ {
+  "at": 60400,
+  "phrase": "reminder",
+  "how": "swap"
+ },
+ {
+  "at": 60533,
+  "phrase": "to-do",
+  "how": "swap"
+ },
+ {
+  "at": 60633,
+  "phrase": "subscription",
+  "how": "swap"
+ },
+ {
+  "at": 60767,
+  "phrase": "episode",
+  "how": "swap"
+ },
+ {
+  "at": 60867,
+  "phrase": "habit",
+  "how": "swap"
+ },
+ {
+  "at": 60967,
+  "phrase": "link",
+  "how": "swap"
+ },
+ {
+  "at": 61100,
+  "phrase": "sleep",
+  "how": "swap"
+ },
+ {
+  "at": 61200,
+  "phrase": "good days",
+  "how": "final"
+ }
+]

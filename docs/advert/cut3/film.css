@@ -1,0 +1,339 @@
+/* Athena launch film, cut 3. Tokens mirror app/src/styles/tokens.css. */
+
+@font-face {
+  font-family: "Funnel Display";
+  src: url("../../../app/public/fonts/funnel-display-latin.woff2") format("woff2");
+  font-weight: 500 600;
+  font-display: block;
+}
+@font-face {
+  font-family: "Geist";
+  src: url("../../../app/public/fonts/geist-latin.woff2") format("woff2");
+  font-weight: 400 600;
+  font-display: block;
+}
+
+:root {
+  --canvas: #f4f6f8;
+  --surface: oklch(0.993 0.002 264);
+  --line: oklch(0.915 0.006 264);
+  --line-strong: oklch(0.87 0.008 264);
+  --ink: oklch(0.21 0.012 264); /* #15181e */
+  --accent: oklch(0.53 0.2 264); /* #2c5fdd */
+  --font-display: "Funnel Display", "Geist", sans-serif;
+
+  /* The orb, as components.css draws it. */
+  --orb-hi: oklch(0.88 0.08 222);
+  --orb-mid: oklch(0.6 0.19 258);
+  --orb-low: oklch(0.38 0.18 266);
+  --orb-sheen: oklch(0.9 0.08 205 / 0.85);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+#stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+#content,
+#world {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- Aurora haze (base.css .aurora, at film scale) ---------- */
+
+#aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+#aurora span {
+  position: absolute;
+  border-radius: 50%;
+}
+
+/* A blurred ellipse, drawn as a gradient with a soft falloff so no filter is needed. */
+#aurA {
+  width: 2100px;
+  height: 1500px;
+  left: -700px;
+  top: -820px;
+  background: radial-gradient(
+    closest-side,
+    oklch(0.86 0.09 240 / 0.408) 0%,
+    oklch(0.86 0.09 240 / 0.36) 22%,
+    oklch(0.86 0.09 240 / 0.238) 45%,
+    oklch(0.86 0.09 240 / 0.102) 68%,
+    oklch(0.86 0.09 240 / 0.0272) 88%,
+    oklch(0.86 0.09 240 / 0) 100%
+  );
+}
+
+#aurB {
+  width: 1900px;
+  height: 1400px;
+  left: 560px;
+  top: -780px;
+  background: radial-gradient(
+    closest-side,
+    oklch(0.91 0.1 165 / 0.303) 0%,
+    oklch(0.91 0.1 165 / 0.264) 22%,
+    oklch(0.91 0.1 165 / 0.171) 45%,
+    oklch(0.91 0.1 165 / 0.0715) 68%,
+    oklch(0.91 0.1 165 / 0.0193) 88%,
+    oklch(0.91 0.1 165 / 0) 100%
+  );
+}
+
+/* ---------- Screen cards on the wall (world units = CSS px of the 390-wide app) ---------- */
+
+.card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 390px;
+  height: 844px;
+  transform-origin: 0 0;
+  border-radius: 44px;
+  overflow: hidden;
+  background: var(--canvas);
+  box-shadow:
+    0 0 0 1px var(--line-strong),
+    0 2px 6px oklch(0.3 0.03 264 / 0.05),
+    0 26px 60px -28px oklch(0.3 0.05 264 / 0.3);
+}
+
+.card img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: 390px;
+  height: 844px;
+}
+
+.card__cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+}
+
+/* ---------- Orb (components.css .orb; the sheen's turn is set from time) ---------- */
+
+.orb {
+  --size: 240px;
+  position: absolute;
+  left: calc(var(--size) / -2);
+  top: calc(var(--size) / -2);
+  isolation: isolate;
+  overflow: hidden;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: radial-gradient(120% 120% at 30% 18%, var(--orb-hi) 0%, var(--orb-mid) 46%, var(--orb-low) 100%);
+  box-shadow: 0 calc(var(--size) * 0.14) calc(var(--size) * 0.4) calc(var(--size) * -0.14) oklch(0.5 0.2 262 / 0.6);
+}
+
+.orb__sheen {
+  position: absolute;
+  inset: -30%;
+  background: conic-gradient(
+    from 90deg,
+    transparent 0deg,
+    var(--orb-sheen) 55deg,
+    transparent 130deg,
+    oklch(0.52 0.22 266 / 0.85) 210deg,
+    oklch(0.9 0.1 172 / 0.45) 280deg,
+    transparent 330deg
+  );
+  filter: blur(calc(var(--size) * 0.09));
+}
+
+.orb__gloss {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(55% 45% at 32% 22%, oklch(1 0 0 / 0.78), transparent 62%),
+    radial-gradient(70% 55% at 68% 92%, oklch(0.3 0.15 268 / 0.45), transparent 70%);
+}
+
+/* ---------- Scene 2 tiles: the Library's icons on rounded white tiles ---------- */
+
+.tile {
+  position: absolute;
+  left: -75px;
+  top: -75px;
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 35px;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  box-shadow:
+    0 2px 4px oklch(0.3 0.02 264 / 0.05),
+    0 18px 34px -20px oklch(0.3 0.04 264 / 0.26);
+  color: var(--ink);
+}
+
+.tile svg {
+  width: 66px;
+  height: 66px;
+}
+
+/* ---------- The two quiet lines ---------- */
+
+.line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 68px;
+  letter-spacing: -0.018em;
+  line-height: 88px;
+  height: 88px;
+  color: var(--ink);
+  white-space: pre;
+}
+
+#line1 {
+  width: 1920px;
+  text-align: center;
+}
+
+#line1 .w {
+  display: inline-block;
+  white-space: pre;
+}
+
+#line2,
+.line--close {
+  font-size: 80px;
+  line-height: 100px;
+  height: 100px;
+}
+
+#l2sel {
+  background: oklch(0.53 0.2 264 / 0.2);
+  border-radius: 6px;
+  box-decoration-break: clone;
+}
+
+#caret {
+  display: inline-block;
+  width: 4px;
+  height: 76px;
+  margin-left: 4px;
+  vertical-align: -12px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* ---------- End lockup ---------- */
+
+#lockup {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+}
+
+#orb2 {
+  --size: 172px;
+}
+
+#wordmark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 164px;
+  letter-spacing: -0.02em;
+  line-height: 190px;
+  height: 190px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* ---------- The pointer: a soft round touch pointer ---------- */
+
+#pointer {
+  position: absolute;
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: oklch(0.21 0.012 264 / 0.42);
+  border: 2.5px solid oklch(1 0 0);
+  box-shadow:
+    0 0 0 1px oklch(0.21 0.012 264 / 0.38),
+    0 1px 3px oklch(0.21 0.012 264 / 0.3),
+    0 5px 14px oklch(0.25 0.03 264 / 0.28);
+}
+
+#ripple {
+  position: absolute;
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2.5px solid oklch(0.53 0.2 264 / 0.9);
+  background: oklch(0.53 0.2 264 / 0.12);
+}
+
+/* ---------- Scene 10: the check-in card, cropped from its capture ---------- */
+
+#checkin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 0.4px var(--line-strong),
+    0 1px 2px oklch(0.3 0.03 264 / 0.05),
+    0 9px 20px -9px oklch(0.3 0.05 264 / 0.28);
+}
+
+#checkin img {
+  position: absolute;
+  display: block;
+  width: 390px;
+  height: 844px;
+}
+
+#l2b {
+  display: inline-block;
+}

@@ -1,0 +1,182 @@
+[
+ {
+  "at": 48600,
+  "phrase": "platform",
+  "how": "type"
+ },
+ {
+  "at": 49200,
+  "phrase": "pricing call",
+  "how": "retype"
+ },
+ {
+  "at": 49800,
+  "phrase": "film",
+  "how": "retype"
+ },
+ {
+  "at": 50400,
+  "phrase": "gift idea",
+  "how": "swap"
+ },
+ {
+  "at": 51000,
+  "phrase": "run",
+  "how": "swap"
+ },
+ {
+  "at": 51600,
+  "phrase": "streak",
+  "how": "swap"
+ },
+ {
+  "at": 52200,
+  "phrase": "albums",
+  "how": "swap"
+ },
+ {
+  "at": 52400,
+  "phrase": "bills",
+  "how": "swap"
+ },
+ {
+  "at": 52600,
+  "phrase": "MOT",
+  "how": "swap"
+ },
+ {
+  "at": 52800,
+  "phrase": "flights",
+  "how": "swap"
+ },
+ {
+  "at": 53000,
+  "phrase": "recipes",
+  "how": "swap"
+ },
+ {
+  "at": 53200,
+  "phrase": "subscriptions",
+  "how": "swap"
+ },
+ {
+  "at": 53400,
+  "phrase": "birthdays",
+  "how": "swap"
+ },
+ {
+  "at": 53600,
+  "phrase": "box sets",
+  "how": "swap"
+ },
+ {
+  "at": 53800,
+  "phrase": "parcels",
+  "how": "swap"
+ },
+ {
+  "at": 54000,
+  "phrase": "booking codes",
+  "how": "swap"
+ },
+ {
+  "at": 54150,
+  "phrase": "restaurants",
+  "how": "swap"
+ },
+ {
+  "at": 54300,
+  "phrase": "receipts",
+  "how": "swap"
+ },
+ {
+  "at": 54450,
+  "phrase": "podcasts",
+  "how": "swap"
+ },
+ {
+  "at": 54600,
+  "phrase": "hotels",
+  "how": "swap"
+ },
+ {
+  "at": 54750,
+  "phrase": "names",
+  "how": "swap"
+ },
+ {
+  "at": 54900,
+  "phrase": "meetings",
+  "how": "swap"
+ },
+ {
+  "at": 55050,
+  "phrase": "books",
+  "how": "swap"
+ },
+ {
+  "at": 55200,
+  "phrase": "quotes",
+  "how": "swap"
+ },
+ {
+  "at": 55300,
+  "phrase": "photos",
+  "how": "swap"
+ },
+ {
+  "at": 55400,
+  "phrase": "trips",
+  "how": "swap"
+ },
+ {
+  "at": 55500,
+  "phrase": "articles",
+  "how": "swap"
+ },
+ {
+  "at": 55600,
+  "phrase": "hire cars",
+  "how": "swap"
+ },
+ {
+  "at": 55700,
+  "phrase": "workouts",
+  "how": "swap"
+ },
+ {
+  "at": 55800,
+  "phrase": "to-dos",
+  "how": "swap"
+ },
+ {
+  "at": 55900,
+  "phrase": "places",
+  "how": "swap"
+ },
+ {
+  "at": 56000,
+  "phrase": "emails",
+  "how": "swap"
+ },
+ {
+  "at": 56100,
+  "phrase": "episodes",
+  "how": "swap"
+ },
+ {
+  "at": 56200,
+  "phrase": "sleep",
+  "how": "swap"
+ },
+ {
+  "at": 56300,
+  "phrase": "tickets",
+  "how": "swap"
+ },
+ {
+  "at": 56400,
+  "phrase": "good days",
+  "how": "final"
+ }
+]
