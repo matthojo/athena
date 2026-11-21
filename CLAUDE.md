@@ -26,6 +26,22 @@ a private notes repository, write longer notes there; if a skill tells you to
 write a notes file into this repository, write it to that private repository
 instead, or ask.
 
+## One feature, one pull request
+
+Every piece of work reaches `main` as one feature branch and one pull request.
+
+- Work on one branch, `claude/<feature>`, cut from `main`. Groundwork the
+  feature needs (shared types, a contract) goes on that branch, never
+  straight to `main`.
+- When the work is split across sessions, each pushes to its own work
+  branch, `claude/<feature>-<part>`, cut from the feature branch, and opens
+  no pull request. Whoever coordinates merges each work branch into the
+  feature branch once its checks pass, then deletes the work branch.
+- Open one pull request, from the feature branch to `main`, as a draft until
+  it's ready. Its description carries what changed, the owner's decisions,
+  the checks run and any open questions. Fixes after review are pushed to
+  the same branch, not opened as new pull requests.
+
 ## Migrations are append-only
 
 Every copy of Athena applies `netlify/database/migrations/` in order. Never
