@@ -353,6 +353,7 @@
       const pairA = fr.sugTitle, pairB = fr.flowTitle || fr.flowName;
       const fromB = pairA && pairB ? { x: sug.x, y: pairB.y - (pairA.y - sug.y), w: sug.w, h: sug.h } : undefined;
       const gf = g("flow", T_FLOW_TAP, dur, sug, full, capEv("flow", "make") - FRAME, capB, fromB);
+      gf.onCap = true;
       if (!fromB) gf.ease = "lop";
       else {
         // The page rides the camera: its title moves on screen along one lopsided curve from where the suggestion's title
@@ -1100,7 +1101,9 @@
     // A grow morph: the frame before the tap, and the opened view revealed through a growing rounded clip.
     for (const g of MORPH[name] || []) {
       // (from 1 ms early: on the tap's own frame the capture already shows the app's route change)
-      if (t < g.at - 1 || t >= g.at + g.dur) continue;
+      // (`onCap`: on the capture clock, which every blur sub-sample of a frame shares, so a grow that starts inside a
+      // blurred frame is on for all of its sub-samples: no half-and-half double exposure)
+      if ((g.onCap ? Math.max(t, ct) : t) < g.at - 1 || t >= g.at + g.dur) continue;
       // A plain grow pops open (outExpo); a carried one (fromB) moves on the camera's own lopsided curve, so the card
       // and the camera travel together.
       const gp = prog(t, g.at, g.at + g.dur);
