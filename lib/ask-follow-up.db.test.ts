@@ -76,7 +76,7 @@ const lines = (text: string, re: RegExp) => text.split("\n").filter((l) => re.te
 before(async () => {
   if (!url) return;
   const { qRaw } = await import("./db");
-  await qRaw(`TRUNCATE ask_activity, ask_plans, ask_routines`);
+  await qRaw(`TRUNCATE ask_activity, ask_plans, ask_routines CASCADE`);
   for (const t of ["commitments", "recipes", "reading_items", "edges", "notes"]) await qRaw(`DELETE FROM ${t}`);
   // In Athena all along: a collected note that a keyword search for "recipe" or "brownies" would find.
   const { createNote } = await import("./db");
@@ -197,7 +197,7 @@ test("a collected note counts as other people's words: an unasked change waits a
 
   // A note the owner wrote (source manual, or app) is theirs: one unasked change is made straight away, as it always was.
   await qRaw(`DELETE FROM notes`);
-  await qRaw(`TRUNCATE ask_plans`);
+  await qRaw(`TRUNCATE ask_plans CASCADE`);
   for (const source of ["manual", "app"]) {
     const own = await createNote({ title: "Venue deposit", body, type: "note", tags: [], source });
     const before = await todos();

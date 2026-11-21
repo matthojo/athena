@@ -9,9 +9,9 @@
  */
 import type { AvatarSpec } from "../team-types";
 
-/** team: a Team assistant ran (lib/team-run.ts); routine: one of Ask's routines ran (lib/routine-run.ts); watch_tonight: picks for a free evening (lib/watch-tonight.ts). */
-export type RuleId = "meeting_prep" | "after_meeting" | "awaiting_reply" | "leave_by" | "day_plan" | "weekly_plan" | "drift" | "routine" | "watch_tonight" | "car" | "team";
-export const RULE_IDS: readonly RuleId[] = ["meeting_prep", "after_meeting", "awaiting_reply", "leave_by", "day_plan", "weekly_plan", "drift", "routine", "watch_tonight", "car", "team"];
+/** team: a Team assistant ran (lib/team-run.ts), or ran one of its flows; flow: a plain flow's card (lib/flow-effects.ts); routine: one of Ask's routines ran (lib/routine-run.ts); watch_tonight: picks for a free evening (lib/watch-tonight.ts). */
+export type RuleId = "meeting_prep" | "after_meeting" | "awaiting_reply" | "leave_by" | "day_plan" | "weekly_plan" | "drift" | "routine" | "watch_tonight" | "car" | "team" | "flow";
+export const RULE_IDS: readonly RuleId[] = ["meeting_prep", "after_meeting", "awaiting_reply", "leave_by", "day_plan", "weekly_plan", "drift", "routine", "watch_tonight", "car", "team", "flow"];
 
 /** How the owner gets to an event: Leave by's default (Settings → Notifications) and each event's own choice. */
 export type TravelMode = "transit" | "drive" | "walk" | "cycle";

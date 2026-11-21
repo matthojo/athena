@@ -16,7 +16,8 @@ import { sealText } from "./data-box";
 import type { Change } from "./assistant";
 import type { NudgeAction } from "./proactive/types";
 
-export const ACTIVITY_SOURCES = ["ask", "plan", "routine", "nudge", "team"] as const;
+/** flow: a plain flow's step (lib/flow-run.ts); an assistant's flow stays `team`, as its runs are. */
+export const ACTIVITY_SOURCES = ["ask", "plan", "routine", "nudge", "team", "flow"] as const;
 export type ActivitySource = (typeof ACTIVITY_SOURCES)[number];
 export type ActivityState = "done" | "undone" | "undo_failed";
 
@@ -27,6 +28,9 @@ export interface ActivityContext {
   plan_id?: string | null;
   routine_id?: string | null;
   nudge_id?: string | null;
+  /** source `flow`: the flow and the run the change came from. */
+  flow_id?: string | null;
+  flow_run_id?: string | null;
 }
 
 export interface ActivityEntry {
@@ -37,6 +41,13 @@ export interface ActivityEntry {
   plan_id: string | null;
   routine_id: string | null;
   nudge_id: string | null;
+  /**
+   * source `flow` only, null otherwise: the flow and the run the change came from, and the flow's name now (null when
+   * it's gone or can't be opened). The app shows "Flow: <name>" (or "A flow") and opens /#/flows/runs/<flow_run_id>.
+   */
+  flow_id: string | null;
+  flow_run_id: string | null;
+  flow_name: string | null;
   state: ActivityState;
   state_at: string | null;
   change: Change;
@@ -52,7 +63,10 @@ export function activityPayload(change: Change): string {
 }
 
 /** The row's columns for one change. Pure, so a test can check every source's rows without a database. */
-export function activityRow(change: Change, ctx: ActivityContext): { source: ActivitySource; thread_id: string | null; plan_id: string | null; routine_id: string | null; nudge_id: string | null; payload: string } {
+export function activityRow(
+  change: Change,
+  ctx: ActivityContext,
+): { source: ActivitySource; thread_id: string | null; plan_id: string | null; routine_id: string | null; nudge_id: string | null; flow_id: string | null; flow_run_id: string | null; payload: string } {
   if (!(ACTIVITY_SOURCES as readonly string[]).includes(ctx.source)) throw new Error(`source: one of ${ACTIVITY_SOURCES.join(", ")}`);
   return {
     source: ctx.source,
@@ -60,6 +74,9 @@ export function activityRow(change: Change, ctx: ActivityContext): { source: Act
     plan_id: idOrNull(ctx.plan_id),
     routine_id: idOrNull(ctx.routine_id),
     nudge_id: idOrNull(ctx.nudge_id),
+    // Only a flow's rows point at a flow.
+    flow_id: ctx.source === "flow" ? idOrNull(ctx.flow_id) : null,
+    flow_run_id: ctx.source === "flow" ? idOrNull(ctx.flow_run_id) : null,
     payload: activityPayload(change),
   };
 }
@@ -80,8 +97,8 @@ export async function logChanges(changes: Change[], ctx: ActivityContext): Promi
     try {
       const r = activityRow(c, ctx);
       const [row] = await qRaw<{ id: string }>(
-        `INSERT INTO ask_activity (source, thread_id, plan_id, routine_id, nudge_id, payload) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-        [r.source, r.thread_id, r.plan_id, r.routine_id, r.nudge_id, sealText(r.payload)],
+        `INSERT INTO ask_activity (source, thread_id, plan_id, routine_id, nudge_id, flow_id, flow_run_id, payload) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+        [r.source, r.thread_id, r.plan_id, r.routine_id, r.nudge_id, r.flow_id, r.flow_run_id, sealText(r.payload)],
       );
       out.push({ ...c, activity_id: row.id });
     } catch (error) {
@@ -100,16 +117,25 @@ interface Row {
   plan_id: string | null;
   routine_id: string | null;
   nudge_id: string | null;
+  flow_id?: string | null;
+  flow_run_id?: string | null;
   state: ActivityState;
   state_at: string | Date | null;
   payload: string;
 }
 
-const COLUMNS = `id, created_at, source, thread_id, plan_id, routine_id, nudge_id, state, state_at, payload`;
+const COLUMNS = `id, created_at, source, thread_id, plan_id, routine_id, nudge_id, flow_id, flow_run_id, state, state_at, payload`;
 const iso = (v: string | Date | null) => (v == null ? null : new Date(v).toISOString());
 
-/** A row as the app reads it; null when its receipt can't be opened (sealed under a key this deploy doesn't have). */
-export function presentActivity(r: Row): ActivityEntry | null {
+/** A flow's row: its flow, its run and the flow's name now. Every other source: nulls. Pure. */
+function flowOf(r: Row, names: ReadonlyMap<string, string>): Pick<ActivityEntry, "flow_id" | "flow_run_id" | "flow_name"> {
+  if (r.source !== "flow" || !r.flow_id) return { flow_id: null, flow_run_id: null, flow_name: null };
+  const name = (names.get(r.flow_id) ?? "").replace(/\s+/g, " ").trim();
+  return { flow_id: r.flow_id, flow_run_id: r.flow_run_id ?? null, flow_name: name || null };
+}
+
+/** A row as the app reads it; null when its receipt can't be opened (sealed under a key this deploy doesn't have). `names`: flows' names by id. */
+export function presentActivity(r: Row, names: ReadonlyMap<string, string> = new Map()): ActivityEntry | null {
   let change: Change;
   try {
     change = JSON.parse(r.payload) as Change;
@@ -124,10 +150,28 @@ export function presentActivity(r: Row): ActivityEntry | null {
     plan_id: r.plan_id,
     routine_id: r.routine_id,
     nudge_id: r.nudge_id,
+    ...flowOf(r, names),
     state: r.state,
     state_at: iso(r.state_at),
     change: { ...change, activity_id: r.id },
   };
+}
+
+/** The names of the flows these rows came from, read from each flow's sealed words. */
+async function flowNames(rows: Row[]): Promise<Map<string, string>> {
+  const ids = [...new Set(rows.filter((r) => r.source === "flow" && r.flow_id).map((r) => r.flow_id!))];
+  if (!ids.length) return new Map();
+  const found = await q<{ id: string; payload: string }>(`SELECT id, payload FROM flows WHERE id = ANY($1::uuid[])`, [ids]).catch(() => []);
+  const names = new Map<string, string>();
+  for (const f of found) {
+    try {
+      const name = (JSON.parse(f.payload) as { name?: unknown }).name;
+      if (typeof name === "string") names.set(f.id, name);
+    } catch {
+      // Sealed under a key this deploy doesn't have: "A flow".
+    }
+  }
+  return names;
 }
 
 /** Newest first; `before` (an ISO time) pages back. */
@@ -138,14 +182,15 @@ export async function listActivity(opts: { limit?: number; before?: string | nul
     `SELECT ${COLUMNS} FROM ask_activity ${before ? "WHERE created_at < $2::timestamptz" : ""} ORDER BY created_at DESC, id DESC LIMIT $1`,
     before ? [limit, before] : [limit],
   );
-  return rows.map(presentActivity).filter((e): e is ActivityEntry => !!e);
+  const names = await flowNames(rows);
+  return rows.map((r) => presentActivity(r, names)).filter((e): e is ActivityEntry => !!e);
 }
 
 export async function getActivity(id: unknown): Promise<ActivityEntry | null> {
   const key = idOrNull(id);
   if (!key) return null;
   const [row] = await q<Row>(`SELECT ${COLUMNS} FROM ask_activity WHERE id = $1::uuid`, [key]);
-  return row ? presentActivity(row) : null;
+  return row ? presentActivity(row, await flowNames([row])) : null;
 }
 
 /** Record how an Undo went. Unknown ids are ignored: an older reply's change was never logged. */
@@ -196,6 +241,6 @@ export function nudgeActionChange(action: NudgeAction, undo: unknown): Change {
 /** A nudge's part put back from its card: its log row is undone too. */
 export async function markNudgePartUndone(nudgeId: string, entityId: string): Promise<void> {
   const rows = await q<Row>(`SELECT ${COLUMNS} FROM ask_activity WHERE nudge_id = $1::uuid AND state = 'done' ORDER BY created_at DESC`, [nudgeId]);
-  const hit = rows.map(presentActivity).find((e) => e?.change.id === entityId);
+  const hit = rows.map((r) => presentActivity(r)).find((e) => e?.change.id === entityId);
   if (hit) await markActivity(hit.id, "undone");
 }

@@ -1554,3 +1554,85 @@ CREATE TABLE IF NOT EXISTS ai_usage (
 );
 CREATE INDEX IF NOT EXISTS ai_usage_day_idx ON ai_usage (day);
 CREATE INDEX IF NOT EXISTS ai_usage_assistant_day_idx ON ai_usage (assistant_id, day) WHERE assistant_id IS NOT NULL;
+
+-- Flows (0080, lib/flows.ts, lib/flow-run.ts): a trigger and steps with branches. The owner's words are sealed in
+-- flows.payload and flow_runs' label, summary, error and state; trigger kinds, schedules, statuses and ids are plain.
+CREATE TABLE IF NOT EXISTS flows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  payload TEXT NOT NULL,
+  trigger_kind TEXT NOT NULL CHECK (trigger_kind IN ('schedule', 'event', 'before', 'manual')),
+  schedule JSONB NOT NULL DEFAULT '{}'::jsonb,
+  assistant_id UUID REFERENCES team_assistants (id) ON DELETE SET NULL,
+  handed_at TIMESTAMPTZ,
+  money BOOLEAN NOT NULL DEFAULT false,
+  paused BOOLEAN NOT NULL DEFAULT false,
+  origin TEXT NOT NULL DEFAULT 'owner' CHECK (origin IN ('owner', 'ask', 'draft', 'suggestion', 'trigger', 'shared')),
+  last_run_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS flows_active_idx ON flows (trigger_kind) WHERE NOT paused;
+CREATE INDEX IF NOT EXISTS flows_assistant_idx ON flows (assistant_id) WHERE assistant_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS flow_runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  flow_id UUID NOT NULL REFERENCES flows (id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'waiting', 'done', 'failed', 'stopped')),
+  waits_for TEXT CHECK (waits_for IN ('go', 'answer', 'time', 'assignment')),
+  label TEXT,
+  assistant_id UUID REFERENCES team_assistants (id) ON DELETE SET NULL,
+  summary TEXT,
+  error TEXT,
+  state TEXT NOT NULL,
+  dry BOOLEAN NOT NULL DEFAULT false,
+  resumes_at TIMESTAMPTZ,
+  waiting_since TIMESTAMPTZ,
+  plan_id UUID REFERENCES ask_plans (id) ON DELETE SET NULL,
+  assignment_id UUID REFERENCES team_assignments (id) ON DELETE SET NULL,
+  notices_pending BOOLEAN NOT NULL DEFAULT false,
+  made TEXT[] NOT NULL DEFAULT '{}',
+  event_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+  slot TEXT,
+  started_by UUID,
+  chain UUID[] NOT NULL DEFAULT '{}',
+  version INTEGER NOT NULL DEFAULT 0,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS flow_runs_flow_idx ON flow_runs (flow_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS flow_runs_open_idx ON flow_runs (status) WHERE status IN ('queued', 'running', 'waiting');
+CREATE INDEX IF NOT EXISTS flow_runs_resume_idx ON flow_runs (resumes_at) WHERE status = 'waiting' AND waits_for = 'time';
+CREATE INDEX IF NOT EXISTS flow_runs_notices_idx ON flow_runs (id) WHERE notices_pending;
+CREATE UNIQUE INDEX IF NOT EXISTS flow_runs_slot_idx ON flow_runs (flow_id, slot) WHERE slot IS NOT NULL;
+
+-- What Ask did: a plain flow's changes are source 'flow', with the flow and the run they came from, so the log can
+-- say "Flow: <name>" and open the run. Plain ids only; the flow's name stays sealed in flows.payload. No foreign
+-- keys: a pruned run or a removed flow leaves the log's rows as they were.
+ALTER TABLE ask_activity ADD COLUMN IF NOT EXISTS flow_id UUID;
+ALTER TABLE ask_activity ADD COLUMN IF NOT EXISTS flow_run_id UUID;
+
+-- Flows' triggers (0081, lib/flow-triggers.ts, lib/flow-triggers-db.ts). `team_events.flow_claimed_at`: flows mark
+-- each event seen with their own column, beside Team's `processed_at`, so both see every event once.
+-- `flow_trigger_fires`: one row per fire a flow has claimed (a schedule slot, one event's "before", one date's
+-- "before", one flow's run for one event: `event:<id>`), so overlapping passes start it once. Plain: a flow's id, a
+-- key of a kind, a record's id and a time; never a title. No foreign key: rows go after a week (FIRE_DAYS), and with
+-- their flow when it's deleted (lib/flows.ts deleteFlow).
+ALTER TABLE team_events ADD COLUMN IF NOT EXISTS flow_claimed_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS team_events_flow_pending_idx ON team_events (id) WHERE flow_claimed_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS flow_trigger_fires (
+  flow_id TEXT NOT NULL,
+  fire_key TEXT NOT NULL,
+  fire_at TIMESTAMPTZ NOT NULL,
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (flow_id, fire_key)
+);
+CREATE INDEX IF NOT EXISTS flow_trigger_fires_at_idx ON flow_trigger_fires (fire_at);
+
+-- Flow suggestions (0082, lib/flow-suggest.ts): a suggestion the owner dismissed never comes back. `id` names the
+-- kind of habit; one built on the owner's own words carries a short SHA-256 of them, never the words.
+CREATE TABLE IF NOT EXISTS flow_suggestion_dismissals (
+  id TEXT PRIMARY KEY CHECK (id ~ '^[a-z0-9_-]{3,80}$'),
+  dismissed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

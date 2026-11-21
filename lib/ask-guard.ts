@@ -111,6 +111,8 @@ const TOOL_ASKS: Record<string, Asked[]> = {
   // Assignments (lib/assignment-tools.ts): a lineup kept as a draft, and a waiting stage moved on. Neither is offered once a turn is flagged.
   start_assignment: ["add"],
   continue_assignment: ["change"],
+  // Flows (lib/flow-draft-ask.ts): a flow drawn and kept paused for the owner to turn on. Not offered once a turn is flagged.
+  propose_flow: ["add"],
   attach_file: ["add", "link"],
   make_image: ["add", "change"],
   // These make a new one or change one that's there.

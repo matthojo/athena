@@ -12,6 +12,8 @@
  * Request/Response directly instead of needing Node's http module.
  */
 import { startTeamEvent } from "../../lib/team-triggers";
+// Plugs flows into the owner's own events, so a tagged note or a save starts its flows at once (lib/flow-engine.ts).
+import "../../lib/flow-engine";
 import type { Config, Context } from "@netlify/functions";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";

@@ -96,7 +96,9 @@ export function homeAsk(): { el: HTMLElement; destroy: () => void } {
   phone.addEventListener("change", watchPulse);
   watchPulse();
   const box = h("div", { class: "home-ask__box" }, markSlot, field, send);
-  const el = h("form", { class: "home-ask", role: "search", "aria-label": "Ask" }, h("div", { class: "home-ask__head" }, team), box, chipsWrap, about);
+  // Flows, beside Team: a pill of the same make (owner, 20 Nov 2026).
+  const flows = h("a", { class: "home-ask__team home-ask__flows", href: "#/flows", "aria-label": "Flows" }, icons.loop(), h("span", {}, "Flows"), icons.chevronRight());
+  const el = h("form", { class: "home-ask", role: "search", "aria-label": "Ask" }, h("div", { class: "home-ask__head" }, flows, team), box, chipsWrap, about);
 
   /** The line under the chips: what the chosen one is doing, else what they're for. Athena's says nothing; the box does. */
   const paintAbout = () => {

@@ -39,6 +39,7 @@ import { trackingSection } from "./detail-tracking";
 import { modelsSection } from "./detail-models";
 import { cap, isLive, liveWords, pronouns, startLine } from "./detail-words";
 import { openShareAssistant } from "./share-sheet";
+import { assistantFlowsSection } from "../flows/assistant-flows";
 
 export { triggerInput };
 
@@ -390,6 +391,8 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
   const share = shareSection();
   // What it tracks (detail-tracking.ts): hidden when it tracks nothing.
   const tracking = trackingSection(() => a, () => alive);
+  // "<Name>'s flows" and Give <Name> a flow (flows/assistant-flows.ts): hidden until they load.
+  const flows = assistantFlowsSection(() => a, () => alive);
   // How it thinks (detail-models.ts): made once the assistant has loaded.
   let models: ReturnType<typeof modelsSection> | null = null;
 
@@ -402,6 +405,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     share.paint();
     end.paint();
     tracking.paint();
+    flows.paint();
     models?.paint();
     skill?.reload();
   }
@@ -418,11 +422,12 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     end.paint();
     work.paint(a, runs);
     tracking.paint();
+    flows.paint();
     models ??= modelsSection(() => a);
     body.replaceChildren(
       hero(),
       pausedNote,
-      h("div", { class: "td-layout" }, h("div", { class: "td-main" }, work.el, tracking.el), h("div", { class: "td-aside" }, brief.el, models.el, skill.el, memory.el, personality.el, spendCapSection(a.id), share.el, end.el))
+      h("div", { class: "td-layout" }, h("div", { class: "td-main" }, work.el, flows.el, tracking.el), h("div", { class: "td-aside" }, brief.el, models.el, skill.el, memory.el, personality.el, spendCapSection(a.id), share.el, end.el))
     );
     if (live()) mood("working");
   }
@@ -455,6 +460,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
       alive = false;
       offThreads();
       tracking.destroy();
+      flows.destroy();
       models?.destroy();
       window.clearTimeout(timer);
       window.clearTimeout(sayTimer);

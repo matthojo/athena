@@ -45,6 +45,11 @@
  *     all have, routines stop running.
  *  0c. Team assistants: due schedule slots and new events become runs, each
  *     run in netlify/functions/team-run.ts (lib/team-triggers.ts, team-run.ts).
+ *  0d. Flows: due schedule slots, "before an event" and "before a date"
+ *     times and new events start runs (lib/flow-triggers.ts).
+ *  0e. Flows (lib/flow-run.ts): a Wait whose time came carries on, a run waiting
+ *     on an assignment that ended carries on, one that waited for the owner too
+ *     long is stopped, and the cards runs keep go out through the same gate.
  *
  *  0. Athena speaks first (lib/proactive/), before the briefing: meeting prep 15 minutes before a
  *     meeting with people (in place of its 30-minute push), "how did it go?"
@@ -88,12 +93,17 @@ import { runCarSync } from "../lib/car-routes";
 import { claimDueRoutines, deliverRoutines, handOffRoutine } from "../../lib/routine-run";
 import { migrateRoutines } from "../../lib/team-migrate";
 import { queueTeamRuns } from "../../lib/team-triggers";
+import { runFlowTriggers } from "../../lib/flow-triggers-db";
+// Plugs the engine into triggers: without it runFlowTriggers does nothing (lib/flow-engine.ts).
+import "../../lib/flow-engine";
 import { deliverTeamNudges, failStaleRuns, handOffQueuedRuns, handOffTeamRun } from "../../lib/team-run";
 import { pruneTeamEvents } from "../../lib/team-events";
 import { sweepAssignments } from "../../lib/assignment-run";
 import { deliverStopPushes } from "../../lib/assignment-push";
 import "../lib/assignment-wiring";
 import { sweepPosts } from "../../lib/team-posts";
+import { sweepFlowRuns } from "../../lib/flow-run";
+import { deliverFlowNotices, flowEffects, handOffFlowRun } from "../../lib/flow-effects";
 import { loadSentMail } from "../lib/proactive/mail";
 import { liveRoute } from "../lib/proactive/directions";
 import {
@@ -235,6 +245,26 @@ export async function runReminders(now: Date = new Date(), origin: string | unde
     if (started.length || retried || stale || pruned || swept || delivered.sent || delivered.held) report.team = { started: started.length, handed_again: retried, stale, pruned, ...(swept ? { posts_swept: swept } : {}), ...delivered };
   } catch (error) {
     console.error("Athena reminders: team failed", error);
+  }
+
+  // ---------- 0d. Flows (lib/flow-triggers.ts): due schedule slots, "before" times and new events start runs ----------
+  // Each fire and event is claimed once, apart from Team's claim. The engine is plugged in by lib/flow-engine.ts.
+  try {
+    const flows = await runFlowTriggers(now, tz);
+    if (flows?.length) report.flows = { started: flows.length };
+  } catch (error) {
+    console.error("Athena reminders: flow triggers failed", error);
+  }
+
+  // ---------- 0e. Flows (lib/flow-run.ts): Waits carry on, stale waits stop, held cards go out ----------
+  // Each run carries on in the flow-run background function; one that can't be handed off stays queued for the next pass.
+  try {
+    const fx = await flowEffects({ now: () => now });
+    const swept = await sweepFlowRuns({ fx, handOff: origin ? (id) => handOffFlowRun(origin, id) : undefined });
+    const delivered = await deliverFlowNotices(now, tz, { canPush, send: (m) => sendToAll(m), quiet: prefs.quiet });
+    if (Object.values(swept).some(Boolean) || delivered.sent || delivered.held) report.flowRuns = { ...swept, ...delivered };
+  } catch (error) {
+    console.error("Athena reminders: flows failed", error);
   }
 
   // ---------- 1. Morning briefing ----------

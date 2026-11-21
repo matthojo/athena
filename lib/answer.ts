@@ -124,6 +124,7 @@ import { ANY_OBJECT, pickTools, rememberRefused, wasRefused } from "./ask-tool-p
 import { sourceCovers } from "./answer-art";
 import { ATTACH_NOTE, Session, actGuidance, actTools, type Change } from "./assistant";
 import type { AskLineup } from "./assignment-types";
+import type { AskFlowCard } from "./flow-types";
 import type { SchedulingCard } from "./assistant-scheduling";
 import type { ConfirmCard } from "./assistant-confirm";
 import type { GmailPort, SlackPort } from "./drafts";
@@ -293,6 +294,8 @@ export interface AskActed {
   plan?: PlanCard;
   /** start_assignment's lineup, kept as a draft: a card to change and Go (lib/assignment-tools.ts). Nothing has run. */
   lineup?: AskLineup;
+  /** propose_flow's flow, kept paused: Turn on and Edit steps (lib/flow-draft-ask.ts). Nothing runs until it's on. */
+  flow?: AskFlowCard;
 }
 
 /** One reply from Ask: the answer, and whatever the turn did. */
@@ -1899,7 +1902,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     }
     // What Ask did: one log for every change, whichever way it came (lib/ask-activity.ts).
     const changes = opts.log === false ? [...session.changes] : await logChanges(session.changes, { source: opts.log ?? "ask", thread_id: opts.thread_id });
-    const acted = changes.length > 0 || !!plan || session.confirm.length > 0 || !!session.scheduling || !!session.lineup || asking || failed !== null;
+    const acted = changes.length > 0 || !!plan || session.confirm.length > 0 || !!session.scheduling || !!session.lineup || !!session.flow || asking || failed !== null;
 
     // What an assistant said when checked with is the owner's own, like one of the Session's look-ups: a reply resting on it needs no other source.
     const finished = finish(answered, { refused, lastText, logsMoney: isSpendingLog(plain), ev, accounts, skipped: opened.skipped, related: first.hits, fromFiles: [...readNames], fromSummaries: !!earlier?.read.length, fromToday: !!today, webOff: !webOn, moneyOff: !money, acted: acted || lookedUp || !!athena.tonight || desk.checked.length > 0 });
@@ -1955,6 +1958,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       ...(session.confirm.length ? { confirm: session.confirm } : {}),
       ...(plan ? { plan } : {}),
       ...(session.lineup ? { lineup: session.lineup } : {}),
+      ...(session.flow ? { flow: session.flow } : {}),
       ...(athena.tonight && !asking && failed === null && text === null ? { picks: athena.tonight.picks } : {}),
       ...(pictures.length ? { pictures } : {}),
       // Read from Linear or GitHub: shown now, never kept (the app saves a placeholder; lib/ask-threads.ts scrubs it too).

@@ -120,6 +120,7 @@ import { fetchTonight, goPlan, undoPlanAll } from "../db/ask-plans";
 import { SAMPLE_PLAN_REQUEST, SAMPLE_ROUTINE_REQUEST, samplePlan, sampleRoutineChange } from "../db/sample-ask-plans";
 import type { AnswerReply, AnswerSource, RelatedItem } from "../../../lib/answer-text";
 import { lineupCard } from "../team/lineup-card";
+import { askFlowCard, FLOW_WORDS, sampleFlowReply } from "../components/ask-flow-card";
 import { draftLineup } from "../db/assignments";
 import type { AskConfirmCard, AskFile, AskStep, AskThread, WatchPick, AssistantChange, AssistantReply, AssistantTurn, EntityKind, Note, RecallHit, RecallKind, SavedAskMessage } from "../types";
 import { pageHead } from "../components/page-head";
@@ -379,6 +380,7 @@ function actsToSave(m: ActState, r: AskActed): ActedKept {
   if (!acted(r)) return {};
   return {
     ...(r.lineup ? { lineup: r.lineup } : {}),
+    ...(r.flow ? { flow: r.flow } : {}),
     ...(r.changes?.length ? { changes: r.changes } : {}),
     ...(r.choices?.length ? { choices: r.choices } : {}),
     ...(r.scheduling ? { scheduling: r.scheduling } : {}),
@@ -395,6 +397,7 @@ function actsToSave(m: ActState, r: AskActed): ActedKept {
 function actsFromSaved(k: ActedKept): AskActed {
   return {
     ...(k.lineup ? { lineup: k.lineup } : {}),
+    ...(k.flow ? { flow: k.flow } : {}),
     ...(k.changes?.length ? { changes: k.changes } : {}),
     ...(k.choices?.length ? { choices: k.choices } : {}),
     ...(k.scheduling ? { scheduling: k.scheduling } : {}),
@@ -915,6 +918,8 @@ function actedEls(m: Acting, ctx: AskContext, choose: (text: string) => void, re
       ...(r.plan ? [planEl(m, r.plan, repaint, save)] : []),
       // start_assignment's lineup: reorder, swap, set checkpoints, then Go (team/lineup-card.ts). Kept with the conversation, started or not.
       ...(r.lineup ? [lineupCard({ lineup: r.lineup.lineup, fallback: r.lineup.fallback, draftId: r.lineup.id, startedId: r.lineup.started, onChange: (l) => ((r.lineup!.lineup = l), save()), onStarted: (a) => ((r.lineup!.started = a.id), save()) })] : []),
+      // propose_flow's flow, kept off: Turn on and Edit steps (components/ask-flow-card.ts). Kept with the conversation, on or off.
+      ...(r.flow ? [askFlowCard({ card: r.flow, onChange: (on) => ((r.flow!.on = on), save()) })] : []),
       // Tonight's picks, however they were asked for: the card the evening chip shows.
       ...(r.picks?.length ? [picksEl(r.picks)] : []),
     ],
@@ -3351,6 +3356,12 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
       await playSampleSteps([["Picking a lineup", "Picked a lineup"]], step);
       const { lineup, fallback } = await draftLineup(plain.replace(/^.*?\bassignment\b[\s:,.-]*(?:to|for|on)?\s*/i, "") || plain);
       return { ...none, text: "Here's who I'd put on it, in order. Change anything you like. Nothing runs until you tap Go.", lineup: { lineup, fallback } };
+    }
+    // "Whenever…", "every time…": a flow, drawn and kept off, as propose_flow's is (components/ask-flow-card.ts).
+    if (FLOW_WORDS.test(plain)) {
+      await playSampleSteps([["Drawing a flow", "Drew a flow"]], step);
+      const made = sampleFlowReply(plain);
+      return { ...none, text: made.text, flow: made.card, ...(made.changes ? { changes: made.changes } : {}) };
     }
     const scheduling = sampleScheduling(q);
     if (scheduling) {

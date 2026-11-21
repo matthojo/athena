@@ -14,6 +14,7 @@
 import type { AnswerReply, AnswerSource, AnswerTurn } from "../../../lib/answer-text";
 import type { AskConfirmCard, AskLineupCard, AskPlan, AssistantChange, WatchPick } from "../types";
 import type { SchedulingCard } from "../db/scheduling";
+import type { AskFlowCard } from "../../../lib/flow-types";
 
 /**
  * What a reply carries when the turn changed something, or is waiting for you to (lib/answer.ts AskActed).
@@ -34,6 +35,8 @@ export interface AskActed {
   picks?: WatchPick[];
   /** start_assignment's lineup: a card to change, then Go. Nothing has run. */
   lineup?: AskLineupCard;
+  /** propose_flow's flow, kept off until you turn it on (components/ask-flow-card.ts). `on`: turned on here since. */
+  flow?: AskFlowCard & { on?: boolean };
 }
 
 /** One reply from Ask: the answer, and whatever the turn did. */
@@ -49,7 +52,7 @@ export interface ActedKept extends AskActed {
 }
 
 /** Did the turn change, plan or prepare anything, or ask you to pick? */
-export const acted = (r: AskActed | null | undefined): boolean => !!r && !!(r.changes?.length || r.choices?.length || r.scheduling || r.confirm?.length || r.plan || r.picks?.length || r.lineup);
+export const acted = (r: AskActed | null | undefined): boolean => !!r && !!(r.changes?.length || r.choices?.length || r.scheduling || r.confirm?.length || r.plan || r.picks?.length || r.lineup || r.flow);
 
 /**
  * A reply as the app draws it, whatever sent it: an older server's instruction reply (text, changes, choices and

@@ -86,7 +86,14 @@ import { goPlan, undoPlan } from "../../lib/ask-plans";
 import { logChanges, undoActivity } from "../../lib/ask-activity";
 import { handleAskRoutes } from "../lib/ask-routes";
 import { handleTeamRoutes } from "../lib/team-routes";
+import { handleFlowDraftRoutes } from "../lib/flow-draft-routes";
+import { handleFlowRoutes } from "../lib/flow-routes";
+import { flowEffects, handOffFlowRun } from "../../lib/flow-effects";
 import { handleModelsRoutes, modelChoiceResponse } from "../lib/models-routes";
+import { handleFlowSuggestRoutes } from "../lib/flow-suggest-routes";
+import { dismissSuggestion, listDismissed, readSignals } from "../../lib/flow-suggest-store";
+// Plugs flows into triggers, owner actions and Ask (lib/flow-engine.ts).
+import { engineFlows } from "../../lib/flow-engine";
 import { messageModel } from "../../lib/models";
 import { handleTeamChatRoutes, type ChatDesk } from "../lib/team-chat-routes";
 import { settlePlanPosts } from "../../lib/team-posts";
@@ -1966,6 +1973,11 @@ export default async (req: Request, _context: Context) => {
       const handled = await handleAskRoutes(req, url, segments, () => parseJsonBody(req), (d, s) => json(req, d, s), { undo: (op) => applyUndo(op, { calendar: calendarPort, scheduling: schedulingPort }) });
       if (handled) return handled;
     }
+    // Flows drafting: POST /api/flows/draft (netlify/lib/flow-draft-routes.ts). The rest of /api/flows is the engine's.
+    if (first === "flows" && second === "draft") {
+      const handled = await handleFlowDraftRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s));
+      if (handled) return handled;
+    }
     // Team: assistants with their own triggers, memory and character (netlify/lib/team-routes.ts, docs/team.md).
     if (first === "team") {
       // Team chat (netlify/lib/team-chat-routes.ts): what's typed goes to a waiting stage, an assistant or Ask.
@@ -1997,6 +2009,26 @@ export default async (req: Request, _context: Context) => {
       }
       // Its routes read the path from "team" on, as its tests call it.
       const handled = await handleTeamRoutes(req, url, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s), _context?.waitUntil?.bind(_context));
+      if (handled) return handled;
+    }
+    // Flow suggestions: habits worth a flow, and dismissing one (netlify/lib/flow-suggest-routes.ts). Before the engine's
+    // /api/flows routes, so /api/flows/suggestions isn't read as a flow id. The owner's flows come from the engine.
+    if (first === "flows" && second === "suggestions") {
+      const handled = await handleFlowSuggestRoutes(req, segments.slice(1), (d, s) => json(req, d, s), {
+        signals: readSignals,
+        timeZone: getOwnerTimeZone,
+        dismissed: listDismissed,
+        dismiss: dismissSuggestion,
+        flows: engineFlows,
+      });
+      if (handled) return handled;
+    }
+    // Flows: a trigger, then steps with branches, beside Team (netlify/lib/flow-routes.ts, lib/flow-run.ts).
+    if (first === "flows") {
+      const handled = await handleFlowRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s), {
+        effects: () => flowEffects({ ports: { gmail: mailPort, slack: slackPort, calendar: calendarPort, scheduling: schedulingPort } }),
+        handOff: (runId) => handOffFlowRun(url.origin, runId),
+      });
       if (handled) return handled;
     }
     // AI models: which model does each job, and the owner's agreements (netlify/lib/models-routes.ts, docs/ai-models.md).
