@@ -1695,16 +1695,20 @@ Design in `docs/team.md` "Assignments"; notes in
   sentence is quoted as data, and nothing is saved by drafting itself.
 - **Checked, not trusted.** What the model proposes is checked against
   `lib/flow-types.ts` and `FLOW_LIMITS` before anything sees it: unknown
-  tools are dropped with a note, and so are tools a flow never uses (those
-  that send, answer for the owner, change a connected account, archive or
-  delete: `NEVER_IN_FLOWS`). Values may only point at the trigger or at a
-  step that has surely run before. A step that reads spending is kept only
-  while "Let Ask read transactions" is on.
+  tools are dropped with a note. Only tools on an allowlist (`FLOW_TOOLS`
+  in `lib/flow-draft-tools.ts`, the same names as the engine's step
+  catalogue plus the two draft tools) are offered, and never one on
+  `NEVER_TOOLS` (those that send, answer for the owner, change a connected
+  account, archive or delete, or reshape the owner's data). Values may only
+  point at the trigger or at a step that has surely run before. A step that
+  reads spending is kept only while "Let Ask read transactions" is on.
 - **Changes wait for Go.** A drawn change runs alone only if it's a
   reminder, a to-do or a line on a checklist (each only adds to the
   owner's own Athena, with Undo) and the owner didn't ask to be checked
-  with; every other change waits for Go. Thinking steps are left out:
-  a drawn flow has no assistant.
+  with; every other change waits for Go. A draft step (`draft_message`,
+  `draft_email`) always waits for Go, whatever the model says, and only
+  writes a draft for the owner to check: nothing is sent. Thinking steps
+  are left out: a drawn flow has no assistant.
 - **Saved off.** `propose_flow` saves the flow paused (`origin: "ask"`)
   through the engine's `FlowCreator`; nothing runs until the owner taps
   Turn on (`PATCH /api/flows/:id`, the engine's route and checks). It's

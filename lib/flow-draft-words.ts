@@ -108,6 +108,7 @@ const TOOL_WORDS: Record<string, string> = {
   complete_todo: "Tick off a to-do",
   change_todo: "Change a to-do",
   draft_message: "Draft a message",
+  draft_email: "Draft an email",
   find_notes: "Find notes",
   find_people: "Find people",
   find_todos: "Find to-dos",

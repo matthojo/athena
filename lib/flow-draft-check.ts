@@ -329,7 +329,7 @@ export function checkDraft(raw: unknown, ctx: CheckContext, fallbackName: string
         }
         const question = w.text(s.question, scope, where);
         const labels = (Array.isArray(s.choices) ? s.choices : []).map((c) => clip(str(isObj(c) ? c.label : c), FLOW_LIMITS.name)).filter(Boolean);
-        if (empty(question) || labels.length < 2) {
+        if (empty(question) || labels.length < FLOW_LIMITS.minChoices) {
           w.note("A question needs words and at least two choices, so I left one out.");
           return null;
         }

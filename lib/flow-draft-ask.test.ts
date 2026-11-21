@@ -16,7 +16,7 @@ import { sampleFlow } from "./flow-draft-sample";
 const PARCEL = {
   name: "Delivery day",
   trigger: { kind: "event", event: { source: "collected", kind: "delivery" } },
-  steps: [{ id: "s1", kind: "tool", tool: "add_reminder", input: { text: "Parcel from {{trigger.shop}}", date: "{{trigger.delivery_date}}", time: "08:00" } }],
+  steps: [{ id: "s1", kind: "tool", tool: "add_reminder", input: { text: "Parcel from {{trigger.company}}", date: "{{trigger.expected}}", time: "08:00" } }],
 };
 
 const model = (input: unknown) => ({ messages: { create: async () => ({ content: [{ type: "tool_use", id: "t", name: "flow_draft", input }] }) } }) as never;
@@ -62,7 +62,7 @@ test("it draws the flow, saves it paused with origin ask, and the reply carries 
     assert.equal(out.name, "Delivery day");
     assert.equal(out.flow, "When an email says a parcel is coming\n  Remind me at 08:00 on [the delivery date]: Parcel from [the shop]");
     assert.equal(ctx.flow?.flow_id, "f1a2b3c4-0000-4000-8000-000000000001");
-    assert.deepEqual(ctx.flow?.flow.steps[0], { id: "s1", title: null, kind: "tool", tool: "add_reminder", go: "auto", gives: [], input: { text: ["Parcel from ", { from: "trigger", key: "shop" }], date: [{ from: "trigger", key: "delivery_date" }], time: ["08:00"] } });
+    assert.deepEqual(ctx.flow?.flow.steps[0], { id: "s1", title: null, kind: "tool", tool: "add_reminder", go: "auto", gives: [], input: { text: ["Parcel from ", { from: "trigger", key: "company" }], date: [{ from: "trigger", key: "expected" }], time: ["08:00"] } });
     await assert.rejects(runFlowTool(FLOW_TOOL_NAME, { sentence: "Whenever again" }, ctx), /One flow per reply/);
     await assert.rejects(runFlowTool(FLOW_TOOL_NAME, { sentence: " " }, { money: false, client: model(PARCEL) }));
     // A model that can't help still leaves a flow to fill in, and says so.
@@ -112,19 +112,20 @@ test("steps in words, values as chips, branches indented", () => {
   const f = card.flow;
   const labels = valueLabels(f.trigger_gives, f.steps);
   assert.equal(plainWords(stepParts(f.steps[0], labels)), "Look at payments to [the company]");
-  assert.deepEqual(stepParts(f.steps[1], labels), ["If ", { chip: "the price" }, " is more than ", { chip: "what you paid last year" }]);
+  assert.deepEqual(stepParts(f.steps[1], labels), ["If ", { chip: "what you paid last time" }, " is there"]);
   assert.deepEqual(flowLines(f.trigger, f.trigger_gives, f.steps), [
     "When a renewal email comes in",
     "  Look at payments to [the company]",
-    "  If [the price] is more than [what you paid last year]",
+    "  If [what you paid last time] is there",
     "    Yes:",
     "      Wait until 7 days before [the renewal date] at 09:00",
-    "      Tell me: [the company] has gone up to [the price]",
+    "      Tell me: [the company] renews soon. Last time you paid [what you paid last time].",
   ]);
   const own: FlowStep = { id: "s9", title: "Ping me", kind: "notify", text: ["x"] };
   assert.deepEqual(stepParts(own, labels), ["Ping me"], "the owner's own title wins");
   assert.equal(plainWords(stepParts({ id: "a", title: null, kind: "ask", question: ["Book it?"], choices: [] }, labels)), "Ask me: Book it?");
   assert.equal(plainWords(stepParts({ id: "a", title: null, kind: "tool", tool: "save_note", input: { title: ["Trip"] }, go: "ask", gives: [] }, labels)), "Save a note: Trip");
+  assert.equal(plainWords(stepParts({ id: "a", title: null, kind: "tool", tool: "draft_email", input: { about: ["The renewal"] }, go: "ask", gives: [] }, labels)), "Draft an email: The renewal");
 });
 
 test("the card carries what the contract says it does", () => {

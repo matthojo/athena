@@ -10,6 +10,9 @@
 import type { AskFlowCard, FlowValue } from "./flow-types";
 
 const v = (key: string, label: string, kind: FlowValue["kind"]): FlowValue => ({ key, label, kind });
+// What an event trigger gives, as lib/flow-draft-tools.ts guessTriggerGives has it (not imported: the app loads this file).
+const TITLE = v("title", "the title", "text");
+const COUNT = v("count", "how many came in", "number");
 
 /** Every sample flow has the same made-up id: Edit steps opens sample mode's flow page. */
 export const SAMPLE_FLOW_ID = "5a3e0000-0000-4000-8000-000000f10001";
@@ -33,8 +36,8 @@ export function sampleFlow(sentence: string): SampleFlow {
         flow: {
           name: "Delivery day",
           trigger: { kind: "event", event: { source: "collected", kind: "delivery" } },
-          trigger_gives: [v("email", "the email", "email"), v("shop", "the shop", "organisation"), v("delivery_date", "the delivery date", "date")],
-          steps: [{ id: "s1", title: null, kind: "tool", tool: "add_reminder", go: "auto", gives: [], input: { text: ["Parcel from ", { from: "trigger", key: "shop" }], date: [{ from: "trigger", key: "delivery_date" }], time: ["08:00"] } }],
+          trigger_gives: [v("item", "the order", "text"), v("company", "the shop", "organisation"), v("expected", "the delivery date", "date"), TITLE, COUNT],
+          steps: [{ id: "s1", title: null, kind: "tool", tool: "add_reminder", go: "auto", gives: [], input: { text: ["Parcel from ", { from: "trigger", key: "company" }], date: [{ from: "trigger", key: "expected" }], time: ["08:00"] } }],
           assistant_id: null,
         },
       },
@@ -49,17 +52,17 @@ export function sampleFlow(sentence: string): SampleFlow {
         flow: {
           name: "Renewal check",
           trigger: { kind: "event", event: { source: "collected", kind: "renewal" } },
-          trigger_gives: [v("email", "the email", "email"), v("company", "the company", "organisation"), v("price", "the price", "money"), v("renewal_date", "the renewal date", "date")],
+          trigger_gives: [v("item", "what renews", "text"), v("company", "the company", "organisation"), v("renewal_date", "the renewal date", "date"), TITLE, COUNT],
           steps: [
-            { id: "s1", title: null, kind: "tool", tool: "money", go: "auto", input: { merchant: [{ from: "trigger", key: "company" }] }, gives: [v("last_price", "what you paid last year", "money")] },
+            { id: "s1", title: null, kind: "tool", tool: "money", go: "auto", input: { merchant: [{ from: "trigger", key: "company" }] }, gives: [v("latest", "what you paid last time", "money")] },
             {
               id: "s2",
               title: null,
               kind: "check",
-              condition: { left: { from: "trigger", key: "price" }, op: "more_than", right: { from: "s1", key: "last_price" } },
+              condition: { left: { from: "s1", key: "latest" }, op: "exists" },
               yes: [
                 { id: "s3", title: null, kind: "wait", days: 7, before: { from: "trigger", key: "renewal_date" }, at: "09:00" },
-                { id: "s4", title: null, kind: "notify", text: [{ from: "trigger", key: "company" }, " has gone up to ", { from: "trigger", key: "price" }] },
+                { id: "s4", title: null, kind: "notify", text: [{ from: "trigger", key: "company" }, " renews soon. Last time you paid ", { from: "s1", key: "latest" }, "."] },
               ],
               no: [],
             },
@@ -78,8 +81,8 @@ export function sampleFlow(sentence: string): SampleFlow {
       flow: {
         name: (said.charAt(0).toUpperCase() + said.slice(1)).slice(0, 40).trim() || "New flow",
         trigger: { kind: "event", event: { source: "collected", kind: "email" } },
-        trigger_gives: [v("email", "the email", "email"), v("subject", "its subject", "text")],
-        steps: [{ id: "s1", title: null, kind: "notify", text: ["New email: ", { from: "trigger", key: "subject" }] }],
+        trigger_gives: [v("item", "the email", "email"), TITLE, COUNT],
+        steps: [{ id: "s1", title: null, kind: "notify", text: ["New email: ", { from: "trigger", key: "title" }] }],
         assistant_id: null,
       },
     },
