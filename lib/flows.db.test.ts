@@ -1,6 +1,6 @@
 // Flows on real Postgres with every migration (0080 included): flows made, read, changed, handed over and removed;
 // the owner's words sealed at rest and the jobs' half plain; FLOW_LIMITS.flows; the starter's guards (paused, a
-// slot once, never its own events); a run walked end to end with fake effects, waiting for Go and carrying on;
+// slot once, the chain guard across flows); values kept and read back as words; What Ask did's flow source; a run walked end to end with fake effects, waiting for Go and carrying on;
 // Stop; the reminders job's sweep (a Wait's time, a run left waiting too long); and the routes.
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/flows.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL. Empties the flow and team tables first. Made-up data only.
@@ -109,6 +109,64 @@ test("the starter: paused flows don't start, a slot starts once, a run's own rec
   await updateFlow(flow.id, { paused: true });
   assert.equal(await starter.start(flow.id, { label: "Run", values: {} }), null);
   assert.deepEqual(await createFlowSource().listActive(), []);
+});
+
+test("the chain guard: a run started by another flow's change records it; a flow already in the chain, or a fourth run, isn't started", { skip }, async () => {
+  const { createFlow, createFlowStarter, getRun, noteMade } = await import("./flows");
+  const { qRaw } = await import("./db");
+  const starter = createFlowStarter({ handOff: async () => undefined });
+  const made = async (n: number) => {
+    const [ev] = await qRaw<{ id: string }>(`INSERT INTO team_events (kind, ref_id, ref_kind, facets) VALUES ('note', $1, 'note', '{}') RETURNING id`, [`00000000-0000-4000-8000-0000000001${String(n).padStart(2, "0")}`]);
+    return String(ev.id);
+  };
+  const [a, b, c, d] = await Promise.all(["A", "B", "C", "D"].map((name) => createFlow({ name, trigger: { kind: "event", event: { source: "note" } } })));
+  const runA = (await starter.start(a.id, { label: "By hand", values: {} }))!;
+  await noteMade(runA, ["00000000-0000-4000-8000-000000000101"]);
+  const runB = (await starter.start(b.id, { label: "A note", values: {}, event_ids: [await made(1)] }))!;
+  const storedB = (await getRun(runB))!;
+  assert.equal(storedB.started_by, runA);
+  assert.deepEqual(storedB.chain, [a.id]);
+  await noteMade(runB, ["00000000-0000-4000-8000-000000000102"]);
+  assert.equal(await starter.start(a.id, { label: "A note", values: {}, event_ids: [await made(2)] }), null, "A → B → A is refused");
+  const runC = (await starter.start(c.id, { label: "A note", values: {}, event_ids: [await made(2)] }))!;
+  assert.deepEqual((await getRun(runC))!.chain, [a.id, b.id]);
+  await noteMade(runC, ["00000000-0000-4000-8000-000000000103"]);
+  assert.equal(await starter.start(d.id, { label: "A note", values: {}, event_ids: [await made(3)] }), null, "chains stop at three runs");
+  // An event nobody's run made starts a chain of its own.
+  const fresh = (await starter.start(d.id, { label: "A note", values: {}, event_ids: [await made(9)] }))!;
+  assert.deepEqual((await getRun(fresh))!.chain, []);
+});
+
+test("a run keeps the values each step gave, sealed, and every read gives them back as words", { skip }, async () => {
+  const { createFlow, insertRun, getRun, listRuns, latestRuns } = await import("./flows");
+  const { runFlowRun } = await import("./flow-run");
+  const { qRaw } = await import("./db");
+  const { fx } = fakeFx();
+  const auto: FlowStep = { ...todoAsk, go: "auto" };
+  const flow = await createFlow({ name: "Bank", steps: [auto, tell] });
+  const queued = (await insertRun(flow, { label: "Run now", values: { trigger: { item: { id: "n-1", title: "Statement from Example Bank", kind: "note" } } } }))!;
+  const run = (await runFlowRun(queued.run.id, { fx }))!;
+  assert.equal(run.status, "done");
+  assert.deepEqual(run.values, { trigger: { item: "Statement from Example Bank" }, todo: { todo: "Ring the bank" } });
+  assert.deepEqual((await getRun(run.id))!.run.values, run.values);
+  assert.deepEqual((await listRuns(flow.id))[0].values, run.values);
+  assert.deepEqual((await latestRuns())[flow.id].values, run.values);
+  const [raw] = await qRaw<{ state: string }>(`SELECT state FROM flow_runs WHERE id = $1`, [run.id]);
+  assert.ok(!raw.state.includes("Example Bank"), "sealed in the run's state");
+});
+
+test("What Ask did: a plain flow's change is kept as the flow's, labelled with its name and opening the run", { skip }, async () => {
+  const { createFlow, insertRun } = await import("./flows");
+  const { logChanges, listActivity } = await import("./ask-activity");
+  const { flowActivity } = await import("./flow-effects");
+  const { qRaw } = await import("./db");
+  await qRaw(`TRUNCATE ask_activity`);
+  const flow = await createFlow({ name: "Renewal guard" });
+  const run = (await insertRun(flow, { label: "Run now", values: {} }))!;
+  await logChanges([change("00000000-0000-4000-8000-000000000201", "Decide on the renewal")], flowActivity({ source: "team" as const }, { assistant: false, flowId: flow.id, runId: run.run.id }));
+  const [entry] = await listActivity();
+  assert.equal(entry.source, "flow");
+  assert.deepEqual(entry.flow, { id: flow.id, run_id: run.run.id, name: "Renewal guard", label: "Flow: Renewal guard", url: `/#/flows/runs/${run.run.id}` });
 });
 
 test("a run end to end: it waits for Go, Go carries it on, and it ends with its card kept", { skip }, async () => {
@@ -235,7 +293,7 @@ test("a run's cards go through the shared gate once: sent, pushed, and not sent 
   assert.deepEqual(out, { sent: 1, held: 0 });
   assert.deepEqual(pushes, [{ title: "Hello", body: "Your parcel is out for delivery", url: `/#/flows/runs/${r.run.id}`, tag: `nudge:flow:${r.run.id}:hi` }]);
   const [n] = await qRaw<{ rule: string; key: string }>(`SELECT rule, key FROM nudges`);
-  assert.deepEqual(n, { rule: "team", key: `flow:${r.run.id}:hi` });
+  assert.deepEqual(n, { rule: "flow", key: `flow:${r.run.id}:hi` });
   assert.equal((await getRun(r.run.id))!.state.notices[0].done, true);
   assert.deepEqual(await deliverFlowNotices(new Date("2026-11-20T12:05:00Z"), "Europe/London", deps), { sent: 0, held: 0 });
   assert.equal(pushes.length, 1);

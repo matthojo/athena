@@ -1593,6 +1593,8 @@ CREATE TABLE IF NOT EXISTS flow_runs (
   made TEXT[] NOT NULL DEFAULT '{}',
   event_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
   slot TEXT,
+  started_by UUID,
+  chain UUID[] NOT NULL DEFAULT '{}',
   version INTEGER NOT NULL DEFAULT 0,
   started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -1603,3 +1605,9 @@ CREATE INDEX IF NOT EXISTS flow_runs_open_idx ON flow_runs (status) WHERE status
 CREATE INDEX IF NOT EXISTS flow_runs_resume_idx ON flow_runs (resumes_at) WHERE status = 'waiting' AND waits_for = 'time';
 CREATE INDEX IF NOT EXISTS flow_runs_notices_idx ON flow_runs (id) WHERE notices_pending;
 CREATE UNIQUE INDEX IF NOT EXISTS flow_runs_slot_idx ON flow_runs (flow_id, slot) WHERE slot IS NOT NULL;
+
+-- What Ask did: a plain flow's changes are source 'flow', with the flow and the run they came from, so the log can
+-- say "Flow: <name>" and open the run. Plain ids only; the flow's name stays sealed in flows.payload. No foreign
+-- keys: a pruned run or a removed flow leaves the log's rows as they were.
+ALTER TABLE ask_activity ADD COLUMN IF NOT EXISTS flow_id UUID;
+ALTER TABLE ask_activity ADD COLUMN IF NOT EXISTS flow_run_id UUID;

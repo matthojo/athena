@@ -1,12 +1,17 @@
 /**
  * Flows: what a run reaches outside itself, for real (lib/flow-run.ts FlowEffects), the hand-off to the
  * background function, and sending the cards runs keep (a Notify step's, one saying a run waits for the owner,
- * an assistant's "From <Name>"). Cards go through the same gate as every nudge (lib/proactive/gate.ts): the Team
- * switch, "Fewer like this", quiet hours and the daily cap. One held for quiet hours is tried again each pass
- * until it would have expired.
+ * an assistant's "From <Name>"). Cards go through the same gate as every nudge (lib/proactive/gate.ts): the Flows
+ * switch for a plain flow, Team's for an assistant's, "Fewer like this", quiet hours and the daily cap. One held for
+ * quiet hours is tried again each pass until it would have expired.
+ *
+ * A draft step's Go writes the draft with Ask's own code and accounts (lib/assistant.ts runAssistantTool, the same
+ * mail and Slack ports Ask gets) and keeps it as a change to read and save from What Ask did and the run. Nothing is
+ * sent, and nothing is saved to Gmail or Outlook Drafts until the owner taps Save there.
  */
 import type { Change } from "./assistant";
-import { qRaw } from "./db";
+import type { ConfirmCard } from "./assistant-confirm";
+import { AthenaInputError, qRaw } from "./db";
 import { zonedToday } from "./dates";
 import { gate } from "./proactive/gate";
 import type { Nudge } from "./proactive/types";
@@ -16,7 +21,7 @@ import type { GmailPort, SlackPort } from "./drafts";
 import type { CalendarPort } from "./rsvp";
 import type { SchedulingPort } from "./scheduling";
 import { getFlow, noteMade, runsWhere, saveRun } from "./flows";
-import { flowRunUrl, type FlowAssistant, type FlowEffects } from "./flow-run";
+import { flowRunUrl, type FlowAssistant, type FlowEffects, type LogContext } from "./flow-run";
 
 const env = (k: string) => (globalThis as { Netlify?: { env: { get(k: string): string | undefined } } }).Netlify?.env.get(k) ?? process.env[k];
 
@@ -26,6 +31,34 @@ export interface FlowPorts {
   slack?: SlackPort;
   calendar?: CalendarPort;
   scheduling?: SchedulingPort;
+}
+
+/** What What Ask did keeps a run's changes as: a plain flow's as `flow`, with the flow and run; an assistant's as given. */
+export function flowActivity<C extends { source: string }>(given: C, ctx: LogContext): C & { flow_id?: string; flow_run_id?: string } {
+  return ctx.assistant ? given : { ...given, source: "flow", flow_id: ctx.flowId, flow_run_id: ctx.runId };
+}
+
+/** A draft step with no account to write it in. */
+export const NO_DRAFT_ACCOUNT = "No email account is connected, so there's nowhere to write this draft. Connect Gmail or Outlook in Sources, then try again.";
+/** An email account is connected, but drafts aren't on for it. */
+export const DRAFTS_OFF = "Drafts aren't turned on for your email account. Turn them on in Sources, then try again.";
+
+/**
+ * A draft step's Go, as changes: the draft Ask wrote, kept for the owner to read (and, for an email, save to their
+ * Drafts from the app). An email with no account to keep it in stops the step with a clear line. Pure.
+ */
+export function draftChanges(out: { changes: Change[]; confirm: ConfirmCard[] }, newId: () => string): Change[] {
+  const card = out.confirm.find((c): c is Extract<ConfirmCard, { kind: "draft" }> => c.kind === "draft");
+  if (card) {
+    const first = card.to.split(/\s+/)[0] || card.to;
+    const detail = `Email to ${first} · ready to check, then save to ${card.drafts_in} Drafts`;
+    return [{ kind: "draft", id: newId(), action: "created", title: card.title, detail, label: `${card.title}: ${detail}`, open: { kind: "draft", draft: card.draft }, undo: null }];
+  }
+  for (const c of out.changes) {
+    const d = c.open && c.open.kind === "draft" ? c.open.draft : null;
+    if (d && d.channel === "email" && !d.accounts.length) throw new AthenaInputError(d.can_enable_drafts ? DRAFTS_OFF : NO_DRAFT_ACCOUNT);
+  }
+  return out.changes;
 }
 
 /** The real effects: Ask's tools and plans, the flow's assistant, assignments and the record. */
@@ -57,7 +90,8 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
     },
     async log(changes, ctx) {
       const { logChanges } = await import("./ask-activity");
-      return logChanges(changes, { source: ctx.assistant ? "team" : "routine" });
+      // A plain flow's changes are "Flow: <name>"; an assistant's stay the team's, as its runs' do.
+      return logChanges(changes, flowActivity({ source: "team" as const }, ctx));
     },
     async savePlan(step) {
       const { savePlan } = await import("./ask-plans");
@@ -65,21 +99,37 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
       // A plan with no routine and no conversation: What Ask did shows its changes as the team's once Go runs it.
       return (await savePlan([{ label: step.label, tool: step.tool, input: step.input, stands_for: randomUUID() }], { source: "routine" })).id;
     },
-    async goPlan(planId) {
-      const [{ goPlan }, { runPlanTool }, { logChanges }] = await Promise.all([import("./ask-plans"), import("./assistant"), import("./ask-activity")]);
-      const went = await goPlan(planId, undefined, { run: (tool, input) => runPlanTool(tool, input, { ...ports, now: now(), tz }), log: logChanges });
+    async goPlan(planId, ctx) {
+      const [{ goPlan }, { runPlanTool, runAssistantTool }, { logChanges }, { isDraftTool }, { randomUUID }] = await Promise.all([
+        import("./ask-plans"),
+        import("./assistant"),
+        import("./ask-activity"),
+        import("./flow-catalog"),
+        import("node:crypto"),
+      ]);
+      const run = async (tool: string, input: unknown): Promise<Change[]> => {
+        if (!isDraftTool(tool)) return runPlanTool(tool, input, { ...ports, now: now(), tz });
+        // A draft: Ask's own code and accounts, written for the owner to read. Never sent, never saved to Drafts here.
+        if (!ports.gmail) throw new AthenaInputError(NO_DRAFT_ACCOUNT);
+        return draftChanges(await runAssistantTool(tool, input, { ...ports, now: now(), tz }), randomUUID);
+      };
+      const went = await goPlan(planId, undefined, { run, log: (changes, c) => logChanges(changes, flowActivity(c, ctx)) });
       return changesOf(went.plan.ran?.results ?? null);
     },
     async dropPlan(planId) {
       await qRaw(`UPDATE ask_plans SET ran_at = now() WHERE id = $1::uuid AND ran_at IS NULL`, [planId]);
     },
-    async planRan(planId) {
+    async planRan(planId, ctx) {
       const { getPlan } = await import("./ask-plans");
       const plan = await getPlan(planId);
       if (!plan) return { changes: [], error: "The change isn't there any more." };
       if (!plan.ran_at) return null;
       // Ran with no results: Skip or Stop dropped it, or a Go is still running it.
       if (!plan.results) return null;
+      // Go'd from Ask: What Ask did shows a plain flow's change as the flow's all the same.
+      if (!ctx.assistant) {
+        await qRaw(`UPDATE ask_activity SET source = 'flow', flow_id = $2::uuid, flow_run_id = $3::uuid WHERE plan_id = $1::uuid AND source <> 'flow'`, [planId, ctx.flowId, ctx.runId]).catch(() => undefined);
+      }
       return changesOf(plan.results);
     },
     async assistant(id): Promise<FlowAssistant | null> {
@@ -152,12 +202,12 @@ export interface DeliverDeps {
 }
 
 /**
- * A run's card as a nudge: rule "team" (flows stand beside Team and share its switch), keyed `flow:<run>:…` so it's
- * sent once, opening the run. An assistant's carries its avatar. Pure.
+ * A run's card as a nudge, keyed `flow:<run>:…` so it's sent once, opening the run. A plain flow's follows the Flows
+ * switch (rule "flow"); an assistant's follows Team's (rule "team") and carries its avatar. Pure.
  */
 export function flowNudge(n: { key: string; title: string; body: string; until: string }, run: { id: string }, flow: { name: string }, assistant: Pick<FlowAssistant, "id" | "name" | "avatar"> | null): Nudge {
   return {
-    rule: "team",
+    rule: assistant ? "team" : "flow",
     key: n.key,
     title: n.title,
     body: n.body,

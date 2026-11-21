@@ -14,13 +14,13 @@
  *
  * Every step leaves one line, written from what happened (lib/steps.ts's words for tools), never by a model.
  * A dry run tries the flow on the last thing that matched and changes nothing: looks run, changes say what they
- * would do. Guards: a run never starts its own flow again (lib/flows.ts startedBySelf), FLOW_LIMITS hold, and a
- * run that waits for the owner longer than FLOW_LIMITS.waitForOwnerDays is stopped.
+ * would do. Guards: a run never starts a flow already in its chain, and a chain stops at three runs (lib/flows.ts
+ * chainFor); FLOW_LIMITS hold; and a run that waits for the owner longer than FLOW_LIMITS.waitForOwnerDays is stopped.
  */
 import { AthenaInputError, qRaw } from "./db";
 import type { Change } from "./assistant";
 import { assistantStepDone } from "./steps";
-import { FLOW_TOOLS, flowTool, toolChanges, toolReadsMoney } from "./flow-catalog";
+import { FLOW_TOOLS, flowTool, isDraftTool, toolChanges, toolReadsMoney } from "./flow-catalog";
 import {
   allSteps,
   clip,
@@ -68,6 +68,16 @@ export interface ThinkResult {
   plan: { id: string; steps: string[] } | null;
 }
 
+/**
+ * Where a run's changes come from, for What Ask did: a plain flow's are source `flow` ("Flow: <name>", opening the
+ * run); an assistant's stay `team`.
+ */
+export interface LogContext {
+  assistant: boolean;
+  flowId: string;
+  runId: string;
+}
+
 /** Everything a run does outside its own state. The real ones are realEffects(); tests pass fakes. */
 export interface FlowEffects {
   now(): Date;
@@ -77,15 +87,15 @@ export interface FlowEffects {
   /** One of Ask's tools: its result and the changes it made. */
   runTool(name: string, input: Record<string, unknown>, opts: { money: boolean }): Promise<{ result: string; changes: Change[] }>;
   /** What Ask did (lib/ask-activity.ts logChanges). */
-  log(changes: Change[], ctx: { assistant: boolean }): Promise<Change[]>;
+  log(changes: Change[], ctx: LogContext): Promise<Change[]>;
   /** Keep a change for Go as an Ask plan; its id. */
   savePlan(step: { label: string; tool: string; input: Record<string, unknown> }): Promise<string>;
-  /** Go on a kept plan, through Ask's plan code. `error`: the step didn't work. */
-  goPlan(planId: string): Promise<{ changes: Change[]; error?: string }>;
+  /** Go on a kept plan, through Ask's plan code (a draft through Ask's draft code and accounts). `error`: the step didn't work. */
+  goPlan(planId: string, ctx: LogContext): Promise<{ changes: Change[]; error?: string }>;
   /** A plan that won't run: Skip, Stop, or a run stopped for waiting too long. */
   dropPlan(planId: string): Promise<void>;
-  /** A plan someone ran elsewhere: its changes, or null while it waits. */
-  planRan(planId: string): Promise<{ changes: Change[]; error?: string } | null>;
+  /** A plan someone ran elsewhere: its changes (shown as the run's in What Ask did), or null while it waits. */
+  planRan(planId: string, ctx: LogContext): Promise<{ changes: Change[]; error?: string } | null>;
   assistant(id: string): Promise<FlowAssistant | null>;
   /** A think step's turn as the assistant. `dry`: it only looks, keeps nothing and remembers nothing. */
   think(assistantId: string, prompt: string, opts: { dry: boolean; label: string }): Promise<ThinkResult>;
@@ -239,7 +249,8 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
         line("skipped", `Would ${lowerFirst(what)}`);
         return { kind: "next" };
       }
-      if (changes && step.go === "ask") {
+      // A draft always waits for Go, whatever was saved: Go only writes it, and nothing is sent.
+      if (changes && (step.go === "ask" || isDraftTool(step.tool))) {
         const plan_id = await fx.savePlan({ label: what, tool: step.tool, input });
         line("waiting", "Waits for your Go", { pending: { text: what, plan_id } });
         state.waiting = { step_id: step.id, kind: "go", plan_id, tool: step.tool, input };
@@ -249,7 +260,7 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
         const out = await fx.runTool(step.tool, input, { money: ctx.money });
         const refused = resultError(out.result);
         if (refused) throw new Error(refused);
-        const logged = out.changes.length ? await fx.log(out.changes, { assistant: !!ctx.assistant }) : [];
+        const logged = out.changes.length ? await fx.log(out.changes, logContext(ctx)) : [];
         await keepMade(state, ctx, fx, logged);
         const words = lookLine(step.tool, out.result) ?? assistantStepDone(step.tool, input, out.result, logged);
         line("done", words);
@@ -352,6 +363,8 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
     }
   }
 }
+
+const logContext = (ctx: Pick<RunContext, "assistant" | "flow" | "runId">): LogContext => ({ assistant: !!ctx.assistant, flowId: ctx.flow.id, runId: ctx.runId });
 
 /** What a step changed: counted for the summary, kept as made by this run (so it never starts this flow). */
 async function keepMade(state: RunState, ctx: RunContext, fx: FlowEffects, changes: Change[]): Promise<void> {
@@ -469,7 +482,7 @@ export async function settle(state: RunState, flow: Flow, s: Settle, fx: FlowEff
     }
     case "go": {
       if (w.kind !== "go" || s.step_id !== w.step_id || !w.plan_id) throw new AthenaInputError("That change isn't waiting for your Go");
-      const out = await fx.goPlan(w.plan_id);
+      const out = await fx.goPlan(w.plan_id, { assistant: ctx.assistant, flowId: flow.id, runId: ctx.runId });
       return doneWith(out.changes, out.error);
     }
     case "ran":
@@ -606,6 +619,7 @@ export async function runFlowRun(runId: string, deps: RunDeps): Promise<FlowRun 
     return (await getRun(runId))?.run ?? null;
   }
   const state = stored.state;
+  state.tz = fx.tz;
   const ctx = await contextFor(stored, flow, fx);
   let out: Walked;
   try {
@@ -636,6 +650,7 @@ export async function settleRun(runId: string, s: Settle, deps: RunDeps): Promis
     const flow = await getFlow(stored.run.flow_id);
     if (!flow) throw new AthenaInputError("That flow isn't there any more", 404);
     const state = stored.state;
+    state.tz = fx.tz;
     const { end } = await settle(state, flow, s, fx, { runId: stored.run.id, assistant: !!stored.run.assistant_id });
     if (end) {
       const ctx = await contextFor(stored, flow, fx);
@@ -718,7 +733,7 @@ export async function sweepFlowRuns(deps: SweepDeps): Promise<Record<string, num
     if (a.status === "done" || a.status === "stopped" || a.status === "failed") await settleOne(r.run.id, { kind: "assignment", status: a.status, title: a.title, note_id: a.note_id });
   }
   for (const r of await runsWhere(`status = 'waiting' AND waits_for = 'go' AND plan_id IS NOT NULL`)) {
-    const ran = await fx.planRan(r.state.waiting?.plan_id ?? "").catch(() => null);
+    const ran = await fx.planRan(r.state.waiting?.plan_id ?? "", { assistant: !!r.run.assistant_id, flowId: r.run.flow_id, runId: r.run.id }).catch(() => null);
     if (ran) await settleOne(r.run.id, { kind: "ran", changes: ran.changes, error: ran.error });
   }
   const ownerCut = iso(new Date(now.getTime() - FLOW_LIMITS.waitForOwnerDays * 86_400_000));

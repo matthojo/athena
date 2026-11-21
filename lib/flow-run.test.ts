@@ -128,6 +128,39 @@ test("a change set to run alone runs, is logged, and its record is kept as made 
   assert.deepEqual(state.changes, [{ kind: "commitment", action: "created" }]);
 });
 
+test("What Ask did is told which flow and run a change came from", async () => {
+  const logged: unknown[] = [];
+  const { fx } = fakes({ log: async (changes, ctx) => (logged.push(ctx), changes) });
+  await walk(emptyState({}), ctxOf(flowOf([paid, todo("auto")])), fx);
+  assert.deepEqual(logged, [{ assistant: false, flowId: "flow-1", runId: "run-1" }]);
+});
+
+test("a draft always waits for Go, even saved as auto; Go writes it through the plan, told which flow and run", async () => {
+  const went: unknown[] = [];
+  const draft: Change = { kind: "draft", id: "d-1", action: "created", title: "Thanks for today", detail: "Email to Sam · ready to check", label: "Thanks for today", open: null, undo: null } as unknown as Change;
+  const { fx, calls } = fakes({ goPlan: async (id, ctx) => (went.push([id, ctx]), { changes: [draft] }) });
+  const step: FlowStep = { id: "draft", title: null, kind: "tool", tool: "draft_email", input: { person_id: ["p-1"], about: ["Thank them for today"] }, go: "auto", gives: [{ key: "draft", label: "the draft", kind: "text" }] };
+  const flow = flowOf([step]);
+  const state = emptyState({});
+  assert.deepEqual(await walk(state, ctxOf(flow), fx), { status: "waiting", waits_for: "go", plan_id: "plan-1" });
+  assert.ok(!calls.some(([k]) => k === "tool"), "nothing is written before Go");
+  await settle(state, flow, { kind: "go", step_id: "draft" }, fx, { runId: "run-1", assistant: false });
+  assert.deepEqual(went, [["plan-1", { assistant: false, flowId: "flow-1", runId: "run-1" }]]);
+  assert.equal(state.lines[0].status, "done");
+  assert.equal((state.values.draft.draft as { title: string }).title, "Thanks for today");
+});
+
+test("a draft with no account stops the run at that step, saying why", async () => {
+  const { fx } = fakes({ goPlan: async () => ({ changes: [], error: "No email account is connected, so there's nowhere to write this draft." }) });
+  const flow = flowOf([{ id: "draft", title: null, kind: "tool", tool: "draft_message", input: { person_id: ["p-1"], about: ["Chase the quote"] }, go: "ask", gives: [] }, remind]);
+  const state = emptyState({});
+  await walk(state, ctxOf(flow), fx);
+  const { end } = await settle(state, flow, { kind: "go", step_id: "draft" }, fx, { runId: "run-1", assistant: false });
+  assert.equal(end?.status, "failed");
+  assert.match(end!.error, /^Stopped at “Draft a message”: No email account is connected/);
+  assert.equal(state.lines[0].status, "failed");
+});
+
 test("Ask me waits for the answer, then goes down the chosen branch", async () => {
   const { fx } = fakes();
   const ask: FlowStep = { id: "ask", title: null, kind: "ask", question: ["Renew ", { from: "trigger", key: "title" }, "?"], choices: [{ label: "Yes", steps: [todo("auto")] }, { label: "No", steps: [remind] }] };

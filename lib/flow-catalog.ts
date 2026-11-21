@@ -1,15 +1,16 @@
 /**
  * Flows: the steps the Add a step sheet offers (GET /api/flows/catalog), and what each tool step gives later
  * steps. The tools are Ask's own (lib/assistant.ts TOOLS), run with the same code and checks Ask uses; a flow is
- * offered only those that look, or that change something inside Athena and keep an Undo. Never one that sends
- * (a message, an invite answer, a note to another service), edits a connected account (the calendar, the bank),
+ * offered only those that look, that change something inside Athena and keep an Undo, or that write a draft for the
+ * owner to read (draft_email, draft_message: always waiting for Go, and never sent). Never one that sends (a
+ * message, an invite answer, a note to another service), edits a connected account (the calendar, the bank),
  * deletes or archives, changes the shape of the owner's data (fields, types), or only offers a card for a tap
  * nobody is there to give (log_spending, create_event). Pure apart from reading the tool list.
  */
 import type { Anthropic } from "./ai";
 import { TOOLS } from "./assistant";
 import { MONEY_TOOL_NAMES, READ_TOOL_NAMES } from "./ask-tools";
-import type { CatalogEntry, FlowStepKind, FlowValue, ValueKind } from "./flow-types";
+import type { CatalogEntry, FlowStepKind, FlowValue, GoMode, ValueKind } from "./flow-types";
 
 type Group = CatalogEntry["group"];
 
@@ -26,7 +27,8 @@ const FOUND = v("result", "what it found", "text");
 
 /**
  * The tools a flow may use, in the order the sheet shows them. Looks first (group "find"), then changes inside
- * Athena (group "add"). A tool missing from lib/assistant.ts is left out of the catalogue, never offered.
+ * Athena (group "add"), then drafts (group "tell"). A tool missing from lib/assistant.ts is left out of the
+ * catalogue, never offered.
  */
 export const FLOW_TOOLS: Record<string, ToolPick> = {
   find_people: { group: "find", label: "Find a person", hint: "By name, email or company", gives: [v("person", "the person", "person"), COUNT] },
@@ -70,14 +72,25 @@ export const FLOW_TOOLS: Record<string, ToolPick> = {
   link_records: { group: "add", label: "Link two things", hint: "A note to a person, a place to an event", gives: [v("done", "what it linked", "text")] },
   save_trip: { group: "add", label: "Add a trip", hint: "A place and its dates", gives: [v("trip", "the trip", "trip")] },
   save_purchase: { group: "add", label: "Add an order", hint: "Something you ordered", gives: [v("done", "the order", "text")] },
+
+  draft_email: { group: "tell", label: "Draft an email", hint: "Written for you to read; never sent", gives: [v("draft", "the draft", "text")] },
+  draft_message: { group: "tell", label: "Draft a message", hint: "Email, text, WhatsApp or Slack; never sent", gives: [v("draft", "the draft", "text")] },
 };
+
+/** Drafts: Go only writes one for the owner to read and save, through Ask's own code and accounts. Never `auto`, never sent. */
+export const DRAFT_TOOLS: ReadonlySet<string> = new Set(["draft_email", "draft_message"]);
+export const isDraftTool = (name: string): boolean => DRAFT_TOOLS.has(name);
+
+/** The changes that run alone unless the owner says otherwise (the owner's call, 21 Nov). Every other change waits for Go. */
+export const AUTO_BY_DEFAULT: ReadonlySet<string> = new Set(["add_reminder", "add_todo", "add_to_list"]);
+
+/** A change step's Go setting when nobody set one: `auto` for AUTO_BY_DEFAULT, `ask` for the rest. Pure. */
+export const defaultGo = (tool: string): GoMode => (AUTO_BY_DEFAULT.has(tool) ? "auto" : "ask");
 
 /** Never offered, whatever else changes: each sends, edits an account, deletes or reshapes data, or waits for a tap of its own. */
 export const NEVER_TOOLS: ReadonlySet<string> = new Set([
   "send_note",
   "answer_invite",
-  "draft_message",
-  "draft_email",
   "create_event",
   "move_event",
   "find_times",
@@ -106,8 +119,8 @@ export function flowTool(name: string): Anthropic.Tool | null {
   return byName.get(name) ?? null;
 }
 
-/** Does this tool change something (a Go setting), or only look? */
-export const toolChanges = (name: string): boolean => FLOW_TOOLS[name]?.group === "add";
+/** Does this tool change something (a Go setting), or only look? A draft counts: it waits for Go. */
+export const toolChanges = (name: string): boolean => FLOW_TOOLS[name]?.group === "add" || DRAFT_TOOLS.has(name);
 /** Does it read spending (the flow's money switch, and Ask's)? */
 export const toolReadsMoney = (name: string): boolean => MONEY_TOOL_NAMES.has(name);
 /** One of the shared read tools (lib/ask-tools.ts), run by ReadTools rather than a Session. */
@@ -149,6 +162,7 @@ const LABELS: Record<string, string> = {
   place: "Place",
   area: "Area",
   where: "Where or how",
+  about: "What it should say",
 };
 
 const human = (key: string) => {
@@ -201,7 +215,7 @@ export function flowCatalog(): CatalogEntry[] {
       group: pick.group,
       label: pick.label,
       hint: pick.hint,
-      changes: pick.group === "add",
+      changes: toolChanges(name),
       ...(toolReadsMoney(name) ? { money: true } : {}),
       fields: toolFields(tool),
       gives: pick.gives,

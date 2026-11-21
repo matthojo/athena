@@ -55,7 +55,7 @@ function state(over: Partial<GateState> = {}, rules: Partial<Record<RuleId, bool
   return {
     now: new Date("2026-11-09T13:50:00Z"),
     tz: TZ,
-    prefs: { ...DEFAULT_PROACTIVE, rules: { meeting_prep: true, after_meeting: true, awaiting_reply: true, leave_by: true, day_plan: true, weekly_plan: true, drift: true, routine: true, watch_tonight: true, car: true, team: true, ...rules } },
+    prefs: { ...DEFAULT_PROACTIVE, rules: { meeting_prep: true, after_meeting: true, awaiting_reply: true, leave_by: true, day_plan: true, weekly_plan: true, drift: true, routine: true, watch_tonight: true, car: true, team: true, flow: true, ...rules } },
     working: WORK,
     quiet: null,
     mutes: new Map(),
@@ -323,8 +323,9 @@ test("the daily cap counts across rules, in order", () => {
   assert.deepEqual(r.held.map((h) => [h.nudge.rule, h.reason]), [["awaiting_reply", "cap"]]);
 });
 
-test("defaults: meeting prep, awaiting reply, the owner's own routines and the car on, the rest off (watch tonight too); prefs checked", () => {
-  assert.deepEqual(Object.entries(DEFAULT_PROACTIVE.rules).filter(([, v]) => v).map(([k]) => k), ["meeting_prep", "awaiting_reply", "routine", "car", "team"]);
+test("defaults: meeting prep, awaiting reply, the owner's own routines, Team, flows and the car on, the rest off (watch tonight too); prefs checked", () => {
+  assert.deepEqual(Object.entries(DEFAULT_PROACTIVE.rules).filter(([, v]) => v).map(([k]) => k), ["meeting_prep", "awaiting_reply", "routine", "car", "team", "flow"]);
+  assert.equal(mergeProactive(DEFAULT_PROACTIVE, { rules: { flow: false } }).rules.flow, false);
   assert.deepEqual(readProactive({ rules: { drift: true, nonsense: true }, cap: 99 }).rules.drift, true);
   assert.equal(readProactive({ cap: 99 }).cap, 4);
   assert.equal(mergeProactive(DEFAULT_PROACTIVE, { rules: { leave_by: true } }).rules.leave_by, true);

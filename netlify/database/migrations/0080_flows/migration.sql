@@ -27,6 +27,8 @@ CREATE INDEX IF NOT EXISTS flows_assistant_idx ON flows (assistant_id) WHERE ass
 -- job: the status and what it waits for, when a Wait carries on (`resumes_at`), since when it waits for the
 -- owner (`waiting_since`), the Ask plan or assignment it waits on (ids), the ids of the records it changed
 -- (`made`, so a run never starts its own flow again), the team_events that started it and the trigger's slot.
+-- `started_by`: the run whose change set this one off, and `chain` the flows of every run before it on the way
+-- (oldest first), so a flow already in its chain isn't started again and chains stop at three runs.
 -- `version` goes up with every write, so two answers at once can't both apply.
 CREATE TABLE IF NOT EXISTS flow_runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -47,6 +49,8 @@ CREATE TABLE IF NOT EXISTS flow_runs (
   made TEXT[] NOT NULL DEFAULT '{}',
   event_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
   slot TEXT,
+  started_by UUID,
+  chain UUID[] NOT NULL DEFAULT '{}',
   version INTEGER NOT NULL DEFAULT 0,
   started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -58,3 +62,9 @@ CREATE INDEX IF NOT EXISTS flow_runs_resume_idx ON flow_runs (resumes_at) WHERE 
 CREATE INDEX IF NOT EXISTS flow_runs_notices_idx ON flow_runs (id) WHERE notices_pending;
 -- A trigger's slot starts a flow once, however many passes see it.
 CREATE UNIQUE INDEX IF NOT EXISTS flow_runs_slot_idx ON flow_runs (flow_id, slot) WHERE slot IS NOT NULL;
+
+-- What Ask did: a plain flow's changes are source 'flow', with the flow and the run they came from, so the log can
+-- say "Flow: <name>" and open the run. Plain ids only; the flow's name stays sealed in flows.payload. No foreign
+-- keys: a pruned run or a removed flow leaves the log's rows as they were.
+ALTER TABLE ask_activity ADD COLUMN IF NOT EXISTS flow_id UUID;
+ALTER TABLE ask_activity ADD COLUMN IF NOT EXISTS flow_run_id UUID;

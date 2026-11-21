@@ -3,7 +3,7 @@
 // Run: npx tsx --test lib/ask-activity.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ACTIVITY_SOURCES, activityRow, nudgeActionChange, presentActivity } from "./ask-activity";
+import { ACTIVITY_SOURCES, activityFlow, activityRow, nudgeActionChange, presentActivity } from "./ask-activity";
 import { runSteps } from "./ask-plans";
 import type { Change } from "./assistant";
 
@@ -14,7 +14,7 @@ const N = "44444444-4444-4444-8444-444444444444";
 const todo: Change = { kind: "commitment", id: "c1", action: "created", title: "Book the venue", detail: "To do", label: "Book the venue: To do", open: { kind: "commitment", id: "c1" }, undo: { op: "archive", kind: "commitment", id: "c1" } as never };
 
 test("every source makes a row, with its links and the receipt", () => {
-  assert.deepEqual([...ACTIVITY_SOURCES], ["ask", "plan", "routine", "nudge", "team"]);
+  assert.deepEqual([...ACTIVITY_SOURCES], ["ask", "plan", "routine", "nudge", "team", "flow"]);
   const ask = activityRow(todo, { source: "ask", thread_id: T });
   const plan = activityRow(todo, { source: "plan", thread_id: T, plan_id: P });
   const routine = activityRow(todo, { source: "routine", plan_id: P, routine_id: R });
@@ -37,6 +37,22 @@ test("a row reads back as the entry, its own id on the change for Undo", () => {
   assert.equal(e.change.activity_id, "a1");
   assert.equal(e.change.title, "Book the venue");
   assert.equal(presentActivity({ id: "a2", created_at: "2026-11-10T10:00:00Z", source: "ask", thread_id: null, plan_id: null, routine_id: null, nudge_id: null, state: "done", state_at: null, payload: "enc:locked" }), null);
+});
+
+test("a plain flow's change: source flow, with its flow and run, labelled with the flow's name and opening the run", () => {
+  const F = "55555555-5555-4555-8555-555555555555";
+  const RUN = "66666666-6666-4666-8666-666666666666";
+  const row = activityRow(todo, { source: "flow", plan_id: P, flow_id: F, flow_run_id: RUN });
+  assert.equal(row.source, "flow");
+  assert.equal(row.flow_id, F);
+  assert.equal(row.flow_run_id, RUN);
+  // Only a flow's rows point at a flow.
+  assert.equal(activityRow(todo, { source: "team", flow_id: F, flow_run_id: RUN }).flow_id, null);
+  const e = presentActivity({ id: "a3", created_at: "2026-11-10T10:00:00Z", source: "flow", thread_id: null, plan_id: P, routine_id: null, nudge_id: null, flow_id: F, flow_run_id: RUN, state: "done", state_at: null, payload: row.payload }, new Map([[F, "Renewal  check"]]))!;
+  assert.deepEqual(e.flow, { id: F, run_id: RUN, name: "Renewal check", label: "Flow: Renewal check", url: `/#/flows/runs/${RUN}` });
+  assert.equal(activityFlow(F, RUN, "").label, "A flow");
+  const team = presentActivity({ id: "a4", created_at: "2026-11-10T10:00:00Z", source: "team", thread_id: null, plan_id: null, routine_id: null, nudge_id: null, state: "done", state_at: null, payload: row.payload })!;
+  assert.equal(team.flow, null);
 });
 
 test("a nudge card's parts: a move keeps its own Undo, a to-do's day goes back to what it was", () => {

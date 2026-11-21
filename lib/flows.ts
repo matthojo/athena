@@ -14,8 +14,8 @@ import { AthenaInputError, q, qRaw, tx } from "./db";
 import { sealText } from "./data-box";
 import { parseTime } from "./routines";
 import { eventFilterSchema } from "./team";
-import { flowTool } from "./flow-catalog";
-import { allSteps, depthOf, type FlowValues, type Frame } from "./flow-steps";
+import { defaultGo, flowTool, isDraftTool } from "./flow-catalog";
+import { allSteps, depthOf, eachStep, valueWords, type FlowValues, type Frame } from "./flow-steps";
 import {
   FLOW_LIMITS,
   type Flow,
@@ -116,7 +116,8 @@ const condition = z
 
 const stepSchema: z.ZodType<FlowStep> = z.lazy(() =>
   z.union([
-    z.object({ id: stepId, title, kind: z.literal("tool"), tool: z.string().max(64), input: z.record(text), go: z.enum(["auto", "ask"]), gives: z.array(value).max(12) }).strict(),
+    // `go` left out: defaultGo's (only a reminder, a to-do and a list item run alone).
+    z.object({ id: stepId, title, kind: z.literal("tool"), tool: z.string().max(64), input: z.record(text), go: z.enum(["auto", "ask"]).optional(), gives: z.array(value).max(12) }).strict(),
     z.object({ id: stepId, title, kind: z.literal("check"), condition, yes: z.array(stepSchema), no: z.array(stepSchema) }).strict(),
     z
       .object({
@@ -124,7 +125,10 @@ const stepSchema: z.ZodType<FlowStep> = z.lazy(() =>
         title,
         kind: z.literal("ask"),
         question: text,
-        choices: z.array(z.object({ label: words(FLOW_LIMITS.name), steps: z.array(stepSchema) }).strict()).min(2, "Ask me needs two choices at least").max(FLOW_LIMITS.choices, `Ask me offers ${FLOW_LIMITS.choices} choices at most`),
+        choices: z
+          .array(z.object({ label: words(FLOW_LIMITS.name), steps: z.array(stepSchema) }).strict())
+          .min(FLOW_LIMITS.minChoices, `Ask me needs ${FLOW_LIMITS.minChoices} choices at least`)
+          .max(FLOW_LIMITS.choices, `Ask me offers ${FLOW_LIMITS.choices} choices at most`),
       })
       .strict(),
     z.object({ id: stepId, title, kind: z.literal("wait"), days: z.number().int().min(0).max(FLOW_LIMITS.waitDays, `a Wait is ${FLOW_LIMITS.waitDays} days at most`), before: ref.optional(), at: z.string().regex(HHMM).nullable() }).strict(),
@@ -152,12 +156,20 @@ function parse<S extends z.ZodTypeAny>(schema: S, raw: unknown): z.infer<S> {
   throw new AthenaInputError(`${issue.path.join(".") || "input"}: ${issue.message}`);
 }
 
+/** Give every change step with no Go setting its default (defaultGo), in place. Pure apart from that. */
+export function fillGo(steps: FlowStep[]): FlowStep[] {
+  eachStep(steps, (s) => {
+    if (s.kind === "tool" && s.go !== "auto" && s.go !== "ask") (s as { go: string }).go = defaultGo(s.tool);
+  });
+  return steps;
+}
+
 const refsIn = (t: unknown): Array<{ from: string; key: string }> => (Array.isArray(t) ? t.filter((p): p is { from: string; key: string } => !!p && typeof p === "object") : []);
 
 /**
- * The rules zod can't say: FLOW_LIMITS' count and depth, ids unique, each tool one a flow may use with only its own
- * fields, and every chip pointing at the trigger or a step that comes before it on the way there. Throws a line the
- * editor can show. Pure.
+ * The rules zod can't say: FLOW_LIMITS' count, depth and choices, ids unique, each tool one a flow may use with only
+ * its own fields, a draft always waiting for Go, and every chip pointing at the trigger or a step that comes before it
+ * on the way there. Throws a line the editor can show. Pure.
  */
 export function checkSteps(steps: FlowStep[], trigger: FlowTrigger): void {
   const all = allSteps(steps);
@@ -176,13 +188,18 @@ export function checkSteps(steps: FlowStep[], trigger: FlowTrigger): void {
       if (s.kind === "tool") {
         const tool = flowTool(s.tool);
         if (!tool) throw new AthenaInputError(`A flow can't use “${s.tool}”`);
+        if (isDraftTool(s.tool) && s.go !== "ask") throw new AthenaInputError("A draft always waits for your Go: it's never sent, and Go only writes it");
         const fields = new Set(Object.keys((tool.input_schema as { properties?: object }).properties ?? {}));
         for (const [k, t] of Object.entries(s.input)) {
           if (!fields.has(k) || k === "step") throw new AthenaInputError(`“${s.tool}” has no field “${k}”`);
           refs.push(...refsIn(t));
         }
       } else if (s.kind === "check") refs.push(s.condition.left, ...(s.condition.against ? [s.condition.against] : []), ...(s.condition.right && typeof s.condition.right === "object" ? [s.condition.right] : []));
-      else if (s.kind === "ask") refs.push(...refsIn(s.question));
+      else if (s.kind === "ask") {
+        if (s.choices.length < FLOW_LIMITS.minChoices) throw new AthenaInputError(`Ask me needs ${FLOW_LIMITS.minChoices} choices at least`);
+        if (s.choices.length > FLOW_LIMITS.choices) throw new AthenaInputError(`Ask me offers ${FLOW_LIMITS.choices} choices at most`);
+        refs.push(...refsIn(s.question));
+      }
       else if (s.kind === "wait" && s.before) refs.push(s.before);
       else if (s.kind === "notify") refs.push(...refsIn(s.text));
       else if (s.kind === "think") refs.push(...refsIn(s.task));
@@ -289,7 +306,7 @@ const FULL = `You have ${FLOW_LIMITS.flows} flows, which is the most Athena keep
 export async function createFlow(raw: unknown): Promise<Flow> {
   const input = parse(inputSchema, raw ?? {}) as FlowInput;
   const trigger: FlowTrigger = input.trigger ?? { kind: "manual" };
-  const steps = input.steps ?? [];
+  const steps = fillGo(input.steps ?? []);
   checkSteps(steps, trigger);
   const w: Words = { name: oneLine(input.name ?? "").slice(0, FLOW_LIMITS.name) || "New flow", trigger, steps };
   const [row] = await q<FlowRow>(
@@ -308,7 +325,7 @@ export async function updateFlow(id: unknown, raw: unknown): Promise<Flow> {
   if (!was) throw new AthenaInputError("That flow isn't there any more", 404);
   const input = parse(inputSchema, raw ?? {}) as FlowInput;
   const trigger = input.trigger ?? was.trigger;
-  const steps = input.steps ?? was.steps;
+  const steps = input.steps ? fillGo(input.steps) : was.steps;
   checkSteps(steps, trigger);
   const w: Words = { name: input.name !== undefined ? oneLine(input.name).slice(0, FLOW_LIMITS.name) || was.name : was.name, trigger, steps };
   const [row] = await q<FlowRow>(
@@ -371,6 +388,8 @@ export interface RunState {
   changes: Array<{ kind: string; action: "created" | "updated" | "completed" }>;
   /** Started by hand (Run now, a try): the owner is looking, so no card says it waits or failed. */
   by_hand?: boolean;
+  /** The owner's zone when it last ran, so its values read as words (FlowRun.values) on any read. */
+  tz?: string;
 }
 
 export const emptyState = (values: FlowValues = {}, byHand = false): RunState => ({ values, lines: [], stack: [{ path: [], i: 0 }], waiting: null, notices: [], changes: [], ...(byHand ? { by_hand: true } : {}) });
@@ -394,12 +413,14 @@ interface RunRow {
   made: string[] | null;
   event_ids: Array<string | number> | null;
   slot: string | null;
+  started_by: string | null;
+  chain: string[] | null;
   version: number;
   started_at: string | Date;
   finished_at: string | Date | null;
 }
 
-const R_COLUMNS = `id, flow_id, status, waits_for, label, assistant_id, summary, error, state, dry, resumes_at, waiting_since, plan_id, assignment_id, notices_pending, made, event_ids, slot, version, started_at, finished_at`;
+const R_COLUMNS = `id, flow_id, status, waits_for, label, assistant_id, summary, error, state, dry, resumes_at, waiting_since, plan_id, assignment_id, notices_pending, made, event_ids, slot, started_by, chain, version, started_at, finished_at`;
 
 /** A run as the store keeps it: the contract's FlowRun, plus what only the server reads. */
 export interface StoredRun {
@@ -410,6 +431,10 @@ export interface StoredRun {
   event_ids: string[];
   resumes_at: string | null;
   waiting_since: string | null;
+  /** The run whose change set this one off, if one did. */
+  started_by: string | null;
+  /** The flows of every run before it on the way, oldest first. */
+  chain: string[];
 }
 
 function readState(raw: string): RunState {
@@ -422,7 +447,26 @@ function readState(raw: string): RunState {
     notices: Array.isArray(s.notices) ? s.notices : [],
     changes: Array.isArray(s.changes) ? s.changes : [],
     ...(s.by_hand ? { by_hand: true } : {}),
+    ...(typeof s.tz === "string" ? { tz: s.tz } : {}),
   };
+}
+
+/**
+ * What the trigger and each step gave, as plain words (FlowRun.values): a record as its title, money as "£38.00", a
+ * day as "Tue 3 Dec". Empty values are left out. Pure.
+ */
+export function shownValues(values: FlowValues, tz?: string): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {};
+  for (const [from, vals] of Object.entries(values ?? {})) {
+    if (!vals || typeof vals !== "object") continue;
+    const words: Record<string, string> = {};
+    for (const [key, v] of Object.entries(vals)) {
+      const w = valueWords(v, tz).trim();
+      if (w) words[key] = w.length > 500 ? `${w.slice(0, 499)}…` : w;
+    }
+    if (Object.keys(words).length) out[from] = words;
+  }
+  return out;
 }
 
 function presentRun(r: RunRow): StoredRun {
@@ -437,6 +481,7 @@ function presentRun(r: RunRow): StoredRun {
       assistant_id: r.assistant_id,
       summary: r.summary,
       steps: state.lines,
+      values: shownValues(state.values, state.tz),
       dry: r.dry,
       error: r.error,
       started_at: iso(r.started_at)!,
@@ -448,6 +493,8 @@ function presentRun(r: RunRow): StoredRun {
     event_ids: (r.event_ids ?? []).map(String),
     resumes_at: iso(r.resumes_at),
     waiting_since: iso(r.waiting_since),
+    started_by: r.started_by ?? null,
+    chain: r.chain ?? [],
   };
 }
 
@@ -475,12 +522,26 @@ export async function runsWhere(sql: string, params: unknown[] = [], limit = 50)
 }
 
 /** Queue a run. Null when its slot already started one. */
-export async function insertRun(flow: Pick<Flow, "id" | "assistant_id">, from: { label: string; values: FlowValues; event_ids?: string[]; slot?: string | null; dry?: boolean; byHand?: boolean }): Promise<StoredRun | null> {
+export async function insertRun(
+  flow: Pick<Flow, "id" | "assistant_id">,
+  from: { label: string; values: FlowValues; event_ids?: string[]; slot?: string | null; dry?: boolean; byHand?: boolean; started_by?: string | null; chain?: string[] },
+): Promise<StoredRun | null> {
   const ids = (from.event_ids ?? []).map(Number).filter(Number.isSafeInteger);
+  const chain = (from.chain ?? []).filter((id) => UUID.test(id));
   const [row] = await q<RunRow>(
-    `INSERT INTO flow_runs (flow_id, status, label, assistant_id, state, dry, event_ids, slot) VALUES ($1::uuid, 'queued', $2, $3::uuid, $4, $5, $6::jsonb, $7)
+    `INSERT INTO flow_runs (flow_id, status, label, assistant_id, state, dry, event_ids, slot, started_by, chain) VALUES ($1::uuid, 'queued', $2, $3::uuid, $4, $5, $6::jsonb, $7, $8::uuid, $9::uuid[])
      ON CONFLICT (flow_id, slot) WHERE slot IS NOT NULL DO NOTHING RETURNING ${R_COLUMNS}`,
-    [flow.id, sealText(oneLine(from.label).slice(0, 200) || "Run now"), flow.assistant_id, sealText(JSON.stringify(emptyState(from.values, from.byHand === true || from.dry === true))), from.dry === true, JSON.stringify(ids), from.slot ?? null],
+    [
+      flow.id,
+      sealText(oneLine(from.label).slice(0, 200) || "Run now"),
+      flow.assistant_id,
+      sealText(JSON.stringify(emptyState(from.values, from.byHand === true || from.dry === true))),
+      from.dry === true,
+      JSON.stringify(ids),
+      from.slot ?? null,
+      from.started_by && UUID.test(from.started_by) ? from.started_by : null,
+      chain,
+    ],
   );
   return row ? presentRun(row) : null;
 }
@@ -567,17 +628,42 @@ export function createFlowSource(): FlowSource {
   };
 }
 
+/** The most runs one chain of flows may have: a run whose change starts a flow, whose change starts another, and no more. */
+export const CHAIN_MAX = 3;
+
+/** A run whose change set events off, as the chain guard needs it. */
+export interface ChainParent {
+  id: string;
+  flow_id: string;
+  chain: string[];
+}
+
 /**
- * A run of this flow made the record behind one of these events (a note it saved, a to-do it added), so the
- * events mustn't start it again: a run never starts its own flow, however its trigger is set.
+ * The run whose change set these events off: the newest run, of any flow, that made one of their records in the last 7
+ * days. Null when no run did (the owner, a sync, a Team assistant).
  */
-export async function startedBySelf(flowId: string, eventIds: string[]): Promise<boolean> {
+export async function startedByRun(eventIds: string[]): Promise<ChainParent | null> {
   const ids = eventIds.map(Number).filter(Number.isSafeInteger);
-  if (!ids.length) return false;
+  if (!ids.length) return null;
   const refs = (await qRaw<{ ref_id: string | null }>(`SELECT ref_id FROM team_events WHERE id = ANY($1::bigint[])`, [ids])).map((r) => r.ref_id).filter((r): r is string => !!r);
-  if (!refs.length) return false;
-  const [row] = await qRaw<{ hit: boolean }>(`SELECT EXISTS (SELECT 1 FROM flow_runs WHERE flow_id = $1::uuid AND made && $2::text[] AND started_at > now() - interval '7 days') AS hit`, [flowId, refs]);
-  return row?.hit === true;
+  if (!refs.length) return null;
+  const [row] = await qRaw<{ id: string; flow_id: string; chain: string[] | null }>(
+    `SELECT id, flow_id, chain FROM flow_runs WHERE made && $1::text[] AND started_at > now() - interval '7 days' ORDER BY started_at DESC LIMIT 1`,
+    [refs],
+  );
+  return row ? { id: row.id, flow_id: row.flow_id, chain: row.chain ?? [] } : null;
+}
+
+/**
+ * Where a new run of `flowId` sits in its chain. Started by no run: a chain of its own. Refused when its flow is already
+ * in the chain (A → B → A, or A → A) or the chain would pass CHAIN_MAX runs. Pure.
+ */
+export function chainFor(flowId: string, parent: ChainParent | null): { started_by: string | null; chain: string[] } | { refused: string } {
+  if (!parent) return { started_by: null, chain: [] };
+  const chain = [...parent.chain, parent.flow_id];
+  if (chain.includes(flowId)) return { refused: "its flow already ran in this chain" };
+  if (chain.length + 1 > CHAIN_MAX) return { refused: `a chain of flows stops at ${CHAIN_MAX} runs` };
+  return { started_by: parent.id, chain };
 }
 
 /** The default hand-off: to this site's own background function (Netlify's URL). Without one, the next reminders pass hands it off. */
@@ -594,17 +680,19 @@ export interface StarterDeps {
 
 /**
  * FlowStarter: queue a run of a flow that's on, with what its trigger gives, and hand it to the background
- * function. Null when the flow is paused or gone, its slot already ran, or the events that set it off came from
- * one of its own runs.
+ * function. Null when the flow is paused or gone, its slot already ran, or the chain guard refuses it: the events
+ * that set it off came from a run (its own, or another flow's) whose chain already has this flow, or is CHAIN_MAX
+ * runs long. A run started by another run's change records that run (`started_by`) and its chain.
  */
 export function createFlowStarter(deps: StarterDeps = {}): FlowStarter {
   return {
     async start(flowId, start) {
       const flow = await getFlow(flowId);
       if (!flow || flow.paused) return null;
-      if (start.event_ids?.length && (await startedBySelf(flow.id, start.event_ids))) return null;
+      const place = chainFor(flow.id, start.event_ids?.length ? await startedByRun(start.event_ids) : null);
+      if ("refused" in place) return null;
       const values = { trigger: (start.values ?? {}) as FlowValues[string] };
-      const made = await insertRun(flow, { label: start.label, values, event_ids: start.event_ids, slot: start.slot ?? null });
+      const made = await insertRun(flow, { label: start.label, values, event_ids: start.event_ids, slot: start.slot ?? null, started_by: place.started_by, chain: place.chain });
       if (!made) return null;
       const handOff = deps.handOff ?? handOffToSite;
       await handOff(made.run.id).catch((e) => console.error("Athena flows: couldn't hand off a run", e instanceof Error ? e.message.slice(0, 120) : e));
