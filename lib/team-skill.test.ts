@@ -9,11 +9,11 @@ import { assistantSkillName, firstPerson, fitAnswers, fitQuestions, fitTeamSkill
 import { askQuestions, writeSkill } from "./team-skill-make";
 import { personaPrompt } from "./team-chat";
 
-const MUSE = { name: "Muse", job: "Finds good prices for gift ideas", instructions: "Look for the best price from a shop the owner trusts." };
+const MOSS = { name: "Moss", job: "Finds good prices for gift ideas", instructions: "Look for the best price from a shop the owner trusts." };
 const ANSWERS = [
   { question: "Which shops do you trust?", answer: "Waterstones and Smyths" },
   { question: "What's your budget per gift?", answer: "Under £50" },
-  { question: "When should Muse tell you?", answer: "Only big drops" },
+  { question: "When should Moss tell you?", answer: "Only big drops" },
 ];
 
 // ---------- questions ----------
@@ -21,7 +21,7 @@ const ANSWERS = [
 const GOOD = [
   { question: "Which shops do you trust?", choices: ["Any shop", "Ones I've bought from", "Independent shops"], allowOther: true },
   { question: "What's your budget per gift?", choices: ["Under £25", "Under £50", "No limit"], allowOther: true },
-  { question: "When should Muse tell you?", choices: ["Any drop", "Only big drops"], allowOther: false },
+  { question: "When should Moss tell you?", choices: ["Any drop", "Only big drops"], allowOther: false },
 ];
 
 test("questions: good ones come through with ids, in order", () => {
@@ -66,24 +66,24 @@ test("answers: trimmed, cut, empty ones dropped, at most four", () => {
 // ---------- the skill ----------
 
 test("the plain skill is a valid SKILL.md that names the job, the instructions and every answer", () => {
-  const s = templateSkill(MUSE, ANSWERS);
+  const s = templateSkill(MOSS, ANSWERS);
   assert.equal(nameProblem(s.name), null);
   assert.equal(descriptionProblem(s.description), null);
   const round = parseSkillMd(serialiseSkillMd(s));
   assert.equal(round.name, s.name);
   assert.equal(round.description, s.description);
-  assert.match(round.body, /# How Muse works/);
+  assert.match(round.body, /# How Moss works/);
   assert.match(round.body, /finds good prices for gift ideas/);
   assert.match(round.body, /shop the owner trusts/);
   for (const a of ANSWERS) assert.ok(round.body.includes(a.answer), a.answer);
-  assert.equal(s.summary, "Muse finds good prices for gift ideas, keeping to what you told it at setup.");
-  const bare = templateSkill({ ...MUSE, instructions: "" }, []);
+  assert.equal(s.summary, "Moss finds good prices for gift ideas, keeping to what you told it at setup.");
+  const bare = templateSkill({ ...MOSS, instructions: "" }, []);
   assert.doesNotMatch(bare.body, /instructions|told you/);
-  assert.equal(bare.summary, "Muse finds good prices for gift ideas.");
+  assert.equal(bare.summary, "Moss finds good prices for gift ideas.");
 });
 
 test("skill names keep Claude's rules, however odd the assistant's name and job", () => {
-  assert.equal(assistantSkillName("Muse", "Finds good prices for gift ideas"), "muse-finds-good-prices-for-gift-ideas");
+  assert.equal(assistantSkillName("Moss", "Finds good prices for gift ideas"), "moss-finds-good-prices-for-gift-ideas");
   for (const [n, j] of [["Claude", "Anthropic news"], ["Zoë", "Ünïcode jöb"], ["!!!", "???"], ["Dot", "x".repeat(200)], ["A very long assistant name here", "and an even longer job that goes on and on for a while"]]) {
     const name = assistantSkillName(n, j);
     assert.equal(nameProblem(name), null, `${n} / ${j} → ${name}`);
@@ -92,22 +92,22 @@ test("skill names keep Claude's rules, however odd the assistant's name and job"
 });
 
 test("the model's skill is fitted: Athena's name and description, a body cut to size, junk refused", () => {
-  const f = fitTeamSkill({ body: "# How Muse works\n\n1. Check Waterstones first.\n2. Keep it under £50.", summary: "Checks <b>Waterstones</b> first." }, MUSE)!;
-  assert.equal(f.name, "muse-finds-good-prices-for-gift-ideas");
-  assert.match(f.description, /^Muse's own skill/);
+  const f = fitTeamSkill({ body: "# How Moss works\n\n1. Check Waterstones first.\n2. Keep it under £50.", summary: "Checks <b>Waterstones</b> first." }, MOSS)!;
+  assert.equal(f.name, "moss-finds-good-prices-for-gift-ideas");
+  assert.match(f.description, /^Moss's own skill/);
   assert.equal(f.summary, "Checks Waterstones first.");
-  assert.equal(fitTeamSkill({ body: "short" }, MUSE), null);
-  assert.equal(fitTeamSkill(null, MUSE), null);
-  assert.equal(fitTeamSkill({ body: "x".repeat(SKILL_LIMITS.body + 500) }, MUSE)!.body.length, SKILL_LIMITS.body);
-  assert.equal(fitTeamSkill({ body: "1. A step that is long enough to count as a body." }, MUSE)!.summary, "Muse finds good prices for gift ideas.", "no summary: one from the job");
+  assert.equal(fitTeamSkill({ body: "short" }, MOSS), null);
+  assert.equal(fitTeamSkill(null, MOSS), null);
+  assert.equal(fitTeamSkill({ body: "x".repeat(SKILL_LIMITS.body + 500) }, MOSS)!.body.length, SKILL_LIMITS.body);
+  assert.equal(fitTeamSkill({ body: "1. A step that is long enough to count as a body." }, MOSS)!.summary, "Moss finds good prices for gift ideas.", "no summary: one from the job");
 });
 
 test("fingerprints: stale when the job or instructions change, edited when the body does", () => {
-  const meta = { basis: skillBasis(MUSE), made: hashText("1. Check Waterstones.") };
-  assert.equal(skillStale(meta, MUSE), false);
-  assert.equal(skillStale(meta, { ...MUSE, job: `  ${MUSE.job}  ` }), false, "spacing doesn't count");
-  assert.equal(skillStale(meta, { ...MUSE, instructions: "Any shop is fine." }), true);
-  assert.equal(skillStale(null, MUSE), false);
+  const meta = { basis: skillBasis(MOSS), made: hashText("1. Check Waterstones.") };
+  assert.equal(skillStale(meta, MOSS), false);
+  assert.equal(skillStale(meta, { ...MOSS, job: `  ${MOSS.job}  ` }), false, "spacing doesn't count");
+  assert.equal(skillStale(meta, { ...MOSS, instructions: "Any shop is fine." }), true);
+  assert.equal(skillStale(null, MOSS), false);
   assert.equal(skillEdited(meta, "1. Check Waterstones.\n"), false);
   assert.equal(skillEdited(meta, "1. Check Smyths."), true);
   assert.notEqual(hashText("a"), hashText("b"));
@@ -115,18 +115,18 @@ test("fingerprints: stale when the job or instructions change, edited when the b
 });
 
 test("the gist: the first few steps, as plain lines", () => {
-  assert.deepEqual(skillGist("# Muse\n\nIntro line.\n\n1. Check **Waterstones** first.\n2) Keep it under `£50`.\n- See [the list](https://x)\n* Fourth\n5. Fifth"), ["Check Waterstones first.", "Keep it under £50.", "See the list", "Fourth"]);
+  assert.deepEqual(skillGist("# Moss\n\nIntro line.\n\n1. Check **Waterstones** first.\n2) Keep it under `£50`.\n- See [the list](https://x)\n* Fourth\n5. Fifth"), ["Check Waterstones first.", "Keep it under £50.", "See the list", "Fourth"]);
   assert.deepEqual(skillGist("No steps at all."), []);
 });
 
 // ---------- applied in the prompt ----------
 
 test("the assistant's prompt carries its own skill, clipped, and says the owner's instructions win", () => {
-  const a = { ...MUSE, personality: { tone: "warm" as const, traits: [], pronoun: "she" as const, greeting: "Hi" }, memory: { summary: "", facts: [] }, allow: [] };
+  const a = { ...MOSS, personality: { tone: "warm" as const, traits: [], pronoun: "she" as const, greeting: "Hi" }, memory: { summary: "", facts: [] }, allow: [] };
   const without = personaPrompt(a, { mode: "chat" });
   assert.doesNotMatch(without, /<skill/);
-  const withSkill = personaPrompt({ ...a, skill: { name: "muse-gift-prices", body: "1. Check Waterstones first." } }, { mode: "run" });
-  assert.match(withSkill, /<skill name="muse-gift-prices">\n1\. Check Waterstones first\.\n<\/skill>/);
+  const withSkill = personaPrompt({ ...a, skill: { name: "moss-gift-prices", body: "1. Check Waterstones first." } }, { mode: "run" });
+  assert.match(withSkill, /<skill name="moss-gift-prices">\n1\. Check Waterstones first\.\n<\/skill>/);
   assert.match(withSkill, /the instructions win/);
   const long = personaPrompt({ ...a, skill: { name: "big", body: "y".repeat(SKILL_LIMITS.resultChars + 100) } }, { mode: "chat" });
   assert.match(long, /\[cut short\]/);
@@ -182,15 +182,15 @@ test("askQuestions without a model key gives none at once", async () => {
 });
 
 test("writeSkill: the model's skill when it holds up, the plain one when it doesn't", async () => {
-  const ok = fakeClient(() => [{ type: "tool_use", id: "t", name: "assistant_skill", input: { body: "# How Muse works\n\n1. Check Waterstones and Smyths first.\n2. Keep each gift under £50.\n3. Say so only when a price drops by £5 or more.", summary: "Checks Waterstones and Smyths first and keeps each gift under £50." } }]);
-  const s = await writeSkill(MUSE, ANSWERS, { client: ok.client });
+  const ok = fakeClient(() => [{ type: "tool_use", id: "t", name: "assistant_skill", input: { body: "# How Moss works\n\n1. Check Waterstones and Smyths first.\n2. Keep each gift under £50.\n3. Say so only when a price drops by £5 or more.", summary: "Checks Waterstones and Smyths first and keeps each gift under £50." } }]);
+  const s = await writeSkill(MOSS, ANSWERS, { client: ok.client });
   assert.equal(s.summary, "Checks Waterstones and Smyths first and keeps each gift under £50.");
   assert.match(s.body, /£5 or more/);
   assert.match(JSON.stringify(ok.calls[0].messages), /Waterstones and Smyths/, "the answers go to the model");
   const thin = fakeClient(() => [{ type: "tool_use", id: "t", name: "assistant_skill", input: { body: "ok" } }]);
-  assert.deepEqual(await writeSkill(MUSE, ANSWERS, { client: thin.client }), templateSkill(MUSE, ANSWERS));
+  assert.deepEqual(await writeSkill(MOSS, ANSWERS, { client: thin.client }), templateSkill(MOSS, ANSWERS));
   const broken = fakeClient(() => new Error("down"));
-  assert.deepEqual(await writeSkill(MUSE, [], { client: broken.client }), templateSkill(MUSE, []));
+  assert.deepEqual(await writeSkill(MOSS, [], { client: broken.client }), templateSkill(MOSS, []));
 });
 
 test("POST /api/team/questions: empty or long text is a 400; no model means no questions", async () => {

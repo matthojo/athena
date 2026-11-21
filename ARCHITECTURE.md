@@ -1784,7 +1784,7 @@ suggestions and the app is `lib/flow-types.ts`.
   ones included: they don't start, and a run queued or waiting when it was
   paused stops when it's picked up ("Stopped: <Name> is paused."; its team
   run ends "Paused before it ran.", with no card). Run now and a try still
-  run. The flow's page says why ("Muse is paused, so this flow doesn't run").
+  run. The flow's page says why ("Moss is paused, so this flow doesn't run").
 - **An assistant's run is one record** (`FlowEffects.teamRun`, migration
   0083). A run of an assistant's flow starts a `team_runs` row linked by
   `flow_run_id` (one per flow run), so Team, Home, Recent runs, the quiet-run

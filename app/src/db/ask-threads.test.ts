@@ -51,17 +51,17 @@ test("\"In past conversations\" snippets have no bold stars, list dashes or step
 });
 
 test("Ask's main list leaves out an assistant's conversations; filtering by that assistant shows only its own", () => {
-  const threads = [{ id: "a" }, { id: "b", assistant_id: null }, { id: "c", assistant_id: "muse" }, { id: "d", assistant_id: "dot" }];
+  const threads = [{ id: "a" }, { id: "b", assistant_id: null }, { id: "c", assistant_id: "moss" }, { id: "d", assistant_id: "dot" }];
   assert.deepEqual(filterThreads(threads, null).map((t) => t.id), ["a", "b"]);
-  assert.deepEqual(filterThreads(threads, "muse").map((t) => t.id), ["c"]);
+  assert.deepEqual(filterThreads(threads, "moss").map((t) => t.id), ["c"]);
   assert.deepEqual(filterThreads(threads, "all").map((t) => t.id), ["a", "b", "c", "d"]);
   assert.equal(threadAssistant({ assistant_id: "" }), null);
 });
 
 test("A copy from a server that doesn't keep assistant_id yet still knows who the conversation is with", () => {
   const remote: { id: string; title: string; messages: never[]; created_at: string; updated_at: string; assistant_id?: string | null } = { id: "c", title: "", messages: [], created_at: "2026-11-12T09:00:00Z", updated_at: "2026-11-12T09:05:00Z" };
-  assert.equal(keepAssistant(remote, { assistant_id: "muse" }).assistant_id, "muse");
+  assert.equal(keepAssistant(remote, { assistant_id: "moss" }).assistant_id, "moss");
   // The server's own answer wins once it sends one, null included.
-  assert.equal(keepAssistant({ ...remote, assistant_id: null }, { assistant_id: "muse" }).assistant_id, null);
+  assert.equal(keepAssistant({ ...remote, assistant_id: null }, { assistant_id: "moss" }).assistant_id, null);
   assert.equal(keepAssistant(remote, undefined), remote);
 });

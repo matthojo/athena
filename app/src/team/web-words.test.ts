@@ -33,12 +33,12 @@ test("what a search may carry, in the assistant's own pronoun", () => {
 });
 
 test("needing it while it's off says what it'll miss, plainly", () => {
-  assert.equal(webNeededLine("Muse", "Finds good prices for gift ideas", she), "Muse needs this to check prices. Without it, her runs only see what you've saved.");
+  assert.equal(webNeededLine("Moss", "Finds good prices for gift ideas", she), "Moss needs this to check prices. Without it, her runs only see what you've saved.");
   assert.equal(webNeededLine("Kit", "Checks opening hours before I go out", they), "Kit needs this for the job. Without it, their runs only see what's in Athena.");
 });
 
 test("with the app-wide setting off, it says why and what happens next", () => {
-  assert.equal(webBlockedDetail("Muse", true), "“Let Ask search the web” is off in Settings. Muse will look things up once it's on.");
+  assert.equal(webBlockedDetail("Moss", true), "“Let Ask search the web” is off in Settings. Moss will look things up once it's on.");
   assert.equal(webBlockedDetail("Dot", false), "“Let Ask search the web” is off in Settings. Turn it on there, then choose here whether Dot can.");
 });
 
@@ -50,7 +50,7 @@ test("at hiring it speaks for itself, and changes its mind when you switch it of
 });
 
 test("no line says “it” for the assistant, and none uses a dash", () => {
-  const lines = [webLabel(she), webChat(she), webDetail(she), webNeededLine("Muse", "Finds good prices", she), webBlockedDetail("Muse", true), webTerm("x", true)];
+  const lines = [webLabel(she), webChat(she), webDetail(she), webNeededLine("Moss", "Finds good prices", she), webBlockedDetail("Moss", true), webTerm("x", true)];
   for (const l of lines) {
     assert.doesNotMatch(l, /\bit (works|sees|knows)\b/);
     assert.doesNotMatch(l, /[—–]/);

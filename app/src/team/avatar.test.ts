@@ -8,12 +8,12 @@ import { avatarFromSeed, nameFromSeed, personalityFromSeed } from "../../../lib/
 const SEEDS = Array.from({ length: 200 }, (_, i) => `seed-${i}`);
 
 test("the same seed gives the same character, name and personality", () => {
-  for (const s of ["muse", "dot", "wren", "", "🦊"]) {
+  for (const s of ["moss", "dot", "wren", "", "🦊"]) {
     assert.deepEqual(avatarFromSeed(s), avatarFromSeed(s));
     assert.deepEqual(personalityFromSeed(s), personalityFromSeed(s));
     assert.equal(nameFromSeed(s), nameFromSeed(s));
   }
-  assert.equal(avatarFromSeed("muse").seed, "muse");
+  assert.equal(avatarFromSeed("moss").seed, "moss");
 });
 
 test("different seeds give a spread of characters", () => {

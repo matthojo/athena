@@ -261,7 +261,7 @@ export interface TeamDraft {
   seed: string;
 }
 
-/** What an assistant answered when main Ask checked with it (check_with_assistant): "Checked with Muse". */
+/** What an assistant answered when main Ask checked with it (check_with_assistant): "Checked with Moss". */
 export interface CheckedAssistant {
   assistant_id: string;
   name: string;

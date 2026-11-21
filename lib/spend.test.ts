@@ -78,8 +78,8 @@ test("money in words", () => {
   assert.equal(allowStep(1350), 1000);
   assert.equal(areaName({ area: "assistant", name: null }), "A deleted assistant");
   assert.equal(
-    budgetReplyText({ scope: "assistant", name: "Muse", currency: "GBP", locale: "en-GB", limit: 0.5, step: 1, resets_at: "" }),
-    "Muse has used today's £0.50, so it has stopped until midnight. The rest of Athena carries on.",
+    budgetReplyText({ scope: "assistant", name: "Moss", currency: "GBP", locale: "en-GB", limit: 0.5, step: 1, resets_at: "" }),
+    "Moss has used today's £0.50, so it has stopped until midnight. The rest of Athena carries on.",
   );
 });
 

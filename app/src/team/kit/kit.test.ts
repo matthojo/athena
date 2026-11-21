@@ -21,9 +21,9 @@ test("the same seed always gives the same character, name and personality", () =
     assert.deepEqual(personalityFromSeed(s), personalityFromSeed(s));
     assert.equal(avatarMarkup(avatarFromSeed(s)), avatarMarkup(avatarFromSeed(s)));
   }
-  assert.deepEqual(avatarFromSeed("muse"), {
-    ...avatarFromSeed("muse"),
-    seed: "muse",
+  assert.deepEqual(avatarFromSeed("moss"), {
+    ...avatarFromSeed("moss"),
+    seed: "moss",
     v: 1,
   });
 });
@@ -165,6 +165,8 @@ test("names are short, friendly and unique", () => {
   assert.equal(new Set(NAMES).size, NAMES.length);
   for (const n of NAMES) assert.match(n, /^[A-Z][a-z]{1,8}$/);
   assert.ok(!NAMES.includes("Athena" as never) && !NAMES.includes("Ask" as never));
+  // Not an AI model's name either: Meta's Muse is offered in Settings → AI models, so an assistant called Muse would read as the model.
+  assert.ok(!NAMES.includes("Muse" as never));
 });
 
 test("personality: a tone, two different traits, a pronoun and a greeting", () => {
@@ -247,7 +249,7 @@ test("coats can be told apart at a glance", () => {
 });
 
 test("dark mode: every coloured fill carries its dark value; markup alone stays light", () => {
-  const svg = avatarMarkup({ ...avatarFromSeed("muse"), accessories: ["headphones"] });
+  const svg = avatarMarkup({ ...avatarFromSeed("moss"), accessories: ["headphones"] });
   const tags = svg.match(/<[a-z]+\b[^>]*\sfill="#[0-9a-f]{3,6}"[^>]*>/gi) ?? [];
   for (const t of tags) {
     const fill = /\sfill="(#[0-9a-f]+)"/i.exec(t)![1].toLowerCase();
@@ -268,11 +270,11 @@ test("the avatar stylesheet uses motion tokens and honours reduced motion", () =
 });
 
 test("nameFromSeed skips names already on the team", () => {
-  const first = nameFromSeed("muse");
-  const second = nameFromSeed("muse", [first]);
+  const first = nameFromSeed("moss");
+  const second = nameFromSeed("moss", [first]);
   assert.notEqual(first, second);
-  assert.equal(second, nameFromSeed("muse", [first.toUpperCase()]));
-  assert.equal(nameFromSeed("muse", []), first);
+  assert.equal(second, nameFromSeed("moss", [first.toUpperCase()]));
+  assert.equal(nameFromSeed("moss", []), first);
 });
 
 test("a monster's antenna stalks carry the coat's dark shade, used only in dark mode", () => {

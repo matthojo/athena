@@ -121,14 +121,14 @@ test("a single run's summary: its reply without citations, then what waits for G
 });
 
 test("a run's nudge is From <Name>, with the avatar, and opens the conversation", () => {
-  const avatar = avatarFromSeed("muse");
-  const n = teamNudge({ id: "a1", name: "Muse", avatar }, { id: "r1", thread_id: "t1", summary: "Found it for £40. One change waits for you to tap Go.", finished_at: "2026-11-12T10:00:00.000Z", started_at: "2026-11-12T09:59:00.000Z" }, { kind: "event", days: [], time: null, event: { source: "saved", savedAction: "gift_idea" } });
+  const avatar = avatarFromSeed("moss");
+  const n = teamNudge({ id: "a1", name: "Moss", avatar }, { id: "r1", thread_id: "t1", summary: "Found it for £40. One change waits for you to tap Go.", finished_at: "2026-11-12T10:00:00.000Z", started_at: "2026-11-12T09:59:00.000Z" }, { kind: "event", days: [], time: null, event: { source: "saved", savedAction: "gift_idea" } });
   assert.equal(n.rule, "team");
   assert.equal(n.key, "team:r1");
-  assert.equal(n.title, "From Muse");
+  assert.equal(n.title, "From Moss");
   assert.equal(n.thread_id, "t1");
-  assert.deepEqual(n.assistant, { id: "a1", name: "Muse", avatar });
-  assert.match(n.why[0], /Muse runs when you file something as a gift idea/);
+  assert.deepEqual(n.assistant, { id: "a1", name: "Moss", avatar });
+  assert.match(n.why[0], /Moss runs when you file something as a gift idea/);
   assert.match(n.why[1], /waits for you to tap Go/);
   assert.equal(n.expires_at, "2026-11-13T06:00:00.000Z");
 });
@@ -152,7 +152,7 @@ test("runLabel: the owner's side of a run's conversation, never the prompt", () 
 
 test("a routine check is quiet; a new best, a change of state or a reached target is news, told first", async () => {
   const { runWords, isRoutineCheck } = await import("./team-run");
-  const muse = { name: "Muse", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" } } as never;
+  const moss = { name: "Moss", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" } } as never;
   type News = { best: boolean; changed: boolean; target_reached: boolean; tell: boolean; line: string; value: string };
   const kept = (detail: string, news?: News) => ({ kind: "tracker" as const, action: "created" as const, detail, ...(news ? { news } : {}) });
   const quiet = { best: false, changed: false, target_reached: false, tell: false, line: "£34 at Smyths.", value: "£34" };
@@ -169,18 +169,18 @@ test("a routine check is quiet; a new best, a change of state or a reached targe
   assert.equal(isRoutineCheck(kept("Price checked · £32 at Smyths · Lowest yet")), false);
   assert.equal(isRoutineCheck(kept("Stock checked · In stock at Smyths · Was sold out")), false);
   assert.equal(isRoutineCheck({ kind: "tracker", action: "created", detail: "Tracking the price" }), false, "starting to track is told");
-  assert.equal(runWords(muse, { text: "Still £34 at Smyths.", found: true, changes: [same], planned: 0 }).quiet, true, "nothing new: no card");
-  assert.equal(runWords(muse, { text: "It's down to £32 at Smyths, the lowest yet.", found: true, changes: [low], planned: 0 }).quiet, false, "a new low is told");
-  assert.equal(runWords(muse, { text: "£29 at Smyths, under the £30 you asked for.", found: true, changes: [target], planned: 0 }).quiet, false, "a reached target is told");
-  assert.equal(runWords(muse, { text: "Still £34. I added it to your gift list.", found: true, changes: [same, { kind: "list", action: "created" } as never], planned: 0 }).quiet, false, "another change is told");
-  assert.equal(runWords(muse, { text: "Still £34 at Smyths.", found: true, changes: [same], planned: 1 }).quiet, false, "something waiting for Go is told");
-  assert.equal(runWords(muse, { text: "It's back in stock at John Lewis.", found: true, changes: [], planned: 0 }).quiet, false, "news with nothing kept is told");
+  assert.equal(runWords(moss, { text: "Still £34 at Smyths.", found: true, changes: [same], planned: 0 }).quiet, true, "nothing new: no card");
+  assert.equal(runWords(moss, { text: "It's down to £32 at Smyths, the lowest yet.", found: true, changes: [low], planned: 0 }).quiet, false, "a new low is told");
+  assert.equal(runWords(moss, { text: "£29 at Smyths, under the £30 you asked for.", found: true, changes: [target], planned: 0 }).quiet, false, "a reached target is told");
+  assert.equal(runWords(moss, { text: "Still £34. I added it to your gift list.", found: true, changes: [same, { kind: "list", action: "created" } as never], planned: 0 }).quiet, false, "another change is told");
+  assert.equal(runWords(moss, { text: "Still £34 at Smyths.", found: true, changes: [same], planned: 1 }).quiet, false, "something waiting for Go is told");
+  assert.equal(runWords(moss, { text: "It's back in stock at John Lewis.", found: true, changes: [], planned: 0 }).quiet, false, "news with nothing kept is told");
   // News goes first: a reply that buried it gets its line before the rest; one that led with it is left alone.
-  const buried = runWords(muse, { text: "I checked three shops today.", found: true, changes: [same, target], planned: 0 });
+  const buried = runWords(moss, { text: "I checked three shops today.", found: true, changes: [same, target], planned: 0 });
   assert.match(buried.text, /^£29 at Smyths, under the £30 you asked for\. I checked three shops today\./);
   assert.match(buried.summary, /^£29 at Smyths, under the £30 you asked for\./);
-  const led = runWords(muse, { text: "£29 at Smyths now, under your £30.", found: true, changes: [target], planned: 0 });
+  const led = runWords(moss, { text: "£29 at Smyths now, under your £30.", found: true, changes: [target], planned: 0 });
   assert.equal(led.text, "£29 at Smyths now, under your £30.");
-  const silent = runWords(muse, { text: "", found: true, changes: [stock], planned: 0 });
+  const silent = runWords(moss, { text: "", found: true, changes: [stock], planned: 0 });
   assert.equal(silent.text, "In stock at Smyths, since 16 Nov. It was sold out before.");
 });

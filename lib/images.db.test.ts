@@ -287,7 +287,7 @@ test("only in chats: an assistant's chat has it; a check, a routine and a carefu
     await runAsk("Draw a cat", deps(m.client), { ...opts, thread_id: randomUUID(), ...more });
     return m.tools(0).some((t) => t.name === "make_image");
   };
-  const persona = { id: randomUUID(), name: "Muse", prompt: "You are Muse.", allow: [], readOnly: false, planRule: "" };
+  const persona = { id: randomUUID(), name: "Moss", prompt: "You are Moss.", allow: [], readOnly: false, planRule: "" };
   assert.equal(await offered({}), true, "Ask");
   assert.equal(await offered({ persona }), true, "an assistant's chat");
   assert.equal(await offered({ persona: { ...persona, readOnly: true } }), false, "a check");

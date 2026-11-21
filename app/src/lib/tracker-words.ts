@@ -159,7 +159,7 @@ export function hostOf(url: string | null | undefined): string | null {
 /** Where a check was read: the site's own name, else its host. Null when neither is known. */
 export const sourceOf = (p: Pick<TrackerPoint, "source" | "url">): string | null => p.source?.trim() || hostOf(p.url);
 
-/** Who checked: "When you saved it", "You", "Ask", "Muse". */
+/** Who checked: "When you saved it", "You", "Ask", "Moss". */
 export function checkerWords(p: Pick<TrackerPoint, "checked_by" | "who">): string {
   if (p.checked_by === "save") return "When you saved it";
   if (p.checked_by === "owner") return "You";
@@ -167,7 +167,7 @@ export function checkerWords(p: Pick<TrackerPoint, "checked_by" | "who">): strin
   return p.who ?? "An assistant";
 }
 
-/** "Muse checked 42 minutes ago", "You checked yesterday". Null for the save itself. */
+/** "Moss checked 42 minutes ago", "You checked yesterday". Null for the save itself. */
 export function checkedLine(p: TrackerPoint, now = new Date()): string | null {
   if (p.checked_by === "save") return null;
   return `${p.checked_by === "owner" ? "You" : checkerWords(p)} checked ${agoWords(p.checked_at, now)}`;
@@ -537,7 +537,7 @@ export function whoState(t: Pick<Tracker, "assistant_id" | "assistant_set_by">, 
   return { kind: "nobody" };
 }
 
-/** "Muse checks this", "You check this", "Nobody is checking this yet". */
+/** "Moss checks this", "You check this", "Nobody is checking this yet". */
 export function whoWords(s: WhoState): string {
   if (s.kind === "assistant") return `${s.name} checks this`;
   return s.kind === "owner" ? "You check this" : "Nobody is checking this yet";

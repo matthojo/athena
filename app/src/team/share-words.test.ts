@@ -25,8 +25,8 @@ test("accounts and needs", () => {
 });
 
 test("where it came from, and who made it", () => {
-  assert.equal(fromWords({ source: { kind: "link", url: "https://github.com/sample-author/athena-assistants/tree/main/muse", at: "" } }), "From github.com/sample-author/athena-assistants");
-  assert.equal(fromWords({ source: { kind: "upload", file: "muse.zip", at: "" } }), "From muse.zip");
+  assert.equal(fromWords({ source: { kind: "link", url: "https://github.com/sample-author/athena-assistants/tree/main/moss", at: "" } }), "From github.com/sample-author/athena-assistants");
+  assert.equal(fromWords({ source: { kind: "upload", file: "moss.zip", at: "" } }), "From moss.zip");
   assert.equal(creditWords({ author: "sample-author", version: "1.2.0" }), "By @sample-author · version 1.2.0");
   assert.equal(creditWords({ version: "2" }), "Version 2");
   assert.equal(creditWords({}), "");

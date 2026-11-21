@@ -840,7 +840,7 @@ export interface RunRecord {
   waiting: number;
 }
 
-/** "Muse runs when you file something as a gift idea." A flow that isn't one of its triggers: "Muse runs your flow “…”." Pure. */
+/** "Moss runs when you file something as a gift idea." A flow that isn't one of its triggers: "Moss runs your flow “…”." Pure. */
 function whenLine(a: Pick<TeamAssistant, "name">, trigger: Pick<TeamTrigger, "kind" | "days" | "time" | "event"> | null, flowName?: string): string {
   if (flowName) return `${a.name} runs your flow “${flowName}”.`;
   if (trigger?.kind === "schedule" && trigger.time) return `${a.name} runs ${scheduleWords({ days: trigger.days, time: trigger.time }).replace(/^Every/, "every").replace(/^Weekdays/, "on weekdays").replace(/^Weekends/, "at weekends")}.`;
@@ -849,7 +849,7 @@ function whenLine(a: Pick<TeamAssistant, "name">, trigger: Pick<TeamTrigger, "ki
 }
 
 /**
- * "From Muse": the run's summary in her voice, the avatar, and a card that opens the conversation. A failed run's
+ * "From Moss": the run's summary in her voice, the avatar, and a card that opens the conversation. A failed run's
  * card says it didn't finish and what to do. The "Why" says when it runs and what it did alone, from the record. Pure.
  */
 export function teamNudge(

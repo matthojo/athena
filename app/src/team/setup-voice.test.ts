@@ -41,12 +41,12 @@ test("next run reads as a day and a time", () => {
 test("every tone has a line for every moment, with no stray AI phrasing", () => {
   for (const tone of ["warm", "crisp", "playful", "calm", "wry"] as const) {
     const p = { tone, traits: [], pronoun: "they" as const, greeting: "" };
-    const lines = [voice.intro(p, "Muse"), voice.ask(p, 3), voice.thanks(p), voice.skipped(p), voice.firstDay(p)];
+    const lines = [voice.intro(p, "Moss"), voice.ask(p, 3), voice.thanks(p), voice.skipped(p), voice.firstDay(p)];
     for (const l of lines) {
       assert.ok(l.length > 0 && l.length <= 60, `${tone}: "${l}"`);
       assert.doesNotMatch(l, /—|delve|seamless|journey|excited to|agent|teammate/i);
     }
-    assert.match(voice.intro(p, "Muse"), /Muse/);
+    assert.match(voice.intro(p, "Moss"), /Moss/);
   }
   assert.equal(voice.ask({ tone: "crisp", traits: [], pronoun: "she", greeting: "" }, 1), "One quick question.");
   assert.equal(voice.intro(null, "Dot"), "Hi, I'm Dot. Happy to help with this.");

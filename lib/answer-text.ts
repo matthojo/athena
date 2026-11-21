@@ -125,7 +125,7 @@ export interface AnswerReply {
   asks?: AskQuestion[];
   /** The owner's skills this answer used (lib/skills-ask.ts): the "Used" line under it. */
   skills?: UsedSkill[];
-  /** Team assistants main Ask checked with (check_with_assistant): "Checked with Muse", and what each said. Each is also a source of kind "assistant". */
+  /** Team assistants main Ask checked with (check_with_assistant): "Checked with Moss", and what each said. Each is also a source of kind "assistant". */
   checked?: Array<{ assistant_id: string; name: string; question: string; answer: string }>;
   /** Said by this Team assistant, not main Ask (lib/team-chat.ts). */
   assistant_id?: string;

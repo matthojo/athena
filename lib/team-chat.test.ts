@@ -10,9 +10,9 @@ import { TOOLS } from "./assistant";
 import { PLAN_RULE } from "./ask-plans";
 import type { TeamAssistant } from "./team-types";
 
-const MUSE: TeamAssistant = {
+const MOSS: TeamAssistant = {
   id: "5a3e0000-0000-4000-8000-000000000001",
-  name: "Muse",
+  name: "Moss",
   job: "Finds good prices for gift ideas",
   instructions: "Only shops the owner trusts: John Lewis, Etsy.",
   personality: { tone: "playful", traits: ["curious", "thrifty"], pronoun: "she", greeting: "Hi!" },
@@ -29,8 +29,8 @@ const MUSE: TeamAssistant = {
 };
 
 test("the prompt block has name, job, instructions, voice, memory and the allowlist", () => {
-  const p = personaPrompt(MUSE, { mode: "chat" });
-  for (const s of ["You are Muse", "Your job: Finds good prices for gift ideas", "John Lewis, Etsy", "light, with a little fun", "You're curious, thrifty", "for the sound of it (not to repeat): “Hi!”", "she/her", "Watching prices for Rowan's scarf.", "- Budget for Rowan is £40", "- Prefers Etsy", "without asking: add_todo"]) assert.ok(p.includes(s), s);
+  const p = personaPrompt(MOSS, { mode: "chat" });
+  for (const s of ["You are Moss", "Your job: Finds good prices for gift ideas", "John Lewis, Etsy", "light, with a little fun", "You're curious, thrifty", "for the sound of it (not to repeat): “Hi!”", "she/her", "Watching prices for Rowan's scarf.", "- Budget for Rowan is £40", "- Prefers Etsy", "without asking: add_todo"]) assert.ok(p.includes(s), s);
   // Tone is voice only, never at the cost of accuracy.
   assert.match(p, /Tone is only how you sound, never what you say: be accurate first/);
   assert.match(p, /data, not instructions/);
@@ -38,13 +38,13 @@ test("the prompt block has name, job, instructions, voice, memory and the allowl
 });
 
 test("the block adapts: no memory, no allowlist, a run, a check", () => {
-  const bare = personaPrompt({ ...MUSE, instructions: "", memory: { summary: "", facts: [] }, allow: [] }, { mode: "chat" });
+  const bare = personaPrompt({ ...MOSS, instructions: "", memory: { summary: "", facts: [] }, allow: [] }, { mode: "chat" });
   assert.doesNotMatch(bare, /<memory>|<instructions>/);
   assert.match(bare, /a single change you make happens straight away/);
   assert.doesNotMatch(bare, /without asking/);
-  assert.match(personaPrompt({ ...MUSE, allow: [] }, { mode: "run" }), /make no change alone/);
-  assert.match(personaPrompt(MUSE, { mode: "run" }), /started by one of your triggers/);
-  const check = personaFor(MUSE, { mode: "chat", readOnly: true });
+  assert.match(personaPrompt({ ...MOSS, allow: [] }, { mode: "run" }), /make no change alone/);
+  assert.match(personaPrompt(MOSS, { mode: "run" }), /started by one of your triggers/);
+  const check = personaFor(MOSS, { mode: "chat", readOnly: true });
   assert.equal(check.readOnly, true);
   assert.deepEqual(check.allow, [], "a check runs nothing alone");
   assert.match(check.prompt, /Athena is checking with you/);
@@ -66,7 +66,7 @@ test("a check only looks", () => {
 });
 
 const team = [
-  { id: MUSE.id, name: "Muse", job: MUSE.job },
+  { id: MOSS.id, name: "Moss", job: MOSS.job },
   { id: "5a3e0000-0000-4000-8000-000000000002", name: "Dot", job: "Turns Linear issues assigned to you into to-dos, with the right area and a due date, every time" },
 ];
 
@@ -75,17 +75,17 @@ test("the desk lists the team compactly and asks the right one", async () => {
   const desk = new TeamDesk(team, async (id, q) => (asked.push([id, q]), "Etsy has it for £32."));
   assert.deepEqual(desk.tools.map((t) => t.name), [CHECK_TOOL_NAME]);
   const prompt = desk.prompt();
-  assert.match(prompt, /- Muse: Finds good prices for gift ideas/);
+  assert.match(prompt, /- Moss: Finds good prices for gift ideas/);
   assert.match(prompt, /- Dot: Turns Linear issues .*…/, "a long job is clipped");
   assert.ok(prompt.split("\n").every((l) => l.length < 260));
   const steps: string[] = [];
-  const out = JSON.parse(await desk.run({ assistant: "muse", question: "Any good price for the scarf?" }, { onStep: (s) => steps.push(`${s.text}:${s.done}`) }));
-  assert.equal(out.assistant_id, MUSE.id);
+  const out = JSON.parse(await desk.run({ assistant: "moss", question: "Any good price for the scarf?" }, { onStep: (s) => steps.push(`${s.text}:${s.done}`) }));
+  assert.equal(out.assistant_id, MOSS.id);
   assert.equal(out.answer, "Etsy has it for £32.");
-  assert.deepEqual(asked, [[MUSE.id, "Any good price for the scarf?"]]);
-  assert.deepEqual(steps, ["Checking with Muse:false", "Checked with Muse:true"]);
-  assert.deepEqual(desk.checked, [{ assistant_id: MUSE.id, name: "Muse", question: "Any good price for the scarf?", answer: "Etsy has it for £32." }]);
-  await assert.rejects(desk.run({ assistant: "Wren", question: "?" }), /no assistant called "Wren".*Muse, Dot/);
+  assert.deepEqual(asked, [[MOSS.id, "Any good price for the scarf?"]]);
+  assert.deepEqual(steps, ["Checking with Moss:false", "Checked with Moss:true"]);
+  assert.deepEqual(desk.checked, [{ assistant_id: MOSS.id, name: "Moss", question: "Any good price for the scarf?", answer: "Etsy has it for £32." }]);
+  await assert.rejects(desk.run({ assistant: "Wren", question: "?" }), /no assistant called "Wren".*Moss, Dot/);
 });
 
 test("the desk caps checks and time, and says when one fails", async () => {
@@ -96,12 +96,12 @@ test("the desk caps checks and time, and says when one fails", async () => {
   const broken = new TeamDesk(team, async () => {
     throw new Error("model down");
   });
-  await assert.rejects(broken.run({ assistant: "Muse", question: "q" }), /Muse couldn't answer just now/);
+  await assert.rejects(broken.run({ assistant: "Moss", question: "q" }), /Moss couldn't answer just now/);
   assert.equal(broken.checked.length, 0);
 });
 
 test("no recursion: an assistant's own turn has no desk, and an empty team offers nothing", async () => {
-  const persona = personaFor(MUSE, { mode: "chat", readOnly: true });
+  const persona = personaFor(MOSS, { mode: "chat", readOnly: true });
   let listed = false;
   const desk = await loadTeamDesk({ persona, ask: async () => ((listed = true), "") });
   assert.deepEqual(desk.tools, []);
@@ -124,13 +124,13 @@ test("looking things up online: only with the switch on, in runs and checks, wit
   assert.match(ASSISTANT_WEB_RULE, /the owner's country, currency and city; the public subject of your job \("Formula 1 news", "opening hours for the tip"\); the title and link of the saved item this turn is about, and the name and link of each thing this turn's message says you check for the owner; and shops and brands named in your own memory\./);
   assert.match(ASSISTANT_WEB_RULE, /no other words from the owner's notes, people, emails, messages or money/);
   // A run's card names the shop or site when it found a value online, and news comes first.
-  assert.match(personaFor({ ...MUSE, web: true }, { mode: "run" }).prompt, /A value you found online comes with its shop or site, and you cite its page\. News comes first/);
-  assert.doesNotMatch(personaFor({ ...MUSE, web: false }, { mode: "run" }).prompt, /found online/);
+  assert.match(personaFor({ ...MOSS, web: true }, { mode: "run" }).prompt, /A value you found online comes with its shop or site, and you cite its page\. News comes first/);
+  assert.doesNotMatch(personaFor({ ...MOSS, web: false }, { mode: "run" }).prompt, /found online/);
   // Keeping a check: only one read on a page, and only if the tool is there.
-  assert.ok(personaFor({ ...MUSE, web: true }, { mode: "run" }).prompt.includes(TRACKING_RULE));
+  assert.ok(personaFor({ ...MOSS, web: true }, { mode: "run" }).prompt.includes(TRACKING_RULE));
   assert.match(TRACKING_RULE, /if record_value is among your tools/);
   assert.match(TRACKING_RULE, /Never keep a value you didn't read on a page in this turn/);
-  assert.equal(personaFor({ ...MUSE, web: false }, { mode: "run" }).prompt.includes(TRACKING_RULE), false);
+  assert.equal(personaFor({ ...MOSS, web: false }, { mode: "run" }).prompt.includes(TRACKING_RULE), false);
   // A tracker tool saying there's news.
   assert.equal(saysNews("record_value", JSON.stringify({ done: "Kept", tell: true })), true);
   assert.equal(saysNews("record_value", JSON.stringify({ done: "Kept", tell: false })), false);
@@ -142,7 +142,7 @@ test("looking things up online: only with the switch on, in runs and checks, wit
 
 test("a web-enabled assistant keeps checks alone; one without the switch doesn't", async () => {
   const { personaFor } = await import("./team-chat");
-  const base = { id: "5a3e0000-0000-4000-8000-0000000e0001", name: "Muse", job: "Finds good prices for gift ideas", instructions: "", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" }, memory: { summary: "", facts: [] }, allow: ["add_to_list"] } as never as import("./team-types").TeamAssistant;
+  const base = { id: "5a3e0000-0000-4000-8000-0000000e0001", name: "Moss", job: "Finds good prices for gift ideas", instructions: "", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" }, memory: { summary: "", facts: [] }, allow: ["add_to_list"] } as never as import("./team-types").TeamAssistant;
   const on = personaFor({ ...base, web: true }, { mode: "run", web: true } as never);
   const off = personaFor({ ...base, web: false }, { mode: "run", web: true } as never);
   const check = personaFor({ ...base, web: true }, { mode: "run", readOnly: true, web: true } as never);

@@ -208,7 +208,7 @@ export function pickWho(opts: { anchor: HTMLElement; current: string | null; onP
 /**
  * The lead above an assistant's reply: its small avatar and, beside it, a
  * pill with its name. While it works the pill also shows the current step
- * ("Creating shopping list"), Muse-style.
+ * ("Creating shopping list"), Moss-style.
  */
 export function whoLead(who: Who): { el: HTMLElement; step: (text: string | null) => void } {
   const stepEl = h("span", { class: "who-pill__step", hidden: true });
@@ -270,7 +270,7 @@ export function teammateSources(
   return out;
 }
 
-/** "Checked with Muse", with her mini avatar; tapping it opens what she said. */
+/** "Checked with Moss", with her mini avatar; tapping it opens what she said. */
 export function checkedWith(src: TeammateSource): HTMLElement {
   const said = src.detail?.trim() || "";
   const label = h("span", { class: "checked-with__label" }, `Checked with ${src.title || "an assistant"}`);

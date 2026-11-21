@@ -48,7 +48,7 @@ test("events: matched to event triggers, each claimed once, batched per assistan
   const { listTeamRuns } = await import("./team-run");
   const { qRaw } = await import("./db");
 
-  const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas", triggers: [{ kind: "event", event: { source: "saved", savedAction: "gift-idea" } }] });
+  const moss = await createAssistant({ name: "Moss", job: "Finds prices for gift ideas", triggers: [{ kind: "event", event: { source: "saved", savedAction: "gift-idea" } }] });
   const dot = await createAssistant({ name: "Dot", job: "Linear issues to to-dos", triggers: [{ kind: "event", event: { source: "collected", connector: "linear", match: "bug" } }] });
   const off = await createAssistant({ name: "Off", job: "Paused", paused: true, triggers: [{ kind: "event", event: { source: "saved" } }] });
   await ageTriggers();
@@ -61,7 +61,7 @@ test("events: matched to event triggers, each claimed once, batched per assistan
   await emitTeamEvent("nope" as never, null, null, {});
 
   const runs = await queueTeamRuns(new Date(), TZ);
-  assert.deepEqual(runs.map((r) => r.assistant_id).sort(), [muse.id, dot.id].sort());
+  assert.deepEqual(runs.map((r) => r.assistant_id).sort(), [moss.id, dot.id].sort());
   assert.ok(runs.every((r) => r.status === "queued" && r.event_id && r.trigger_id));
   assert.equal((await listTeamRuns(off.id)).length, 0, "a paused assistant doesn't fire");
   const [{ n }] = await qRaw<{ n: number }>(`SELECT count(*)::int AS n FROM team_events WHERE processed_at IS NULL`);
@@ -128,8 +128,8 @@ test("a run: the turn's thread, reply and plan make the record; nothing is logge
   const { logChanges, listActivity } = await import("./ask-activity");
   const { qRaw } = await import("./db");
 
-  const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas", allow: ["add_todo"], personality: { tone: "crisp", traits: [], pronoun: "she", greeting: "" } });
-  const queued = await enqueueTeamRun(muse.id);
+  const moss = await createAssistant({ name: "Moss", job: "Finds prices for gift ideas", allow: ["add_todo"], personality: { tone: "crisp", traits: [], pronoun: "she", greeting: "" } });
+  const queued = await enqueueTeamRun(moss.id);
   const asked: Array<{ prompt: string; opts: TurnOptions }> = [];
   const done = await runTeamRun(queued.id, {
     // As runAssistantTurn does in run mode: the allowed change ran and is logged, the rest is one plan for Go.
@@ -161,11 +161,11 @@ test("a run: the turn's thread, reply and plan make the record; nothing is logge
   assert.deepEqual((await listActivity({ limit: 10 })).map((e) => [e.source, e.change.title]), [["team", "Compare prices"]], "logged once, by the turn, and shown as the team's");
   const [{ n }] = await qRaw<{ n: number }>(`SELECT count(*)::int AS n FROM ask_threads WHERE id = $1::uuid`, [THREAD]);
   assert.equal(n, 0, "the runner doesn't save the conversation (the turn does)");
-  assert.ok((await getAssistant(muse.id))!.last_run_at);
+  assert.ok((await getAssistant(moss.id))!.last_run_at);
 
   // Claimed once: a second start does nothing.
   assert.equal(await runTeamRun(queued.id, { turn: async () => assert.fail("ran twice") }), null);
-  assert.deepEqual((await listTeamRuns(muse.id)).map((r) => r.id), [queued.id]);
+  assert.deepEqual((await listTeamRuns(moss.id)).map((r) => r.id), [queued.id]);
   assert.equal((await getTeamRun(queued.id))!.status, "done");
 });
 
@@ -242,7 +242,7 @@ test("Home keeps one card per assistant: a newer run's card closes the same assi
   const { listLiveNudges } = await import("./proactive/store");
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE nudges, nudge_mutes`);
-  const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas" });
+  const moss = await createAssistant({ name: "Moss", job: "Finds prices for gift ideas" });
   const dot = await createAssistant({ name: "Dot", job: "Turns Linear issues into to-dos" });
   const deps = { canPush: false, send: async () => undefined, quiet: null };
   const run = async (id: string, text: string, thread: string) => {
@@ -251,14 +251,14 @@ test("Home keeps one card per assistant: a newer run's card closes the same assi
     await deliverTeamNudges(midday(), TZ, deps);
     return queued.id;
   };
-  const first = await run(muse.id, "Found the Lego Ferrari for £34.", "00000000-0000-4000-8000-0000000000a1");
+  const first = await run(moss.id, "Found the Lego Ferrari for £34.", "00000000-0000-4000-8000-0000000000a1");
   const dots = await run(dot.id, "Three issues came in, all already on your list.", "00000000-0000-4000-8000-0000000000a2");
-  const second = await run(muse.id, "Still £34 at Smyths.", "00000000-0000-4000-8000-0000000000a3");
+  const second = await run(moss.id, "Still £34 at Smyths.", "00000000-0000-4000-8000-0000000000a3");
 
   const live = await listLiveNudges();
-  assert.deepEqual(live.map((n) => n.key).sort(), [`team:${dots}`, `team:${second}`].sort(), "Muse's newest and Dot's");
+  assert.deepEqual(live.map((n) => n.key).sort(), [`team:${dots}`, `team:${second}`].sort(), "Moss's newest and Dot's");
   const [old] = await qRaw<{ dismissed_at: string | null }>(`SELECT dismissed_at FROM nudges WHERE key = $1`, [`team:${first}`]);
-  assert.ok(old.dismissed_at, "Muse's older card is closed, not deleted (its key still stops a resend)");
+  assert.ok(old.dismissed_at, "Moss's older card is closed, not deleted (its key still stops a resend)");
   assert.deepEqual(await deliverTeamNudges(midday(), TZ, deps), { sent: 0, held: 0 }, "nothing is sent again");
 });
 
@@ -364,7 +364,7 @@ test("something you do hands its run off at once; a hand-off that fails waits fo
   const { queueTeamRuns, startTeamEvent } = await import("./team-triggers");
   const { getTeamRun, handOffQueuedRuns, failStaleRuns, runTeamRun } = await import("./team-run");
   const { qRaw } = await import("./db");
-  const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas", triggers: [{ kind: "event", event: { source: "saved", savedAction: "gift-idea" } }] });
+  const moss = await createAssistant({ name: "Moss", job: "Finds prices for gift ideas", triggers: [{ kind: "event", event: { source: "saved", savedAction: "gift-idea" } }] });
   await ageTriggers();
   const origin = "https://athena.test";
 
@@ -372,7 +372,7 @@ test("something you do hands its run off at once; a hand-off that fails waits fo
     // A gift idea: claimed, queued and handed off straight away, labelled with what you saved.
     const fn = fakeFunction();
     const [run] = await startTeamEvent("saved", "s1", "saved", { savedAction: "gift_idea", title: "Lego Ferrari" }, { origin, fetchImpl: fn.fetchImpl });
-    assert.equal(run.assistant_id, muse.id);
+    assert.equal(run.assistant_id, moss.id);
     assert.equal(run.status, "queued");
     assert.equal(run.label, "New gift idea: “Lego Ferrari”");
     assert.deepEqual(fn.runs, [run.id], "handed off once, now");
@@ -406,7 +406,7 @@ test("something you do hands its run off at once; a hand-off that fails waits fo
     // Still never picked up after 10 minutes: it fails, with a line saying so.
     await qRaw(`UPDATE team_runs SET started_at = now() - interval '11 minutes' WHERE id = $1::uuid`, [stuck.id]);
     assert.equal(await failStaleRuns(), 1);
-    assert.equal((await getTeamRun(stuck.id))!.error, "The run couldn't start. Ask Muse about it in a chat.");
+    assert.equal((await getTeamRun(stuck.id))!.error, "The run couldn't start. Ask Moss about it in a chat.");
 
     // No address to hand off to: the event waits for the pass, which queues it as before.
     const saved = process.env.URL;

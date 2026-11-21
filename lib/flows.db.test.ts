@@ -265,12 +265,12 @@ test("the routes: list, make, the catalogue, run by hand, hand over and take bac
   assert.equal((await call("GET", `flows/runs/${ran.body.run.id}`))!.body.run.id, ran.body.run.id);
   const dry = (await call("POST", `flows/${id}/run`, { dry: true }))!;
   assert.equal(dry.body.run.dry, true);
-  const muse = await createAssistant({ name: "Muse", job: "Finds good prices for gift ideas" });
-  const handedTo = (await call("POST", `flows/${id}/hand`, { assistant_id: muse.id }))!.body.flow;
-  assert.equal(handedTo.assistant_id, muse.id);
+  const moss = await createAssistant({ name: "Moss", job: "Finds good prices for gift ideas" });
+  const handedTo = (await call("POST", `flows/${id}/hand`, { assistant_id: moss.id }))!.body.flow;
+  assert.equal(handedTo.assistant_id, moss.id);
   assert.ok(handedTo.handed_at);
   const fresh = (await call("POST", `flows/${id}/hand`, { assistant_id: "new" }))!.body.flow;
-  assert.notEqual(fresh.assistant_id, muse.id);
+  assert.notEqual(fresh.assistant_id, moss.id);
   assert.ok(fresh.assistant_id);
   const back = (await call("POST", `flows/${id}/take-back`))!.body.flow;
   assert.equal(back.assistant_id, null);

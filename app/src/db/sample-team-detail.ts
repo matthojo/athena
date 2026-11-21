@@ -19,14 +19,14 @@ export { sampleRunThreadId };
 export const sampleRunHistory = (assistantId: string): TeamRun[] => sampleRuns(assistantId);
 
 const STEPS: Record<string, string[]> = {
-  [SAMPLE_TEAM_IDS.muse]: ["Looking at your gift ideas", "Searching the web for Lego Technic prices", "Reading smyths.co.uk", "Reading johnlewis.com"],
+  [SAMPLE_TEAM_IDS.moss]: ["Looking at your gift ideas", "Searching the web for Lego Technic prices", "Reading smyths.co.uk", "Reading johnlewis.com"],
   [SAMPLE_TEAM_IDS.dot]: ["Reading new Linear issues", "Checking your to-dos"],
   [SAMPLE_TEAM_IDS.wren]: ["Reading your week", "Writing it up"],
 };
 
-/** Muse with her web switch off: she can only go on the prices you saved. */
+/** Moss with her web switch off: she can only go on the prices you saved. */
 const OFFLINE: Record<string, string[]> = {
-  [SAMPLE_TEAM_IDS.muse]: ["Looking at your gift ideas", "Checking the prices you saved"],
+  [SAMPLE_TEAM_IDS.moss]: ["Looking at your gift ideas", "Checking the prices you saved"],
 };
 
 /** What a sample Run now says it's doing, this far in. One that may look things up online says what it searched and read. */
@@ -36,7 +36,7 @@ export function sampleRunStep(assistantId: string, ageMs: number, web = true): s
 }
 
 const DONE: Record<string, string> = {
-  [SAMPLE_TEAM_IDS.muse]: "Checked your 6 gift ideas. Nothing has dropped in price since Tuesday.",
+  [SAMPLE_TEAM_IDS.moss]: "Checked your 6 gift ideas. Nothing has dropped in price since Tuesday.",
   [SAMPLE_TEAM_IDS.dot]: "No new issues since this morning, so nothing to add.",
   [SAMPLE_TEAM_IDS.wren]: "Your week so far: 7 to-dos done, 2 meetings, and nothing has slipped yet.",
 };
@@ -57,9 +57,9 @@ const todo = (n: number, title: string): AssistantChange => ({
   undo: { op: "sample" },
 });
 
-/** What a few runs said in full, beyond their summary: Muse's Lego Ferrari and Dot's three issues, with Dot's plan. */
+/** What a few runs said in full, beyond their summary: Moss's Lego Ferrari and Dot's three issues, with Dot's plan. */
 const REPLIES: Record<string, () => Partial<Extract<AskThread["messages"][number], { role: "assistant" }>>> = {
-  // Muse's Lego Technic Ferrari Daytona, this afternoon.
+  // Moss's Lego Technic Ferrari Daytona, this afternoon.
   "5a3e0000-0000-4000-8000-0000000e0201": () => ({
     reply: {
       text: "Found the Lego Ferrari for £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas, so I'd get it there. I've put the price and the link on Rowan's gift idea.",

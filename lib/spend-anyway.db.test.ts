@@ -141,15 +141,15 @@ test("an assistant run waits when the budget can't be checked: back in the queue
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants, ask_routines, ask_plans, ask_activity, nudges, nudge_mutes CASCADE`);
   // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
   await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
-  const muse = await createAssistant({ name: "Muse", job: "Finds prices for gift ideas", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" }, triggers: [{ kind: "schedule", days: [1, 2, 3, 4, 5], time: "09:00" }] });
+  const moss = await createAssistant({ name: "Moss", job: "Finds prices for gift ideas", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" }, triggers: [{ kind: "schedule", days: [1, 2, 3, 4, 5], time: "09:00" }] });
   await setBudget(5);
   const made: string[] = [];
   const client = { messages: { create: async (p: { model: string }) => (made.push(p.model), message("end_turn")) } } as never;
   const turn = async () => {
     await createMessage(client, { model: "claude-sonnet-5-5", max_tokens: 10, messages: [{ role: "user", content: "go" }] }, Date.now() + 60_000);
-    return { assistant_id: muse.id, thread_id: null, text: "Two prices found.", reply: { text: "Two prices found.", found: true, changes: [] } as never };
+    return { assistant_id: moss.id, thread_id: null, text: "Two prices found.", reply: { text: "Two prices found.", found: true, changes: [] } as never };
   };
-  const queued = await enqueueTeamRun(muse.id, { triggerId: muse.triggers[0].id });
+  const queued = await enqueueTeamRun(moss.id, { triggerId: moss.triggers[0].id });
   await away(true);
   let waited;
   try {

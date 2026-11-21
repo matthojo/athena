@@ -1115,7 +1115,7 @@ function voiceOf(node: HTMLElement, name: string): void {
   }
 }
 
-/** Sample mode's Muse (db/sample-team.ts), whom Athena checks with about gift prices. */
+/** Sample mode's Moss (db/sample-team.ts), whom Athena checks with about gift prices. */
 const SAMPLE_MUSE_ID = "5a3e0000-0000-4000-8000-0000000e0001";
 /** What a teammate said when Ask checked with it (reply.checked, from check_with_assistant). */
 type CheckedReply = { assistant_id: string; name: string; question?: string; answer: string };
@@ -2352,7 +2352,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   /**
    * A reply in a conversation with an assistant carries its small avatar and
    * name, with the current step in the pill while it works. Any reply that
-   * checked with a teammate says so: "Checked with Muse".
+   * checked with a teammate says so: "Checked with Moss".
    */
   function leadWith(node: HTMLElement, m: Message, c: Chat) {
     if (m.role === "me") return;
@@ -2362,7 +2362,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
     if (chips.length) (node.querySelector<HTMLElement>(":scope > .assist") ?? node.querySelector<HTMLElement>(":scope > .bubble") ?? node).prepend(...chips);
     if (!c.assistant_id) return;
     const name = who.id === c.assistant_id ? who.name : "";
-    // Its own words under its reply and plan: "Done by Muse", "Muse suggests", never "the Agent" or "your routine".
+    // Its own words under its reply and plan: "Done by Moss", "Moss suggests", never "the Agent" or "your routine".
     if (name) {
       const said: Record<string, string> = { "Done by the Agent": `Done by ${name}`, "Planned by the Agent": `Planned by ${name}`, "From the Agent": `From ${name}` };
       const foot = node.querySelector<HTMLElement>(".assist__foot");
@@ -3631,18 +3631,18 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
           const think = onlyModel(c).model ?? thinkingModel((await loadModels().catch(() => null))?.effective, c.assistant_id);
           return { text: `In sample mode I can keep and show ${names}, but not read ${one ? "it" : "them"}. Connect Athena and I'll read ${one ? "it" : "them"} for you.`, sources: [], related: [], searched: "Kept on this device", skipped: [], found: false, flagged: false, ...(think ? { model: think } : {}) } as AskReply;
         }
-        // Asking Athena about the Lego Ferrari: she checks with Muse, who watches gift prices (docs/team.md, "Checked with Muse").
+        // Asking Athena about the Lego Ferrari: she checks with Moss, who watches gift prices (docs/team.md, "Checked with Moss").
         if (!c.assistant_id && /\b(lego|ferrari)\b/i.test(q)) {
-          await playSampleSteps([["Checking with Muse", "Checked with Muse"]], step);
+          await playSampleSteps([["Checking with Moss", "Checked with Moss"]], step);
           const said = "The Lego Ferrari is £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas.";
-          const checked = { text: "It's down to £34 at Smyths, £8 less than when you saved it [1].", sources: [{ n: 1, kind: "assistant", id: SAMPLE_MUSE_ID, url: null, title: "Muse", date: null, account: null } as unknown as AnswerSource], related: [], searched: "Checked with Muse", skipped: [], found: true, flagged: false, checked: [{ assistant_id: SAMPLE_MUSE_ID, name: "Muse", question: q, answer: said }] };
+          const checked = { text: "It's down to £34 at Smyths, £8 less than when you saved it [1].", sources: [{ n: 1, kind: "assistant", id: SAMPLE_MUSE_ID, url: null, title: "Moss", date: null, account: null } as unknown as AnswerSource], related: [], searched: "Checked with Moss", skipped: [], found: true, flagged: false, checked: [{ assistant_id: SAMPLE_MUSE_ID, name: "Moss", question: q, answer: said }] };
           if (text) await playSampleText(checked.text, text, stop.signal);
           return checked;
         }
-        // Talking to Muse about the Lego Ferrari: she answers from her own job, not Athena's sample answer.
+        // Talking to Moss about the Lego Ferrari: she answers from her own job, not Athena's sample answer.
         if (c.assistant_id === SAMPLE_MUSE_ID && /\b(lego|ferrari|price|gift)/i.test(q)) {
           await playSampleSteps([["Looking at your gift ideas", "Looked at your gift ideas"], ["Checking prices", "Checked prices"]], step);
-          // Muse thinks with Gemini 3.5 Flash in sample mode: her replies say so (components/ask-picture.ts modelLine).
+          // Moss thinks with Gemini 3.5 Flash in sample mode: her replies say so (components/ask-picture.ts modelLine).
           const own = { text: "The Lego Ferrari is £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas, so I'd get it there.", sources: [], related: [], searched: "Checked prices", skipped: [], found: true, flagged: false, model: { provider: "gemini" as const, model: "gemini-3.5-flash" } };
           if (text) await playSampleText(own.text, text, stop.signal);
           return own;
