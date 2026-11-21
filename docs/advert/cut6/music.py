@@ -101,13 +101,13 @@ FLOWSTEP = min(max(round((_f if _f is not None else 62.4) / S16) * S16, 61.2), 6
 BED_AT, BED_RMS = 0.1, -35.5  # the opening reed bed: starts swelling at 0.1 s, -35.5 dBFS RMS over 0.9-2.4 s
 # phone voicing (cut 5: 9.5 / 8.5 / 5.0, no mud cut): the wooden instruments pile up at 250-500 Hz, so a broad
 # dip there (MUD_DB) and a bell / shelf a little under cut 5's: brighter than the raw band, a touch softer than cut 5
-AIR_DB, PRESENCE_DB, LOWCUT_DB, MUD_DB = 8.0, 8.0, 5.0, -3.0
+AIR_DB, PRESENCE_DB, LOWCUT_DB, MUD_DB = 8.0, 9.5, 5.0, -3.0      # r1: +1.5 dB at 2.8 kHz for phones
 BUILD_BASS = (0.45, 0.03)     # rotation build: bass climb gain a + b*beat
 BUILD_KICK = (0.60, 0.015)    # rotation build: kick gain a + b*beat (roll hits x0.6)
 BUILD_RIDE = (-2.0, 0.5)      # the build's bed ridden from -4 to +0.5 LU against the pull-back (see ride_build)
 ARRIVE_LIFT_DB = 0.5          # bus ride over the arrival (see main)
 STEP_LIFT_DB = 1.5            # and over the bar after the step down (the second-biggest moment)
-PULL_LIFT_DB = 1.5            # and over the pull-back's first beat and a bit, after the hit itself
+PULL_LIFT_DB = 3.0            # and over the pull-back's first beat and a bit, after the hit itself
 CHORD_DB = float(os.environ.get("CHORD_DB", -7.5))   # final chord bus level (cut 5: -5.5, limited 4 dB)
 MUSIC_LUFS = -15.0            # the intermediate master (mix.py trims the bed 3 dB and masters again to -15)
 PENT = [74, 76, 78, 81, 83, 86, 88, 90, 93, 95, 98, 100]     # D major pentatonic, D5 up to E7
@@ -470,7 +470,7 @@ def build():
     #      each note damped just before the next, as a player's thumb stops the tine it just played (the last rings)
     for j, (t, m) in enumerate(zip(TILES, TILE_NOTES)):
         d = round(TILES[j + 1] - t - 0.004, 4) if j + 1 < len(TILES) else 1.2
-        add("tile", hook_note(m, d), t, 0.62 + 0.04 * j, pan=-0.28 + 0.08 * j)
+        add("tile", hook_note(m, d), t, 0.40 + 0.03 * j, pan=-0.28 + 0.08 * j)   # r1: was the 2nd-loudest moment
         add("tile", glock_note(m + 12, d if j + 1 < len(TILES) else 1.0, 0.7), t, 0.16, pan=0.28 - 0.08 * j)
 
     # ---- the band, bar by bar

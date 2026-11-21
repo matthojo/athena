@@ -41,6 +41,7 @@ SHOT_START = {"home": 9.6, "ask": 14.4, "saved": 24.0, "track": 31.2, "music": 3
               "hire": 50.4, "flows": 60.0}
 STOP, GREAT, DROPOUT = 78.0, 79.2, (64.2, 64.8)
 FLOWS, FLOWSTEP_DEFAULT = 60.0, 62.4           # music.py's default for flows.steps
+SUGGEST_RESOLVE = 0.45      # the suggestion card resolves this long after flows.suggest (r1: 60.33-60.47)
 LATE_FROM = 59.95           # motion data from cut 5's timeline: events after this moved by the Great's difference
 STEP_DEFAULT, ARRIVE_DEFAULT = 48.0, 55.2      # music.py's defaults for work.stepDown and hire.arrive
 STEP_LEAD, HELLO_LEN = 0.6, 0.36               # sfx.stepdown lands this far in; sfx.hello is said by here
@@ -63,7 +64,7 @@ MOVES = {
 PLACEHOLDER_NEAR = 1.0      # a named move the peaks file lacks gets its placeholder only if no peak is this close
 FINALE_LABELS = ("checkin", "finale", "card", "lift", "good-days")   # the card rising after the dead cut
 IN_SHOT_GAIN = -5           # in-shot reframes (saved-open, team-open, ...): a lighter touch
-LABEL_GAIN = {"saved-watch": -1}   # in-shot moves that carry a story beat (the poster flying into Watch & read)
+LABEL_GAIN = {"saved-watch": -1, "ask-saved": 4, "track-music": 4}   # story-beat moves; r1: two section moves were masked
 SKIP_LABELS = ("orb",)      # the Great -> orb morph: the logo tag carries it; a whoosh there measured inaudible
 SOFT_CUTS = ("cut.hire",)   # a state swap inside a continuous push in, not a camera cut: no accent, keep the whoosh
 CUT_NEAR = 0.35             # a camera peak this close to a hard cut is the move the cut replaced: no whoosh
@@ -199,7 +200,7 @@ def build_cues(film=None, verbose=True):
 
     def tap(t, gain=8):
         if not fpress:
-            add("press", t, gain)
+            add("press", t, gain - 6)          # r1: taps 6 dB down (softer)
 
     # ---- whooshes: one per camera move, onset 0.17 s before its fastest frame
     peaks = [(lbl, t + late if t > LATE_FROM else t, px) for lbl, t, px in motion_peaks(film)]
@@ -273,7 +274,7 @@ def build_cues(film=None, verbose=True):
     add("key3", t_paste, 4)                                # V: the link appears
     add("select", t_paste + 0.01, 0)
     t_land = ev("saved", "posterLoaded", "cardLand", rel=("paste", t_paste)) or t_paste + 0.6
-    add("drop", t_land, 5)                                 # a soft land as the film card fades in
+    add("drop", t_land, 0)                                 # a soft land as the film card fades in (r1: 5 was too loud)
     t_open = ev("saved", "open", anchor=27.0)
     tap(t_open - 0.04, 8)                                  # tap the card
     t_move = ev("saved", "move", anchor=28.2)
@@ -388,7 +389,7 @@ def build_cues(film=None, verbose=True):
     #      (the music's kalimba run lands on flows.steps; a small plink per step row on top), the switch turns on
     t_sug = ev("flows", "suggest", "card", film_only=True)
     if t_sug is not None and FLOWS - 0.1 <= t_sug < FLOWSTEP_DEFAULT + 1.2:
-        add("pop2", on_grid(t_sug), 2)
+        add("pop2", on_grid(t_sug + SUGGEST_RESOLVE), 2)     # r1: on the card's resolve, not its first frame
     t_make = ev("flows", "make", "makeFlow", anchor=61.5)
     tap(t_make - 0.04, 6)
     rows = sorted(v / 1000.0 for k, v in fev.items() if k.startswith("flows.step") and k[10:].isdigit()
@@ -397,8 +398,7 @@ def build_cues(film=None, verbose=True):
     if rows:
         for j, tr in enumerate(rows[:4]):
             add(f"flowstep{j + 1}", on_grid(tr), 4)
-    else:
-        add("flowstep1", t_steps + BEAT / 2, 4)   # half a beat after the run's landing, so both are heard
+    # (no rows: no plink; r1: the music's kalimba landing carries the steps' arrival)
     t_on = ev("flows", "on", "switchOn", film_only=True)
     if t_on is not None and t_on > t_steps:
         add("toggle", on_grid(t_on), 2)
@@ -423,9 +423,9 @@ def build_cues(film=None, verbose=True):
         if t - last < 0.03:
             continue
         last = t
-        g = 4 if 2.9 < t < 5.2 else (6 if t < 2.6 or abs(t - GREAT) < 0.05 else 8)   # the tile run softer
+        g = 0 if 2.9 < t < 5.2 else (1 if t < 2.6 or abs(t - GREAT) < 0.05 else 2)   # r1: -6 dB, taps were +20-28 over the bed
         if SHOT_START["track"] <= t < SHOT_START["music"]:
-            g = 6                                            # r1 sound: 11 stuck out over the sparse bars
+            g = 1                                            # r1 sound: 11 stuck out over the sparse bars
         add("press", t - 0.02, g)
 
     # the cut accent: full on a bare cut, a touch under when something else (Penny's voice) lands with it

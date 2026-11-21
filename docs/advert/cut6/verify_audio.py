@@ -63,7 +63,7 @@ TARGET_LUFS, TP_MIX = -15.0, -1.5
 EVENT_OF = {  # cue -> (film-events key, cue time relative to the event) for the cut 5 beats
     "set": ("track.targetSet", 0.0), "penny": ("work.working", 0.0), "stepdown": ("work.stepDown", -0.6),
     "reached": ("work.reached", 0.3), "hello": ("hire.hello", 0.0), "chip": ("home.lateChip", 0.0),
-    "toggle": ("flows.on", 0.0), "pop2": ("flows.suggest", 0.0)}
+    "toggle": ("flows.on", 0.0), "pop2": ("flows.suggest", 0.45)}
 
 
 def check_cues(x):
@@ -120,9 +120,9 @@ def check_cues(x):
             if abs(dv) > 60 and nm not in ("reached", "hello", "chip"):
                 ok = False
                 evs += " CHECK"
-        # a weak match (< 0.5) is masking or a tonal look-alike in the music (a kalimba / glockenspiel note a cue
+        # a weak match (< 0.4) is masking or a tonal look-alike in the music (a kalimba / glockenspiel note a cue
         # shares its pitch with), not a slip: mix.py places every cue sample-exact
-        flag = "" if strength < 0.5 or abs(off) <= 5 else " CHECK"
+        flag = "" if strength < 0.4 or abs(off) <= 5 else " CHECK"
         print(f"    {nm:11s} {c['at']:7.3f}  {off:+5.1f} ms (match {strength:.2f})  {over:+5.1f} dB{evs}{flag}")
         if nm in ("set", "penny", "stepdown", "reached", "hello") and over < 0.0:
             print(f"      CHECK {nm} is under the music in 2-8 kHz")
@@ -247,7 +247,7 @@ def check(name):
         return float(mom[m_].max())
     tag = mx(M.TAG + 0.4, M.TAG + 2.0)
     arr, stp = mx(M.ARRIVE, M.ARRIVE + 1.0), mx(M.STEP, M.STEP + 1.2)
-    others = {nm_: mx(a_, b_) for nm_, a_, b_ in (("home", 9.6, 14.4), ("ask", 14.4, 24.0), ("saved", 24.0, 31.2),
+    others = {nm_: mx(a_, b_) for nm_, a_, b_ in (("tiles", 2.4, 7.2), ("dive", 7.2, 9.6), ("home", 9.6, 14.4), ("ask", 14.4, 24.0), ("saved", 24.0, 31.2),
               ("team 1", 31.2, 36.0), ("music", 36.0, 40.8), ("habits", 40.8, 43.4), ("search", 43.6, M.STEP),
               ("hire", M.HIRE + 0.4, M.ARRIVE), ("team page", M.ARRIVE + 1.4, M.FLOWS),
               ("flows", M.FLOWS, M.DROPOUT[0]))}
@@ -288,7 +288,7 @@ def check(name):
     # cut 5: the "reached" bar is the second-biggest moment: over everything before the pull-back, under the chord
     rb = (tM > M.STEP + 0.4) & (tM <= M.STEP + M.BAR + 1e-9)
     reached = float(mom[rb].mean())
-    before = max(lm[k][0] for k in lm if k.split(" ")[-1] in ("home", "thin", "full", "saved", "team1", "music", "habits", "search", "hire", "arrival", "page", "card", "steps"))
+    before = max(lm[k][0] for k in lm if k.split(" ")[-1] in ("tiles", "dive", "home", "thin", "full", "saved", "team1", "music", "habits", "search", "hire", "arrival", "page", "card", "steps"))
     r_ok = reached >= before + (0.3 if name == 'mix' else -0.5) and reached <= lm["chord"][0] - 1.0
     print(f"  reached bar {reached:.1f} LUFS: loudest section before the pull-back otherwise {before:.1f}, chord "
           f"{lm['chord'][0]:.1f} -> {'OK' if r_ok else 'CHECK'}")
