@@ -1587,8 +1587,10 @@ CREATE TABLE IF NOT EXISTS flow_runs (
   dry BOOLEAN NOT NULL DEFAULT false,
   resumes_at TIMESTAMPTZ,
   waiting_since TIMESTAMPTZ,
-  plan_id UUID REFERENCES ask_plans (id) ON DELETE SET NULL,
-  assignment_id UUID REFERENCES team_assignments (id) ON DELETE SET NULL,
+  -- No foreign keys: a run whose plan or assignment is gone is ended by the reminders job (lib/flow-run.ts), and
+  -- tables other features empty in their tests (ask_plans) stay free to truncate.
+  plan_id UUID,
+  assignment_id UUID,
   notices_pending BOOLEAN NOT NULL DEFAULT false,
   made TEXT[] NOT NULL DEFAULT '{}',
   event_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
