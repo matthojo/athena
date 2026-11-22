@@ -3,6 +3,34 @@
 Each release's section becomes its notes on GitHub. Merging a new version
 into `main` publishes it (`.github/workflows/release.yml`).
 
+## 1.1.0
+
+Flows, and Team assistants you can share.
+
+- Flows: a trigger, then steps. A flow starts on a schedule, when something
+  arrives, before an event or a date, or when you tap Run now. Its steps look
+  things up, add to Athena, ask you, wait or tell you, and a check can send it
+  down one of two paths. Make one under Flows → New, by saying "whenever…" in
+  Ask, or take one Athena suggests from your habits.
+- Adding a reminder, a to-do or a line on a list runs on its own. Anything
+  else, including drafting an email or a message, waits for your Go, and
+  Athena never sends a draft. A flow's changes show in What Ask did as
+  "Flow: <name>", and Settings → Notifications has a switch for Flows.
+- Team assistants run flows. Athena turns each assistant's triggers into
+  flows it runs on the first reminders pass after you update, and its runs
+  and cards look as before. Let an assistant run one of your flows and it can
+  add steps that work something out, like looking online for a better price.
+  Pausing an assistant stops every flow it runs. If a run fails before doing
+  anything, Athena tries it once more.
+- Share an assistant as a file, and import one someone shared. Athena takes
+  out links into your Athena and flags anything that looks like your own
+  people, addresses or numbers. The download waits until you edit each one
+  out or mark it fine. An imported assistant joins paused and asks before
+  every change until you tick what it may do on its own.
+- Work sync reads GitHub replies it used to reject, including a search with
+  no results. When it can't read one, the error names the reply's fields
+  but not their values.
+
 ## 1.0.0
 
 The first public release.
