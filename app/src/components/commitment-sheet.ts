@@ -270,7 +270,7 @@ export function openCommitmentSheet(
     if (dead) return;
     editor = createNoteEditor({
       markdown: notes,
-      placeholder: "Add details. Type @ to link a person, a note or anything else",
+      placeholder: "Add details, or type @ to link something",
       onChange(md) {
         notes = md;
         desc.toggleAttribute("data-empty", !md.trim());
@@ -396,7 +396,10 @@ export function openCommitmentSheet(
     blockBtn.hidden = true;
     check.disabled = !rec;
     if (!rec) {
-      foot.replaceChildren(h("span", { class: "loop-sheet__hint" }, h("kbd", {}, "⌘↵"), " to add"), addBtn);
+      foot.replaceChildren(
+        h("span", { class: "loop-sheet__hint" }, h("span", { class: "todo-sheet__hint-keys" }, h("kbd", {}, "⌘↵"), " to add"), h("span", { class: "todo-sheet__hint-touch" }, "Return in the title adds it")),
+        addBtn
+      );
       return;
     }
     paintCheck(rec.status !== "open");
