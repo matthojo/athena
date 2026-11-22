@@ -26,6 +26,11 @@ import { flip } from "../lib/finish-motion";
 import type { Commitment, CommitmentKind } from "../types";
 import type { ViewId } from "../components/nav";
 import { pageHead } from "../components/page-head";
+import { parseQuickTodo, type QuickTodo } from "../../../lib/todo-quick";
+import { PRIORITY_LABEL } from "../../../lib/todo-details";
+import { priorityMark } from "../components/todo-props";
+import { dueLabel } from "../components/loop-row";
+import "../styles/todo-detail.css";
 
 export interface LoopsContext {
   go: (view: ViewId) => void;
@@ -88,6 +93,7 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
   const filters = choiceChips<Filter>("Show", FILTERS, filter, (f) => {
     filter = f;
     quick.placeholder = QUICK_PLACEHOLDER[f];
+    paintFound();
     paintBar();
     paint();
   });
@@ -122,11 +128,51 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
   const quick = h("input", { class: "quick-add__input", type: "text", name: "quick-add", placeholder: QUICK_PLACEHOLDER.all, autocomplete: "off", enterkeyhint: "done", "aria-label": "Add a to-do" }) as HTMLInputElement;
   const quickBtn = h("button", { class: "icon-btn icon-btn--sm quick-add__btn", type: "submit", "aria-label": "Add" }, icons.plus());
   const quickForm = h("form", { class: "quick-add" }, h("span", { class: "quick-add__ring", "aria-hidden": "true" }), quick, quickBtn);
+
+  // What the line reads as a date or priority ("tomorrow", "!high"), shown before it's added; one tap keeps the words as typed.
+  let keepTyped = false;
+  let parsed: QuickTodo | null = null;
+  const found = h("div", { class: "quick-found", role: "status", "aria-live": "polite", hidden: true });
+  const keepBtn = h("button", { class: "link-btn quick-found__keep", type: "button" }, "Keep as typed");
+  keepBtn.addEventListener("click", () => {
+    keepTyped = true;
+    paintFound();
+    quick.focus();
+  });
+  function paintFound() {
+    const text = quick.value;
+    parsed = !keepTyped && text.trim() && filter !== "decision" ? parseQuickTodo(text, localToday()) : null;
+    const chips: HTMLElement[] = [];
+    if (parsed?.due_on) {
+      const d = dueLabel(parsed.due_on);
+      const when = d.tone === "soon" ? d.text : new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${parsed.due_on}T12:00:00Z`));
+      chips.push(h("span", { class: "quick-found__chip" }, icons.calendar(), when));
+    }
+    if (parsed?.priority) chips.push(h("span", { class: "quick-found__chip", "data-priority": String(parsed.priority) }, priorityMark(parsed.priority), PRIORITY_LABEL[parsed.priority]));
+    found.hidden = !chips.length;
+    if (chips.length) found.replaceChildren(h("span", { class: "quick-found__lead" }, "Adds"), h("span", { class: "quick-found__title" }, `“${parsed!.title}”`), ...chips, keepBtn);
+  }
+  quick.addEventListener("input", () => {
+    if (!quick.value.trim()) keepTyped = false;
+    paintFound();
+  });
+  quick.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !found.hidden) {
+      e.preventDefault();
+      keepTyped = true;
+      paintFound();
+    }
+  });
+
   quickForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const title = quick.value.trim();
-    if (!title) return;
+    const typed = quick.value.trim();
+    if (!typed) return;
+    const read = !keepTyped && filter !== "decision" ? parseQuickTodo(typed, localToday()) : null;
+    const title = read?.title ?? typed;
     quick.value = "";
+    keepTyped = false;
+    paintFound();
     try {
       // Added while filtered to a context: it lands in that context, so it stays in view.
       const area = liveFilter(view.area);
@@ -134,11 +180,14 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
       await saveCommitment({
         title,
         kind: filter === "all" ? "todo" : filter,
+        ...(read?.due_on ? { due_on: read.due_on } : {}),
+        ...(read?.priority ? { priority: read.priority } : {}),
         ...(area && area !== "none" ? { area_id: area } : {}),
         ...(where && where !== "none" ? { where_id: where } : {}),
       });
     } catch (error) {
-      quick.value = title;
+      quick.value = typed;
+      paintFound();
       showToast(error instanceof Error ? error.message : "Couldn't add it", { icon: "wifiOff", timeoutMs: 4000 });
     }
   });
@@ -151,7 +200,7 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
   // Only the tabs, title and filters stick; the rest scrolls with the list.
   const head = pageHead({ segments: librarySegments("loops", ctx.go), title: "To do", count, actions: [add], below: [filters.el, ctxBar] });
   const list = h("div", { class: "loops__list" });
-  const el = h("div", { class: "view loops" }, head, h("div", { class: "loops__top" }, quickForm, h("div", { class: "loops__links" }, weekLink, inboxLink)), list);
+  const el = h("div", { class: "view loops" }, head, h("div", { class: "loops__top" }, quickForm, found, h("div", { class: "loops__links" }, weekLink, inboxLink)), list);
   const onScroll = () => head.classList.toggle("is-scrolled", window.scrollY > 4);
   window.addEventListener("scroll", onScroll, { passive: true });
 

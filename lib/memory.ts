@@ -34,6 +34,7 @@ import {
   matchKey,
   q,
   sealer,
+  syncContentLinks,
   tx,
   upsertEvent,
   upsertPerson,
@@ -52,6 +53,7 @@ import { parseProgress, READING_KINDS, READING_STATUSES, type ReadingKind, type 
 import { MAX_TAGS, nameList, readMeta, TAG_LENGTH, type WatchMeta } from "./watch-meta";
 import { searchableValues } from "./custom-fields";
 import { autoContext, checkContextIds, rememberCorrection, type AutoContextInput } from "./todo-contexts";
+import { cleanLinks, cleanPriority, cleanSteps, linkableText, readList, stepsText, TodoDetailsError, type TodoLink, type TodoPriority, type TodoStep } from "./todo-details";
 
 // ---------- Shared shapes ----------
 
@@ -145,6 +147,12 @@ export interface Commitment {
   where_id: string | null;
   /** Athena set the context itself; the owner picking one clears it. */
   context_by_athena: boolean;
+  /** Its checklist, in order (lib/todo-details.ts). */
+  steps: TodoStep[];
+  /** Web pages and things in Athena it points at. */
+  links: TodoLink[];
+  /** 0 none, 1 low, 2 medium, 3 high. */
+  priority: TodoPriority;
   done_at: string | null;
   archived_at: string | null;
   created_at: string;
@@ -162,6 +170,11 @@ export interface CommitmentInput extends Provenance {
   /** The owner's choice of context, by id (null clears). Remembered for the next to-do from the same sender. */
   area_id?: string | null;
   where_id?: string | null;
+  /** The whole checklist (replaces what's there): strings or { id?, text, done? }. */
+  steps?: unknown;
+  /** The whole link list (replaces what's there): addresses or { id?, url, title? }. */
+  links?: unknown;
+  priority?: unknown;
   /**
    * When Athena files it (an agent, a collection, Ask): what it knows for
    * choosing a context (lib/todo-contexts.ts autoContext). Without area_id or
@@ -176,18 +189,50 @@ const COMMITMENT_SELECT = `
     c.source, c.source_ref, c.source_quote, c.confidence,
     CASE WHEN ca.archived_at IS NULL THEN c.area_id END AS area_id,
     CASE WHEN cw.archived_at IS NULL THEN c.where_id END AS where_id,
-    c.context_by_athena, c.done_at, c.archived_at, c.created_at, c.updated_at
+    c.context_by_athena, c.steps, c.links, c.priority, c.done_at, c.archived_at, c.created_at, c.updated_at
   FROM commitments c
   LEFT JOIN people p ON p.id = c.person_id AND p.archived_at IS NULL
   LEFT JOIN todo_contexts ca ON ca.id = c.area_id
   LEFT JOIN todo_contexts cw ON cw.id = c.where_id`;
 
+/** Steps and links come back from q() as opened JSON text (or null): as lists. */
+function shapeCommitment(row: Commitment): Commitment {
+  row.steps = readList(row.steps, cleanSteps);
+  row.links = readList(row.links, cleanLinks);
+  row.priority = (row.priority ?? 0) as TodoPriority;
+  return row;
+}
+
+async function commitmentRows(text: string, params: unknown[]): Promise<Commitment[]> {
+  return (await q<Commitment>(text, params)).map(shapeCommitment);
+}
+
 export async function getCommitment(id: string, opts: { includeArchived?: boolean } = {}): Promise<Commitment | null> {
-  const [row] = await q<Commitment>(`${COMMITMENT_SELECT} WHERE c.id = $1 AND ($2::boolean OR c.archived_at IS NULL)`, [
+  const [row] = await commitmentRows(`${COMMITMENT_SELECT} WHERE c.id = $1 AND ($2::boolean OR c.archived_at IS NULL)`, [
     id,
     opts.includeArchived ?? false,
   ]);
   return row ?? null;
+}
+
+/** The details of a write, tidied: undefined where the input left them alone. Bad input is a 400. */
+function commitmentDetails(input: CommitmentInput): { steps?: TodoStep[]; links?: TodoLink[]; priority?: TodoPriority } {
+  try {
+    return {
+      steps: input.steps === undefined ? undefined : cleanSteps(input.steps),
+      links: input.links === undefined ? undefined : cleanLinks(input.links),
+      priority: cleanPriority(input.priority),
+    };
+  } catch (error) {
+    if (error instanceof TodoDetailsError) throw new AthenaInputError(error.message);
+    throw error;
+  }
+}
+
+/** Mentions in the description and links to things in Athena are the to-do's content edges. */
+async function syncCommitmentLinks(c: Commitment): Promise<void> {
+  if (isEncryptedPlaceholder(c.notes)) return;
+  await syncContentLinks(c.id, linkableText(c), "commitment");
 }
 
 /**
@@ -207,6 +252,7 @@ export async function upsertCommitment(input: CommitmentInput): Promise<Commitme
   const setArea = input.area_id !== undefined;
   const setAny = input.area_id !== undefined || input.where_id !== undefined;
   if (setAny) await checkContextIds(input);
+  const details = commitmentDetails(input);
 
   if (input.id) {
     const [row] = await q<{ id: string; source: string | null; person_id: string | null; area_id: string | null; where_id: string | null; context_by_athena: boolean }>(
@@ -221,6 +267,9 @@ export async function upsertCommitment(input: CommitmentInput): Promise<Commitme
          area_id = CASE WHEN $10::boolean THEN $11::uuid ELSE area_id END,
          where_id = CASE WHEN $12::boolean THEN $13::uuid ELSE where_id END,
          context_by_athena = CASE WHEN $10::boolean OR $12::boolean THEN false ELSE context_by_athena END,
+         steps = CASE WHEN $14::boolean THEN $15::jsonb ELSE steps END,
+         links = CASE WHEN $16::boolean THEN $17::jsonb ELSE links END,
+         priority = COALESCE($18::smallint, priority),
          updated_at = now()
        WHERE id = $1
        RETURNING id, source, person_id, area_id, where_id, context_by_athena`,
@@ -238,12 +287,19 @@ export async function upsertCommitment(input: CommitmentInput): Promise<Commitme
         input.area_id ?? null,
         input.where_id !== undefined,
         input.where_id ?? null,
+        details.steps !== undefined,
+        details.steps ? s.json(details.steps) : null,
+        details.links !== undefined,
+        details.links ? s.json(details.links) : null,
+        details.priority ?? null,
       ],
     );
     if (!row) throw new AthenaInputError(`Commitment ${input.id} not found`, 404);
     // The owner changed the context of one Athena filed: the next from the same sender follows it.
     if (setArea || input.where_id !== undefined) await rememberCorrection(row);
-    return (await getCommitment(row.id, { includeArchived: true }))!;
+    const updated = (await getCommitment(row.id, { includeArchived: true }))!;
+    if (input.notes !== undefined || details.links !== undefined) await syncCommitmentLinks(updated);
+    return updated;
   }
 
   if (!title) throw new AthenaInputError("A new commitment needs a title");
@@ -266,8 +322,8 @@ export async function upsertCommitment(input: CommitmentInput): Promise<Commitme
     ctx = { ...chosen, by_athena: !!(chosen.area_id || chosen.where_id) };
   }
   const [row] = await q<{ id: string }>(
-    `INSERT INTO commitments (title, kind, status, done_at, due_on, notes, person_id, source, source_ref, source_quote, confidence, area_id, where_id, context_by_athena)
-     VALUES ($1, $2, $3, CASE WHEN $3 = 'done' THEN now() END, $4::date, $5, $6::uuid, $7, $8, $9, $10, $11::uuid, $12::uuid, $13)
+    `INSERT INTO commitments (title, kind, status, done_at, due_on, notes, person_id, source, source_ref, source_quote, confidence, area_id, where_id, context_by_athena, steps, links, priority)
+     VALUES ($1, $2, $3, CASE WHEN $3 = 'done' THEN now() END, $4::date, $5, $6::uuid, $7, $8, $9, $10, $11::uuid, $12::uuid, $13, $14::jsonb, $15::jsonb, $16)
      RETURNING id`,
     [
       s.text(title),
@@ -283,9 +339,14 @@ export async function upsertCommitment(input: CommitmentInput): Promise<Commitme
       ctx.area_id,
       ctx.where_id,
       ctx.by_athena,
+      details.steps?.length ? s.json(details.steps) : null,
+      details.links?.length ? s.json(details.links) : null,
+      details.priority ?? 0,
     ],
   );
-  return (await getCommitment(row.id))!;
+  const created = (await getCommitment(row.id))!;
+  if (created.notes || created.links.length) await syncCommitmentLinks(created);
+  return created;
 }
 
 export async function listCommitments(
@@ -298,7 +359,7 @@ export async function listCommitments(
     limit?: number;
   } = {},
 ): Promise<Commitment[]> {
-  return q<Commitment>(
+  return commitmentRows(
     `${COMMITMENT_SELECT}
      WHERE c.archived_at IS NULL
        AND ($1::text = 'all' OR c.status = $1)
@@ -331,7 +392,7 @@ export async function listDueCommitments(date: string): Promise<Commitment[]> {
 
 /** What I've been waiting on for more than `days` days without it moving. */
 export async function listWaitingQuiet(days = 5): Promise<Commitment[]> {
-  return q<Commitment>(
+  return commitmentRows(
     `${COMMITMENT_SELECT}
      WHERE c.archived_at IS NULL AND c.status = 'open' AND c.kind = 'waiting_on'
        AND c.updated_at < now() - make_interval(days => $1::int)
@@ -1690,8 +1751,8 @@ export async function recall(query: string, limit = 20): Promise<RecallHit[]> {
   if (!parsed) return [];
   const [notes, commitments, interactions, facts, people, reading, records, custom] = await Promise.all([
     q<{ id: string; title: string; body: string; updated_at: string }>(`SELECT id, title, body, updated_at FROM notes WHERE archived_at IS NULL`),
-    q<{ id: string; title: string; notes: string; updated_at: string; person: PersonRef | null }>(
-      `SELECT c.id, c.title, c.notes, c.updated_at, ${personJson("p")} AS person
+    q<{ id: string; title: string; notes: string; steps: unknown; updated_at: string; person: PersonRef | null }>(
+      `SELECT c.id, c.title, c.notes, c.steps, c.updated_at, ${personJson("p")} AS person
        FROM commitments c LEFT JOIN people p ON p.id = c.person_id AND p.archived_at IS NULL
        WHERE c.archived_at IS NULL`,
     ),
@@ -1733,7 +1794,7 @@ export async function recall(query: string, limit = 20): Promise<RecallHit[]> {
     add({ kind: "note", id: n.id, title: n.title, snippet: headline(body, parsed), at: n.updated_at, person: null }, [field(n.title, 1), field(body, 0.4), extra(n.id)]);
   }
   for (const c of commitments) {
-    const text = joined(0.1, c.title, c.notes);
+    const text = joined(0.1, c.title, c.notes, stepsText(readList(c.steps, cleanSteps)).replace(/\[[ x]\] /g, ""));
     add({ kind: "commitment", id: c.id, title: c.title, snippet: headline(text.text, parsed), at: c.updated_at, person: c.person }, [text], 1.2);
   }
   for (const i of interactions) {

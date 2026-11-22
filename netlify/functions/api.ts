@@ -756,6 +756,10 @@ function commitmentInput(body: Record<string, unknown>): CommitmentInput {
     person_id: personId,
     area_id: nullableStr(body, "area_id"),
     where_id: nullableStr(body, "where_id"),
+    // The whole checklist and link list, and a priority; checked in upsertCommitment (lib/todo-details.ts).
+    ...(body.steps !== undefined ? { steps: body.steps } : {}),
+    ...(body.links !== undefined ? { links: body.links } : {}),
+    ...(body.priority !== undefined ? { priority: body.priority } : {}),
   };
 }
 

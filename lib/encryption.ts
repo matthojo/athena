@@ -77,7 +77,8 @@ export const ENCRYPTED: EncryptedTable[] = [
   { table: "organisations", key: ID, text: ["website", "notes"] },
   { table: "events", key: ID, text: ["title", "notes"] },
   { table: "reminders", key: ID, text: ["text"] },
-  { table: "commitments", key: ID, text: ["title", "notes", "source_quote"] },
+  // A to-do's steps and links (0084): each list one sealed JSON value.
+  { table: "commitments", key: ID, text: ["title", "notes", "source_quote"], json: ["steps", "links"] },
   { table: "interactions", key: ID, text: ["summary"] },
   { table: "facts", key: ID, text: ["value", "source_quote"] },
   {

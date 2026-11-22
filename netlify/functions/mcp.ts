@@ -520,6 +520,8 @@ function buildServer(): McpServer {
     "Record a commitment (omit id) or update one (pass id; omitted fields are left as they are). Kinds: " +
       "'todo' (something the owner must do), 'i_owe' (the owner promised someone), 'waiting_on' (someone promised the owner), " +
       "'decision' (a decision made, recorded as done; put the rationale in notes). Set status 'done' or 'dropped' to close a loop. " +
+      "A to-do can carry steps (a checklist), links (web pages, or athena://<kind>/<id> for things in Athena) and a priority. " +
+      "steps and links each replace the whole list: to change one step, pass the list back with that step changed, keeping each step's id. " +
       EXTRACTION_RULES,
     {
       id: z.string().uuid().optional(),
@@ -531,6 +533,17 @@ function buildServer(): McpServer {
       person_id: z.string().uuid().nullable().optional().describe("Counterparty: owed to / waiting on / decided with"),
       area: z.string().max(40).optional().describe("Which part of the owner's life, only when it's obvious: Work, Personal, Health, Money, Family, Home. Leave out when unsure; Athena sets it from the source and the words when it's clear"),
       where: z.string().max(40).optional().describe("Where or how it gets done, only when it's obvious: Computer, Phone, Errands, Home, Office, With someone. Leave out when unsure"),
+      steps: z
+        .array(z.union([z.string().max(300), z.object({ id: z.string().max(40).optional(), text: z.string().max(300), done: z.boolean().optional() })]))
+        .max(100)
+        .optional()
+        .describe("The checklist, in order; replaces the existing one. Plain strings for new steps: ['Call the surgery', 'Ask about the repeat']. Only when the source lists the steps"),
+      links: z
+        .array(z.union([z.string().max(2000), z.object({ id: z.string().max(40).optional(), url: z.string().max(2000), title: z.string().max(200).optional() })]))
+        .max(30)
+        .optional()
+        .describe("Pages and things in Athena it needs, replacing the existing list: https addresses, or athena://person/<id> and the like"),
+      priority: z.number().int().min(0).max(3).optional().describe("0 none (default), 1 low, 2 medium, 3 high. Only when the source says how urgent it is"),
       ...provenanceSchema,
     },
     safe(async ({ area, where, ...args }) =>

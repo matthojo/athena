@@ -651,6 +651,20 @@ delete tool.
   `lib/todo-context.ts`, which goes in order: the owner's last correction
   for that sender, a work account, words, a personal account, then the
   model's guess when it's sure. Anything unclear stays blank.
+  Since migration 0084 a to-do also has details (`lib/todo-details.ts`):
+  `notes` is its description in Markdown (the note editor, so @ links work),
+  `steps` its checklist and `links` its web pages and athena:// links, each
+  list one sealed JSON value written whole, and `priority` (0 none to 3
+  high), which orders open to-dos due on the same day. `cleanSteps` and
+  `cleanLinks` are the one set of rules for the server, sample mode and the
+  MCP tool. Athena links in the description or the links become the
+  to-do's content edges (`syncContentLinks(id, linkableText(c),
+  "commitment")`), so the graph and a person's Related chips show them; a
+  to-do deleted for good takes its edges with it. The app opens a to-do in
+  `components/commitment-sheet.ts`: a check and title, a row of property
+  pills (`todo-props.ts`: due date with a month calendar, person, priority,
+  area, where), the description, steps (`todo-steps.ts`) and links
+  (`todo-links.ts`).
 - **Interactions** (`interactions` + `interaction_people`): every catch-up,
   by channel. Logging one moves each person's `last_contacted_at` forward
   (never back), which is what clears them from catch-up nudges. Same
