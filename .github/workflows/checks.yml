@@ -23,6 +23,8 @@ jobs:
       # Database tests (*.db.test.ts) skip themselves without ATHENA_TEST_DB_URL.
       - run: npm test
       - run: npm run build
+      - name: Project website
+        run: npm run site:build
       - name: Browser extension tests
         working-directory: extension
         run: npm test

@@ -1,0 +1,63 @@
+name: Website
+
+# Builds the project website (scripts/build-site.ts) from the repository's own
+# docs and publishes it to GitHub Pages. Runs only in Athena's own repository,
+# so copies of Athena never publish a site. Pages must be set to deploy from
+# GitHub Actions (Settings → Pages → Source).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.md"
+      - LICENSE
+      - package.json
+      - extension/README.md
+      - site/**
+      - scripts/build-site.ts
+      - app/src/styles/tokens.css
+      - app/public/fonts/**
+      - app/public/icons/**
+      - .github/readme/**
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'matthojo/athena'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: Build the site
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: npm run site:build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
