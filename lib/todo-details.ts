@@ -202,14 +202,14 @@ export function stepsText(steps: readonly TodoStep[] | null | undefined): string
 
 /**
  * What a step is, for every prompt that can add one (collections, Ask, Team
- * assistants, flows, MCP). The point is restraint: most action items are
- * to-dos of their own, and a meeting's list of actions is not one to-do's
- * checklist.
+ * assistants, flows, MCP). Most action items are to-dos of their own, and a
+ * meeting's list of actions is not one to-do's checklist, so the rule leans
+ * towards leaving steps out.
  */
 export const STEPS_RULE =
   "Steps are the parts of one to-do that the owner works through to finish it, and only when the source spells them out (a checklist, " +
-  "\"first X, then Y\", the documents a form needs). Each step only makes sense inside that to-do. Anything that stands on its own is its own " +
-  "to-do, not a step: a separate promise, something for a different person or with its own due date, another person's action item, or the " +
+  "\"first X, then Y\", the documents a form needs). Each step only makes sense inside that to-do. Anything that would stand alone is a to-do in " +
+  "its own right: a separate promise, something for a different person or with its own due date, another person's action item, or the " +
   "next item in a meeting's list of actions. Don't break a simple to-do into steps, don't make up steps the source doesn't give, and leave " +
   "steps out when unsure.";
 

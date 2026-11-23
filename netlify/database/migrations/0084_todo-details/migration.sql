@@ -1,4 +1,4 @@
--- Athena — a to-do's details (lib/todo-details.ts). Additive only. Safe to run twice.
+-- Athena: a to-do's details (lib/todo-details.ts). Additive only. Safe to run twice.
 -- Mirrored at db/schema.sql.
 --
 -- `steps`: the to-do's checklist, one sealed JSON value ([{ id, text, done }]), written whole on every change.

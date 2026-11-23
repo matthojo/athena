@@ -8,7 +8,7 @@
  *      Steps 2 of 5  a checklist you can type, tick, reorder and paste into
  *      Links         web pages and things in Athena
  *
- * The kind (to do, waiting on, a decision) is a quiet switch at the top.
+ * The kind (to do, waiting on, a decision) is a row of chips at the top.
  * Existing to-dos save as you change them; a new one is created by its Add
  * button (or ⌘↵), with everything filled in so far. When an agent filed it,
  * the sheet shows where it came from and the words it was taken from, so
@@ -397,7 +397,7 @@ export function openCommitmentSheet(
     check.disabled = !rec;
     if (!rec) {
       foot.replaceChildren(
-        h("span", { class: "loop-sheet__hint" }, h("span", { class: "todo-sheet__hint-keys" }, h("kbd", {}, "⌘↵"), " to add"), h("span", { class: "todo-sheet__hint-touch" }, "Return in the title adds it")),
+        h("span", { class: "loop-sheet__hint" }, h("span", { class: "todo-sheet__hint-keys" }, h("kbd", {}, "⌘↵"), " to add"), h("span", { class: "todo-sheet__hint-touch" }, "Press Return in the title to add it")),
         addBtn
       );
       return;

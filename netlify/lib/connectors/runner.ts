@@ -1504,7 +1504,7 @@ export class AthenaWriter {
         if (same) return JSON.stringify({ id: same.id, action: "already_recorded", status: same.status });
         // The context follows this collection's account (Work, Personal), then the words; the model's guess only when it's sure.
         const context = { label: this.collection.label, suggestion: { area: input.area, where: input.where, sure: input.confidence >= 0.8 } };
-        // Steps only for a to-do, and only a real list of its own parts (lib/todo-details.ts filedSteps).
+        // Steps only for a to-do, and only a list of its own parts (lib/todo-details.ts filedSteps).
         const steps = input.kind === "decision" ? [] : filedSteps(title, input.steps);
         const fields = { title, kind: input.kind, person_id: input.person_id ?? null, due_on: input.due_on ?? null, context, ...(steps.length ? { steps } : {}) };
         const who = await this.personName(input.person_id);

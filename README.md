@@ -65,7 +65,8 @@ the project never sees your data.
 - **To do:** each to-do opens as a page of its own: a description with
   links to people and notes, steps to tick off and reorder, the web pages
   and things in Athena it needs, a priority, a due date, an area and where
-  you'll do it. The list shows how many steps are done at a glance.
+  you'll do it. On the list, each row shows its priority and how many of
+  its steps are done.
 - **Ask:** "What did Gayle say about pricing last month?" Claude searches
   your notes and, live, the accounts you've connected. It answers in a few
   sentences with numbered sources, and checks each source against what

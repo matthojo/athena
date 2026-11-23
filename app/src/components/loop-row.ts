@@ -123,7 +123,7 @@ export function loopRow(c: Commitment, opts: { onOpen: (c: Commitment) => void; 
     meta.push(last ? h("span", { class: "loop__tail" }, last, sparkle) : sparkle);
   }
 
-  // A priority leads the title, so the list reads most urgent at a glance.
+  // A priority leads the title, so the urgent ones stand out in the list.
   const prio = !decision && !done && c.priority ? h("span", { class: "loop__prio", "data-priority": String(c.priority), title: `${PRIORITY_LABEL[c.priority]} priority`, role: "img", "aria-label": `${PRIORITY_LABEL[c.priority]} priority` }, priorityMark(c.priority)) : null;
   const body = h(
     "button",

@@ -671,7 +671,7 @@ delete tool.
   takes a description, steps, links and a priority, and `change_todo` adds,
   ticks, reopens and removes steps by the ids `find_todos` returns, with
   Undo. Team assistants and flows run the same tools. A collection's
-  `athena_todo` takes `steps`, and the runner keeps them only as a real list
+  `athena_todo` takes `steps`, and the runner keeps them only as a list of the to-do's own parts
   (`filedSteps`: two to twelve, none that restate the title, none on a
   decision); one below the confidence bar waits in Review with its steps.
 - **Interactions** (`interactions` + `interaction_people`): every catch-up,

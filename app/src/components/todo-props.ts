@@ -1,10 +1,10 @@
 /**
  * A to-do's properties as a row of pills under its title: when it's due,
  * who it's with, its priority, its area and where it gets done. Each pill
- * says its value (or, quietly, what it's for) and opens a small popover to
- * change it: a month calendar with quick picks for the date, the people
- * picker, and short menus for the rest. The row reads like a sentence and
- * keeps the sheet calm; the full forms only appear when asked for.
+ * says its value (or, in grey with a dashed outline, what it's for) and
+ * opens a small popover to change it: a month calendar with quick picks for
+ * the date, the people picker, and short menus for the rest. Only the
+ * property being changed shows its picker, so the sheet stays short.
  *
  * Popovers are `popover="auto"` panels put inside the open sheet's dialog,
  * so they sit in the top layer above it and dismiss on Escape or a tap
