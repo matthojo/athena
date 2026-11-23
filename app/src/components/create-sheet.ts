@@ -22,12 +22,13 @@ import { autoTextarea, field, input, pickerInput, select } from "./fields";
 import { isSampleMode } from "../db/api";
 import { createEvent, undoCreate, type CreateProposal, type CreateResult } from "../db/scheduling";
 import { inviteLine, namesList } from "../lib/create-event";
+import { clockTime } from "../lib/clock";
 
 const first = (name: string) => name.replace(/^(dr|mr|mrs|ms)\.?\s+/i, "").split(/\s+/)[0];
 
 /** "Thu 12 Nov" in `tz`. */
 const dayLabel = (iso: string, tz: string) => new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short", day: "numeric", month: "short" }).format(new Date(iso)).replace(",", "");
-/** "14:00" in `tz`. */
+/** "14:00" in `tz`, for a time field's value. What's read is written by lib/clock.ts. */
 const timeLabel = (iso: string, tz: string) => new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
 /** YYYY-MM-DD in `tz`. */
 const dateIn = (iso: string, tz: string) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
@@ -171,7 +172,7 @@ export function openCreateSheet(source: CreateProposal | Promise<CreateProposal>
 export function createReceipt(r: CreateResult, attendees: Array<{ name: string; email: string }> = []): HTMLElement {
   const tz = r.tz;
   const names = namesList(attendees.slice(0, r.guests || attendees.length).map((a) => first(a.name || a.email)));
-  const when = `${dayLabel(r.start, tz)}, ${timeLabel(r.start, tz)}–${timeLabel(r.end, tz)}`;
+  const when = `${dayLabel(r.start, tz)}, ${clockTime(r.start, { timeZone: tz })}–${clockTime(r.end, { timeZone: tz })}`;
   const detail = h("span", { class: "change__detail" }, `${when} · ${isSampleMode() ? "sample, nothing added" : r.guests ? `${names || `${r.guests} guests`} invited` : `in ${r.calendar}`}`);
   const open = h("a", { class: "btn btn--soft btn--sm", href: r.link, target: "_blank", rel: "noopener", "aria-label": `Open ${r.title} in ${r.where}` }, icons.external(), "Open in calendar");
   const undo = h("button", { class: "btn btn--soft btn--sm change__undo", type: "button", "aria-label": `Undo: add ${r.title}` }, "Undo");
@@ -203,7 +204,7 @@ export function createReceipt(r: CreateResult, attendees: Array<{ name: string; 
 export function createCard(p: CreateProposal): HTMLElement {
   const go = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Add…");
   const receipt = h("div", { class: "slots__receipt" });
-  const meta = `${dayLabel(p.start, p.tz)}, ${timeLabel(p.start, p.tz)}–${timeLabel(p.end, p.tz)}${p.location ? ` · ${p.location}` : ""}`;
+  const meta = `${dayLabel(p.start, p.tz)}, ${clockTime(p.start, { timeZone: p.tz })}–${clockTime(p.end, { timeZone: p.tz })}${p.location ? ` · ${p.location}` : ""}`;
   const el = h(
     "section",
     { class: "card slots slots--move slots--create", "aria-label": `Add ${p.title}` },

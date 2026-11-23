@@ -33,8 +33,8 @@ test("each kind of stop is one push from that assistant, opening Team chat at it
   assert.deepEqual(pass.map((n) => [n.rule, n.title, n.url, n.key]), stops.map((p) => ["team", "From Wren", `/#/team/chat/${p.id}`, `team:post:${p.id}`]));
   assert.deepEqual(pass.map((n) => n.body), [
     "I need your answer on “Pricing page” before I go on.",
-    "My stage of “Pricing page” is done. Have a look, then tap Go.",
-    "I have a change for “Pricing page” that waits for your Go.",
+    "My stage of “Pricing page” is done. Have a look, then tap Approve.",
+    "I have a change for “Pricing page” that waits for your approval.",
     "I didn't finish my stage of “Pricing page”. Tap Go to try it again.",
     "“Pricing page” is finished. The document is ready.",
   ]);

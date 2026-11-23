@@ -201,7 +201,7 @@ export function flowLines(trigger: FlowTrigger, triggerGives: FlowValue[], steps
   const out = [triggerWords(trigger)];
   const walk = (list: FlowStep[], indent: string) => {
     for (const s of list) {
-      const waits = s.kind === "tool" && s.go === "ask" ? " (waits for Go)" : "";
+      const waits = s.kind === "tool" && s.go === "ask" ? " (waits for approval)" : "";
       out.push(`${indent}${plainWords(stepParts(s, labels))}${waits}`);
       if (s.kind === "check") {
         if (s.yes.length) (out.push(`${indent}  Yes:`), walk(s.yes, `${indent}    `));

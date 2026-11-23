@@ -281,7 +281,7 @@ export function makeSampleAssignments(t0 = Date.now()): SampleAssignments {
       tick(now);
       const a = find(id);
       const s = waitingStage(a);
-      if (!s || s.waits_for !== "approval") throw new Error("Nothing is waiting for Go here");
+      if (!s || s.waits_for !== "approval") throw new Error("Nothing is waiting for your approval here");
       settle(a, s, now);
       Object.assign(s, { status: "done", waits_for: null });
       startStage(a, a.stages[s.position + 1], now);

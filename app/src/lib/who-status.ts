@@ -6,13 +6,13 @@
  * Pure, so Home, Ask and tests share it.
  */
 import type { TeamAssistant } from "../../../lib/team-types";
+import { clockTime, uses12Hour } from "./clock";
 
 /** Athena's own line in Ask's header and the picker. */
 export const ATHENA_STATUS = "Your notes, calls and email";
 
 const DAY_MS = 86_400_000;
 
-const clock = (d: Date) => `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
 /** "linear" → "Linear", "gift-idea" → "gift ideas". */
@@ -33,11 +33,11 @@ function watching(a: Pick<TeamAssistant, "triggers">): string | null {
   return "new items";
 }
 
-export function statusLine(a: Pick<TeamAssistant, "paused" | "last_run_at" | "triggers" | "job">, now = new Date()): string {
+export function statusLine(a: Pick<TeamAssistant, "paused" | "last_run_at" | "triggers" | "job">, now = new Date(), hour12 = uses12Hour()): string {
   if (a.paused) return "Paused";
   const ran = a.last_run_at ? new Date(a.last_run_at) : null;
   const today = startOfDay(now);
-  if (ran && !Number.isNaN(ran.getTime()) && ran.getTime() >= today) return `Last ran ${clock(ran)}`;
+  if (ran && !Number.isNaN(ran.getTime()) && ran.getTime() >= today) return `Last ran ${clockTime(ran, { hour12 })}`;
   const watch = watching(a);
   if (watch) return `Watching ${watch}`;
   if (ran && ran.getTime() >= today - DAY_MS) return "Last ran yesterday";

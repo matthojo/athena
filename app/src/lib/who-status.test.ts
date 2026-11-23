@@ -10,7 +10,8 @@ const event = (e: TeamTrigger["event"]): TeamTrigger => ({ id: "t", assistant_id
 const base = { paused: false, last_run_at: null as string | null, triggers: [] as TeamTrigger[], job: "Sums up the week" };
 
 test("A run today says when", () => {
-  assert.equal(statusLine({ ...base, last_run_at: at(9, 12) }, now), "Last ran 9:12");
+  assert.equal(statusLine({ ...base, last_run_at: at(9, 12) }, now, false), "Last ran 09:12");
+  assert.equal(statusLine({ ...base, last_run_at: at(9, 12) }, now, true), "Last ran 9:12 am");
 });
 
 test("Otherwise it says what it watches", () => {

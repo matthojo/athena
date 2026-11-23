@@ -322,7 +322,7 @@ export function buildBriefing(input: BriefingInput): Briefing {
 
   const pending = input.pendingSuggestions ?? 0;
   if (pending) {
-    sections.push(`## To review\n- ${pending} ${pending === 1 ? "thing" : "things"} your collections found but weren't sure about. Open Review inbox to add or dismiss them.`);
+    sections.push(`## Inbox\n- ${pending} ${pending === 1 ? "thing" : "things"} your collections found but weren't sure about. Open your Inbox to add or dismiss them.`);
   }
 
   const body = sections.length ? sections.join("\n\n") : "Nothing scheduled, nobody overdue and nothing to review.";

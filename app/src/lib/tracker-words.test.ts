@@ -2,7 +2,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { TrackerPoint, TrackerView } from "../../../lib/tracker-types";
+import { setUses12Hour } from "./clock";
 import { reachedBy, cleanNumber, cleanStates, diffWords, meets, presetsFor, readTracker, stateRuns, summaryOf, toUnits, trackerDetail, trackerGlance, trackerSentence, valueWords, whoState, whoWords, whenWords, cantWords } from "./tracker-words";
+
+// A time in a sentence follows the device (lib/clock.ts); here it is pinned to the 24-hour clock, whatever this machine uses.
+setUses12Hour(false);
 
 // Monday 16 Nov 2026, noon local.
 const NOW = new Date(2026, 10, 16, 12, 0, 0);

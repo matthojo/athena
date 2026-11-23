@@ -194,7 +194,7 @@ const ASK_TOOLS: Anthropic.Tool[] = [
   {
     name: START_TOOL_NAME,
     description:
-      "Set up an assignment: one piece of work passed along a line of the owner's assistants with different roles (Engineer → SEO → Reviewer), ending in one document. Use it when the owner asks for work that needs more than one role, or asks for an assignment. It proposes the lineup and keeps it as a draft: nothing runs until the owner taps Go on the lineup. After calling it, say in one short sentence who's in the lineup and that it's waiting for their Go; never say it has started.",
+      "Set up an assignment: one piece of work passed along a line of the owner's assistants with different roles (Engineer → SEO → Reviewer), ending in one document. Use it when the owner asks for work that needs more than one role, or asks for an assignment. It proposes the lineup and keeps it as a draft: nothing runs until the owner taps Approve on the lineup. After calling it, say in one short sentence who's in the lineup and that it's waiting for their approval; never say it has started.",
     input_schema: {
       type: "object",
       properties: { brief: { type: "string", description: "What the owner wants done, in their words, with everything they said about it." } },
@@ -204,7 +204,7 @@ const ASK_TOOLS: Anthropic.Tool[] = [
   {
     name: CONTINUE_TOOL_NAME,
     description:
-      "Carry on with an assignment that's waiting for the owner, when they say so. With use_suggestions: true (\"continue and use all suggested routes\"), its open questions are answered as its stage suggested, and so are later ones, without stopping. Without it, a stage waiting for approval is approved. It never gives Go for a change that waits as a plan, and never starts a lineup: those take the owner's own tap.",
+      "Carry on with an assignment that's waiting for the owner, when they say so. With use_suggestions: true (\"continue and use all suggested routes\"), its open questions are answered as its stage suggested, and so are later ones, without stopping. Without it, a stage waiting for approval is approved. It never approves a change that waits as a plan, and never starts a lineup: those take the owner's own tap.",
     input_schema: {
       type: "object",
       properties: {

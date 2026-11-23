@@ -12,6 +12,7 @@ import { icons } from "./icons";
 import { showToast } from "./toast";
 import { allowMore, loadSpend, onSpendChange, saveBudget, spendSnapshot, type SpendLine, type SpendView } from "../db/spend";
 import { areaName, money, spentWords } from "../../../lib/spend-types";
+import { clockTime } from "../lib/clock";
 
 /** Spend in the owner's currency: "£1.20", "Less than £0.01". */
 export const spendMoney = (v: Pick<SpendView, "currency" | "locale">, n: number) => spentWords(n, v.currency, v.locale);
@@ -280,7 +281,7 @@ function notes(v: SpendView): HTMLElement {
   const when = (iso: string) => {
     const d = new Date(iso);
     const today = new Date().toDateString() === d.toDateString();
-    return today ? `at ${new Intl.DateTimeFormat(v.locale, { hour: "2-digit", minute: "2-digit" }).format(d)} today` : `on ${new Intl.DateTimeFormat(v.locale, { day: "numeric", month: "short" }).format(d)}`;
+    return today ? `at ${clockTime(d)} today` : `on ${new Intl.DateTimeFormat(v.locale, { day: "numeric", month: "short" }).format(d)}`;
   };
   if (v.rate_missing) out.push(h("p", { class: "settings__note spend-note" }, icons.globe(), h("span", {}, "Shown in dollars until Athena can get an exchange rate for your currency.")));
   else if (v.rate)

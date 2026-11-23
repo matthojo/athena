@@ -23,7 +23,7 @@ import { isSampleMode } from "../db/api";
 import { dismissSampleReport } from "../db/sample-team-reports";
 import { openAskOnNudge } from "../lib/ask-nudge";
 import { teamNudgeFrom, teamNudgeName } from "../lib/team-nudge";
-import { jobsToday, jobsWords, liveRuns, ownWords, reviewWords, runWaits, saysNothing, splitReport, teamWorkingSentence, waitsWords, workingWords } from "../lib/team-report";
+import { jobsToday, jobsWords, liveRuns, ownWords, reviewWords, runWaits, saysNothing, splitReport, teamHomeLine, teamWorkingSentence, waitsWords, workingWords } from "../lib/team-report";
 import { loadTeam } from "./ask-who";
 import { causeWords, clock } from "../team/page-words";
 import type { AvatarSpec } from "../../../lib/team-types";
@@ -77,9 +77,15 @@ export interface TeamReportView {
 /**
  * The team's card. `onShown` says whether it has anything (so For you can
  * hide when nothing at all is there), and fires again when that changes.
+ *
+ * `quiet` (Home) folds it to one line, "Moss is working. Wren reported
+ * back.", which opens to the reports. It starts open only while a report
+ * needs approval, and then that report is the one said in full.
  */
-export function teamReport(opts: { onShown: (shown: boolean) => void; onGone: () => void }): TeamReportView {
-  const el = h("article", { class: "card team-report", "aria-label": "From your team", hidden: true });
+export function teamReport(opts: { onShown: (shown: boolean) => void; onGone: () => void; quiet?: boolean }): TeamReportView {
+  const el = h("article", { class: `card team-report${opts.quiet ? " is-quiet" : ""}`, "aria-label": "From your team", hidden: true });
+  /** Whether the quiet line is open: the owner's choice once made, else open only while something needs approval. */
+  let unfolded: boolean | null = null;
   const live = h("p", { class: "visually-hidden", role: "status", "aria-live": "polite" });
   let nudges: AppNudge[] = [];
   let runs: TeamRun[] = [];
@@ -208,11 +214,31 @@ export function teamReport(opts: { onShown: (shown: boolean) => void; onGone: ()
     const reports = await reportsNow();
     if (destroyed || n !== drawn) return !el.hidden;
     const working = liveRuns(runs).map(workingRow).filter((x): x is HTMLElement => !!x);
-    const rows = reports.map((r, i) => (i === 0 || opened.has(r.n.id) ? fullRow(r) : lineRow(r)));
+    const needs = reports.some((r) => r.waits > 0);
+    // Quiet: only a report that needs approval is said in full; the rest are a line each.
+    const rows = reports.map((r, i) => ((opts.quiet ? r.waits > 0 && i === 0 : i === 0) || opened.has(r.n.id) ? fullRow(r) : lineRow(r)));
     // A report that arrived while Home was open settles in, so you see it come back from the job; the first draw stays still.
     if (seen) rows.forEach((row, i) => !seen!.has(reports[i].n.id) && row.classList.add("is-new"));
     seen = new Set([...(seen ?? []), ...reports.map((r) => r.n.id)]);
-    el.replaceChildren(...(working.length ? [h("div", { class: "team-report__now-list" }, ...working)] : []), ...rows, live);
+    const body = [...(working.length ? [h("div", { class: "team-report__now-list" }, ...working)] : []), ...rows];
+    if (opts.quiet) {
+      const open = unfolded ?? needs;
+      const names = liveRuns(runs).map((r) => team.find((a) => a.id === r.assistant_id)?.name).filter((x): x is string => !!x);
+      const line = teamHomeLine(names, reports.filter((r) => r.waits > 0).map((r) => r.name), reports.map((r) => r.name));
+      const faces = [...new Map(reports.map((r) => [r.name, r.avatar] as const)).values()].slice(0, 3);
+      const summary = h(
+        "button",
+        { class: "team-report__summary", type: "button", "aria-expanded": String(open), "aria-controls": "team-report-body" },
+        faces.length ? h("span", { class: "team-report__faces", "aria-hidden": "true" }, ...faces.map((a) => face(a, 28))) : null,
+        h("span", { class: "team-report__line-text" }, line || "Your team"),
+        h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronDown())
+      );
+      summary.addEventListener("click", () => {
+        unfolded = !open;
+        void paint().then(() => el.querySelector<HTMLElement>(".team-report__summary")?.focus());
+      });
+      el.replaceChildren(summary, h("div", { class: "team-report__body", id: "team-report-body", hidden: !open }, ...body), live);
+    } else el.replaceChildren(...body, live);
     const sentence = teamWorkingSentence(liveRuns(runs).map((r) => team.find((a) => a.id === r.assistant_id)?.name).filter((x): x is string => !!x));
     if ((live.textContent || null) !== sentence) live.textContent = sentence ?? "";
     const shown = working.length + rows.length > 0;

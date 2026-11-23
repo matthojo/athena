@@ -110,6 +110,8 @@ export const icons = {
   hourglass: () =>
     svg(base(`<path d="M7 3.5h10M7 20.5h10"/><path d="M8 3.5v2.2a4 4 0 0 0 1.6 3.2L12 10.7l2.4-1.8A4 4 0 0 0 16 5.7V3.5M8 20.5v-2.2a4 4 0 0 1 1.6-3.2l2.4-1.8 2.4 1.8a4 4 0 0 1 1.6 3.2v2.2"/>`)),
   flag: () => svg(base(`<path d="M5.5 20.5v-16"/><path d="M5.5 5h11.3l-2.3 3.8 2.3 3.7H5.5"/>`)),
+  /** Flows: one step leading to the next. To do keeps the turning arrows (loop). */
+  flow: () => svg(base(`<circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/><path d="M6.5 9v4.5a4 4 0 0 0 4 4H15"/><path d="M11 6.5h3.5a3 3 0 0 1 3 3V11"/>`)),
   loop: () =>
     svg(base(`<path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3l2.2 2.3"/><path d="M19.5 4.5V9H15"/><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3l-2.2-2.3"/><path d="M4.5 19.5V15H9"/>`)),
   chat: () => svg(base(`<path d="M5 18.5V7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v6a2.5 2.5 0 0 1-2.5 2.5H8.2z"/><path d="M9 10h6M9 12.8h3.5"/>`)),

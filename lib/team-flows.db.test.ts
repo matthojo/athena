@@ -244,7 +244,7 @@ test("a job flow's run is the assistant's run: its label, summary, card, quiet r
   // A run that did something and has a change waiting for Go: kept on Team, with its card.
   reply = async (thread) => {
     const plan = await savePlan([{ label: "Add a to-do: book the dentist", tool: "add_todo", input: { title: "Book the dentist", kind: "todo" }, stands_for: crypto.randomUUID() }], { source: "routine", thread_id: thread });
-    return { text: "Two things slipped this week.", changes: [], plan: { id: plan.id, steps: ["Add a to-do: book the dentist"] }, thread_id: thread, summary: "Two things slipped this week. One change is ready when you are: tap Go.", quiet: false };
+    return { text: "Two things slipped this week.", changes: [], plan: { id: plan.id, steps: ["Add a to-do: book the dentist"] }, thread_id: thread, summary: "Two things slipped this week. One change is ready when you are: tap Approve.", quiet: false };
   };
   const [started] = (await runFlowTriggers(FRIDAY, TZ))!;
   const ran = await runFlowRun(started.run_id, { fx });
@@ -256,7 +256,7 @@ test("a job flow's run is the assistant's run: its label, summary, card, quiet r
   const r = runs[0];
   assert.equal(r.label, "Every Friday at 17:00");
   assert.equal(r.status, "done");
-  assert.equal(r.summary, "Two things slipped this week. One change is ready when you are: tap Go.");
+  assert.equal(r.summary, "Two things slipped this week. One change is ready when you are: tap Approve.");
   assert.equal(r.quiet, false);
   assert.equal(r.waiting, 1, "the waits-for-Go count, from its plan");
   assert.equal(r.flow_run_id, started.run_id);

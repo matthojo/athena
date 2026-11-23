@@ -1,18 +1,19 @@
 /**
- * Home: a greeting by name and a sentence instead of a KPI row, today's
- * briefing when there is one, then a bento (to do, the latest note, and
- * what's coming up: birthdays, events, overdue catch-ups). Below it the
- * personal half: the people who matter most and a line on a goal, from the
- * owner's profile (components/home-personal.ts), then recent notes. Meeting
- * hours live in Week in review and sources in Settings. Notes come from the
- * shared store (db/data.ts). The staggered entrance plays once per session,
- * not on every tab switch or background refresh.
+ * Home: what the next few hours need, and no more. A greeting by name and a
+ * sentence instead of a KPI row, the Ask box, then one "Waiting for you" card
+ * (components/home-waiting.ts) for everything that's owed, today's card,
+ * a meeting to prepare for, the morning's briefing and the to-dos. Athena's
+ * nudges and the team's word come after the day, quietly. What isn't about
+ * now has a page of its own and a link at the foot: the week's dates (a
+ * sheet), your people, your notes and your goals. Notes come from the shared
+ * store (db/data.ts). The staggered entrance plays once per session, not on
+ * every tab switch or background refresh.
  */
 
 import { h } from "../lib/dom";
 import { icons, type IconName } from "../components/icons";
 import { brandMark } from "../components/brand-mark";
-import { noteParts, noteRow, TYPE_ICON } from "../components/note-row";
+import { noteParts } from "../components/note-row";
 import { onNotes } from "../db/data";
 import { loadUpcoming, onRecordsChange } from "../db/records";
 import { onLive } from "../live";
@@ -25,7 +26,6 @@ import { loopRow } from "../components/loop-row";
 import { openCommitmentSheet } from "../components/commitment-sheet";
 import { countWord, dayLabel, formatDateHeading, greeting, hueFor, initials, plural, relativeTime } from "../lib/format";
 import { ASSET_META, renewalLabel } from "../lib/memory-meta";
-import { describeSource } from "../lib/sources";
 import type { Commitment, EntityKind, Note, Renewal, Upcoming, UpcomingItem } from "../types";
 import type { ViewId } from "../components/nav";
 import { profileSetupCard } from "../components/profile-card";
@@ -40,9 +40,12 @@ import { openProfileWizard } from "../components/profile-wizard";
 import { showToast } from "../components/toast";
 import { ATHENA_HELLO, NAME_QUESTION, firstWeekCard, firstWeekDay, firstWeekStart, yesterdayPage, type FirstWeekAction, type FirstWeekFacts } from "../lib/first-week";
 import { homeAsk } from "../components/home-ask";
+import { homeWaiting } from "../components/home-waiting";
+import { openSheet } from "../components/sheet";
 import { newNoteButton } from "../components/new-note-button";
 import "../styles/moments.css";
 import "../styles/first-week.css";
+import { clockOfDay } from "../lib/clock";
 
 export interface HomeContext {
   openNote: (note: Note) => void;
@@ -147,7 +150,7 @@ function comingUpBody(
         const birthday = e.kind === "birthday";
         const target: [EntityKind, string] = birthday && e.person_id ? ["person", e.person_id] : ["event", e.id];
         const title = birthday ? e.title.replace(/'s birthday$/, "") : e.title;
-        const what = birthday ? (years ? `turns ${years}` : "birthday") : (time ?? "");
+        const what = birthday ? (years ? `turns ${years}` : "birthday") : clockOfDay(time);
         // Maybe gets a soft label; declined invites aren't here at all.
         const maybe = e.rsvp === "maybe" ? "Maybe" : "";
         return item(tile(birthday ? icons.gift() : icons.calendar()), title, [dayLabel(days_until, occurs_on), what, maybe].filter(Boolean).join(" · "), () => open(target[0], target[1]));
@@ -172,7 +175,7 @@ function comingUpBody(
 }
 
 /** To do: the next few things, soonest due first, ticked off right here. */
-function toDoBody(loops: Commitment[], overdue: number, dueToday: number, go: (view: ViewId) => void): Node[] {
+function toDoBody(loops: Commitment[], go: (view: ViewId) => void): Node[] {
   const add = h("button", { class: "icon-btn icon-btn--sm icon-btn--ghost", type: "button", "aria-label": "Add a to-do" }, icons.plus());
   add.addEventListener("click", () => openCommitmentSheet(null));
   const head = h("div", { class: "todo-card__head" }, h("h3", { class: "catchup__title" }, headingIcon("loop"), "To do"), add);
@@ -181,11 +184,11 @@ function toDoBody(loops: Commitment[], overdue: number, dueToday: number, go: (v
   }
   const all = h("button", { class: "link-btn", type: "button" }, `See all ${loops.length}`);
   all.addEventListener("click", () => go("loops"));
-  const tally = [overdue ? `${countWord(overdue)} overdue` : "", dueToday ? `${countWord(dueToday, overdue > 0)} due today` : ""].filter(Boolean).join(", ");
   return [
     head,
     h("div", { class: "list list--plain" }, ...loops.slice(0, 5).map((c) => loopRow(c, { onOpen: (x) => openCommitmentSheet(x) }))),
-    h("div", { class: "todo-card__foot" }, h("span", { class: "todo-card__tally", "data-tone": overdue ? "late" : undefined }, tally), all),
+    // What's overdue is said once, in "Waiting for you" above.
+    h("div", { class: "todo-card__foot" }, all),
   ];
 }
 
@@ -263,16 +266,15 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
   const hello = h("span", { class: "headline__hello" }, `${greeting(new Date(), preview ? null : rememberedName())}. `);
   const headline = h("h1", { class: "headline" }, hello, rest);
 
-  const latest = h("button", { class: "card pressable latest", type: "button", "data-area": "latest" }, h("span", { class: "tile" }), stack(bar("40%"), bar("75%", "18px"), bar("90%")));
-  const catchup = h("article", { class: "card card--sunken catchup", "data-area": "catch" }, stack(bar("50%"), bar("80%"), bar("70%"), bar("75%")));
+  // This week's dates, deliveries, renewals and catch-ups: a sheet from the foot of Home, filled as the data arrives.
+  const catchup = h("div", { class: "catchup catchup--sheet" }, stack(bar("50%"), bar("80%"), bar("70%"), bar("75%")));
   const briefing = h("button", { class: "card pressable briefing", type: "button", hidden: true });
   let briefingNote: Note | null = null;
   briefing.addEventListener("click", () => briefingNote && ctx.openNote(briefingNote));
-  const todo = h("article", { class: "card todo-card", "data-area": "todo" }, stack(bar("35%"), bar("85%"), bar("70%"), bar("78%")));
+  const todo = h("article", { class: "card todo-card" }, stack(bar("35%"), bar("85%"), bar("70%"), bar("78%")));
 
-  // What agents weren't sure about, waiting for you.
-  const review = h("button", { class: "card pressable briefing", type: "button", hidden: true });
-  review.addEventListener("click", () => ctx.go("review"));
+  // Everything that's owed, said once: the team, the Inbox and what's due (components/home-waiting.ts).
+  const waiting = homeWaiting();
 
   // Until the owner has told Athena about themselves (or said not now): the profile wizard.
   const setupCard = profileSetupCard();
@@ -289,14 +291,7 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
   // The week in review lives in Days (#/days/week/<this Monday>).
   weekBanner.addEventListener("click", () => (location.hash = `#/days/week/${weekStartOf(localToday())}`));
 
-  const recentList = h("div", { class: "card card--flush list" });
-  const recent = h(
-    "section",
-    { class: "section", "aria-labelledby": "home-recent" },
-    h("div", { class: "section-head" }, h("h2", { id: "home-recent" }, "Recent"), seeAll()),
-    recentList
-  );
-  // Your people and a goal, from the profile.
+  // Your name for the greeting and a birthday today, from the profile. Your people and goals have their own pages (the foot's links).
   const personal = homePersonal({
     openPerson: (id) => ctx.openLink("person", id),
     goPeople: () => ctx.go("people"),
@@ -438,13 +433,10 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     fwYesterday.hidden = false;
   }
 
-  /** The cards that would only say "nothing" step aside for the first-week card. */
+  /** A card that would only say "nothing" steps aside for the first-week card. */
   function paintEmpties() {
     todo.toggleAttribute("data-empty", !!todo.querySelector(":scope > p.empty__sub"));
-    catchup.toggleAttribute("data-empty", !!catchup.querySelector(":scope > p.empty__sub"));
-    latest.toggleAttribute("data-empty", latestEmpty);
   }
-  let latestEmpty = false;
 
   function enterFirstWeek() {
     el.classList.toggle("home--first", firstDay !== null);
@@ -453,12 +445,6 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     paintAsk();
     paintFirstCard();
     void paintYesterday();
-  }
-
-  function seeAll() {
-    const b = h("button", { class: "link-btn", type: "button" }, "See all");
-    b.addEventListener("click", () => ctx.goNotes(null));
-    return b;
   }
 
   const topbar = h(
@@ -528,17 +514,7 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     prep.replaceChildren(cards.el);
   }, () => prep.remove());
 
-  // Team chat, while something waits for you there (team/home-chat-card.ts, its own chunk): opens the chat at that post.
-  const teamChat = h("div", { class: "home-teamchat-slot" });
-  let offTeamChat = () => {};
-  void import("../team/home-chat-card").then(({ teamChatCard }) => {
-    if (gone) return;
-    const card = teamChatCard();
-    teamChat.replaceChildren(card.el);
-    offTeamChat = card.destroy;
-  }, () => teamChat.remove());
-
-  // For you: nudges Athena and the team started (components/nudge-card.ts, its own chunk), each opening Ask.
+  // For you, after the day: Athena's nudges, a line each, then the team's word in one line (components/nudge-card.ts, its own chunk).
   const nudges = h("div", { class: "home-nudges-slot" });
   let offLiveNudges = () => {};
   void import("../components/nudge-card").then(({ nudgeCards }) => {
@@ -550,7 +526,24 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     offLiveNudges = () => (offLive(), cards.destroy());
   }, () => nudges.remove());
 
-  const blocks = [topbar, headline, ask.el, fwAsk, fwYesterday, today, fwCard, briefing, setupCard.el, review, weekBanner, todo, latest, catchup, personal.el, recent];
+  // What isn't about the next few hours, one tap away.
+  const more = (icon: IconName, label: string, run: () => void) => {
+    const b = h("button", { class: "home-more__link", type: "button" }, h("span", { class: "home-more__icon", "aria-hidden": "true" }, icons[icon]()), label);
+    b.addEventListener("click", run);
+    return h("li", {}, b);
+  };
+  const openWeek = () => {
+    const sheet = openSheet({ title: "This week", label: "This week", body: catchup });
+    // A row in it goes somewhere: the sheet steps aside.
+    catchup.onclick = (e) => (e.target as Element).closest("button") && sheet.close();
+  };
+  const moreNav = h(
+    "nav",
+    { class: "home-more", "aria-label": "More of Athena" },
+    h("ul", { class: "home-more__list" }, more("calendar", "This week", openWeek), more("person", "Your people", () => ctx.go("people")), more("notes", "Notes", () => ctx.goNotes(null)), more("flag", "Goals", () => ctx.go("goals")))
+  );
+
+  const blocks = [topbar, headline, ask.el, fwAsk, fwYesterday, waiting.el, today, fwCard, briefing, setupCard.el, weekBanner, todo, moreNav];
   if (!introPlayed) {
     blocks.forEach((b, i) => {
       b.classList.add("reveal");
@@ -569,19 +562,23 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     fwAsk,
     fwYesterday,
     travel,
-    teamChat,
-    nudges,
-    today,
-    prep,
-    h("div", { class: "home-banners" }, personal.banner, fwCard, briefing, setupCard.el, review, weekBanner),
-    h("section", { class: "bento", "aria-label": "Today" }, todo, latest, catchup),
-    h("div", { class: "home-lower" }, personal.el, recent)
+    // Now: what waits, the day, what to prepare, the briefing, the to-dos. For you follows the day (beside it on a wide screen).
+    h(
+      "div",
+      { class: "home-now" },
+      waiting.el,
+      today,
+      prep,
+      h("div", { class: "home-banners" }, personal.banner, fwCard, briefing, setupCard.el, weekBanner),
+      todo,
+      nudges
+    ),
+    moreNav
   );
 
   // ---------- Data ----------
   let todayCount: number | null = null;
   let staleCount: number | null = null;
-  let latestNote: Note | null = null;
   let todayEvent: string | null = null;
   let dueCount = 0;
 
@@ -630,11 +627,6 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     else rest.replaceChildren(todayQuiet === false ? "" : "A quiet day so far.");
   }
 
-  latest.addEventListener("click", () => {
-    if (latestNote) ctx.openNote(latestNote);
-    else ctx.compose();
-  });
-
   // What's below Today stays out of sight until the notes and to-dos have
   // answered (at most 0.8s): the briefing and review banners arrive with them,
   // and appearing after that would push the cards down.
@@ -679,48 +671,8 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
       );
     }
 
-    latestNote = notes.find((n) => n !== briefingNote) ?? null;
-    if (latestNote) {
-      const n = latestNote;
-      const { title, rest: body } = noteParts(n);
-      const src = describeSource(n.source);
-      latest.setAttribute("aria-label", `Open latest note: ${title}`);
-      latest.replaceChildren(
-        h("span", { class: "tile" }, icons[TYPE_ICON[n.type]]()),
-        h(
-          "span",
-          {},
-          h("span", { class: "latest__eyebrow" }, `Latest · ${relativeTime(n.updated_at)}`),
-          h("span", { class: "latest__title", style: "display:block" }, title),
-          body ? h("span", { class: "latest__snippet" }, body) : null,
-          h(
-            "span",
-            { class: "latest__foot" },
-            src.key === "manual" ? null : h("span", { class: "badge" }, src.name),
-            src.label ? h("span", { class: "badge badge--accent" }, src.label) : null,
-            n.id.startsWith("local-") ? h("span", { class: "badge badge--queued" }, "Waiting to sync") : null
-          )
-        )
-      );
-    } else {
-      latest.setAttribute("aria-label", "Write your first note");
-      latest.replaceChildren(
-        h("span", { class: "tile" }, icons.pen()),
-        h(
-          "span",
-          {},
-          h("span", { class: "latest__title", style: "display:block" }, "Your first note goes here"),
-          h("span", { class: "latest__snippet" }, "Tap here or New note to write it. It works offline too.")
-        )
-      );
-    }
-    latestEmpty = !latestNote;
     paintEmpties();
     firstNotes(notes.filter((n) => n.source !== "briefing").length);
-
-    const more = notes.filter((n) => n !== briefingNote && n !== latestNote).slice(0, 4);
-    recent.hidden = !more.length;
-    recentList.replaceChildren(...more.map((n) => noteRow(n, { onOpen: ctx.openNote })));
   });
 
   let lastUpcoming: Upcoming | null = null;
@@ -761,22 +713,9 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     const loops = openLoops(items);
     const g = groupLoops(loops);
     dueCount = g.overdue.length + g.today.length;
-    todo.replaceChildren(...toDoBody(loops, g.overdue.length, g.today.length, ctx.go));
+    todo.replaceChildren(...toDoBody(loops, ctx.go));
     paintEmpties();
-    review.hidden = !pending.length;
-    if (pending.length) {
-      review.setAttribute("aria-label", `${pending.length} ${plural(pending.length, "suggestion", "suggestions")} to review`);
-      review.replaceChildren(
-        h("span", { class: "tile" }, icons.inbox()),
-        h(
-          "span",
-          { class: "briefing__text" },
-          h("span", { class: "briefing__title" }, `${pending.length} ${plural(pending.length, "thing", "things")} to review`),
-          h("span", { class: "briefing__snippet" }, pending[0].summary)
-        ),
-        h("span", { class: "briefing__chevron", "aria-hidden": "true" }, icons.chevronRight())
-      );
-    }
+    waiting.set({ inbox: pending.length, overdue: g.overdue.length, dueToday: g.today.length });
     lapsing = renewals(assets, 14);
     paintHeadline();
     paintComingUp();
@@ -855,7 +794,7 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
       unsubMemory();
       unsubLogistics();
       offLiveNudges();
-      offTeamChat();
+      waiting.destroy();
       clearInterval(dayClock);
       document.removeEventListener("visibilitychange", onBack);
       setupCard.destroy();

@@ -26,6 +26,7 @@ import { RULE_IDS, TRAVEL_MODES, type TravelMode } from "../../../lib/proactive/
 import { TRAVEL_WORDS } from "../lib/travel-words";
 import { loadCheckinSettings, onCheckinsChange } from "../db/checkins";
 import { deletePushSubscription, fetchNotificationPrefs, fetchPushKey, isSampleMode, saveNotificationPrefs, savePushSubscription, sendTestPush } from "../db/api";
+import { clockOfDay } from "../lib/clock";
 
 export const COPY = {
   heading: "Notifications",
@@ -80,7 +81,7 @@ export const COPY = {
 type KindContext = { reflecting: boolean };
 
 const KINDS: Array<{ kind: NudgeKind; icon: IconName; title: string; meta: (p: NotificationPrefs, c: KindContext) => string }> = [
-  { kind: "briefing", icon: "cup", title: "Morning briefing", meta: () => "7:30 each morning, with your day ahead" },
+  { kind: "briefing", icon: "cup", title: "Morning briefing", meta: () => `${clockOfDay("07:30")} each morning, with your day ahead` },
   { kind: "events", icon: "calendar", title: "Events and travel", meta: () => "30 minutes before each event, and 3 hours before a flight" },
   { kind: "reminders", icon: "clock", title: "Your reminders", meta: () => "The ones you set, when they're due" },
   { kind: "morning", icon: "leaf", title: "Morning check-in", meta: (p) => `At ${p.morning_at}. Only sent when your morning check-in is on` },

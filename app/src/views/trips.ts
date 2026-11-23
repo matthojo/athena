@@ -35,6 +35,7 @@ import { flightChip, PROVIDER_NAME, type FlightStatus } from "../../../lib/fligh
 import type { Booking, BookingKind, Trip } from "../types";
 import type { ViewId } from "../components/nav";
 import { pageHead } from "../components/page-head";
+import { clockInText, clockOfDay, clockTime } from "../lib/clock";
 
 // ---------- small pieces ----------
 
@@ -94,7 +95,7 @@ function tripFacts(t: Trip, today: string, now: Date): HTMLElement[] {
   const nextLine = (b: Booking) => {
     const s = bookingStart(b);
     const what = b.kind === "hotel" ? `Check in at ${b.title}` : b.kind === "car" ? `Pick up the car` : bookingName(b);
-    return `${what} ${relativeDay(s.date, today)}${s.time ? ` at ${s.time}` : ""}`;
+    return `${what} ${relativeDay(s.date, today)}${s.time ? ` at ${clockOfDay(s.time)}` : ""}`;
   };
   if (t.ends_on && t.ends_on < today) {
     out.push(fact("suitcase", `Was ${tripDates(t.starts_on, t.ends_on, today)}`, nights(t)));
@@ -111,9 +112,9 @@ function tripFacts(t: Trip, today: string, now: Date): HTMLElement[] {
     const label = BOOKING_LABEL[b.kind].label;
     if (b.status === "changed" && s.date >= today) {
       const was = previousTime(b);
-      out.push(fact("clock", `${label} time changed`, `${b.title} now ${shortWeekday(s.date)}${s.time ? ` at ${s.time}` : ""}${was ? `, not ${was}` : ""}`, "warn"));
+      out.push(fact("clock", `${label} time changed`, `${b.title} now ${shortWeekday(s.date)}${s.time ? ` at ${clockOfDay(s.time)}` : ""}${was ? `, not ${clockInText(was)}` : ""}`, "warn"));
     } else if (b.status === "cancelled" && s.date >= today) {
-      out.push(fact("close", `${label} cancelled`, `${b.title}, ${shortWeekday(s.date)}${s.time ? ` at ${s.time}` : ""}`, "warn"));
+      out.push(fact("close", `${label} cancelled`, `${b.title}, ${shortWeekday(s.date)}${s.time ? ` at ${clockOfDay(s.time)}` : ""}`, "warn"));
     }
   }
   return out;
@@ -161,7 +162,7 @@ function moment(m: LocalMoment, label: string, opts: { showDay: boolean; showPla
     "div",
     { class: `leg__end${opts.align === "end" ? " leg__end--to" : ""}` },
     h("span", { class: "leg__label" }, label),
-    h("span", { class: `leg__clock${m.time ? "" : " leg__clock--day"}` }, m.time ?? shortWeekday(m.date)),
+    h("span", { class: `leg__clock${m.time ? "" : " leg__clock--day"}` }, m.time ? clockOfDay(m.time) : shortWeekday(m.date)),
     under ? h("span", { class: "leg__city" }, under) : null,
     opts.showPlace && m.place ? h("span", { class: "leg__place" }, m.place) : null
   );
@@ -178,7 +179,7 @@ function reasonText(s: TrainStatus): string | null {
 /** The chip: a small live dot, how it's running, and the platform when the board has one. */
 function liveChip(s: TrainStatus): HTMLElement {
   const c = trainChip(s);
-  const checked = new Date(s.checked_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const checked = clockTime(s.checked_at);
   return h(
     "span",
     { class: "live-chip", "data-tone": c.tone, title: `National Rail, checked at ${checked}` },
@@ -191,7 +192,7 @@ function liveChip(s: TrainStatus): HTMLElement {
 /** A flight's chip: how it's running, as OpenSky sees it (no gates; the terminal is on the card already). */
 function flightLiveChip(s: FlightStatus): HTMLElement {
   const c = flightChip(s);
-  const checked = new Date(s.checked_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const checked = clockTime(s.checked_at);
   return h(
     "span",
     { class: "live-chip", "data-tone": c.tone, title: `${PROVIDER_NAME[s.provider]}, checked at ${checked}` },
@@ -224,7 +225,7 @@ function fillLive(card: HTMLElement, slot: HTMLElement, b: Booking): void {
     slot.hidden = false;
     card.dataset.live = s.state;
     const depart = card.querySelector<HTMLElement>(".leg__end");
-    if (depart && s.expected && s.state === "late") depart.append(h("span", { class: "leg__expected" }, `Expected ${s.expected}`));
+    if (depart && s.expected && s.state === "late") depart.append(h("span", { class: "leg__expected" }, `Expected ${clockOfDay(s.expected)}`));
     const why = s.state !== "on_time" ? reasonText(s) : null;
     if (why) (slot.parentElement ?? slot).after(h("p", { class: "live-reason" }, why));
   });
@@ -321,7 +322,7 @@ function bookingCard(b: Booking, ctx: { onArchive: (b: Booking) => void; onEdit:
       menu
     ),
     times,
-    was ? h("p", { class: "booking__was" }, icons.clock(), `Moved from ${was}`) : null,
+    was ? h("p", { class: "booking__was" }, icons.clock(), `Moved from ${clockInText(was)}`) : null,
     cancelledBy ? h("p", { class: "booking__was booking__was--cancelled" }, icons.mail(), `Cancelled by email, ${shortDate(cancelledBy)}`) : null,
     place,
     live || chips.length || b.details ? h("div", { class: "booking__meta" }, live, ...chips, b.details ? h("span", { class: "booking__details" }, b.details) : null) : null,

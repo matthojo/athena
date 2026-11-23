@@ -309,7 +309,7 @@ test("the prompt lists enabled skills by name and when, capped in count and leng
   assert.ok(p.endsWith(SKILL_RULE));
   assert.equal(skillsPrompt(many.slice(0, 30).map((s) => ({ ...s, description: "short" }))).split("\n").filter((l) => l.startsWith("- ")).length, SKILL_LIMITS.listed);
   // The rule says what a skill can't change.
-  for (const words of ["no new tools or permissions", "Go", "nothing is ever sent", "money search"]) assert.ok(SKILL_RULE.includes(words), words);
+  for (const words of ["no new tools or permissions", "the owner's approval", "nothing is ever sent", "money search"]) assert.ok(SKILL_RULE.includes(words), words);
   // Only enabled ones are listed, even with a picked one in the set.
   const tools = new SkillTools([skill(), skill({ id: "22222222-2222-4222-8222-222222222222", name: "off-one", enabled: false })]);
   assert.match(tools.prompt(), /meeting-prep/);

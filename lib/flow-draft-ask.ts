@@ -43,7 +43,7 @@ export const PROPOSE_FLOW_TOOL: Anthropic.Tool = {
     "It draws the flow from their words and keeps it switched off: nothing runs until the owner taps Turn on on the card. " +
     "If the request also covers something already here (a parcel already on its way, tomorrow's meeting), do that part now with your usual tools as well. " +
     "For a plain schedule with nothing arriving (\"every Friday at 4pm, tell me what slipped\"), use save_routine instead. " +
-    "After calling it, say in one or two short sentences what the flow will do, whether it can run on its own or waits for their Go, and that it's off until they turn it on. Never say it's on.",
+    "After calling it, say in one or two short sentences what the flow will do, whether it can run on its own or waits for their approval, and that it's off until they turn it on. Never say it's on.",
   input_schema: {
     type: "object",
     properties: {

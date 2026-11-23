@@ -18,6 +18,7 @@ import { loadUpcoming, loadRecords } from "../db/records";
 import { loadTrips } from "../db/trips";
 import { hueFor, initials } from "../lib/format";
 import type { EntityKind } from "../types";
+import { clockTime } from "../lib/clock";
 
 const STARTER_ICON: Record<string, IconName> = {
   meeting: "calendar",
@@ -50,7 +51,7 @@ const when = (iso: string) => {
   const at = new Date(iso);
   const days = Math.round((new Date(at.toDateString()).getTime() - new Date(new Date().toDateString()).getTime()) / 86_400_000);
   const day = days === 0 ? "Today" : days === 1 ? "Tomorrow" : new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(at);
-  return `${day} ${new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at)}`;
+  return `${day} ${clockTime(at)}`;
 };
 
 // ---------- the picker ----------

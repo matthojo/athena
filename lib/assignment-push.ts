@@ -20,8 +20,8 @@ import { CARD_HOURS, type DeliverDeps } from "./team-run";
 /** The push's body, in the stage's assistant's voice. */
 export const STOP_COPY: Partial<Record<PostKind, (title: string) => string>> = {
   question: (t) => `I need your answer on “${t}” before I go on.`,
-  approval: (t) => `My stage of “${t}” is done. Have a look, then tap Go.`,
-  plan: (t) => `I have a change for “${t}” that waits for your Go.`,
+  approval: (t) => `My stage of “${t}” is done. Have a look, then tap Approve.`,
+  plan: (t) => `I have a change for “${t}” that waits for your approval.`,
   failed: (t) => `I didn't finish my stage of “${t}”. Tap Go to try it again.`,
   done: (t) => `“${t}” is finished. The document is ready.`,
 };

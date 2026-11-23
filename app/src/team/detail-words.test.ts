@@ -51,8 +51,8 @@ test("a working run says what it's doing", () => {
 test("the next scheduled start", () => {
   assert.equal(nextStart([trig({ days: [1], time: "10:00" })], NOW, false), "tomorrow at 10:00");
   assert.equal(nextStart([trig({ days: [0], time: "17:00" })], NOW, false), "today at 17:00");
-  assert.equal(nextStart([trig({ days: [0], time: "09:00" })], NOW, false), "on Sunday at 9:00");
-  assert.equal(nextStart([trig({ days: [5], time: "09:00" }), trig({ days: [3], time: "08:00" })], NOW, false), "on Wednesday at 8:00");
+  assert.equal(nextStart([trig({ days: [0], time: "09:00" })], NOW, false), "on Sunday at 09:00");
+  assert.equal(nextStart([trig({ days: [5], time: "09:00" }), trig({ days: [3], time: "08:00" })], NOW, false), "on Wednesday at 08:00");
   assert.equal(nextStart([trig({ days: [0], time: "10:00", paused: true })], NOW, false), null);
   assert.equal(nextStart([trig({ kind: "event", event: { source: "note" } })], NOW, false), null);
 });

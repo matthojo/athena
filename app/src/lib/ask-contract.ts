@@ -75,8 +75,8 @@ export function wholeReply(raw: unknown): AskReply {
 
 /** Under a plan that holds even one change: why it's waiting for Go (lib/ask-guard.ts). */
 export function heldNote(why: "read" | "flagged" | undefined): string | null {
-  if (why === "flagged") return "Something I read looked like an instruction, so I haven't changed anything. Tick what you want and tap Go.";
-  if (why === "read") return "I read your accounts, files or the web before suggesting this, so I haven't done it. Tap Go if you want it.";
+  if (why === "flagged") return "Something I read looked like an instruction, so I haven't changed anything. Tick what you want and tap Approve.";
+  if (why === "read") return "I read your accounts, files or the web before suggesting this, so I haven't done it. Tap Approve if you want it.";
   return null;
 }
 

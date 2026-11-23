@@ -18,6 +18,7 @@ import { plural } from "./format";
 import { CONNECTOR_PRESETS, RECIPES, presetFor } from "../../../lib/connector-presets";
 import { activityLineFromStats, activityTotal } from "../../../lib/activity-words";
 import type { Collection, CollectionRun, Connector, RecipeId } from "../types";
+import { clockOfDay, clockTime, uses12Hour } from "./clock";
 
 // ---------- Server fields that land with slice D (read as optional) ----------
 
@@ -129,22 +130,14 @@ export function needsAccountLine(recipe: RecipeId): string | null {
 
 // ---------- Times ----------
 
-/** "07:15" → the device's way of writing it ("07:15", or "7:15 AM"). */
-export function clock(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
-  if (!Number.isFinite(h) || !Number.isFinite(m)) return hhmm;
-  return new Date(2000, 0, 1, h, m).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+/** "07:15" → the device's way of writing it ("07:15", or "7:15 am"; lib/clock.ts). */
+export function clock(hhmm: string, hour12 = uses12Hour()): string {
+  return clockOfDay(hhmm, hour12);
 }
 
 /** An instant's time of day on this device. */
-export function clockAt(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+export function clockAt(iso: string, hour12 = uses12Hour()): string {
+  return clockTime(iso, { hour12 });
 }
 
 export type DayPart = "morning" | "afternoon" | "evening" | "night";

@@ -22,6 +22,7 @@ import { listActivity, listTeam, onTeamChange } from "../db/team";
 import { sampleTeamReports } from "../db/sample-team-reports";
 import { teamReport } from "./team-report";
 import type { IconName } from "./icons";
+import { clockTime } from "../lib/clock";
 
 export { RULES };
 
@@ -44,7 +45,7 @@ function leadTile(n: AppNudge): HTMLElement {
 }
 
 const tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
-const timeOf = (iso: string) => new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
+const timeOf = (iso: string) => clockTime(iso);
 
 /** Ask, opened on this nudge: its context above a new conversation, its first reply ready in the box. */
 export function askAbout(n: AppNudge): void {
@@ -207,11 +208,11 @@ function nudgeRow(n: AppNudge, opts: { onGone: () => void; onOpen: () => void })
 }
 
 /**
- * Home's "For you": the team's word first (components/team-report.ts: who's
- * on a job, and each assistant's latest report, one row each), then today's
- * live nudges from Athena, newest first. The newest of those is a full card;
- * the rest are short rows in one card beneath it, so on a phone the day
- * itself still starts on the first screen. Hidden when there's nothing.
+ * Home's "For you", after the day: today's live nudges from Athena, newest
+ * first, each a short row in one card that opens in place to the full card;
+ * then the team's word folded to one line (components/team-report.ts,
+ * `quiet`), which opens by itself only while a report needs approval.
+ * Hidden when there's nothing.
  */
 export function nudgeCards(): { el: HTMLElement; refresh: () => Promise<void>; destroy: () => void } {
   const list = h("div", { class: "nudge-cards__list" });
@@ -220,8 +221,8 @@ export function nudgeCards(): { el: HTMLElement; refresh: () => Promise<void>; d
   let athena: AppNudge[] = [];
   let teamShown = false;
   const show = () => (el.hidden = !teamShown && !athena.length);
-  const team = teamReport({ onShown: (on) => ((teamShown = on), show()), onGone: () => void refresh() });
-  const el = h("section", { class: "nudge-cards", "aria-labelledby": "home-nudges", hidden: true }, h("div", { class: "section-head" }, h("h2", { id: "home-nudges" }, "For you")), team.el, list);
+  const team = teamReport({ quiet: true, onShown: (on) => ((teamShown = on), show()), onGone: () => void refresh() });
+  const el = h("section", { class: "nudge-cards", "aria-labelledby": "home-nudges", hidden: true }, h("div", { class: "section-head" }, h("h2", { id: "home-nudges" }, "For you")), list, team.el);
   async function refresh() {
     let nudges: AppNudge[];
     try {
@@ -238,8 +239,8 @@ export function nudgeCards(): { el: HTMLElement; refresh: () => Promise<void>; d
   }
   function paint(shown: AppNudge[]) {
     const onGone = () => void refresh();
-    const full = shown.filter((n, i) => i === 0 || opened.has(n.id));
-    const rows = shown.filter((n, i) => i > 0 && !opened.has(n.id));
+    const full = shown.filter((n) => opened.has(n.id));
+    const rows = shown.filter((n) => !opened.has(n.id));
     const open = (n: AppNudge) => () => {
       opened.add(n.id);
       paint(shown);

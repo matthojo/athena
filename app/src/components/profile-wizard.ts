@@ -160,7 +160,7 @@ export async function openProfileWizard(opts: { step?: ProfileStepId; onDone?: (
         { class: "profile-wiz__done" },
         h("span", { class: "tile" }, icons.check()),
         h("h3", { class: "profile-wiz__title" }, "That's you set up"),
-        h("p", { class: "profile-wiz__lede" }, "Change any of it in Settings, under About you. Athena may suggest additions now and then. You'll find them in your Review inbox."),
+        h("p", { class: "profile-wiz__lede" }, "Change any of it in Settings, under About you. Athena may suggest additions now and then. You'll find them in your Inbox."),
         queued ? h("p", { class: "settings__note profile-wiz__queued", role: "status" }, icons.cloud(), QUEUED_NOTE) : null,
         done
       )

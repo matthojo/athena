@@ -120,9 +120,9 @@ test("tooltips and the label name the kind or the calendar", () => {
       entries: [{ id: "1", kind: "watched", source: "netflix", title: "Episode 6", at: local(21), minutes: 52 }],
     }),
   );
-  assert.deepEqual(m.map(markText), ["07:00 Running", "13:00 Design review · Work calendar", "16:00 Meeting b", "21:00 Episode 6 · Watched"]);
+  assert.deepEqual(m.map((x) => markText(x, false)), ["07:00 Running", "13:00 Design review · Work calendar", "16:00 Meeting b", "21:00 Episode 6 · Watched"]);
   assert.equal(
-    ribbonLabel(m),
+    ribbonLabel(m, false),
     "Your day from 07:00 to 21:52. Moving: 07:00 Running. Calendar: 13:00 Design review · Work calendar; 16:00 Meeting b. Media: 21:00 Episode 6 · Watched.",
   );
 });

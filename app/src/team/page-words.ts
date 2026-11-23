@@ -6,7 +6,7 @@
  *   deskFor(moss, activity)  → { state: "working", live, last, today }
  *   nowWords(run)            → "Checking prices at Smyths"
  *   nextWords(wren)          → "Next run Friday at 17:00"
- *   teamLede(team, desks)    → "Moss is working. Dot needs your Go."
+ *   teamLede(team, desks)    → "Moss is working. Dot needs your approval."
  */
 import type { TeamAssistant, TeamRun } from "../../../lib/team-types";
 import { isQuiet, runWaits, splitReport } from "../lib/team-report";
@@ -41,7 +41,8 @@ const skipped = (r: TeamRun) => r.status === "failed" && /^paused\b/i.test(r.err
 
 /** The run's summary says something waits for your Go (lib/team-run.ts `runSummary`). Words only: `runWaits` is the count. */
 export function waitsForGo(r: Pick<TeamRun, "status" | "summary">): boolean {
-  return r.status === "done" && /\b(tap|your) Go\b/.test(r.summary ?? "");
+  // A run kept before the wording changed still says "Go".
+  return r.status === "done" && /\b(?:tap Approve|your approval|(?:tap|your) Go)\b/.test(r.summary ?? "");
 }
 
 /** How many changes a run leaves for Go, given what this device knows of its conversation (team/page-pulse.ts `planCounts`). */
@@ -181,7 +182,7 @@ export function teamLede(team: Array<Pick<TeamAssistant, "id" | "name" | "paused
   const parts: string[] = [];
   if (working.length > 3) parts.push(`${working.length} of your assistants are working.`);
   else if (working.length) parts.push(`${names(working)} ${working.length === 1 ? "is" : "are"} working.`);
-  if (waiting.length) parts.push(`${names(waiting)} ${waiting.length === 1 ? "needs" : "need"} your Go.`);
+  if (waiting.length) parts.push(`${names(waiting)} ${waiting.length === 1 ? "needs" : "need"} your approval.`);
   if (failed.length) parts.push(`${names(failed)} couldn't finish ${failed.length === 1 ? "a run" : "their runs"}.`);
   if (parts.length) return parts.join(" ");
   if (team.length && team.every((a) => a.paused)) return "Everyone is paused.";

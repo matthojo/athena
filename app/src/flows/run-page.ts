@@ -1,6 +1,6 @@
 /**
  * One run, step by step (mockup 7): what set it off, then each step as it
- * ran, with a change that waits for your Go (Go or Skip), an Ask me's
+ * ran, with a change that waits for your approval (Approve or Skip), an Ask me's
  * choices, and when a Wait carries on. Earlier runs of the same flow below.
  * The page looks again every few seconds while the run is moving.
  */
@@ -61,7 +61,7 @@ export function renderRunPage(ctx: RunPageContext): { el: HTMLElement; destroy: 
     const lead = step?.kind === "think" && assistant ? face(assistant.avatar, 28) : null;
     const parts: Node[] = [h("span", { class: "flow-trace__title" }, title)];
     if (s.status === "waiting" && s.pending) {
-      const go = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Go");
+      const go = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Approve");
       const skip = h("button", { class: "btn btn--soft btn--sm", type: "button" }, "Skip");
       go.addEventListener("click", () => void act(() => goRun(run.id, s.step_id), "Done. You can undo it in What Ask did."));
       skip.addEventListener("click", () => void act(() => skipRun(run.id, s.step_id), "Skipped. The flow carries on."));

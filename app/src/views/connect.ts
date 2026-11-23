@@ -2,12 +2,13 @@
  * First-run screen, shown by main.ts when this device has no key yet. Paste
  * the master token (used once to make this device's own key, then dropped) or
  * a full key (kept as it is, in localStorage, sent as a bearer header to
- * /api/*), or continue with sample data.
+ * /api/*), or look around with sample data: two paths, given the same weight.
  */
 
 import { h } from "../lib/dom";
 import { brandMark } from "../components/brand-mark";
 import { checkHealth, isApiKey, signIn } from "../db/api";
+import { SIGN_IN_HELP_URL } from "../lib/version";
 import { CONNECTOR_CATEGORIES } from "../../../lib/connector-presets";
 import { request } from "../db/api";
 import { lastImportTitle, type ImportLine, type ImportMemo } from "../lib/youtube-import-memo";
@@ -24,10 +25,20 @@ export function renderConnect(onDone: (mode: "connected" | "sample") => void): H
     autocapitalize: "off",
     spellcheck: "false",
     placeholder: "Paste your access token or a key",
+    "aria-describedby": "athena-token-help",
   }) as HTMLInputElement;
+  // Where the token comes from (README "3. Sign in"), in the words the setup steps use.
+  const help = h(
+    "p",
+    { class: "connect__help", id: "athena-token-help" },
+    "It's the ",
+    h("code", {}, "MCP_BEARER_TOKEN"),
+    " you chose when you set up your Athena site. A full-access key made in Settings → API keys, on a device that's already connected, works too. ",
+    h("a", { class: "text-link", href: SIGN_IN_HELP_URL, target: "_blank", rel: "noopener noreferrer" }, "Where do I find this?")
+  );
   const error = h("p", { class: "connect__error", role: "alert" });
   const connect = h("button", { class: "btn btn--primary btn--block", type: "submit" }, "Connect") as HTMLButtonElement;
-  const sample = h("button", { class: "btn btn--ghost btn--block", type: "button" }, "Continue with sample data");
+  const sample = h("button", { class: "btn btn--soft btn--block", type: "button", "aria-describedby": "athena-sample-help" }, "Look around with sample data");
   sample.addEventListener("click", () => onDone("sample"));
 
   const form = h(
@@ -35,9 +46,9 @@ export function renderConnect(onDone: (mode: "connected" | "sample") => void): H
     { class: "connect__form" },
     h("label", { class: "field-label", for: "athena-token" }, "Access token"),
     input,
+    help,
     error,
-    connect,
-    sample
+    connect
   );
 
   form.addEventListener("submit", async (e) => {
@@ -90,11 +101,18 @@ export function renderConnect(onDone: (mode: "connected" | "sample") => void): H
         h(
           "p",
           { class: "connect__body" },
-          "Paste the access token from your Athena backend to sync your notes, metrics and people across devices. A full key from Settings works too."
+          "Paste your access token to see your own notes, people and days on this device."
         )
       ),
       form,
-      h("p", { class: "connect__foot" }, "This device gets its own key, which you can remove in Settings. The token you paste isn't kept.")
+      h("p", { class: "connect__foot" }, "This device gets its own key, which you can remove in Settings. The token you paste isn't kept."),
+      h(
+        "div",
+        { class: "connect__sample" },
+        h("p", { class: "connect__or" }, "Or, without a token"),
+        sample,
+        h("p", { class: "connect__foot", id: "athena-sample-help" }, "Everything in the sample is made up. Anything you add stays on this device and isn't sent anywhere.")
+      )
     )
   );
 }

@@ -25,6 +25,7 @@ import { patternSlot } from "../components/patterns-block";
 import { forOutcome, type Pattern } from "../../../lib/patterns";
 import type { ViewId } from "../components/nav";
 import { pageHead } from "../components/page-head";
+import { clockOfDay } from "../lib/clock";
 
 type Range = "4w" | "6m" | "1y";
 const RANGES: Array<{ id: Range; label: string; days: number; before: string; in: string }> = [
@@ -172,7 +173,7 @@ export function renderHealth(ctx: { go: (view: ViewId, opts?: { noteId?: string 
 
   function workoutRow(w: Workout & { date: string }): HTMLElement {
     const sketch = w.route ? routeSketch(w.route) : null;
-    const meta = [shortDay(w.date), w.start, `${w.minutes} min`].filter(Boolean).join(" · ");
+    const meta = [shortDay(w.date), clockOfDay(w.start), `${w.minutes} min`].filter(Boolean).join(" · ");
     return h(
       "li",
       { class: "health__workout" },
@@ -417,8 +418,8 @@ export function renderHealth(ctx: { go: (view: ViewId, opts?: { noteId?: string 
       const weeks = Math.max(1, fed.length / 7);
       const cups = coffee === null ? null : Math.round((coffee / MG_PER_COFFEE) * 10) / 10;
       const facts: Array<[string, string]> = [
-        ...(cups ? ([["Coffee", `${cups} ${cups === 1 ? "cup" : "cups"} a day${usualLast !== null ? `, the last usually by ${clock(usualLast)}` : ""}`]] as Array<[string, string]>) : []),
-        ...(lateDays ? ([["After 2pm", `${lateDays} of ${fed.length} days`]] as Array<[string, string]>) : []),
+        ...(cups ? ([["Coffee", `${cups} ${cups === 1 ? "cup" : "cups"} a day${usualLast !== null ? `, the last usually by ${clockOfDay(clock(usualLast))}` : ""}`]] as Array<[string, string]>) : []),
+        ...(lateDays ? ([[`After ${clockOfDay("14:00")}`, `${lateDays} of ${fed.length} days`]] as Array<[string, string]>) : []),
         ...(water !== null ? ([["Water", `${litres(water)} a day`]] as Array<[string, string]>) : []),
         ...(fed.length ? ([["Alcohol", drinks ? `${Math.round((drinks / weeks) * 10) / 10} drinks a week` : "None"]] as Array<[string, string]>) : []),
       ];

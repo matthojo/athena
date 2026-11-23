@@ -11,12 +11,6 @@
   gap: var(--space-sm);
 }
 
-@media (min-width: 900px) {
-  .nudge-cards__list {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  }
-}
-
 .nudge-card {
   position: relative;
   display: flex;

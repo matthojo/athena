@@ -167,7 +167,7 @@ export function openImportAssistant(opts: ImportOptions): void {
       ticks.length || web
         ? section(
             "Can it go ahead without asking?",
-            h("p", { class: "form__hint" }, `${name} would like to do these on its own. Anything you leave unticked waits for your Go.`),
+            h("p", { class: "form__hint" }, `${name} would like to do these on its own. Anything you leave unticked waits for your approval.`),
             ...ticks.map((t) => t.el),
             web ? h("label", { class: "wf-tick" }, web, h("span", {}, h("span", { class: "wf-tick__label" }, "Look things up online"), h("span", { class: "row__meta" }, "Searches the web and reads pages it finds, while “Let Ask search the web” is on"))) : null
           )

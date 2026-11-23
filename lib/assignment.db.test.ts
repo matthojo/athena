@@ -183,7 +183,7 @@ test("a 3-stage run: Go makes the note, each stage is one Team run that hands on
 
   // What's posted, and what waits: nothing, in a run straight through.
   assert.deepEqual(kinds(), ["lineup", "update", "handoff", "update", "handoff", "update", "handoff", "done"]);
-  assert.match(posts[0].text, /Lineup for “Pricing page”: Engineer → Editor → Reviewer\. Nothing runs until you tap Go\./);
+  assert.match(posts[0].text, /Lineup for “Pricing page”: Engineer → Editor → Reviewer\. Nothing runs until you tap Approve\./);
   assert.equal(posts[1].text, "Starting stage 1 of 3: Write the spec");
   assert.ok(posts.slice(1).every((p) => p.assignment_id === a.id && p.assistant_id && p.stage_id && p.run_id));
   assert.ok(posts.every((p) => !p.waits_for));
@@ -649,14 +649,14 @@ test("Ask's tools: start_assignment keeps a lineup as a draft for Go and starts 
         tools = (p.tools ?? []).map((t) => t.name);
         const last = p.messages.at(-1)!.content;
         if (n === 2 && Array.isArray(last)) result = (last as Array<{ type: string; content?: string }>).find((b) => b.type === "tool_result")?.content ?? "";
-        const content = n === 1 ? [use("start_assignment", { brief: "Rewrite the pricing page so Pro comes first." })] : [answer("Engineer, Editor and Reviewer are lined up. It waits for your Go.")];
+        const content = n === 1 ? [use("start_assignment", { brief: "Rewrite the pricing page so Pro comes first." })] : [answer("Engineer, Editor and Reviewer are lined up. It waits for your approval.")];
         return { id: "m", type: "message", role: "assistant", model: "fake", content, stop_reason: n === 1 ? "tool_use" : "end_turn", stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } };
       },
     },
   } as never;
   const reply = await runAsk("Get the pricing page rewritten: an engineer, an editor, then a reviewer.", { sources: none, client: ask, web: async () => false }, { log: false });
   assert.ok(tools.includes("start_assignment") && tools.includes("continue_assignment") && !tools.includes("hand_off"), "main Ask's tools");
-  assert.match(reply.text, /waits for your Go/);
+  assert.match(reply.text, /waits for your approval/);
   assert.equal(reply.plan, undefined, "never a plan step");
   const told = JSON.parse(result) as { assignment_id: string; lineup: string; note: string };
   assert.equal(told.lineup, "Engineer → Editor → Reviewer");
@@ -667,7 +667,7 @@ test("Ask's tools: start_assignment keeps a lineup as a draft for Go and starts 
   assert.deepEqual(kinds(), ["lineup"]);
   assert.equal(queue.length, 0, "nothing runs before Go");
   assert.deepEqual(await continueAssignment(null), { not_done: "No assignment is waiting." });
-  assert.match(JSON.stringify(await continueAssignment(draft.id)), /hasn't started: its lineup waits for the owner's own Go/);
+  assert.match(JSON.stringify(await continueAssignment(draft.id)), /hasn't started: its lineup waits for the owner's own approval/);
 
   // The owner reorders the draft and taps Go: the same assignment, its lineup replaced, no second lineup post.
   const edited = await startAssignment(lineup({}, [{ role: "reviewer", task: "Check it", checkpoint: "approve" }, { role: "editor", task: "Tidy it" }]), { id: draft.id });

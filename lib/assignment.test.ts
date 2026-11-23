@@ -248,7 +248,7 @@ test("a turn that read other people's words holds what follows; a handoff is mad
 });
 
 test("copy: no line promises what hasn't happened", () => {
-  assert.match(ASSIGNMENT_COPY.lineup("Pricing", "Engineer → Reviewer"), /Nothing runs until you tap Go/);
+  assert.match(ASSIGNMENT_COPY.lineup("Pricing", "Engineer → Reviewer"), /Nothing runs until you tap Approve/);
   assert.equal(ASSIGNMENT_COPY.question(1), "I have a question before I go on.");
   assert.equal(ASSIGNMENT_COPY.took(2), "I went with my own suggestions for 2 questions, as you asked.");
   assert.equal(ASSIGNMENT_COPY.sentBack(1, "Engineer", ""), "Sent back to stage 1 (Engineer).");

@@ -1453,7 +1453,7 @@ in code, where the model's words can't change the outcome.
   instruction at the start of the message or of a clause ("…, and add a
   to-do to follow up"), by kind (add, change, remove, link, send). Nothing a
   tool returned, and nothing an earlier reply said, is ever read for it.
-- **After reading other people's words, a change waits for Go unless the
+- **After reading other people's words, a change waits for approval unless the
   owner plainly asked for it.** A turn has read other people's words once
   it has a result from a connected account, a web search result, a file
   (this message's, an earlier one's summary, or `read_file`), or text from
@@ -1470,18 +1470,18 @@ in code, where the model's words can't change the outcome.
   `search_athena` or `read_note`, is held the same way. From then on a
   write tool whose kind the owner's message didn't ask for is not run. It's
   kept as a plan card with one step (`plan.why: "read"`), and nothing
-  happens until the owner taps Go. The check is made when the change is
+  happens until the owner taps Approve. The check is made when the change is
   queued: one queued before anything was read can't have been caused by it.
   A change of the kind the owner did ask for runs as before (one is made,
   two or more are a plan). Every write tool is in a fixed list
-  (`TOOL_ASKS`); one that isn't listed always waits for Go, and a test
+  (`TOOL_ASKS`); one that isn't listed always waits for approval, and a test
   checks the list covers the Session's tools.
 - **A flagged result removes the write tools and web search for the rest of
   the turn.** When Jev's `guardText` flags anything read (a note, a search
   snippet, an account's result, a mention, a skill's file), the next model
   call is sent without any write tool or `web_search`, a call to one is
   refused in code, the model is told why, and anything already queued
-  waits for Go (`plan.why: "flagged"`). Reading and answering carry on, and
+  waits for approval (`plan.why: "flagged"`). Reading and answering carry on, and
   the reply says something was treated as plain text.
 - **In a Team assistant's unattended run, its allowlist is the owner's
   standing request** (owner, 13 Nov 2026). A run is started by a trigger and
@@ -1489,11 +1489,11 @@ in code, where the model's words can't change the outcome.
   allowlist is what the owner ticked that assistant may do alone.
   - A change on the allowlist runs alone, as it did before the one loop,
     even when the run was started by, or has read, other people's words.
-  - A change that isn't on the allowlist waits for Go as a plan.
+  - A change that isn't on the allowlist waits for approval as a plan.
   - If anything read in the run is flagged as an instruction, no write tool
-    runs, allowlisted or not, and what was queued waits for Go.
+    runs, allowlisted or not, and what was queued waits for approval.
   - A chat with an assistant is unchanged: the owner's own message decides.
-    There the allowlist only lets an allowed change run without Go where
+    There the allowlist only lets an allowed change run without approval where
     the guard would let it run anyway.
 
   The guard is given the allowlist when the turn starts (`TurnGuard`'s
@@ -1654,7 +1654,7 @@ Design in `docs/team.md` "Assignments"; notes in
   allowlist is empty apart from `hand_off` and the stage's `ask_owner`,
   which change nothing outside the assignment: `hand_off` writes only the
   assignment's own note. Any other change waits as a plan for the owner's
-  Go, whatever the checkpoint or the suggestions setting.
+  approval, whatever the checkpoint or the suggestions setting.
 - **Other people's words don't travel as instructions.** The brief, the
   work and every handoff reach a stage quoted as data. A stage that read
   other people's words (a web page) is held, and so is every stage after
@@ -1664,7 +1664,7 @@ Design in `docs/team.md` "Assignments"; notes in
   `start_assignment` and `continue_assignment` are main Ask's only. Both
   are write tools to the guard (`TOOL_ASKS`), so neither is offered once a
   turn is flagged. `continue_assignment` may approve a checkpoint or take
-  suggested answers; it never gives Go for a plan and never starts a
+  suggested answers; it never approves a plan and never starts a
   lineup.
 - **Limits.** 6 stages, 3 assignments running or waiting, 3 questions a
   stop and two stops a stage, one send-back by a stage per assignment
@@ -1714,14 +1714,14 @@ none of its own.
 - **Changes wait unless the owner said otherwise.** Only adding a reminder, a
   to-do or a list item runs alone by default (`AUTO_BY_DEFAULT`, which the
   editor, drafting and suggestions all follow); every other change, filing a
-  saved item included, waits for Go unless the owner sets it to run alone. A change that waits is kept as an
-  Ask plan (`ask_plans`, sealed) and nothing is made until Go, which runs it
+  saved item included, waits for approval unless the owner sets it to run alone. A change that waits is kept as an
+  Ask plan (`ask_plans`, sealed) and nothing is made until the owner approves, which runs it
   through Ask's plan code, logged in What Ask did (a plain flow's as "Flow:
   <name>", with the flow's and run's ids, plain) with its Undo. Skip and Stop
   close the plan so it can't run later.
 - **Drafts are never sent.** `draft_email` and `draft_message` always wait
-  for Go: the store refuses one set to run alone, and the runner waits on it
-  whatever was saved. Go writes the draft with Ask's own code and the same
+  for approval: the store refuses one set to run alone, and the runner waits on it
+  whatever was saved. Approving writes the draft with Ask's own code and the same
   mail and Slack ports Ask gets, and keeps it as a change for the owner to
   read. Nothing is sent, and an email reaches Gmail or Outlook Drafts only
   when the owner taps Save in the app (as for Ask, security review M7). With
@@ -1733,10 +1733,10 @@ none of its own.
   `runAssistantTurn` in run mode: the assistant's persona, memory, allowlist
   and web switch, the guard on other people's words, its own spend cap. The
   values earlier steps found reach it quoted as data. Anything outside its
-  allowlist waits for Go. A plain flow has no thinking steps (they're
+  allowlist waits for approval. A plain flow has no thinking steps (they're
   skipped), so it calls no model, apart from an assignment's lineup.
 - **Assignments.** Start an assignment keeps the lineup as a draft; nothing
-  starts until the owner's Go in Team chat.
+  starts until the owner approves it in Team chat.
 - **A try changes nothing.** A dry run runs looks only; every change says
   what it would do, no card is sent, a thinking step is a read-only check,
   and the walk ends at a question.
@@ -1827,8 +1827,8 @@ is kept.
   A step with `web: false` runs the assistant's turn with its web switch off:
   no search, no page and no tracking rule, whatever the assistant's own
   setting.
-- **Go from Ask's plan card.** Go on a plan a flow's run waits on runs the
-  run's own Go (as on the run page): a draft is written with Ask's draft code
+- **Approve from Ask's plan card.** Approve on a plan a flow's run waits on runs the
+  run's own approval (as on the run page): a draft is written with Ask's draft code
   and kept as that run's change; nothing is sent.
 - **Sharing.** A shared assistant's file is unchanged: its flows' triggers in
   the same shape older copies read, with no flow ids. An imported assistant's
@@ -1853,11 +1853,11 @@ is kept.
   its tool. Values may only
   point at the trigger or at a step that has surely run before. A step that
   reads spending is kept only while "Let Ask read transactions" is on.
-- **Changes wait for Go.** A drawn change runs alone only if it's a
+- **Changes wait for approval.** A drawn change runs alone only if it's a
   reminder, a to-do or a line on a checklist (each only adds to the
   owner's own Athena, with Undo) and the owner didn't ask to be checked
-  with; every other change waits for Go. A draft step (`draft_message`,
-  `draft_email`) always waits for Go, whatever the model says, and only
+  with; every other change waits for approval. A draft step (`draft_message`,
+  `draft_email`) always waits for approval, whatever the model says, and only
   writes a draft for the owner to check: nothing is sent. Thinking steps
   are left out: a drawn flow has no assistant.
 - **Saved off.** `propose_flow` saves the flow paused (`origin: "ask"`)
@@ -1869,16 +1869,16 @@ is kept.
 
 ### Plans, routines and What Ask did (migration `0055`)
 
-- **Plans write nothing until Go.** While Ask works, every tool that could
+- **Plans write nothing until Approve.** While Ask works, every tool that could
   change something is handed to a `PlanDraft` (`lib/ask-plans.ts`) instead of
   running. One queued change runs when the model finishes, as before. Two or
   more are kept as an `ask_plans` row, steps and tool inputs sealed under the
-  data key (§11), and the app gets the step lines only, never the inputs. Go
+  data key (§11), and the app gets the step lines only, never the inputs. Approve
   (`POST /api/assistant/plan`, rate-limited with the rest of Ask) runs the
   owner's ticked steps once: `ran_at` is claimed first, so a second tap or a
   second device runs nothing. Each step goes through the same tool code and
   checks as a reply. A move, which in a reply waits for the confirm sheet,
-  is made at Go, since Go is that tap. Stand-in ids are only ever swapped for
+  is made at Approve, since Approve is that tap. Stand-in ids are only ever swapped for
   ids the plan's own earlier steps made.
 - **Routines can read, and only propose.** A routine (`ask_routines`, words
   sealed; days and time plain so the scheduler can read them) runs as the
@@ -1886,7 +1886,7 @@ is kept.
   the same read tools, Jev checks, guard and money switch, in "propose"
   mode: every tool that could change something is queued and
   nothing is run, even a single change, and the plan waits for the owner's
-  Go. A routine never writes to Athena or a connected account, never sends
+  approval. A routine never writes to Athena or a connected account, never sends
   anything, and keeps only its Ask conversation and its nudge (both sealed).
   At most 10 routines; each slot is claimed once in the row (`last_slot`); a
   run gets the loop's caps (10 model calls, 24 lookups, 120 seconds; once it
@@ -1916,10 +1916,10 @@ is kept.
 - **Instructions only.** A skill adds no tools or permissions. The tool list
   is the back end's own plus `use_skill` and `read_skill_file`, which only
   read the owner's own skills and are run by the back end, never queued in a
-  plan. Writes still wait for Go, money search is still refused in
+  plan. Writes still wait for approval, money search is still refused in
   `ReadTools` while it's off, and Ask has no tool that sends anything. The
   prompt says a skill can't override these rules, and
-  `lib/skills.db.test.ts` checks it with a skill that says to send, skip Go
+  `lib/skills.db.test.ts` checks it with a skill that says to send, skip approval
   and read transactions.
 - **Sealed.** Each skill's text, files and source are one sealed JSON string
   in `ask_skills.payload` (§11), re-sealed on key rotation. Readable columns:
@@ -1991,7 +1991,7 @@ nothing new is stored.
 - **Nothing in the file is a permission.** The assistant joins paused.
   `allow` is only the tools the owner ticked that the file also asked
   for (`grantedTools`), each unticked to start; `web` is on only when both
-  the file asked and the owner ticked it. Everything else waits for Go,
+  the file asked and the owner ticked it. Everything else waits for approval,
   as for any assistant (§10, "One loop"). The skill is an assistant's own
   skill: instructions only, no tools (§10, "Skills"). Sites its words link
   to are listed on the preview as unchecked.
@@ -2233,7 +2233,7 @@ saved (below).
   loop, so what a successful injection can do is bounded by the guard
   ("One loop: who can ask for a change"): a wrong answer, a cited link the
   owner didn't expect, that item saved to Athena (next point), a plan the
-  owner would have to Go, and, while web search is on, words Claude has
+  owner would have to approve, and, while web search is on, words Claude has
   read going into a web search (below). Links in an
   answer are drawn as plain links and never fetched.
 - **Web search** ("Let Ask search the web", Settings → Ask, on by default;
@@ -2393,7 +2393,7 @@ the status counts and the tests all read it from there.
 | `commitments` (to-dos) | `title`, `notes` (the description), `source_quote`, and from `0084` `steps` (the checklist) and `links` (web addresses and athena:// links, with their titles), each list one sealed JSON value. `priority` (0 to 3) stays readable |
 | `interactions` (catch-ups) | `summary` |
 | `facts` | `value`, `source_quote` |
-| `suggestions` (review inbox) | `summary`, `payload`, `source_quote` |
+| `suggestions` (Inbox) | `summary`, `payload`, `source_quote` |
 | `assets` (life admin) | `name`, `provider`, `notes` |
 | `reading_items` | `title`, `url`, `author`, `notes`, `sync` (match keys and what a source last wrote, migration `0029`), `meta` (year, running time, genres, playlists, your tags and the seasons it suits, migration `0063`) |
 | `goals` | `title`, `target`, `notes` |

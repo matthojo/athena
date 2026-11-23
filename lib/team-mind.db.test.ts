@@ -290,7 +290,7 @@ test("one assistant's run never sees another's: Dot's run gets nothing of Moss's
   const mossModel = fakeClient((p, n) => {
     if (p.tool_choice?.name === "memory") return [use("memory", { summary: `Found the ${MARK}.`, facts: [`${MARK}`] })];
     if (n === 1) return [use("save_note", { title: MARK, body: MARK, step: `Save the ${MARK}` })];
-    return [text(`Found the ${MARK}. Saving it waits for your Go.`)];
+    return [text(`Found the ${MARK}. Saving it waits for your approval.`)];
   });
   const dotModel = fakeClient((p, n) => {
     if (p.tool_choice?.name === "memory") return [use("memory", { summary: "Watching Linear.", facts: ["Issues go to the work list"] })];

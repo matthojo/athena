@@ -9,12 +9,12 @@ const asg = (status: Assignment["status"], stages: AssignmentStage[]): Pick<Assi
 const lineup = (n = 3): Lineup => ({ title: "T", brief: "B", checkpoint: "auto", suggestions: "ask", stages: (["engineer", "seo", "reviewer", "editor"] as const).slice(0, n).map((role) => ({ role, task: `${role} task`, checkpoint: "auto" as const })) });
 const post = (p: Partial<TeamPost> & Pick<TeamPost, "id">): TeamPost => ({ kind: "update", who: who("Piper"), from: "assistant", text: "", assignment_id: null, assignment_title: null, stage_id: null, run_id: null, thread_id: null, waits_for: null, settled_at: null, created_at: new Date(2026, 10, 17, 9, p.id).toISOString(), ...p });
 
-test("the waiting words: a question needs your answer, a change or an approval needs your Go", () => {
+test("the waiting words: a question needs your answer, a change or a checkpoint needs your approval", () => {
   assert.equal(WAITS_WORD.answer, "Needs your answer");
-  assert.equal(WAITS_WORD.go, "Needs your Go");
-  assert.equal(WAITS_WORD.approval, "Needs your Go");
+  assert.equal(WAITS_WORD.go, "Needs your approval");
+  assert.equal(WAITS_WORD.approval, "Needs your approval");
   assert.equal(stageBadge(stage({ status: "waiting", waits_for: "answer" })), "Needs your answer");
-  assert.equal(stageBadge(stage({ status: "waiting", waits_for: "approval" })), "Needs your Go");
+  assert.equal(stageBadge(stage({ status: "waiting", waits_for: "approval" })), "Needs your approval");
   assert.equal(stageBadge(stage({ status: "running" })), "Working");
   assert.equal(stageBadge(stage({ status: "failed" })), "Didn't finish");
   assert.equal(stageBadge(stage()), null);
@@ -30,7 +30,7 @@ test("a guest says Guest under its name; a standing assistant says its job", () 
 
 test("an assignment's line names the stage it's on", () => {
   assert.equal(assignmentLine(asg("waiting", [stage({ status: "done" }), stage({ status: "waiting", waits_for: "answer" })])), "Piper needs your answer");
-  assert.equal(assignmentLine(asg("waiting", [stage({ status: "waiting", waits_for: "approval" })])), "Piper needs your Go");
+  assert.equal(assignmentLine(asg("waiting", [stage({ status: "waiting", waits_for: "approval" })])), "Piper needs your approval");
   assert.equal(assignmentLine(asg("running", [stage({ status: "running" })])), "Piper is working");
   assert.equal(assignmentLine(asg("done", [stage({ status: "done" })])), "Done");
   assert.equal(assignmentLine(asg("stopped", [stage({ status: "skipped" })])), "Stopped");
@@ -49,9 +49,9 @@ test("the strip lists the chat's waiting posts, oldest first: one row each, a ru
   const settled = post({ id: 1, kind: "approval", waits_for: "approval", settled_at: "2026-11-17T09:00:00Z" });
   assert.deepEqual(waitingPosts({ waiting: [q, settled, asked, plan, failed] }).map((p) => p.id), [2, 3, 4, 5]);
   assert.equal(WAITS_WORD.dismiss, "Didn't finish");
-  assert.equal(waitTitle(asked), "Dot needs your Go");
+  assert.equal(waitTitle(asked), "Dot needs your approval");
   assert.equal(waitTitle(q), "Piper needs your answer");
-  assert.equal(waitTitle(plan), "Dot needs your Go");
+  assert.equal(waitTitle(plan), "Dot needs your approval");
   assert.equal(waitTitle(failed), "Wren didn't finish");
 });
 

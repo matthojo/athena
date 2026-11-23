@@ -28,6 +28,7 @@ import { openCreateSheet, zonedInstant } from "../components/create-sheet";
 import { bookingAsk } from "../lib/create-event";
 import { prepareCreate } from "../db/scheduling";
 import { localToday } from "../lib/time";
+import { clockOfDay } from "../lib/clock";
 
 /** An email or event asking to meet, talk or move something: Check in offers "Suggest times". */
 const ASKS_TO_MEET = /\b(meet(ing)?|catch[ -]?up|call|chat|sync|1:1|coffee|reschedul\w*|find a time|another time|new time|move (it|the|our)|push (it|back)|when (are|is) you free|free (on|next|this))\b|\b(grab|find|book|set up|get)\s+(a |an |some )?(\d+\s*min\w*|half an hour|hour|time)\b/i;
@@ -78,7 +79,7 @@ function consequence(s: Suggestion, names: Map<string, string>): string {
       return `Logs a catch-up${people ? ` with ${people}` : ""} · ${channel.toLowerCase()}`;
     }
     case "event":
-      return [typeof p.date === "string" ? calendarDate(p.date, true) : "", typeof p.time === "string" ? p.time : ""].filter(Boolean).join(" at ");
+      return [typeof p.date === "string" ? calendarDate(p.date, true) : "", typeof p.time === "string" ? clockOfDay(p.time) : ""].filter(Boolean).join(" at ");
     case "person":
       return `New person: ${String(p.name ?? "")}`;
     case "link":
@@ -88,7 +89,7 @@ function consequence(s: Suggestion, names: Map<string, string>): string {
       const day = /^\d{4}-\d{2}-\d{2}/.test(start) ? calendarDate(start.slice(0, 10), true) : "";
       const time = /T(\d{2}:\d{2})/.exec(start)?.[1] ?? "";
       const where = typeof p.start_city === "string" && p.start_city ? ` from ${p.start_city}` : "";
-      return `Adds it to a trip${day ? ` · ${day}${time ? ` at ${time}` : ""}` : ""}${where}`;
+      return `Adds it to a trip${day ? ` · ${day}${time ? ` at ${clockOfDay(time)}` : ""}` : ""}${where}`;
     }
     case "purchase":
       return `Follows the order${typeof p.retailer === "string" ? ` from ${p.retailer}` : ""} in Purchases`;
@@ -116,7 +117,7 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
     "div",
     { class: "view review" },
     pageHead({
-      title: "Review inbox",
+      title: "Inbox",
       count,
       lede: "Things Athena noticed but wasn't sure about. Add the right ones. Anything you mark Not right won't come back.",
     }),

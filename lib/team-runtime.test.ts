@@ -107,29 +107,29 @@ test("a batched run is asked about every event at once: titles as data, the firs
   assert.equal(runWords(crisp, { text: "Added 2 to-dos from the new issues.", changes: [todo, todo], planned: 0, lead: "3 new issues" }).summary, "Added 2 to-dos from the new issues.");
   assert.equal(runWords(crisp, { text: "All the replies are handled.", changes: [], planned: 0, lead: "2 new replies" }).summary, "All the replies are handled.");
   assert.equal(runWords(crisp, { text: "", changes: [todo, todo, todo, todo], planned: 0, lead: "30 new issues" }).summary, "30 new issues: 4 to-dos added.");
-  assert.equal(runWords(crisp, { text: "", changes: [], planned: 1, lead: "3 new issues" }).summary, "3 new issues. 1 change waits for Go.");
+  assert.equal(runWords(crisp, { text: "", changes: [], planned: 1, lead: "3 new issues" }).summary, "3 new issues. 1 change waits for your approval.");
 });
 
 test("a single run's summary: its reply without citations, then what waits for Go, once", () => {
   const calm = { name: "Sol", personality: { tone: "calm", pronoun: "they" } } as const;
   const todo = { kind: "commitment", action: "created" } as const;
   assert.equal(runWords(calm, { text: "Added it [1].", changes: [todo], planned: 0 }).summary, "Added it.");
-  assert.equal(runWords(calm, { text: "", changes: [], planned: 2 }).summary, "2 changes are ready when you are: tap Go.");
+  assert.equal(runWords(calm, { text: "", changes: [], planned: 2 }).summary, "2 changes are ready when you are: tap Approve.");
   assert.equal(runWords(calm, { text: "", changes: [], planned: 0 }).summary, "All quiet. Nothing needed doing.");
   // The reply already says what waits: not told twice.
-  assert.equal(runWords(calm, { text: "Added it. A to-do to buy it waits for your Go.", changes: [todo], planned: 1 }).summary, "Added it. A to-do to buy it waits for your Go.");
+  assert.equal(runWords(calm, { text: "Added it. A to-do to buy it waits for your approval.", changes: [todo], planned: 1 }).summary, "Added it. A to-do to buy it waits for your approval.");
 });
 
 test("a run's nudge is From <Name>, with the avatar, and opens the conversation", () => {
   const avatar = avatarFromSeed("moss");
-  const n = teamNudge({ id: "a1", name: "Moss", avatar }, { id: "r1", thread_id: "t1", summary: "Found it for £40. One change waits for you to tap Go.", finished_at: "2026-11-12T10:00:00.000Z", started_at: "2026-11-12T09:59:00.000Z" }, { kind: "event", days: [], time: null, event: { source: "saved", savedAction: "gift_idea" } });
+  const n = teamNudge({ id: "a1", name: "Moss", avatar }, { id: "r1", thread_id: "t1", summary: "Found it for £40. One change waits for you to tap Approve.", finished_at: "2026-11-12T10:00:00.000Z", started_at: "2026-11-12T09:59:00.000Z" }, { kind: "event", days: [], time: null, event: { source: "saved", savedAction: "gift_idea" } });
   assert.equal(n.rule, "team");
   assert.equal(n.key, "team:r1");
   assert.equal(n.title, "From Moss");
   assert.equal(n.thread_id, "t1");
   assert.deepEqual(n.assistant, { id: "a1", name: "Moss", avatar });
   assert.match(n.why[0], /Moss runs when you file something as a gift idea/);
-  assert.match(n.why[1], /waits for you to tap Go/);
+  assert.match(n.why[1], /waits for you to tap Approve/);
   assert.equal(n.expires_at, "2026-11-13T06:00:00.000Z");
 });
 

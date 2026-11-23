@@ -42,6 +42,7 @@ import { failedCard, type DaysNav, type Mounted } from "./days";
 import { travelToday } from "../components/travel-today";
 import { checkinDaySection } from "../components/checkin-day";
 import { blank, onThisDay } from "./days-feed";
+import { clockTime } from "../lib/clock";
 
 const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (t.matches("input, textarea, select") || t.isContentEditable);
 
@@ -540,7 +541,7 @@ function placesSection(day: Day, today: string, reload: () => void): HTMLElement
 // ---------- Meetings and notes ----------
 
 /** "10:00" in this device's zone, or "All day". */
-const eventTime = (e: DayEvent) => (e.starts_at ? new Date(e.starts_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "All day");
+const eventTime = (e: DayEvent) => (e.starts_at ? clockTime(e.starts_at) : "All day");
 
 function linkedSection(day: Day, nav: DaysNav): HTMLElement {
   const items: HTMLElement[] = [];

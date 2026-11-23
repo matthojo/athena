@@ -1,3 +1,4 @@
+import { clockOfDay, uses12Hour } from "./clock";
 /**
  * Which of today's dates Home's headline leads with, as the day goes on.
  *
@@ -29,5 +30,5 @@ export function headlineEvent<T extends HeadlineItem>(events: T[], now: Date): T
   return today.find((o) => !Number.isFinite(at(o))) ?? null;
 }
 
-/** The start of the headline's sentence: "Design review at 15:00 is". */
-export const headlineEventWords = (o: HeadlineItem | null): string | null => (o ? `${o.event.title}${o.time ? ` at ${o.time}` : ""} is` : null);
+/** The start of the headline's sentence: "Design review at 15:00 is" ("at 3:00 pm" on a 12-hour device). */
+export const headlineEventWords = (o: HeadlineItem | null, hour12 = uses12Hour()): string | null => (o ? `${o.event.title}${o.time ? ` at ${clockOfDay(o.time, hour12)}` : ""} is` : null);
