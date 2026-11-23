@@ -197,3 +197,77 @@ export function linkableText(t: { notes?: string | null; links?: readonly TodoLi
 export function stepsText(steps: readonly TodoStep[] | null | undefined): string {
   return (steps ?? []).map((s) => `${s.done ? "[x]" : "[ ]"} ${s.text}`).join("\n");
 }
+
+// ---------- steps that Athena files itself ----------
+
+/**
+ * What a step is, for every prompt that can add one (collections, Ask, Team
+ * assistants, flows, MCP). The point is restraint: most action items are
+ * to-dos of their own, and a meeting's list of actions is not one to-do's
+ * checklist.
+ */
+export const STEPS_RULE =
+  "Steps are the parts of one to-do that the owner works through to finish it, and only when the source spells them out (a checklist, " +
+  "\"first X, then Y\", the documents a form needs). Each step only makes sense inside that to-do. Anything that stands on its own is its own " +
+  "to-do, not a step: a separate promise, something for a different person or with its own due date, another person's action item, or the " +
+  "next item in a meeting's list of actions. Don't break a simple to-do into steps, don't make up steps the source doesn't give, and leave " +
+  "steps out when unsure.";
+
+/** The same rule in one line, for tool descriptions where space is tight. */
+export const STEPS_RULE_SHORT =
+  "Only the parts of this one to-do that the source spells out (a checklist, \"first X, then Y\"); anything that stands on its own, " +
+  "has its own person or date, or is the next action from a meeting is a separate to-do. Leave out when unsure, never invent them.";
+
+/** Most steps an agent files on one to-do; a longer list is a project, not a to-do. */
+export const MAX_FILED_STEPS = 12;
+
+const sameWords = (a: string, b: string) => a.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim() === b.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/**
+ * Steps an agent (a collection, Athena's own summaries) offers for a to-do, tidied
+ * before they're kept: blanks and repeats go, as does a step that only restates
+ * the title. One step left on its own is the to-do said twice, so it's dropped,
+ * and more than MAX_FILED_STEPS means the agent split up something bigger, so
+ * none are kept rather than a cut-off list. The owner (in the app or asking Ask)
+ * isn't held to this: they asked for what they asked for.
+ */
+export function filedSteps(title: string, raw: readonly string[] | null | undefined): string[] {
+  const out: string[] = [];
+  for (const s of raw ?? []) {
+    const text = s.replace(/\s+/g, " ").trim().slice(0, STEP_LENGTH);
+    if (!text || sameWords(text, title) || out.some((o) => sameWords(o, text))) continue;
+    out.push(text);
+  }
+  if (out.length < 2 || out.length > MAX_FILED_STEPS) return [];
+  return out;
+}
+
+/** Priority as Ask's tools and agents say it. */
+export const PRIORITY_NAMES = ["none", "low", "medium", "high"] as const;
+export type PriorityName = (typeof PRIORITY_NAMES)[number];
+export const priorityOfName = (name: PriorityName): TodoPriority => PRIORITY_NAMES.indexOf(name) as TodoPriority;
+export const nameOfPriority = (p: TodoPriority | null | undefined): PriorityName => PRIORITY_NAMES[p ?? 0] ?? "none";
+
+// ---------- for Ask's tools (lib/assistant.ts, lib/assistant-records.ts) ----------
+
+/** Links Ask was given for a to-do: kept when they're web or athena:// addresses, a clear error when one isn't. */
+export function askLinks(raw: readonly string[] | undefined): TodoLink[] {
+  if (!raw?.length) return [];
+  try {
+    return cleanLinks([...raw]);
+  } catch (error) {
+    if (error instanceof TodoDetailsError) throw new Error(`${error.message}. Links are https addresses or athena://<kind>/<id>.`);
+    throw error;
+  }
+}
+
+/** "3 steps", "2 links", "High priority": what a to-do carries besides its title, for what Ask did. */
+export function todoExtras(c: { steps?: { done: boolean }[]; links?: unknown[]; priority?: number; notes?: string }): string[] {
+  const out: string[] = [];
+  const p = stepProgress(c.steps as TodoStep[] | undefined);
+  if (p.total) out.push(p.done ? `${p.done} of ${p.total} steps done` : `${p.total} ${p.total === 1 ? "step" : "steps"}`);
+  const n = c.links?.length ?? 0;
+  if (n) out.push(`${n} ${n === 1 ? "link" : "links"}`);
+  if (c.priority) out.push(`${nameOfPriority(c.priority as TodoPriority).replace(/^./, (x) => x.toUpperCase())} priority`);
+  return out;
+}

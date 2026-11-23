@@ -55,7 +55,7 @@ export const FLOW_TOOLS: Record<string, ToolPick> = {
   flight_status: { group: "find", label: "Check a flight", hint: "Live from OpenSky", gives: [FOUND] },
   car_details: { group: "find", label: "Check the car", hint: "MOT, tax and the record", gives: [FOUND] },
 
-  add_todo: { group: "add", label: "Add a to-do", hint: "With a person and a due day if you like", gives: [v("todo", "the to-do", "todo")] },
+  add_todo: { group: "add", label: "Add a to-do", hint: "With a person, a due day, steps or links if you like", gives: [v("todo", "the to-do", "todo")] },
   add_reminder: { group: "add", label: "Remind me", hint: "A push at a day and time", gives: [v("reminder", "the reminder", "text")] },
   save_note: { group: "add", label: "Write a note", hint: "A new note, or add to one", gives: [v("note", "the note", "note")] },
   add_to_list: { group: "add", label: "Add to a list", hint: "Gift ideas, shopping, packing", gives: [v("note", "the list", "note")] },
@@ -65,7 +65,7 @@ export const FLOW_TOOLS: Record<string, ToolPick> = {
   add_to_watch_read: { group: "add", label: "Add to Watch & read", hint: "A book, film, show or podcast", gives: [v("item", "the item", "text")] },
   update_watch_read: { group: "add", label: "Update Watch & read", hint: "Started, finished, or how far", gives: [v("item", "the item", "text")] },
   complete_todo: { group: "add", label: "Tick off a to-do", hint: "Mark it done", gives: [v("todo", "the to-do", "todo")] },
-  change_todo: { group: "add", label: "Change a to-do", hint: "Its words, due day or person", gives: [v("todo", "the to-do", "todo")] },
+  change_todo: { group: "add", label: "Change a to-do", hint: "Its words, due day, person, priority or steps", gives: [v("todo", "the to-do", "todo")] },
   save_item: { group: "add", label: "Add or change an item", hint: "A place, event, goal or life admin", gives: [v("item", "the item", "text")] },
   set_field: { group: "add", label: "Set one of your fields", hint: "Shoe size, rating and the like", gives: [v("done", "what it set", "text")] },
   save_record: { group: "add", label: "Add to one of your types", hint: "A record in a type you keep", gives: [v("record", "the record", "text")] },

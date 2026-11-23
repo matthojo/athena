@@ -11,6 +11,7 @@
  * Function — the SDK's Web Standard Streamable HTTP transport, which speaks
  * Request/Response directly instead of needing Node's http module.
  */
+import { STEPS_RULE_SHORT } from "../../lib/todo-details";
 import { startTeamEvent } from "../../lib/team-triggers";
 // Plugs flows into the owner's own events, so a tagged note or a save starts its flows at once (lib/flow-engine.ts).
 import "../../lib/flow-engine";
@@ -537,7 +538,7 @@ function buildServer(): McpServer {
         .array(z.union([z.string().max(300), z.object({ id: z.string().max(40).optional(), text: z.string().max(300), done: z.boolean().optional() })]))
         .max(100)
         .optional()
-        .describe("The checklist, in order; replaces the existing one. Plain strings for new steps: ['Call the surgery', 'Ask about the repeat']. Only when the source lists the steps"),
+        .describe(`The checklist, in order; replaces the existing one. Plain strings for new steps: ['Call the surgery', 'Ask about the repeat']. ${STEPS_RULE_SHORT}`),
       links: z
         .array(z.union([z.string().max(2000), z.object({ id: z.string().max(40).optional(), url: z.string().max(2000), title: z.string().max(200).optional() })]))
         .max(30)

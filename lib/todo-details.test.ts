@@ -126,3 +126,15 @@ test("pasted lines become steps, list marks and boxes trimmed", () => {
   ]);
   assert.deepEqual(pastedSteps("one line"), ["one line"]);
 });
+
+test("steps an agent files: tidied, and only a real list is kept", async () => {
+  const { filedSteps, MAX_FILED_STEPS } = await import("./todo-details");
+  assert.deepEqual(filedSteps("Renew the passport", [" Get photos taken ", "Find the old passport", "get photos taken", "", "Renew the passport!"]), ["Get photos taken", "Find the old passport"]);
+  // One step on its own is the to-do said twice.
+  assert.deepEqual(filedSteps("Send Priya the deck", ["Attach the deck"]), []);
+  assert.deepEqual(filedSteps("Send Priya the deck", ["Send Priya the deck", "send priya the deck."]), []);
+  // A long list is a project an agent split up, not one to-do's checklist.
+  assert.deepEqual(filedSteps("Plan the offsite", Array.from({ length: MAX_FILED_STEPS + 1 }, (_, i) => `Step ${i}`)), []);
+  assert.equal(filedSteps("Plan the offsite", Array.from({ length: MAX_FILED_STEPS }, (_, i) => `Step ${i}`)).length, MAX_FILED_STEPS);
+  assert.deepEqual(filedSteps("x", undefined), []);
+});

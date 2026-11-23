@@ -665,6 +665,15 @@ delete tool.
   pills (`todo-props.ts`: due date with a month calendar, person, priority,
   area, where), the description, steps (`todo-steps.ts`) and links
   (`todo-links.ts`).
+  Athena adds details too, under one rule for what a step is
+  (`STEPS_RULE` in `lib/todo-details.ts`): the parts of one to-do that the
+  source spells out, never a meeting's separate actions. Ask's `add_todo`
+  takes a description, steps, links and a priority, and `change_todo` adds,
+  ticks, reopens and removes steps by the ids `find_todos` returns, with
+  Undo. Team assistants and flows run the same tools. A collection's
+  `athena_todo` takes `steps`, and the runner keeps them only as a real list
+  (`filedSteps`: two to twelve, none that restate the title, none on a
+  decision); one below the confidence bar waits in Review with its steps.
 - **Interactions** (`interactions` + `interaction_people`): every catch-up,
   by channel. Logging one moves each person's `last_contacted_at` forward
   (never back), which is what clears them from catch-up nudges. Same

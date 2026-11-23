@@ -17,6 +17,7 @@
  * what was archived. Nothing is ever deleted: archiving is as far as Ask goes.
  */
 import { listContexts } from "./todo-contexts";
+import { askLinks, MAX_LINKS, MAX_STEPS, newItemId, PRIORITY_NAMES, priorityOfName, STEPS_RULE_SHORT, todoExtras, type TodoLink, type TodoPriority, type TodoStep } from "./todo-details";
 import { contextByName, contextsOf } from "./todo-context";
 import { z } from "zod";
 import type { Anthropic } from "./ai";
@@ -245,8 +246,10 @@ export const RECORD_TOOLS: Anthropic.Tool[] = [
   {
     name: "change_todo",
     description:
-      "Change a to-do (id from find_todos; done ones too, with include_done): its words, its type, who it's with, its due date, notes, area (Work, Health…) or where/how (Phone, Errands…); tick it off (status done), reopen it (open) or drop it (dropped). " +
-      'For each field, "" leaves it as it is, and listing it in clear empties it.',
+      "Change a to-do (id from find_todos; done ones too, with include_done): its words, its type, who it's with, its due date, its description (notes), area (Work, Health…), where/how (Phone, Errands…) or priority; tick it off (status done), reopen it (open) or drop it (dropped). " +
+      "Its steps: add_steps adds to the end; done_steps, open_steps and remove_steps take step ids from find_todos. Ticking one step is done_steps, not the whole to-do. add_links adds pages or athena:// links. " +
+      `New steps: ${STEPS_RULE_SHORT} ` +
+      'For each field, "" or [] leaves it as it is, and listing it in clear empties it.',
     input_schema: object({
       id: str("From find_todos."),
       title: str('Short, starting with a verb. "" to leave it.'),
@@ -257,7 +260,13 @@ export const RECORD_TOOLS: Anthropic.Tool[] = [
       notes: str('Replaces what\'s there. "" to leave them.'),
       area: str('One of the owner\'s areas, by name (Work, Health…). "" to leave it.'),
       where: str('One of the owner\'s where/how contexts, by name (Phone, Errands…). "" to leave it.'),
-      clear: { type: "array", items: { type: "string", enum: ["due_on", "person", "notes", "area", "where"] }, description: "Fields to empty. [] for none." },
+      priority: { type: "string", enum: ["", ...PRIORITY_NAMES], description: "\"\" to leave it." },
+      add_steps: { type: "array", items: { type: "string" }, description: "New steps, in order, added after the others. [] for none." },
+      done_steps: { type: "array", items: { type: "string" }, description: "Step ids to tick. [] for none." },
+      open_steps: { type: "array", items: { type: "string" }, description: "Step ids to untick. [] for none." },
+      remove_steps: { type: "array", items: { type: "string" }, description: "Step ids to remove. [] for none." },
+      add_links: { type: "array", items: { type: "string" }, description: "https addresses or athena://<kind>/<id> links to add. [] for none." },
+      clear: { type: "array", items: { type: "string", enum: ["due_on", "person", "notes", "area", "where", "steps", "links"] }, description: "Fields to empty. [] for none." },
     }),
   },
   {
@@ -308,7 +317,7 @@ export const RECORD_TOOLS: Anthropic.Tool[] = [
 export const RECORD_TOOL_NAMES: ReadonlySet<string> = new Set(RECORD_TOOLS.map((t) => t.name));
 
 /** The system prompt's lines about changing what's already there (lib/assistant.ts puts them in "How to work"). */
-export const RECORD_GUIDANCE = `- You can add, find, change, archive and restore almost anything. People: update_people for any of their details. Places, organisations, events, goals, life admin (asset) and projects: find_items, then save_item. Trips and purchases: find_items, then save_item (rename a trip, change its notes; "the Kindle arrived" is a purchase's status). To-dos: change_todo. Reminders: find_items with kind reminder, then change_reminder. Links between two things: link_records.
+export const RECORD_GUIDANCE = `- You can add, find, change, archive and restore almost anything. People: update_people for any of their details. Places, organisations, events, goals, life admin (asset) and projects: find_items, then save_item. Trips and purchases: find_items, then save_item (rename a trip, change its notes; "the Kindle arrived" is a purchase's status). To-dos: change_todo (its steps too: find_todos gives their ids). Reminders: find_items with kind reminder, then change_reminder. Links between two things: link_records.
 - Many at once ("set everyone with an @brightwater.co email to work at Brightwater"): find_people with a limit to see who matches, then one update_people call with match (the same words) or their ids. Say how many changed. Don't ask first unless it's unclear who they mean.
 - Archiving: archive_or_restore, only when the owner asks to archive, remove, hide or cancel something; it also restores. You can never delete anything. When they ask you to delete something, archive it and say they can delete it for good from the Archived page.`;
 
@@ -365,7 +374,13 @@ const inputs = {
     notes: z.string().max(5000).default(""),
     area: z.string().max(40).default(""),
     where: z.string().max(40).default(""),
-    clear: z.array(z.enum(["due_on", "person", "notes", "area", "where"])).max(5).default([]),
+    priority: z.enum(["", ...PRIORITY_NAMES]).default(""),
+    add_steps: z.array(z.string().max(300)).max(MAX_STEPS).default([]),
+    done_steps: z.array(z.string().max(60)).max(MAX_STEPS).default([]),
+    open_steps: z.array(z.string().max(60)).max(MAX_STEPS).default([]),
+    remove_steps: z.array(z.string().max(60)).max(MAX_STEPS).default([]),
+    add_links: z.array(z.string().max(2000)).max(MAX_LINKS).default([]),
+    clear: z.array(z.enum(["due_on", "person", "notes", "area", "where", "steps", "links"])).max(7).default([]),
   }),
   change_reminder: z.object({
     id: UUID,
@@ -990,7 +1005,19 @@ async function changeTodo(raw: unknown, ctx: RecordContext): Promise<string> {
   if (c.kind === "decision") throw new Error("That's a decision, not a to-do.");
   if (unreadable(c.title, c.notes)) throw new Error("That to-do can't be read right now, so I can't change it.");
 
-  const patch: { title?: string; kind?: "todo" | "i_owe" | "waiting_on"; status?: "open" | "done" | "dropped"; due_on?: string | null; person_id?: string | null; notes?: string; area_id?: string | null; where_id?: string | null } = {};
+  const patch: {
+    title?: string;
+    kind?: "todo" | "i_owe" | "waiting_on";
+    status?: "open" | "done" | "dropped";
+    due_on?: string | null;
+    person_id?: string | null;
+    notes?: string;
+    area_id?: string | null;
+    where_id?: string | null;
+    steps?: TodoStep[];
+    links?: TodoLink[];
+    priority?: TodoPriority;
+  } = {};
   if (input.title.trim() && input.title.trim() !== c.title) patch.title = input.title.trim();
   if (input.type && input.type !== c.kind) patch.kind = input.type;
   if (input.status && input.status !== c.status) patch.status = input.status;
@@ -1032,6 +1059,41 @@ async function changeTodo(raw: unknown, ctx: RecordContext): Promise<string> {
       if (found.id !== current || c.context_by_athena) patch[field] = found.id;
     }
   }
+  if (input.priority && priorityOfName(input.priority) !== c.priority) patch.priority = priorityOfName(input.priority);
+  // Steps: cleared, then ticked, unticked and removed by id, then new ones added at the end.
+  const stepWords: string[] = [];
+  if (clear.has("steps") || input.add_steps.length || input.done_steps.length || input.open_steps.length || input.remove_steps.length) {
+    let steps = clear.has("steps") ? [] : c.steps.map((st) => ({ ...st }));
+    const known = new Set(steps.map((st) => st.id));
+    const unknown = [...input.done_steps, ...input.open_steps, ...input.remove_steps].filter((id) => !known.has(id));
+    if (unknown.length && !clear.has("steps")) throw new Error(`No step with id ${unknown.map((x) => `“${x}”`).join(", ")} on that to-do. Step ids come from find_todos.`);
+    const ticked = steps.filter((st) => input.done_steps.includes(st.id) && !st.done).length;
+    const unticked = steps.filter((st) => input.open_steps.includes(st.id) && st.done).length;
+    steps = steps
+      .filter((st) => !input.remove_steps.includes(st.id))
+      .map((st) => (input.done_steps.includes(st.id) ? { ...st, done: true } : input.open_steps.includes(st.id) ? { ...st, done: false } : st));
+    const removed = clear.has("steps") ? 0 : c.steps.filter((st) => input.remove_steps.includes(st.id)).length;
+    const added = input.add_steps.map((t) => t.replace(/\s+/g, " ").trim()).filter(Boolean);
+    if (steps.length + added.length > MAX_STEPS) throw new Error(`A to-do can have at most ${MAX_STEPS} steps.`);
+    steps.push(...added.map((text) => ({ id: newItemId(), text, done: false })));
+    const changed = JSON.stringify(steps) !== JSON.stringify(c.steps);
+    if (changed) {
+      patch.steps = steps;
+      if (clear.has("steps") && c.steps.length) stepWords.push("Steps cleared");
+      if (added.length) stepWords.push(`${added.length} ${added.length === 1 ? "step" : "steps"} added`);
+      if (ticked) stepWords.push(`${ticked} ${ticked === 1 ? "step" : "steps"} ticked`);
+      if (unticked) stepWords.push(`${unticked} ${unticked === 1 ? "step" : "steps"} reopened`);
+      if (removed > 0) stepWords.push(`${removed} ${removed === 1 ? "step" : "steps"} removed`);
+    }
+  }
+  let linksAdded = 0;
+  if (clear.has("links") || input.add_links.length) {
+    const base = clear.has("links") ? [] : c.links;
+    const fresh = askLinks(input.add_links).filter((l) => !base.some((b) => b.url === l.url));
+    if (base.length + fresh.length > MAX_LINKS) throw new Error(`A to-do can have at most ${MAX_LINKS} links.`);
+    linksAdded = fresh.length;
+    if (fresh.length || (clear.has("links") && c.links.length)) patch.links = [...base, ...fresh];
+  }
   const kind = patch.kind ?? c.kind;
   if (kind !== "todo" && !(patch.person_id !== undefined ? patch.person_id : c.person_id)) throw new Error("i_owe and waiting_on need the person_id");
   if (!Object.keys(patch).length) return JSON.stringify({ done: `No change: “${c.title}” already has that`, id: c.id });
@@ -1048,6 +1110,9 @@ async function changeTodo(raw: unknown, ctx: RecordContext): Promise<string> {
   if (patch.notes !== undefined) parts.push(patch.notes ? "Notes updated" : "Notes cleared");
   if (patch.area_id !== undefined) parts.push(patch.area_id ? `Area: ${contextNames.area}` : "No area");
   if (patch.where_id !== undefined) parts.push(patch.where_id ? `Where: ${contextNames.where}` : "Where cleared");
+  if (patch.priority !== undefined) parts.push(patch.priority ? todoExtras({ priority: patch.priority })[0] : "No priority");
+  parts.push(...stepWords);
+  if (patch.links !== undefined) parts.push(linksAdded ? `${linksAdded} ${linksAdded === 1 ? "link" : "links"} added` : "Links cleared");
   return ctx.record({
     kind: "commitment",
     id: saved.id,
@@ -1067,6 +1132,9 @@ async function changeTodo(raw: unknown, ctx: RecordContext): Promise<string> {
       // Only what this change touched, so Undo doesn't make an untouched context the owner's.
       ...(patch.area_id !== undefined ? { area_id: c.area_id } : {}),
       ...(patch.where_id !== undefined ? { where_id: c.where_id } : {}),
+      ...(patch.steps !== undefined ? { steps: c.steps } : {}),
+      ...(patch.links !== undefined ? { links: c.links } : {}),
+      ...(patch.priority !== undefined ? { priority: c.priority } : {}),
     },
   });
 }
@@ -1397,6 +1465,10 @@ const RECORD_UNDO = z.discriminatedUnion("op", [
     notes: NOTES,
     area_id: UUID.nullable().optional(),
     where_id: UUID.nullable().optional(),
+    // What the change touched of the to-do's details (0084), put back whole.
+    steps: z.array(z.object({ id: z.string(), text: z.string(), done: z.boolean() })).max(MAX_STEPS).optional(),
+    links: z.array(z.object({ id: z.string(), url: z.string(), title: z.string() })).max(MAX_LINKS).optional(),
+    priority: z.number().int().min(0).max(3).optional(),
   }),
   z.object({
     op: z.literal("restore_reminder"),
