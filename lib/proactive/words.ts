@@ -4,18 +4,18 @@ import { firstNameOf } from "../nudges";
 
 export { firstNameOf };
 
-/** "2pm", "2:30pm", "12pm". */
-export function clock(iso: string, tz: string): string {
-  const { hour, minute } = zonedParts(new Date(iso), tz);
-  const h12 = hour % 12 === 0 ? 12 : hour % 12;
-  return `${h12}${minute ? `:${String(minute).padStart(2, "0")}` : ""}${hour < 12 ? "am" : "pm"}`;
-}
-
-/** "09:00" for a slot. */
+/**
+ * "14:00", "09:30": a time in a nudge. The server can't see the device's
+ * 12/24-hour setting, so everything it writes is 24-hour "HH:MM", like the
+ * briefing and the rest of lib/.
+ */
 export function hhmm(iso: string, tz: string): string {
   const { hour, minute } = zonedParts(new Date(iso), tz);
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
+
+/** The same "HH:MM", under the name the rules use for an event's start. */
+export const clock = hhmm;
 
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 export const weekdayOf = (date: string) => WEEKDAY[new Date(`${date}T12:00:00Z`).getUTCDay()];

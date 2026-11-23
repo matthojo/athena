@@ -65,7 +65,7 @@ const input = (now: string, travel: ProactiveInput["travel"]): ProactiveInput =>
 
 test("leave by, driving with Google: by car, in the traffic now", () => {
   const [n] = leaveBy(input("2026-11-09T12:20:00Z", { "e-lunch": { minutes: 25, mode: "drive", from: "around Bristol", source: "google" } }));
-  assert.equal(n.title, "Leave in 10 minutes: drive to Dishoom by 1pm");
+  assert.equal(n.title, "Leave in 10 minutes: drive to Dishoom by 13:00");
   assert.equal(n.body, "Lunch with Priya at Dishoom. About 25 minutes by car.");
   assert.ok(n.why.some((w) => w.startsWith("Google Maps gives 25 minutes by car in the traffic now")));
 });
@@ -73,7 +73,7 @@ test("leave by, driving with Google: by car, in the traffic now", () => {
 test("leave by, driving with no Google key: no time, an hour ahead, and how to add one; never public transport", () => {
   const travel = { "e-lunch": { minutes: 0, mode: "drive" as const, from: "around Bristol", source: "none" as const } };
   const [n] = leaveBy(input("2026-11-09T12:00:00Z", travel));
-  assert.equal(n.title, "Drive to Dishoom by 1pm");
+  assert.equal(n.title, "Drive to Dishoom by 13:00");
   assert.equal(n.body, "Lunch with Priya. Athena can't time a drive without Google Maps, so allow for traffic.");
   assert.ok(n.why.some((w) => w.startsWith(NO_DRIVE_TIME) && /Google Maps key in Sources/.test(w)));
   assert.ok(!`${n.title} ${n.body} ${n.why.join(" ")}`.includes("public transport"));
@@ -106,6 +106,6 @@ test("a drive's traffic recheck: once, 30 to 15 minutes before leaving, on an an
 
 test("leave by after a recheck: the why says the traffic was checked again", () => {
   const [n] = leaveBy(input("2026-11-09T12:20:00Z", { "e-lunch": { minutes: 30, mode: "drive", from: "around Bristol", source: "google", rechecked: true } }));
-  assert.equal(n.title, "Leave in 5 minutes: drive to Dishoom by 1pm");
+  assert.equal(n.title, "Leave in 5 minutes: drive to Dishoom by 13:00");
   assert.ok(n.why.includes("Athena asked Google Maps again for the traffic close to when you'd leave."));
 });
