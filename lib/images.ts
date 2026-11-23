@@ -8,7 +8,8 @@
  *   uploads and the gateway refuses multipart, so changing a picture needs a Gemini model. Asked to, it says so.
  *
  * Each call uses the gateway's injected variables (GEMINI_API_KEY with GOOGLE_GEMINI_BASE_URL, OPENAI_API_KEY with
- * OPENAI_BASE_URL), never a key of ours, with a JSON body. One picture per call, at most MAX_FROM pictures in,
+ * OPENAI_BASE_URL), or the owner's own key with the provider's own address (lib/llm/shared.ts credentials), with a
+ * JSON body. One picture per call, at most MAX_FROM pictures in,
  * the prompt capped, and the result kept under the file store's 4 MB. Neither the prompt nor the provider's
  * reply is logged: only the status.
  *
@@ -20,6 +21,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
 import { AthenaInputError, q, sealer } from "./db";
 import { MAX_FILE_BYTES, MAX_THUMB_BYTES, deleteFilesForGood, getFileMeta, isUuid, readFile, saveFile, type FileMeta } from "./files";
+import { credentials } from "./llm/shared";
 import { companyOf, modelLabel } from "./model-label";
 import type { ModelRef } from "./model-types";
 import { CANT_CHANGE, PICTURE_SETTING, PICTURES_OFF_TEXT } from "./picture-words";
@@ -71,11 +73,6 @@ let fetchImpl: typeof fetch = (...args) => fetch(...args);
 /** Replace the network for tests: every provider call goes through this. */
 export function useImageFetch(f: typeof fetch): void {
   fetchImpl = f;
-}
-
-function env(name: string): string | undefined {
-  const g = globalThis as { Netlify?: { env: { get(k: string): string | undefined } } };
-  return g.Netlify?.env.get(name) ?? process.env[name];
 }
 
 // ---------- Making one ----------
@@ -180,9 +177,9 @@ interface GeminiResponse {
 }
 
 async function gemini(ref: ModelRef, prompt: string, sources: Array<{ type: string; data: string }>, shape: Shape, timeout: number): Promise<Raw> {
-  const key = env("GEMINI_API_KEY");
-  const base = env("GOOGLE_GEMINI_BASE_URL");
-  if (!key || !base) throw unavailable(ref);
+  const c = credentials("gemini");
+  if (!c) throw unavailable(ref);
+  const { key, base } = c;
   const res = await call(ref, `${base.replace(/\/$/, "")}/v1beta/models/${encodeURIComponent(ref.model)}:generateContent`, { "x-goog-api-key": key }, {
     contents: [{ role: "user", parts: [...sources.map((s) => ({ inline_data: { mime_type: s.type, data: s.data } })), { text: prompt }] }],
     generationConfig: { responseModalities: ["IMAGE", "TEXT"], candidateCount: PICTURES_PER_CALL, imageConfig: { aspectRatio: GEMINI_RATIO[shape] } },
@@ -201,9 +198,9 @@ async function gemini(ref: ModelRef, prompt: string, sources: Array<{ type: stri
 }
 
 async function openai(ref: ModelRef, prompt: string, shape: Shape, timeout: number): Promise<Raw> {
-  const key = env("OPENAI_API_KEY");
-  const base = env("OPENAI_BASE_URL");
-  if (!key || !base) throw unavailable(ref);
+  const c = credentials("openai");
+  if (!c) throw unavailable(ref);
+  const { key, base } = c;
   const root = base.replace(/\/$/, "");
   const url = `${/\/v1$/.test(root) ? root : `${root}/v1`}/images/generations`;
   const res = await call(ref, url, { Authorization: `Bearer ${key}` }, { model: ref.model, prompt, n: PICTURES_PER_CALL, size: OPENAI_SIZE[shape] }, timeout);

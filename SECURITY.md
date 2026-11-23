@@ -233,7 +233,8 @@ uses `age`, and there is no key pair to make or keep. The owner decided
 - Only `.env.example` (placeholder values, safe to commit) belongs in the
   repo. `.env` (real values) is git-ignored — see `.gitignore`. This applies
   to every secret the project uses: `MCP_BEARER_TOKEN`, `ATHENA_DATA_KEY`,
-  `CONNECTOR_ENCRYPTION_KEY`, any embeddings-provider API key, and the Netlify DB connection string if it's ever materialized locally
+  `CONNECTOR_ENCRYPTION_KEY`, `VAPID_PRIVATE_KEY`, any AI provider key the
+  owner sets (§10), any embeddings-provider API key, and the Netlify DB connection string if it's ever materialized locally
   for the export script.
 - Real embeddings and API keys must never be committed, including inside
   fixture data, test files, or commit messages.
@@ -554,7 +555,8 @@ Athena **except delete**.
 
 - **VAPID keys.** When `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` are set
   as Netlify environment variables (the private key with `--secret`) they
-  win. Otherwise Athena makes its own pair the first time push is needed and
+  win (GUIDE "Notification keys (VAPID)" sets them without printing the
+  private half). Otherwise Athena makes its own pair the first time push is needed and
   keeps it in the `settings` row `vapid`: the public key readable, the
   private key sealed under the data key (§11, `enc:v1:`), never logged or
   returned by the API. Without the data key it makes nothing and push is
@@ -1562,7 +1564,8 @@ in code, where the model's words can't change the outcome.
   assistant's chats only, with a picture model chosen (pictures are off by
   default), `make_image` sends the prompt the model wrote, and for a change
   the pictures named from *this* conversation (nothing else can be named), to
-  that provider through AI Gateway, with the gateway's own key, as JSON. Only
+  that provider through AI Gateway, with the gateway's own key (or the
+  owner's own key, straight to the provider, below), as JSON. Only
   the status is logged, never the prompt or the reply. What comes back is
   checked as an image by `sharp`, fitted under 4 MB, and kept like any file
   (sealed, §11 "Files"), in the conversation. It isn't made after something
@@ -2317,6 +2320,35 @@ Owner, 17 Nov 2026: ask once per provider, then anything goes.
   `ai_models`, `team_assistants.models` and `team_runs.model` are readable
   (excused in `lib/encryption-coverage.test.ts`). The gateway's list is read
   from `api.netlify.com` with no key and nothing of the owner's.
+
+### The owner's own provider keys (`lib/ai.ts`, `lib/llm/shared.ts`)
+
+By default every model call goes through Netlify AI Gateway, with the key
+and address Netlify injects into the functions. The owner can set a
+provider's own key instead (GUIDE "Your own keys"): `ANTHROPIC_API_KEY`,
+`GEMINI_API_KEY` or `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `META_API_KEY`,
+`OPENROUTER_API_KEY` or `TYPESAFE_API_KEY`. Netlify never overrides a key or
+address the site sets, so that provider skips the gateway.
+
+- **What leaves the site is the same.** The same prompts, tool results and
+  recordings go to the same provider, under the same consent rules (above).
+  Only the path changes: from the functions straight to the provider's own
+  address (or the `*_BASE_URL` the owner set), not through Netlify. The
+  provider's terms with the owner cover it.
+- **Where the key lives.** A Netlify environment variable, set as a secret
+  and scoped to functions, like the data key. It's read on each call and
+  never logged, stored in the database or returned by the API. When a call is
+  refused, the log shows only the credential's 8-hex fingerprint (`lib/ai.ts`
+  `fingerprint`).
+- **An address the owner sets is trusted.** A `*_BASE_URL` receives the key
+  and everything sent to that provider. Athena doesn't check it, so set one
+  only for a proxy or endpoint you run or trust.
+- **Without the gateway or a key**, that provider is unavailable and nothing
+  is sent to it. Without TypeSafe, Jev's check for collected text that tries
+  to instruct an AI (`guardText`) doesn't run, so nothing is flagged that
+  way. The rest of Ask's guard (`lib/ask-guard.ts`: no change after other
+  people's words unless the owner plainly asked) and the read-only tools
+  still apply.
 
 ## 11. Encryption at rest: everything you write
 

@@ -9,6 +9,7 @@ and who can read it, see [SECURITY.md](SECURITY.md).
 - [Voice](#voice)
 - [Connectors: Athena collects from your accounts itself](#connectors-athena-collects-from-your-accounts-itself)
 - [Encryption at rest](#encryption-at-rest)
+- [Your own keys: AI providers and notifications](#your-own-keys-ai-providers-and-notifications)
 - [Collection agents as Claude routines (optional)](#collection-agents-as-claude-routines-optional)
 
 ## Ask: questions and instructions
@@ -85,6 +86,8 @@ makes a notification key pair the first time it needs one and keeps it,
 sealed under `ATHENA_DATA_KEY` ("Encryption at rest", below). If you'd
 rather use your own pair, set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and
 `VAPID_SUBJECT` on the production site and redeploy; those win when set.
+"[Notification keys (VAPID)](#notification-keys-vapid)", below, has the
+commands.
 
 To get notifications on your iPhone (iOS 16.4+), add Athena to the Home
 Screen and open it from there. Go to **Settings → Notifications**, tap
@@ -116,10 +119,13 @@ other `/api` route), which sends it to **Google Gemini `gemini-3.5-flash`
 through Netlify's AI Gateway** and returns the text. Nothing to set up: the
 gateway injects `GEMINI_API_KEY` and `GOOGLE_GEMINI_BASE_URL` into functions
 automatically (the site needs AI features enabled and at least one production
-deploy). Audio and transcripts are never stored or logged.
+deploy). With your own `GEMINI_API_KEY`, it goes straight to Google instead
+("[AI providers, without Netlify AI Gateway](#ai-providers-without-netlify-ai-gateway)").
+Audio and transcripts are never stored or logged.
 
-**It spends AI Gateway credits.** A minute of speech is about 1,500 input and
-200 output tokens: roughly $0.004, or **0.8 credits per minute**; a short Ask
+**It spends AI Gateway credits** (or, with your own key, Google bills you).
+A minute of speech is about 1,500 input and 200 output tokens: roughly
+$0.004, or **0.8 credits per minute**; a short Ask
 question is about 0.1 credits. To keep a stuck client or a leaked token from
 running that up, `/api/voice/*` is rate-limited to 10 requests a minute per
 IP, bodies are capped at 4 MB, recordings that never rise above room noise
@@ -274,14 +280,15 @@ netlify env:set CONNECTOR_ENCRYPTION_KEY "$(openssl rand -hex 32)" --secret
 
 Claude is reached through **Netlify AI Gateway**, which needs no key: it
 activates after the site's first production deploy on a credit-based plan.
-To use your own key instead, set `ANTHROPIC_API_KEY` as a secret.
+To use your own key instead, set `ANTHROPIC_API_KEY` as a secret
+("[AI providers, without Netlify AI Gateway](#ai-providers-without-netlify-ai-gateway)").
 Collections default to Claude Sonnet 5.5; set `ATHENA_COLLECTOR_MODEL` to
 `claude-opus-5-5` for the subtlest extraction or `claude-haiku-5-5` for the
 lowest cost. AI Gateway caps your team's spend per minute; a run that hits
 the cap waits for the next minute and carries on.
 
 **Jev keeps collections cheap.** Jev is TypeSafe's yes/no-and-choices
-model on AI Gateway: about 50× cheaper than Sonnet to read, with free
+model on AI Gateway (or on your own `TYPESAFE_API_KEY`): about 50× cheaper than Sonnet to read, with free
 output. Before a scheduled run starts Claude, Athena checks each account
 itself:
 
@@ -327,6 +334,128 @@ function log for `encrypt-data` shows the same, one line per run.
 
 To change the key later, see "Rotating the key" in `SECURITY.md` §11: the
 old key goes in `ATHENA_DATA_KEY_PREVIOUS` while everything is re-encrypted.
+
+## Your own keys: AI providers and notifications
+
+Out of the box, Athena needs only the four values the Deploy button asks
+for and the data key. It gets its AI through Netlify AI Gateway and makes
+its own notification keys. You can replace either with keys you hold
+yourself, so that you pay each AI provider directly and your notification
+keys live where you choose.
+
+### AI providers, without Netlify AI Gateway
+
+By default every model call goes through Netlify AI Gateway. Netlify gives
+your functions a key and an address for each provider, and each call is
+billed in Netlify credits. When you set your own key for a provider, Netlify
+leaves that provider alone: it never overwrites a key or address you set
+yourself. Athena then calls the provider at its own address, with your key,
+and the provider bills your account with them.
+
+This works one provider at a time. Set a key only for the providers you want
+to take off the gateway. The others stay on it.
+
+| Provider | Your key | Address, if you need another | What uses it |
+|---|---|---|---|
+| Anthropic | `ANTHROPIC_API_KEY` | `ANTHROPIC_BASE_URL` (default `https://api.anthropic.com`) | Ask, collections, the briefing, flows, assistants: every job, unless you choose another model |
+| Google | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) | `GOOGLE_GEMINI_BASE_URL` (default `https://generativelanguage.googleapis.com`) | Dictation and spoken questions (unless ElevenLabs is connected), Gemini models you choose, Gemini pictures |
+| OpenAI | `OPENAI_API_KEY` | `OPENAI_BASE_URL` (default `https://api.openai.com/v1`) | OpenAI models you choose, GPT Image pictures |
+| Meta | `META_API_KEY` | `META_BASE_URL` (default `https://api.llama.com/compat/v1`) | Llama models you choose |
+| OpenRouter | `OPENROUTER_API_KEY` | `OPENROUTER_BASE_URL` (default `https://openrouter.ai/api/v1`) | OpenRouter models you choose |
+| TypeSafe | `TYPESAFE_API_KEY` | `TYPESAFE_BASE_URL` (default `https://api.typesafe.ai`) | Jev: the cheap checks around collections and Ask |
+
+Leave the address unset unless you mean to use a proxy or a compatible
+endpoint of your own. Setting only an address also stops Netlify from
+handing out its own key for that provider.
+
+Set each key as a secret, then redeploy production (**Deploys → Trigger
+deploy**) so the functions pick it up. With the
+[Netlify CLI](https://docs.netlify.com/cli/get-started/), in your linked
+clone:
+
+```sh
+netlify env:set ANTHROPIC_API_KEY "<your Anthropic key>" --secret --scope functions
+netlify env:set GEMINI_API_KEY "<your Google AI Studio key>" --secret --scope functions
+```
+
+Or in the Netlify UI: **Project configuration → Environment variables →
+Add a variable**. Tick **Contains secret values**, and choose the Functions
+scope.
+
+**To come off the gateway entirely,** set a key for each provider you use,
+then turn AI features off for your Netlify team: **Team settings → AI
+enablement → Configure**. That switch applies to every project on the team,
+and it also turns off Netlify's other AI features, such as Agent Runners.
+Without the gateway, a provider you have no key for isn't available:
+
+- **No Anthropic key:** Ask, collections and assistants say Athena's AI
+  isn't set up, and the briefing is written from your data alone.
+- **No Google key:** dictation and spoken questions need ElevenLabs
+  ("Talk", above), and Gemini models and pictures can't be used.
+- **No TypeSafe key:** Jev's checks are skipped. Collections still run, but
+  Claude reads everything on each run, which costs more. Collected text
+  that tries to instruct an AI is no longer flagged before Claude reads it.
+- **No key for OpenAI, Meta or OpenRouter:** their models can't be chosen
+  or used.
+
+Some things don't change:
+
+- **The models on offer** still come from Netlify's public list of AI
+  Gateway models. Athena reads it with no key and sends nothing of yours.
+  You choose from the same list in **Settings → AI models**. A model that
+  isn't on the list is refused.
+- **AI spend** still counts each call at the provider's published prices,
+  so the daily budget and each assistant's cap still work. The bill comes
+  from the provider, not from Netlify.
+- **Rate limits** are the provider's own, not the gateway's per-minute
+  spending cap.
+- **Web search in Ask** runs on Anthropic's side either way.
+- **Your data:** with your own key, prompts and replies go straight from
+  your functions to the provider, not through Netlify. That provider's terms
+  with you cover them. Athena still asks once before sending anything to a
+  provider other than Anthropic (`SECURITY.md` §10).
+
+**Locally,** put the same keys in `.env` and `netlify dev` calls the
+providers directly. You then don't need the gateway's local token or the
+IPv4 workaround described under "Talk" above.
+
+### Notification keys (VAPID)
+
+Web Push signs each notification with a key pair, known as VAPID keys.
+Athena makes a pair the first time it needs one, and keeps the private half
+in the database, sealed under `ATHENA_DATA_KEY`. To hold the pair yourself,
+in your Netlify environment, set:
+
+| Variable | What it is |
+|---|---|
+| `VAPID_PUBLIC_KEY` | The public half. Browsers get it anyway. |
+| `VAPID_PRIVATE_KEY` | The private half. Set it as a secret. |
+| `VAPID_SUBJECT` | Optional. A contact for the push services (Apple, Google, Mozilla, Microsoft): `mailto:you@example.com` or an `https://` address. When it's unset, Athena uses your site's address. |
+
+Set both halves, or Athena ignores them and keeps using its own pair. When
+both are set, they're used instead of the stored pair.
+
+Make a pair and set it without printing the private key. In your linked
+clone, after `npm install`:
+
+```sh
+KEYS="$(npx web-push generate-vapid-keys --json)"
+netlify env:set VAPID_PUBLIC_KEY "$(node -pe 'JSON.parse(process.argv[1]).publicKey' "$KEYS")" --context production --scope functions
+netlify env:set VAPID_PRIVATE_KEY "$(node -pe 'JSON.parse(process.argv[1]).privateKey' "$KEYS")" --secret --context production --scope functions
+netlify env:set VAPID_SUBJECT "mailto:you@example.com" --context production --scope functions
+unset KEYS
+```
+
+Then redeploy production. Every device that already gets notifications was
+signed up with the old public key. Open **Settings → Notifications** on
+each one, and Athena moves it to the new key. Until you do, that device gets
+no notifications. The same applies if you later remove these variables and
+go back to Athena's own pair.
+
+Keeping the pair yourself means push doesn't depend on the data key, and
+the pair stays the same if you rebuild the database. A private key you lose
+can be replaced: make a new pair, and open Settings → Notifications on each
+device.
 
 ## Collection agents as Claude routines (optional)
 

@@ -68,6 +68,21 @@ test("OpenAI: /v1/images/generations once (base with or without /v1), one pictur
   assert.equal((sent[1].body as { size: string }).size, "1024x1024");
 });
 
+test("your own key with no gateway: the provider's own address", async () => {
+  delete process.env.GOOGLE_GEMINI_BASE_URL;
+  delete process.env.OPENAI_BASE_URL;
+  process.env.GEMINI_API_KEY = "own-gemini";
+  process.env.OPENAI_API_KEY = "own-openai";
+  answer(200, { candidates: [{ content: { parts: [{ inlineData: { mimeType: "image/png", data: await png() } }] }, finishReason: "STOP" }] });
+  await upToSaving({ prompt: "A red lighthouse", ref: GEMINI });
+  assert.equal(sent[0].url, "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent");
+  assert.equal(sent[0].headers["x-goog-api-key"], "own-gemini");
+  answer(200, { data: [{ b64_json: await png() }] });
+  await upToSaving({ prompt: "A fox", ref: OPENAI });
+  assert.equal(sent[1].url, "https://api.openai.com/v1/images/generations");
+  assert.equal(sent[1].headers.Authorization, "Bearer own-openai");
+});
+
 test("OpenAI can't change a picture: said plainly, and nothing is sent", async () => {
   answer(200, {});
   const e = await makeImage({ prompt: "Make it blue", from: ["0b0c0000-0000-4000-8000-000000000001"], ref: OPENAI, threadId: T }).catch((x: PictureError) => x);
