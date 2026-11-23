@@ -475,7 +475,8 @@ export function answerReplyEl(m: AnswerMessage, ctx: AskContext, repaint: () => 
       reply.flagged
         ? h("p", { class: "answer__aside" }, icons.shield(), h("span", {}, "Something I read looked like it was written to give an assistant instructions. I treated it as plain text."))
         : null,
-      skippedLine(reply.skipped),
+      // An account that wouldn't open doesn't matter to a reply that did something, or to one from general knowledge.
+      acted(reply) || general ? null : skippedLine(reply.skipped),
       // A setting that would let Ask answer ("Let Ask read transactions" while money search is off).
       reply.setting ? h("a", { class: "btn btn--soft btn--sm answer__setting", href: reply.setting.href }, icons.sliders(), reply.setting.label) : null,
       // A reply that only did something searched nothing worth naming: its foot holds just Try again and Pin.

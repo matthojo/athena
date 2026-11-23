@@ -1463,8 +1463,11 @@ in code, where the model's words can't change the outcome.
   Ask wrote (`assistant`) and one sent from a shortcut or the browser
   extension. It counts when the first search or `search_athena` returns
   its snippet, when `read_note` opens it, and when `find_notes` returns
-  its excerpt. The first search runs on every message, so most turns that
-  touch a collected note are held to this rule. From then on a
+  its excerpt. The first search runs on every message except a Team run's
+  and a request (`isRequest` in `lib/answer.ts`: one that opens with a verb
+  such as remind, add or set), so most questions that touch a collected
+  note are held to this rule; a request that opens one itself, with
+  `search_athena` or `read_note`, is held the same way. From then on a
   write tool whose kind the owner's message didn't ask for is not run. It's
   kept as a plan card with one step (`plan.why: "read"`), and nothing
   happens until the owner taps Go. The check is made when the change is

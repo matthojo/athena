@@ -142,10 +142,11 @@ test("a change: made in one model call, with a receipt, its Undo and a line in W
   assert.equal(made.title, "Book the dentist");
   assert.ok(made.undo && made.activity_id, "a receipt with Undo, kept in What Ask did");
   assert.equal(reply.plan, undefined, "one change is made, not planned");
-  // The first search isn't part of a reply that only did something: no footer, and its step is taken away.
+  // A request isn't searched for first: no "Searching your notes" step, no first search in the prompt, no footer.
   assert.equal(reply.searched, "");
   assert.deepEqual(reply.related, []);
-  assert.ok(steps.some((s) => s.id === "first" && s.dropped));
+  assert.ok(!steps.some((s) => s.id === "first"));
+  assert.doesNotMatch(JSON.stringify(m.sent[0].messages), /A first search of Athena/);
   // Its step ends as the change, marked as one that acts, with the receipt on it (a reply cut off still shows it).
   const done = steps.filter((s) => s.id === "t1").at(-1)!;
   assert.equal(done.done, true);

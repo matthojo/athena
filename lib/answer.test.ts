@@ -6,7 +6,7 @@ import { afterEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Anthropic, RateLimited } from "./ai";
-import { answerQuestion, historySourcesBlock, limits, parseAnswerHistory, refusedWebSearch, type AnswerDeps, type SourceAccount } from "./answer";
+import { answerQuestion, historySourcesBlock, isRequest, limits, parseAnswerHistory, refusedWebSearch, type AnswerDeps, type SourceAccount } from "./answer";
 import type { Step } from "./steps";
 import { forgetRefused } from "./ask-tool-pick";
 
@@ -63,6 +63,39 @@ test("a general question is answered from what the model knows, and the reply sa
   const system = String(m.sent[0].system);
   assert.doesNotMatch(system, /never answer from general knowledge/i);
   assert.match(system, /Anything about the owner's own life comes from a tool/);
+});
+
+test("a request is told from a question: only a question gets a search before the model reads it", () => {
+  for (const q of [
+    "Remind me tomorrow to tell Sam about the boiler at 8:00 AM.",
+    "remind me about this on Saturday morning",
+    "Add oat milk to my shopping list",
+    "Please set a reminder for Friday",
+    "Can you add a to-do to book the dentist",
+    "Hey Athena, move my 3pm to tomorrow",
+    "Draft a reply to Priya saying yes",
+    "Mark the gas bill as paid",
+    "Turn this into a recipe",
+  ])
+    assert.equal(isRequest(q), true, q);
+  for (const q of [
+    "What did Gayle say about pricing?",
+    "Remind me what Gayle said about pricing",
+    "remind me when the renewal is",
+    "Can you add up what I spent on coffee?",
+    "When is my next dentist appointment",
+    "Pricing call notes",
+    "",
+  ])
+    assert.equal(isRequest(q), false, q);
+});
+
+test("a general answer doesn't name an account that wouldn't open", async () => {
+  const m = scripted([[answer({ text: "A UK passport renewal usually takes about three weeks.", general: true })]]);
+  const signedOut: AnswerDeps["sources"] = { open: async () => ({ accounts: [], skipped: ["Personal YouTube (needs signing in)"], close: async () => undefined }) };
+  const reply = await answerQuestion("How long does a UK passport renewal take?", deps(m.client, false, signedOut), opts);
+  assert.equal(reply.general, true);
+  assert.deepEqual(reply.skipped, []);
 });
 
 test("an answer whose sources no tool returned keeps its text, without markers, as a general one", async () => {
