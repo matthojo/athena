@@ -656,17 +656,17 @@ export function questionQuery(question: string): string {
   return words.slice(0, 6).join(" OR ");
 }
 
-/** Openings that say "do this", not "find this": the message is a request, so nothing needs looking up before the model reads it. */
+/** How a request opens ("remind", "add", "set"…): nothing needs looking up before the model reads it. */
 const REQUEST_START = new RegExp(
   "^(?:(?:hey|hi|ok|okay)\\s+(?:athena\\s*)?[,.!]?\\s*)?(?:athena\\s*[,.!:]?\\s*)?(?:(?:please|pls|can you|could you|would you|will you)\\s+)*" +
     "(?:remind|add|set|create|make|schedule|book|put|mark|tick|check off|move|reschedule|postpone|delete|remove|cancel|archive|unarchive|restore|rename|change|update|edit|" +
     "save|log|track|note|jot|write|draft|send|reply|respond|email|message|text|start|stop|pause|resume|turn|snooze|pin|unpin|complete|finish|clear|undo)\\b",
   "i",
 );
-/** "Remind me what Gayle said" asks something; "remind me to call Gayle" doesn't. */
+/** "Remind me what Gayle said" is a question; "remind me to call Gayle" is a request. */
 const REMIND_ASKS = /^(?:.*?\b)?remind me (?:what|who|whom|whose|when|where|why|how|which|if|whether)\b/i;
 
-/** A message that asks Athena to do something ("Remind me tomorrow at 8 to call Sam", "Add milk to my list"), not to find something out. */
+/** A message asking Athena to do something: "Remind me tomorrow at 8 to call Sam", "Add milk to my list". */
 export function isRequest(text: string): boolean {
   const t = text.trim().replace(/^[\s"'“‘]+/, "");
   if (!t || /\?\s*$/.test(t)) return false;
@@ -1959,8 +1959,8 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       Object.assign(finished, { searched: "", related: [] });
       if (firstQuery) step?.({ id: "first", text: "Searching your notes", done: true, dropped: true });
     }
-    // An account that wouldn't open matters to an answer about the owner's life, not to one that did something or came from general knowledge:
-    // "Couldn't search Personal YouTube" under a new reminder is noise (the app hides the line there too: components/ask-answer.ts).
+    // An account that wouldn't open is named only under an answer about the owner's life. A reply that did something, or a general
+    // answer, never needed it (the app hides the line there too: components/ask-answer.ts).
     if (acted || finished.general) finished.skipped = [];
     /** The model gave words of its own for this reply, through the answer tool or as plain text. */
     const said = !!answered || !!lastText;
