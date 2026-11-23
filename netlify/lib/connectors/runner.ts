@@ -88,6 +88,7 @@ import { BASE_PROMPT, lifeLogPrompt, RECIPE_PROMPTS } from "./recipes";
 import { metricsFor, writeActivityMetrics } from "./activity-metrics";
 export { WATCH_READ_RULE } from "./recipes";
 import { styleProblems } from "../../../lib/writing-style";
+import { filedSteps, MAX_FILED_STEPS, STEPS_RULE } from "../../../lib/todo-details";
 import { withoutPlaces } from "../../../lib/places-line";
 import { syncPlaces } from "./swarm-sync";
 import { syncMoneyHome } from "./money-sync";
@@ -363,7 +364,9 @@ const ATHENA_TOOLS: Anthropic.Tool[] = [
   {
     name: "athena_todo",
     description:
-      "Record a commitment from a source item. kind: i_owe = the owner said they'd do something for someone (give person_id); todo = something the owner will do, for nobody in particular; waiting_on = someone else said they'd do something for the owner (give person_id); decision = a decision that was made. Only clear commitments with an owner on the owner's side of the table, not every action item in the room. quote = the words it came from. confidence 0–1: below 0.8 it goes to the owner's Review inbox instead of the To do list. Recording one that's already there (reworded, or from the same meeting under another id) comes back already_recorded with its status: one the owner finished or dropped is never filed again.",
+      `Record a commitment from a source item. kind: i_owe = the owner said they'd do something for someone (give person_id); todo = something the owner will do, for nobody in particular; waiting_on = someone else said they'd do something for the owner (give person_id); decision = a decision that was made. Only clear commitments with an owner on the owner's side of the table, not every action item in the room. quote = the words it came from. confidence 0–1: below 0.8 it goes to the owner's Review inbox instead of the To do list. ` +
+      `steps: ${STEPS_RULE} ` +
+      `Recording one that's already there (reworded, or from the same meeting under another id) comes back already_recorded with its status: one the owner finished or dropped is never filed again.`,
     input_schema: {
       type: "object",
       properties: {
@@ -376,6 +379,12 @@ const ATHENA_TOOLS: Anthropic.Tool[] = [
         confidence: { type: "number", minimum: 0, maximum: 1 },
         area: { type: "string", description: "Which part of the owner's life, only when it's obvious from the item: Work, Personal, Health, Money, Family or Home. Leave it out when unsure." },
         where: { type: "string", description: "Where or how it gets done, only when it's obvious: Computer, Phone, Errands, Home, Office or With someone. Leave it out when unsure." },
+        steps: {
+          type: "array",
+          items: { type: "string" },
+          maxItems: MAX_FILED_STEPS,
+          description: `Usually leave this out. The parts of this one to-do, in order, each starting with a verb, only when the source spells them out. At least two, or none. Never other action items from the same meeting or thread: those are to-dos of their own.`,
+        },
       },
       required: ["external_id", "title", "kind", "quote", "confidence"],
     },
@@ -886,6 +895,7 @@ const inputs = {
       confidence: z.number().min(0).max(1),
       area: z.string().max(40).optional(),
       where: z.string().max(40).optional(),
+      steps: z.array(z.string().max(300)).max(40).optional(),
     })
     .refine((t) => !(t.kind === "i_owe" || t.kind === "waiting_on") || !!t.person_id, "i_owe and waiting_on need the person_id"),
   athena_remember: z.object({
@@ -1494,7 +1504,9 @@ export class AthenaWriter {
         if (same) return JSON.stringify({ id: same.id, action: "already_recorded", status: same.status });
         // The context follows this collection's account (Work, Personal), then the words; the model's guess only when it's sure.
         const context = { label: this.collection.label, suggestion: { area: input.area, where: input.where, sure: input.confidence >= 0.8 } };
-        const fields = { title, kind: input.kind, person_id: input.person_id ?? null, due_on: input.due_on ?? null, context };
+        // Steps only for a to-do, and only a list of its own parts (lib/todo-details.ts filedSteps).
+        const steps = input.kind === "decision" ? [] : filedSteps(title, input.steps);
+        const fields = { title, kind: input.kind, person_id: input.person_id ?? null, due_on: input.due_on ?? null, context, ...(steps.length ? { steps } : {}) };
         const who = await this.personName(input.person_id);
         const question = {
           i_owe: `Did the owner (the person whose notes these are) clearly commit to "${title}"${who ? ` for ${who}` : ""}?`,
@@ -1507,12 +1519,14 @@ export class AthenaWriter {
         if (confidence < REVIEW_BELOW) {
           const lead = { i_owe: who ? `For ${who}` : "To do", todo: "To do", waiting_on: who ? `Waiting on ${who}` : "Waiting on", decision: "Decision" }[input.kind];
           // A suggestion the owner already dismissed comes back as itself (propose dedupes), so it isn't re-asked.
-          return this.suggest({ op: "commitment", summary: `${lead}: ${title}`, payload: fields, ...provenance });
+          return this.suggest({ op: "commitment", summary: `${lead}: ${title}${steps.length ? ` (${steps.length} steps)` : ""}`, payload: fields, ...provenance });
         }
         const saved = await upsertCommitment({ ...fields, ...provenance });
         this.stats.todos++;
         await this.teamEvent("todo", saved.id, input.external_id, title, { kind: "todo" });
-        return JSON.stringify({ id: saved.id, action: "created" });
+        // Say when offered steps weren't kept, so the model doesn't retry them as something else.
+        const dropped = input.steps?.length && !steps.length ? { steps: "not kept: a to-do's steps are two or more of its own parts; file separate actions as their own to-dos" } : {};
+        return JSON.stringify({ id: saved.id, action: "created", ...(steps.length ? { steps: steps.length } : {}), ...dropped });
       }
       case "athena_remember": {
         const input = inputs.athena_remember.parse(raw);

@@ -26,6 +26,7 @@ import { DEFAULT_CATCH_UP } from "../lib/format";
 import { learnedAboutOwner } from "../lib/owner-rule";
 import { markdownToText } from "../lib/markdown-text";
 import { addDays, daysBetween, upcomingOccurrences } from "../../../lib/dates";
+import { cleanLinks, cleanPriority, cleanSteps } from "../../../lib/todo-details";
 import { deviceZone, localToday } from "../lib/time";
 import type {
   Asset,
@@ -180,11 +181,18 @@ export async function saveCommitment(input: Partial<Commitment>, id?: string): P
       source_quote: null,
       confidence: null,
       done_at: input.kind === "decision" ? nowIso() : null,
+      steps: [],
+      links: [],
+      priority: 0,
       archived_at: null,
       created_at: nowIso(),
       updated_at: nowIso(),
     };
     const next: Commitment = { ...base, ...input, updated_at: nowIso() };
+    // The server's rules for the details (lib/todo-details.ts), so sample mode keeps what a real copy would.
+    if (input.steps !== undefined) next.steps = cleanSteps(input.steps);
+    if (input.links !== undefined) next.links = cleanLinks(input.links);
+    if (input.priority !== undefined) next.priority = cleanPriority(input.priority) ?? 0;
     if (input.status && input.status !== base.status) next.done_at = input.status === "done" ? nowIso() : null;
     if ("person_id" in input) next.person = await personRef(input.person_id);
     // Like the server: the owner picking a context makes it theirs.
@@ -240,11 +248,14 @@ export function doneByWeek(items: Commitment[], weeks = 10, now = new Date()): M
   });
 }
 
-/** Open loops, soonest due first; undated ones newest first. */
+/** Open loops, soonest due first; on the same day (or undated) the higher priority first, then newest first. */
 export function openLoops(items: Commitment[]): Commitment[] {
   return items
     .filter((c) => c.status === "open" && isLoop(c) && !c.archived_at)
-    .sort((a, b) => (a.due_on ?? "9999").localeCompare(b.due_on ?? "9999") || b.created_at.localeCompare(a.created_at));
+    .sort(
+      (a, b) =>
+        (a.due_on ?? "9999").localeCompare(b.due_on ?? "9999") || (b.priority ?? 0) - (a.priority ?? 0) || b.created_at.localeCompare(a.created_at),
+    );
 }
 
 // ---------- life admin, reading, goals ----------
@@ -738,7 +749,7 @@ export async function recall(q: string): Promise<{ hits: RecallHit[]; state: Con
     loadReading(),
     loadRecords("person"),
   ]);
-  for (const c of commitments) push({ kind: "commitment", id: c.id, title: c.title, snippet: c.notes, at: c.updated_at, person: c.person }, `${c.title} ${c.notes}`, 1.2);
+  for (const c of commitments) push({ kind: "commitment", id: c.id, title: c.title, snippet: c.notes, at: c.updated_at, person: c.person }, `${c.title} ${c.notes} ${(c.steps ?? []).map((st) => st.text).join(" ")}`, 1.2);
   for (const i of interactions) push({ kind: "interaction", id: i.id, title: i.summary.slice(0, 80), snippet: i.summary, at: i.at, person: i.people[0] ?? null }, i.summary);
   for (const r of reading) push({ kind: "reading", id: r.id, title: r.title, snippet: r.author, at: r.updated_at, person: null }, `${r.title} ${r.author} ${r.notes}`);
   for (const p of people) push({ kind: "person", id: p.id, title: p.name, snippet: p.relationship ?? "", at: p.updated_at, person: null }, `${p.name} ${p.relationship ?? ""}`, 1.5);

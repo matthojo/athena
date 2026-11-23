@@ -965,6 +965,12 @@ ALTER TABLE commitments
 CREATE INDEX commitments_area_idx ON commitments (area_id) WHERE area_id IS NOT NULL;
 CREATE INDEX commitments_where_idx ON commitments (where_id) WHERE where_id IS NOT NULL;
 
+-- A to-do's details (migration 0084; lib/todo-details.ts). steps and links are each one sealed JSON value; priority 0 none to 3 high.
+ALTER TABLE commitments
+  ADD COLUMN steps JSONB,
+  ADD COLUMN links JSONB,
+  ADD COLUMN priority SMALLINT NOT NULL DEFAULT 0 CONSTRAINT commitments_priority_check CHECK (priority BETWEEN 0 AND 3);
+
 -- The owner's last context correction per sender ('person:<uuid>') or source ('source:<source>').
 CREATE TABLE todo_context_hints (
   key TEXT PRIMARY KEY CHECK (key ~ '^(person|source):.{1,200}$'),

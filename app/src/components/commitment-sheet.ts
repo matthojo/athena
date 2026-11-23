@@ -1,9 +1,18 @@
 /**
- * Add or edit an open loop in a sheet: what it is, which way it runs (to do,
- * I promised, waiting on, a decision), who with, when it's due. Existing loops save
- * as you change them; a new one is created by its Add button (or ⌘↵). When an
- * agent filed it, the sheet shows where it came from and the words it was
- * taken from, so you can judge it.
+ * A to-do, open: everything about one thing you mean to do, laid out like a
+ * page rather than a form.
+ *
+ *   ◯  Title                                   (tick it here too)
+ *      [Fri] [Priya] [▮▮▯ Medium] [● Work] [Computer]
+ *      Description   rich text; @ links people, notes, anything
+ *      Steps 2 of 5  a checklist you can type, tick, reorder and paste into
+ *      Links         web pages and things in Athena
+ *
+ * The kind (to do, waiting on, a decision) is a row of chips at the top.
+ * Existing to-dos save as you change them; a new one is created by its Add
+ * button (or ⌘↵), with everything filled in so far. When an agent filed it,
+ * the sheet shows where it came from and the words it was taken from, so
+ * you can judge it.
  */
 
 import { placeMenuAcross } from "../lib/menu-place";
@@ -12,20 +21,30 @@ import { icons, type IconName } from "./icons";
 import { openSheet } from "./sheet";
 import { showToast } from "./toast";
 import { confirmDialog } from "./confirm";
-import { autoTextarea, choiceChips, dueDatePicker, field } from "./fields";
-import { personPicker } from "./person-picker";
+import { choiceChips } from "./fields";
 import { dismissSuggested, personSuggestion } from "./person-suggestion";
 import { loadTodoPeople } from "../db/todo-people";
-import { contextPicker } from "./todo-context-ui";
+import { contextPill, duePill, personPill, priorityPill } from "./todo-props";
+import { stepsEditor } from "./todo-steps";
+import { linksEditor } from "./todo-links";
 import { openDraftSheet } from "./draft-sheet";
 import { openCreateSheet } from "./create-sheet";
 import { blockTime } from "../db/scheduling";
 import { blockAsk } from "../lib/create-event";
 import { deleteMemoryForever, saveCommitment, setMemoryArchived } from "../db/memory";
+import { searchEntities } from "../db/data";
 import { COMMITMENT_META } from "../lib/memory-meta";
 import { describeSource } from "../lib/sources";
 import { relativeTime } from "../lib/format";
+import { openAppLink } from "../lib/app-links";
+import { prefersReducedMotion } from "../lib/motion";
+import { linkTarget, stepProgress, type TodoLink, type TodoPriority, type TodoStep } from "../../../lib/todo-details";
+import type { NoteEditorHandle } from "../editor/editor";
 import type { Commitment, CommitmentKind, PersonRef } from "../types";
+import "../styles/todo-detail.css";
+
+let editorModule: Promise<typeof import("../editor/editor")> | null = null;
+const loadEditor = () => (editorModule ??= import("../editor/editor"));
 
 const PLACEHOLDER: Record<CommitmentKind, string> = {
   todo: "What needs doing?",
@@ -61,6 +80,9 @@ export function provenanceBlock(p: { source?: string | null; source_quote?: stri
   );
 }
 
+/** "With", "For", "Waiting on", "Decided with": what the person is to this to-do. */
+const personWord = (kind: CommitmentKind): string => (kind === "waiting_on" ? "Waiting on" : kind === "decision" ? "Decided with" : kind === "i_owe" ? "For" : "With");
+
 export function openCommitmentSheet(
   initial: Commitment | null,
   opts: { kind?: CommitmentKind; title?: string; person?: PersonRef | null; due?: string | null; area_id?: string | null; where_id?: string | null; onSaved?: (c: Commitment) => void } = {}
@@ -74,10 +96,17 @@ export function openCommitmentSheet(
   const effectiveKind = (): CommitmentKind => (choice === "todo" ? (person ? "i_owe" : "todo") : choice);
   let kind: CommitmentKind = effectiveKind();
   let due: string | null = initial?.due_on ?? opts.due ?? null;
+  let priority: TodoPriority = initial?.priority ?? 0;
+  let areaId: string | null = initial?.area_id ?? opts.area_id ?? null;
+  let whereId: string | null = initial?.where_id ?? opts.where_id ?? null;
+  let notes = initial?.notes ?? "";
   let saving: Promise<void> = Promise.resolve();
+  let dead = false;
   const uid = `loop-${++sheetSeq}`;
 
-  const title = h("textarea", { class: "note__title-input loop-sheet__title", name: "title", rows: 1, maxlength: 300, "aria-label": "Title" }) as HTMLTextAreaElement;
+  // ---------- title, with its own check ----------
+
+  const title = h("textarea", { class: "todo-sheet__title", name: "title", rows: 1, maxlength: 300, "aria-label": "Title" }) as HTMLTextAreaElement;
   title.value = initial?.title ?? opts.title ?? "";
   title.placeholder = PLACEHOLDER[kind];
   const grow = () => {
@@ -102,6 +131,34 @@ export function openCommitmentSheet(
     else if (v !== rec.title) save({ title: v });
   });
 
+  const check = h("button", { class: "todo-sheet__check", type: "button", role: "checkbox", "aria-checked": "false" }, h("span", { class: "todo-sheet__ring", "aria-hidden": "true" }, icons.check())) as HTMLButtonElement;
+  const flag = h("span", { class: "todo-sheet__flag", "aria-hidden": "true" }, icons.flag());
+  check.addEventListener("click", () => {
+    if (!rec) return;
+    const next = rec.status === "open" ? "done" : "open";
+    paintCheck(next === "done");
+    if (next === "done" && !prefersReducedMotion()) {
+      check.classList.remove("is-ticked");
+      void check.offsetWidth;
+      check.classList.add("is-ticked");
+    }
+    save({ status: next });
+    if (next === "done") {
+      const c = rec;
+      void saving.then(() => {
+        window.setTimeout(() => sheet.close(), prefersReducedMotion() ? 0 : 420);
+        showToast(`Done: ${c.title}`, { icon: "check", action: { label: "Undo", run: () => void saveCommitment({ status: "open" }, c.id) } });
+      });
+    }
+  });
+  function paintCheck(done: boolean) {
+    check.setAttribute("aria-checked", String(done));
+    check.setAttribute("aria-label", done ? "Reopen this to-do" : "Mark this to-do done");
+    head.dataset.state = done ? "done" : "open";
+  }
+
+  // ---------- kind ----------
+
   const kinds = choiceChips<Choice>(
     "Kind",
     (["todo", "waiting_on", "decision"] as Choice[]).map((k) => ({ value: k, label: k === "decision" ? "Decision" : COMMITMENT_META[k].label, icon: icons[COMMITMENT_META[k].icon as IconName]() })),
@@ -110,77 +167,163 @@ export function openCommitmentSheet(
       choice = c;
       kind = effectiveKind();
       title.placeholder = PLACEHOLDER[kind];
-      dueRow.hidden = c === "decision";
-      areaRow.hidden = whereRow.hidden = c === "decision";
-      notesRow.querySelector(".prop__label")!.textContent = c === "decision" ? "Why" : "Notes";
+      paintKind();
       if (rec) save({ kind });
     }
   );
 
-  const picker = personPicker({
-    value: person,
-    label: "With",
-    placeholder: "Someone (optional)",
+  // ---------- properties ----------
+
+  const dueP = duePill({
+    value: () => due,
+    onChange: (d) => {
+      due = d;
+      dueP.paint();
+      if (rec) save({ due_on: d });
+    },
+  });
+  const personP = personPill({
+    value: () => person,
+    label: () => personWord(effectiveKind()),
     onChange: (p) => {
       person = p;
       kind = effectiveKind();
       suggested.replaceChildren();
+      personP.paint();
       if (rec) save({ person_id: p?.id ?? null, kind });
     },
   });
-  // Nobody linked, but its words name someone: offer them under the picker. A tap picks them as the picker would.
-  const suggested = h("span", { class: "suggest-person__slot" });
+  const priorityP = priorityPill({
+    value: () => priority,
+    onChange: (p) => {
+      priority = p;
+      priorityP.paint();
+      if (rec) save({ priority: p });
+    },
+  });
+  // Area and where/how. When Athena chose them, a quiet note says so; picking one makes it yours.
+  const byAthena = h("span", { class: "ctx-by-athena todo-sheet__by", hidden: !initial?.context_by_athena }, icons.sparkle(), "Athena chose the area. Change it if it's wrong.");
+  if (initial?.area_id && initial?.where_id) byAthena.lastChild!.textContent = "Athena chose the area and where. Change them if they're wrong.";
+  else if (initial?.where_id && !initial?.area_id) byAthena.lastChild!.textContent = "Athena chose where. Change it if it's wrong.";
+  const areaP = contextPill("area", {
+    value: () => areaId,
+    onChange: (id) => {
+      areaId = id;
+      byAthena.hidden = true;
+      areaP.paint();
+      if (rec) save({ area_id: id });
+    },
+  });
+  const whereP = contextPill("where", {
+    value: () => whereId,
+    onChange: (id) => {
+      whereId = id;
+      byAthena.hidden = true;
+      whereP.paint();
+      if (rec) save({ where_id: id });
+    },
+  });
+  const props = h("div", { class: "tprops", role: "group", "aria-label": "Details" }, dueP.el, personP.el, priorityP.el, areaP.el, whereP.el);
+
+  // Nobody linked, but its words name someone: offer them under the properties. A tap picks them.
+  const suggested = h("span", { class: "suggest-person__slot todo-sheet__suggest" });
   if (initial && !initial.person_id && initial.status === "open") {
     void loadTodoPeople().then((named) => {
       const who = named[initial.id];
-      if (who?.length && !person) suggested.replaceChildren(personSuggestion(who, { link: (p) => picker.set(p), dismiss: () => dismissSuggested(initial.id) }));
+      if (who?.length && !person)
+        suggested.replaceChildren(
+          personSuggestion(who, {
+            link: (p) => {
+              person = p;
+              kind = effectiveKind();
+              personP.paint();
+              suggested.replaceChildren();
+              if (rec) save({ person_id: p.id, kind });
+            },
+            dismiss: () => dismissSuggested(initial.id),
+          })
+        );
     });
   }
-  const duePicker = dueDatePicker(due, (d) => {
-    due = d;
-    if (rec) save({ due_on: d });
-  });
-  const notes = autoTextarea(initial?.notes ?? "", { name: "notes", placeholder: "Add context", "aria-label": "Notes" }, 44);
-  notes.addEventListener("change", () => rec && save({ notes: notes.value }));
 
-  const dueRow = field("Due", duePicker.el);
-  dueRow.hidden = kind === "decision";
+  // ---------- description ----------
 
-  // Area and where/how. When Athena chose them, a quiet note says so; picking one makes it yours.
-  let areaId: string | null = initial?.area_id ?? opts.area_id ?? null;
-  let whereId: string | null = initial?.where_id ?? opts.where_id ?? null;
-  const both = !!(initial?.area_id && initial?.where_id);
-  const byAthena = h("span", { class: "ctx-by-athena", hidden: !initial?.context_by_athena }, icons.sparkle(), both ? "Athena chose these. Tap to change." : "Athena chose this. Tap to change.");
-  const areaPicker = contextPicker("area", areaId, (id) => {
-    areaId = id;
-    byAthena.hidden = true;
-    if (rec) save({ area_id: id });
+  const descLabel = h("span", { class: "tsec__label" }, "Description");
+  const descSlot = h("div", { class: "tdesc__body" });
+  const descFallback = h("p", { class: "tdesc__placeholder" }, notes ? notes : "Add details");
+  descSlot.append(descFallback);
+  const desc = h("section", { class: "tsec tsec--desc", "aria-label": "Description" }, h("h3", { class: "tsec__head" }, icons.lines(), descLabel), descSlot);
+  let editor: NoteEditorHandle | null = null;
+  let notesTimer: number | undefined;
+  const flushNotes = () => {
+    clearTimeout(notesTimer);
+    notesTimer = undefined;
+    if (!rec || notes === rec.notes) return;
+    save({ notes });
+  };
+  // A web link in the description opens itself; a link to a person, note or anything in Athena opens there, after the sheet closes.
+  const openLinked = (kind: string, id: string) => {
+    afterClose = () => openAppLink(kind, id);
+    sheet.close();
+  };
+  void loadEditor().then(({ createNoteEditor }) => {
+    if (dead) return;
+    editor = createNoteEditor({
+      markdown: notes,
+      placeholder: "Add details, or type @ to link something",
+      onChange(md) {
+        notes = md;
+        desc.toggleAttribute("data-empty", !md.trim());
+        clearTimeout(notesTimer);
+        notesTimer = window.setTimeout(flushNotes, 800);
+      },
+      onOpenLink: openLinked,
+      search: async (q, k) => (await searchEntities(q, k)).results,
+      mentions: async (q) => (await import("../db/mentions")).findMentions(q),
+      thumb: (row) => (row.thumb ? import("../db/mentions").then((m) => m.mentionThumb(row)) : null),
+      create: null,
+    });
+    descSlot.replaceChildren(editor.content);
+    editor.content.addEventListener("focusout", flushNotes);
+    desc.toggleAttribute("data-empty", !notes.trim());
   });
-  const wherePicker = contextPicker("where", whereId, (id) => {
-    whereId = id;
-    byAthena.hidden = true;
-    if (rec) save({ where_id: id });
-  });
-  // The note sits under the last picker Athena filled.
-  const areaRow = field("Area", areaPicker.el, initial?.where_id ? null : byAthena);
-  const whereRow = field("Where", wherePicker.el, initial?.where_id ? byAthena : null);
-  areaRow.hidden = whereRow.hidden = kind === "decision";
-  areaRow.classList.add("prop--ctx");
-  whereRow.classList.add("prop--ctx");
 
-  const notesRow = field(kind === "decision" ? "Why" : "Notes", notes);
-  const fields = h("div", { class: "card card--flush fields" }, field("With", picker.el, suggested), dueRow, areaRow, whereRow, notesRow);
+  // ---------- steps and links ----------
+
+  const steps = stepsEditor({
+    steps: initial?.steps ?? [],
+    onChange: (next: TodoStep[]) => {
+      paintNudge(next);
+      if (rec) save({ steps: next });
+    },
+  });
+  const links = linksEditor({
+    links: initial?.links ?? [],
+    selfId: () => rec?.id ?? null,
+    onChange: (next: TodoLink[]) => {
+      if (rec) save({ links: next });
+    },
+    onOpen: (link) => {
+      const t = linkTarget(link);
+      if (t) openLinked(t.kind, t.id);
+    },
+  });
+
+  // Every step ticked, the to-do still open: offer to close it, never do it unasked.
+  const nudgeBtn = h("button", { class: "btn btn--primary btn--sm", type: "button" }, icons.check(), "Mark the to-do done");
+  const nudge = h("div", { class: "todo-sheet__nudge", role: "status", hidden: true }, h("span", { class: "todo-sheet__nudge-mark", "aria-hidden": "true" }, icons.check()), h("span", { class: "todo-sheet__nudge-text" }, "Every step's done"), nudgeBtn);
+  nudgeBtn.addEventListener("click", () => check.click());
+  function paintNudge(list: TodoStep[] = steps.steps()) {
+    const p = stepProgress(list);
+    nudge.hidden = !(rec && rec.status === "open" && rec.kind !== "decision" && p.total > 0 && p.done === p.total);
+  }
 
   // ---------- actions ----------
+
   const addBtn = h("button", { class: "btn btn--primary", type: "button", disabled: !title.value.trim() }, icons.plus(), "Add") as HTMLButtonElement;
   addBtn.addEventListener("click", () => void create());
   const doneBtn = h("button", { class: "btn btn--soft", type: "button" }) as HTMLButtonElement;
-  doneBtn.addEventListener("click", () => {
-    if (!rec) return;
-    const next = rec.status === "open" ? "done" : "open";
-    save({ status: next });
-    if (next === "done") void saving.then(() => sheet.close());
-  });
+  doneBtn.addEventListener("click", () => check.click());
 
   const draftBtn = h("button", { class: "btn btn--soft loop-sheet__draft", type: "button" }) as HTMLButtonElement;
   // Closing steps history back; the draft opens once that's landed, or the step would close it too.
@@ -194,7 +337,7 @@ export function openCommitmentSheet(
   });
 
   // "Block time for this": a free slot before it's due, as a focus block on your own calendar, after you confirm.
-  const blockBtn = h("button", { class: "btn btn--soft btn--sm loop-sheet__block", type: "button" }, icons.clock(), "Block time for this") as HTMLButtonElement;
+  const blockBtn = h("button", { class: "btn btn--soft btn--sm loop-sheet__block todo-sheet__block", type: "button" }, icons.clock(), "Block time for this") as HTMLButtonElement;
   blockBtn.addEventListener("click", () => {
     if (!rec) return;
     const ask = blockAsk(rec);
@@ -233,19 +376,43 @@ export function openCommitmentSheet(
     placeMenuAcross(menu, moreBtn);
   });
 
-  const foot = h("div", { class: "loop-sheet__foot" });
-  const provenance = h("div", {});
+  const foot = h("div", { class: "loop-sheet__foot todo-sheet__foot" });
+  const provenance = h("div", { class: "todo-sheet__provenance" });
+
+  function paintKind() {
+    const decision = choice === "decision";
+    head.dataset.kind = decision ? "decision" : "loop";
+    descLabel.textContent = decision ? "Why" : "Description";
+    steps.el.hidden = decision;
+    dueP.el.hidden = priorityP.el.hidden = areaP.el.hidden = whereP.el.hidden = decision;
+    byAthena.hidden = decision || !rec?.context_by_athena;
+    personP.paint();
+    paintNudge();
+    paintFoot();
+  }
 
   function paintFoot() {
     moreBtn.hidden = !rec;
     blockBtn.hidden = true;
+    check.disabled = !rec;
     if (!rec) {
-      foot.replaceChildren(h("span", { class: "loop-sheet__hint" }, "Return to add"), addBtn);
+      foot.replaceChildren(
+        h("span", { class: "loop-sheet__hint" }, h("span", { class: "todo-sheet__hint-keys" }, h("kbd", {}, "⌘↵"), " to add"), h("span", { class: "todo-sheet__hint-touch" }, "Press Return in the title to add it")),
+        addBtn
+      );
       return;
     }
+    paintCheck(rec.status !== "open");
     doneBtn.replaceChildren(...(rec.status === "open" ? [icons.check(), "Mark done"] : [icons.restore(), "Reopen"]));
     doneBtn.hidden = rec.kind === "decision";
-    const status = rec.status === "done" && rec.done_at ? `Done ${relativeTime(rec.done_at)}` : rec.status === "dropped" ? "Dropped" : `Added ${relativeTime(rec.created_at)}`;
+    const status =
+      rec.kind === "decision"
+        ? `Recorded ${relativeTime(rec.created_at)}`
+        : rec.status === "done" && rec.done_at
+          ? `Done ${relativeTime(rec.done_at)}`
+          : rec.status === "dropped"
+            ? "Dropped"
+            : `Added ${relativeTime(rec.created_at)}`;
     // Something owed to or by a person can turn into a message for you to send; one from an email gets a reply.
     draftBtn.hidden = !(rec.person && rec.status === "open" && (rec.kind === "i_owe" || rec.kind === "waiting_on"));
     blockBtn.hidden = !(rec.status === "open" && (rec.kind === "todo" || rec.kind === "i_owe"));
@@ -261,7 +428,10 @@ export function openCommitmentSheet(
       try {
         rec = await saveCommitment(patch, rec.id);
         opts.onSaved?.(rec);
-        paintFoot();
+        if (!dead) {
+          paintFoot();
+          paintNudge();
+        }
       } catch (error) {
         showToast(error instanceof Error ? error.message : "Couldn't save", { icon: "wifiOff", timeoutMs: 4000 });
       }
@@ -274,17 +444,19 @@ export function openCommitmentSheet(
     addBtn.disabled = true;
     try {
       kind = effectiveKind();
+      const decision = kind === "decision";
       const created = await saveCommitment({
         title: v,
         kind,
         person_id: person?.id ?? null,
-        due_on: kind === "decision" ? null : due,
-        notes: notes.value,
-        ...(kind === "decision" ? {} : { area_id: areaId, where_id: whereId }),
+        due_on: decision ? null : due,
+        notes: editor ? editor.getMarkdown() : notes,
+        links: links.links(),
+        ...(decision ? {} : { area_id: areaId, where_id: whereId, priority, steps: steps.steps() }),
       });
       opts.onSaved?.(created);
       sheet.close();
-      showToast(kind === "decision" ? "Decision recorded" : kind === "waiting_on" ? "Added to Waiting on" : "Added to To do", { icon: kind === "decision" ? "flag" : "check" });
+      showToast(decision ? "Decision recorded" : kind === "waiting_on" ? "Added to Waiting on" : "Added to To do", { icon: decision ? "flag" : "check" });
     } catch (error) {
       addBtn.disabled = false;
       showToast(error instanceof Error ? error.message : "Couldn't add it", { icon: "wifiOff", timeoutMs: 4000 });
@@ -321,27 +493,44 @@ export function openCommitmentSheet(
     }
   }
 
+  const head = h("div", { class: "todo-sheet__head", "data-state": "open" }, check, flag, title);
   const body = h(
     "div",
-    { class: "loop-sheet" },
-    h("div", { class: "loop-sheet__top" }, kinds.el, h("span", { class: "note__bar-spacer" }), moreBtn, menu),
-    title,
-    fields,
-    blockBtn,
+    { class: "loop-sheet todo-sheet" },
+    h("div", { class: "loop-sheet__top todo-sheet__top" }, kinds.el, h("span", { class: "note__bar-spacer" }), moreBtn, menu),
+    head,
+    h("div", { class: "todo-sheet__props" }, props, byAthena, suggested),
+    desc,
+    steps.el,
+    nudge,
+    links.el,
+    h("div", { class: "todo-sheet__extras" }, blockBtn),
     provenance,
     foot
   );
 
-  const sheet = openSheet({ label: initial ? initial.title : "New to-do", title: initial ? undefined : "New to-do", body, onClose: () => afterClose?.() });
-  paintFoot();
+  const sheet = openSheet({
+    label: initial ? initial.title : "New to-do",
+    title: initial ? undefined : "New to-do",
+    body,
+    onClose: () => {
+      flushNotes();
+      dead = true;
+      editor?.destroy();
+      afterClose?.();
+    },
+  });
+  sheet.dialog.classList.add("sheet--todo");
+  paintKind();
   requestAnimationFrame(() => {
     grow();
     if (!initial) title.focus();
   });
   sheet.dialog.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !rec) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      void create();
+      if (!rec) void create();
+      else if (rec.kind !== "decision") check.click();
     }
   });
 }

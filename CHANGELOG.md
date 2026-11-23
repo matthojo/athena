@@ -3,6 +3,34 @@
 Each release's section becomes its notes on GitHub. Merging a new version
 into `main` publishes it (`.github/workflows/release.yml`).
 
+## 1.2.0
+
+To-dos with a description, steps, links and a priority.
+
+- Open a to-do and it's a page of its own. Under the title, tap the date,
+  person, priority, area or where to change it; the date opens a calendar.
+  The description takes Markdown and @ links to people, notes and anything
+  else in Athena.
+- Steps are a checklist inside a to-do. Return starts the next step, a pasted
+  list adds a step for each line, and you can drag a step or press Alt+↑/↓
+  to move it. When every step is ticked, Athena offers to mark the to-do
+  done.
+- Paste an address and the link takes the page's title, or search Athena to
+  link a person, note or saved item. Links to things in Athena show in the
+  graph.
+- Priority is none, low, medium or high. Of the to-dos due on the same day,
+  higher priority ones come first. Each row shows its priority, how many
+  steps are done and whether it has links or a description.
+- Quick add reads a date at the end of the line and a priority anywhere, so
+  "Renew the passport by Friday !high" is due Friday and high priority. It
+  shows what it found before adding, and Keep as typed adds the line as you
+  wrote it.
+- Ask, Team assistants and flows can give a to-do a description, steps,
+  links and a priority, and tick or change a single step. Collections add
+  steps only when the source lists the parts of one task. Each action item
+  from a meeting is still its own to-do.
+- Deleting a to-do for good now also removes its links in the graph.
+
 ## 1.1.0
 
 Flows, and Team assistants you can share.

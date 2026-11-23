@@ -49,6 +49,7 @@ import {
 } from "./db";
 import { addFact, findPeople, listCommitments, listFacts, listInteractions, logInteraction, upsertCommitment } from "./memory";
 import { listContexts } from "./todo-contexts";
+import { askLinks, nameOfPriority, PRIORITY_NAMES, priorityOfName, STEPS_RULE, todoExtras } from "./todo-details";
 import { contextByName, contextsOf, filterByContext } from "./todo-context";
 import { getReadingItem, listReading, upsertReadingItem, type ReadingItem } from "./memory";
 import { KIND_WORDS, PROGRESS_UNITS, progressWords, READING_KINDS, READING_STATUSES, WATCH_READ, type ProgressUnit } from "./watch-read";
@@ -727,7 +728,9 @@ export const TOOLS: Anthropic.Tool[] = [
   {
     name: "add_todo",
     description:
-      "Add a to-do. kind: todo (the owner will do it), i_owe (the owner will do it for someone: give person_id), waiting_on (someone will do it for the owner: give person_id).",
+      "Add a to-do. kind: todo (the owner will do it), i_owe (the owner will do it for someone: give person_id), waiting_on (someone will do it for the owner: give person_id). " +
+      "It can carry a description (notes), steps, links and a priority. Several separate things to do are several add_todo calls, not one to-do with steps. " +
+      `steps: ${STEPS_RULE} When the owner asks for steps or gives a checklist for one task, use them.`,
     input_schema: {
       type: "object",
       properties: {
@@ -740,6 +743,10 @@ export const TOOLS: Anthropic.Tool[] = [
         },
         area: { type: "string", description: "Which part of life, by name (Work, Health…), when the owner says it or it's obvious. Leave out otherwise: Athena fills it when it's clear." },
         where: { type: "string", description: "Where or how, by name (Phone, Errands, Computer…), when the owner says it or it's obvious." },
+        notes: { type: "string", description: "Its description, in Markdown: context the owner gave or the source has. Plain and short. Leave out when there's nothing to add." },
+        steps: { type: "array", items: { type: "string" }, description: "Usually leave this out. The parts of this one to-do, in order, each starting with a verb." },
+        links: { type: "array", items: { type: "string" }, description: "Pages it needs (https addresses) or things in Athena (athena://person/<id>, athena://note/<id>…), only ones you were given or found." },
+        priority: { type: "string", enum: [...PRIORITY_NAMES], description: "Only when the owner says how urgent it is, or the source does." },
       },
       required: ["title", "kind"],
     },
@@ -1062,6 +1069,10 @@ const inputs = {
       due_on: DATE.optional(),
       area: z.string().max(40).optional(),
       where: z.string().max(40).optional(),
+      notes: z.string().max(5000).optional(),
+      steps: z.array(z.string().max(300)).max(50).optional(),
+      links: z.array(z.string().max(2000)).max(20).optional(),
+      priority: z.enum(PRIORITY_NAMES).optional(),
     })
     .refine((t) => t.kind === "todo" || !!t.person_id, "i_owe and waiting_on need the person_id"),
   complete_todo: z.object({ id: UUID }),
@@ -1564,6 +1575,11 @@ export class Session {
               ...(nameOf(c.area_id) ? { area: nameOf(c.area_id) } : {}),
               ...(nameOf(c.where_id) ? { where: nameOf(c.where_id) } : {}),
               ...(c.status !== "open" ? { status: c.status } : {}),
+              ...(c.priority ? { priority: nameOfPriority(c.priority) } : {}),
+              // Ids so change_todo can tick, untick or remove one step.
+              ...(c.steps.length ? { steps: c.steps.map((st) => ({ id: st.id, text: st.text, done: st.done })) } : {}),
+              ...(c.links.length ? { links: c.links.map((l) => ({ title: l.title, url: l.url })) } : {}),
+              ...(c.notes.trim() ? { description: c.notes.length > 600 ? `${c.notes.slice(0, 600)}…` : c.notes } : {}),
               ...(mentionedIn.get(c.id) ? { mentioned_in: mentionedIn.get(c.id) } : {}),
             })),
         );
@@ -1571,6 +1587,7 @@ export class Session {
       case "add_todo": {
         const input = inputs.add_todo.parse(raw);
         const person = input.person_id ? await this.personOrThrow(input.person_id) : null;
+        const links = askLinks(input.links);
         const c = await upsertCommitment({
           title: input.title.trim(),
           kind: input.kind,
@@ -1579,14 +1596,19 @@ export class Session {
           source: "assistant",
           confidence: 1,
           context: { given: { area: input.area, where: input.where } },
+          ...(input.notes?.trim() ? { notes: input.notes.trim() } : {}),
+          ...(input.steps?.length ? { steps: input.steps } : {}),
+          ...(links.length ? { links } : {}),
+          ...(input.priority && input.priority !== "none" ? { priority: priorityOfName(input.priority) } : {}),
         });
         const who = input.kind === "waiting_on" && person ? `Waiting on ${person.name}` : input.kind === "i_owe" && person ? `For ${person.name}` : "To do";
+        const extras = todoExtras(c);
         return this.record({
           kind: "commitment",
           id: c.id,
           action: "created",
           title: c.title,
-          detail: c.due_on ? `${who} · due ${dayLabel(c.due_on, zonedToday(this.now, this.tz))}` : who,
+          detail: [c.due_on ? `${who} · due ${dayLabel(c.due_on, zonedToday(this.now, this.tz))}` : who, ...extras].join(" · "),
           open: { kind: "commitment", id: c.id },
           undo: { op: "archive", kind: "commitment", id: c.id },
         });

@@ -2387,7 +2387,7 @@ the status counts and the tests all read it from there.
 | `places` | `address`, `url`, `notes` |
 | `organisations` | `website`, `notes` |
 | `projects` | `description` |
-| `commitments` (to-dos) | `title`, `notes`, `source_quote` |
+| `commitments` (to-dos) | `title`, `notes` (the description), `source_quote`, and from `0084` `steps` (the checklist) and `links` (web addresses and athena:// links, with their titles), each list one sealed JSON value. `priority` (0 to 3) stays readable |
 | `interactions` (catch-ups) | `summary` |
 | `facts` | `value`, `source_quote` |
 | `suggestions` (review inbox) | `summary`, `payload`, `source_quote` |
@@ -2488,7 +2488,12 @@ Function instead.
   (`commitments.area_id`, `where_id`, `context_by_athena`), and
   `todo_context_hints` (the owner's last correction per `person:<id>` or
   `source:<source>`). Labels like "Work" or "Phone", as low-sensitivity as
-  fact keys; the to-do's title, notes and quote stay sealed.
+  fact keys; the to-do's title, notes, quote, steps and links stay sealed.
+- **To-do priority** (`commitments.priority`, migration `0084`): a number from
+  0 (none) to 3 (high). It says how urgent something is, not what it is.
+- **A to-do's links to things in Athena** become `edges` rows from the
+  to-do (origin `content`), like a note's mentions: ids only, so the graph
+  and backlinks can show them. Web addresses stay inside the sealed `links`.
 - **`metrics`**: names, values and metadata, as written. The owner chose
   (9 Nov 2026) to leave them readable. Nothing in code keeps a health or
   money figure out of them; a prompt rule is the only guard (§1).

@@ -10,6 +10,7 @@
 import type { ConnectorOAuthSettings } from "../../lib/connector-presets";
 import type { FieldValue } from "../../lib/custom-field-rules";
 import type { MailRules } from "../../lib/mail-rules";
+import type { TodoLink, TodoPriority, TodoStep } from "../../lib/todo-details";
 
 export type NoteType = "note" | "daily" | "project" | "area" | "capture";
 
@@ -307,6 +308,12 @@ export interface Commitment extends Provenance {
   where_id?: string | null;
   /** Athena set the context itself; the owner picking one clears it. */
   context_by_athena?: boolean;
+  /** Its checklist, in order (lib/todo-details.ts). Missing on copies cached before 0084. */
+  steps?: TodoStep[];
+  /** Web pages and things in Athena it points at. */
+  links?: TodoLink[];
+  /** 0 none, 1 low, 2 medium, 3 high. */
+  priority?: TodoPriority;
   done_at: string | null;
   archived_at?: string | null;
   created_at: string;

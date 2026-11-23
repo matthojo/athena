@@ -715,12 +715,12 @@ export async function capture(input: { text: string; source?: string }): Promise
 }
 
 /**
- * Make a note's (or a custom record's) origin='content' edges exactly match
+ * Make a note's (or a custom record's, or a to-do's) origin='content' edges exactly match
  * the athena:// links in its body (relation 'mentions'). Manual edges are
  * never touched. If a manual edge with the same relation already exists, the
  * unique constraint keeps it as-is and no content duplicate is added.
  */
-export async function syncContentLinks(id: string, body: string, from: "note" | "record" = "note"): Promise<void> {
+export async function syncContentLinks(id: string, body: string, from: "note" | "record" | "commitment" = "note"): Promise<void> {
   const keys = contentEdgeKeys(body, { kind: from, id }).filter((k) =>
     (ENTITY_TYPES as readonly string[]).includes(k.split(":")[0]),
   );
@@ -1869,7 +1869,14 @@ export async function deleteEntityForever(kind: ArchivableKind, id: string): Pro
   }
   if (isMemoryKind(kind)) {
     const rows = await q<{ id: string }>(
-      `WITH gone_values AS (DELETE FROM custom_values WHERE entity_kind = $2 AND entity_id = $1::uuid RETURNING 1)
+      // A to-do or a Watch & read title can be in the graph (a note's mention, a to-do's own links): those edges go too.
+      `WITH gone_values AS (DELETE FROM custom_values WHERE entity_kind = $2 AND entity_id = $1::uuid RETURNING 1),
+       gone_edges AS (
+         DELETE FROM edges
+         WHERE $2 IN ('commitment', 'reading')
+           AND ((source_type = $2 AND source_id = $1::uuid) OR (target_type = $2 AND target_id = $1::uuid))
+         RETURNING 1
+       )
        DELETE FROM ${MEMORY_TABLES[kind].table} WHERE id = $1::uuid RETURNING id`,
       [id, kind],
     );

@@ -123,7 +123,8 @@ const TOOL_ASKS: Record<string, Asked[]> = {
   save_booking: ["add", "change"],
   save_purchase: ["add", "change"],
   complete_todo: ["change"],
-  change_todo: ["change"],
+  // "Add a step to the passport one" adds to a to-do that's there.
+  change_todo: ["change", "add"],
   change_reminder: ["change", "remove"],
   update_people: ["change"],
   update_watch_read: ["change"],

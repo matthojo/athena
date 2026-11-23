@@ -36,6 +36,7 @@ import { setLinkData } from "./editor/link-data";
 import { realLinkData } from "./editor/link-data-real";
 import { watchStickyHeads } from "./lib/sticky-head";
 import { followDayPart } from "./lib/format";
+import { setAppOpenLink } from "./lib/app-links";
 import type { AnyRecord, CustomRecord, EntityKind, Note, RecordKind } from "./types";
 
 const root = document.getElementById("app")!;
@@ -506,6 +507,8 @@ function mountShell() {
     if (rec) openRecord(kind, rec);
     else showToast("That isn't available. It may be archived", { icon: "archive" });
   }
+
+  setAppOpenLink((k, id) => void openLink(k, id));
 
   function openRecord(kind: RecordKind, rec: AnyRecord) {
     if (desktop.matches) go(VIEW_FOR_KIND[kind], { noteId: rec.id });
