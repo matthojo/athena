@@ -17,4 +17,5 @@
 - [ ] Migrations: none changed, any new one has the next number and is backwards-compatible
 - [ ] `SECURITY.md` is updated, if this changes what's encrypted, who can read it or what leaves the site
 - [ ] Code from elsewhere (if any) is named here with its source and its permissive licence
-- [ ] I've read the [Contributor Assignment Agreement](https://github.com/matthojo/athena/blob/main/CONTRIBUTOR_AGREEMENT.md) and will agree to it in a comment when asked
+
+By opening this pull request, you accept Athena's [contribution terms](https://github.com/matthojo/athena/blob/main/CONTRIBUTING.md#contribution-terms).

@@ -15,8 +15,8 @@ Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 1. **Agree the idea first.** For anything bigger than a small fix, open an
    issue or a discussion, or comment on an existing one, and wait for a
    yes. It saves you building something that doesn't fit.
-2. **Read the [Contributor Assignment Agreement](CONTRIBUTOR_AGREEMENT.md).**
-   Every contribution needs it (see [below](#the-contributor-agreement)).
+2. **Read the [contribution terms](#contribution-terms).** Contributing
+   means you accept them.
 3. **Look for `good first issue`** if you'd like somewhere to start.
 
 ## Getting set up
@@ -53,8 +53,7 @@ Files named `*.db.test.ts` skip themselves unless `ATHENA_TEST_DB_URL` points
 at a Postgres database with the migrations in `netlify/database/migrations/`
 applied; `npm run test:db` runs them. CI runs the rest on every pull request,
 along with checks of its own: that no released migration changed, that no
-secret slipped in, that every dependency's licence is allowed, and that
-everyone who wrote commits has agreed to the contributor agreement.
+secret slipped in, and that every dependency's licence is allowed.
 
 Open the pull request against `main` and fill in the template. Mark it as a
 draft while you're still working on it.
@@ -94,19 +93,38 @@ used unchanged. Nothing under the GPL, AGPL, SSPL or a "source available"
 licence. `npm run check:licences` checks dependencies; name the source and
 licence of anything you copy in the pull request.
 
-## The contributor agreement
+## Contribution terms
 
 Athena is licensed under the GNU AGPL v3.0 or later, and every release stays
-available under it. Its maintainer may also offer Athena as a hosted service
-or under other licences, which needs the maintainer to hold the copyright in
-all of it. So before a contribution is merged, its author assigns the
-copyright to the maintainer, under the
-[Contributor Assignment Agreement](CONTRIBUTOR_AGREEMENT.md), and gets a
-licence back to do anything they like with their own work.
+available under it. Its maintainer, the owner of `github.com/matthojo/athena`
+and anyone the project is later transferred to, may also offer Athena as a
+paid hosted service or license it on other terms. These terms keep that
+possible.
 
-The first time you open a pull request, the **Contributor agreement** check
-asks you to agree by posting a comment. You only do it once. If you're
-contributing for your employer, write to the address in the agreement first.
+By submitting a contribution to Athena (code, documentation, designs or
+anything else, by pull request or any other way), you agree to the
+following:
+
+1. **You keep your copyright**, and grant the maintainer a perpetual,
+   worldwide, non-exclusive, royalty-free, irrevocable, sublicensable and
+   transferable licence, under your copyright and any patents you hold that
+   cover it, to use, copy, change, distribute, publicly display and perform
+   your contribution, and to license it to others on any terms: open-source
+   licences like the AGPL, or proprietary and commercial ones, including as
+   part of a hosted service.
+2. **You're entitled to grant this.** The contribution is your own work, or
+   you say in the pull request where any part came from and under what
+   licence. If your employer has rights in what you create, they've allowed
+   you to contribute it on these terms.
+3. **If you used an AI tool**, its terms let you contribute what it
+   produced, and you've reviewed and tested that output as your own work.
+4. **You give it "as is"**, without warranties, and don't have to support
+   it.
+
+These terms are an agreement in addition to the AGPL, as GitHub's Terms of
+Service allow. Everyone else receives your contribution under the AGPL, as
+part of Athena. If you can't agree to them, say so in your pull request
+before it's merged.
 
 ## Releasing (maintainers)
 

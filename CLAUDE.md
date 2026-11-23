@@ -44,8 +44,8 @@ Every piece of work reaches `main` as one feature branch and one pull request.
 
 ## Only permissive code from elsewhere
 
-Contributors assign their copyright to the maintainer
-(`CONTRIBUTOR_AGREEMENT.md`) so Athena can be relicensed or hosted. Don't
+Contributors grant the maintainer a broad licence (`CONTRIBUTING.md`,
+"Contribution terms") so Athena can be relicensed or hosted. Don't
 add a dependency, or copy in code, under the GPL, AGPL, SSPL or a "source
 available" licence; `npm run check:licences` checks dependencies. Name the
 source and licence of anything copied in the pull request.

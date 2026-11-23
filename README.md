@@ -348,10 +348,11 @@ rules every change follows. In short:
 npm run typecheck && npm test && npm run build
 ```
 
-Contributors assign the copyright in their work to the project's maintainer,
-with a licence back, under the
-[Contributor Assignment Agreement](CONTRIBUTOR_AGREEMENT.md). Everyone
-taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+By contributing, you accept the
+[contribution terms](CONTRIBUTING.md#contribution-terms): you keep your
+copyright and grant the maintainer a broad licence, so Athena can also be
+offered as a hosted service. Everyone taking part follows the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

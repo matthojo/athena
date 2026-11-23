@@ -1,7 +1,7 @@
 // Fails when a dependency Athena ships has a licence that would tie the
 // project's hands: anything copyleft beyond the file or library level (GPL,
 // AGPL, SSPL and the like), or a licence it doesn't recognise. Athena's
-// maintainer can relicense Athena itself (CONTRIBUTOR_AGREEMENT.md), but not
+// maintainer can relicense Athena itself (CONTRIBUTING.md), but not
 // someone else's package, so what it depends on has to stay permissive.
 // Reads package-lock.json, so it needs no install. Dev dependencies aren't
 // shipped, so they aren't checked.

@@ -27,9 +27,9 @@ every release is published here under the GNU AGPL v3.0 or later, and stays
 available under it.
 
 The maintainer may also offer Athena as a paid, hosted service, or license
-it to others on other terms. To keep that possible, contributors assign
-their copyright to the maintainer ([CONTRIBUTOR_AGREEMENT.md](CONTRIBUTOR_AGREEMENT.md)),
-and Athena only depends on permissively licensed packages
+it to others on other terms. To keep that possible, contributors grant
+the maintainer a broad licence to their work
+([CONTRIBUTING.md](CONTRIBUTING.md#contribution-terms)), and Athena only depends on permissively licensed packages
 (`scripts/check-licences.ts`). A hosted service may have parts that only it
 needs, such as accounts and billing. Features that make Athena better for
 the person running their own copy belong in this repository.
