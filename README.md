@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="https://matthojo.github.io/athena/"><strong>Website and docs</strong></a>
+</p>
+
+<p align="center">
   <a href="https://app.netlify.com/start/deploy?repository=https://github.com/matthojo/athena"><img src="https://www.netlify.com/img/deploy/button.svg" alt="Deploy to Netlify" height="32"></a>
 </p>
 
@@ -319,6 +323,9 @@ snapshot, not a sync. The files it writes are readable, so keep them
 somewhere safe.
 
 ## Documentation
+
+Every document below is also on the [website](https://matthojo.github.io/athena/),
+with search.
 
 - [GUIDE.md](GUIDE.md): Ask, reminders and the briefing, voice, connectors
   and collections, and encryption, in detail
