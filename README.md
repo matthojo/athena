@@ -18,7 +18,8 @@
   <img src="https://img.shields.io/badge/node-24-2c6be7" alt="Node 24">
 </p>
 
-https://github.com/user-attachments/assets/6e052b08-365c-4757-b731-97812742c83b
+https://github.com/user-attachments/assets/79f9c13a-f346-4bd5-8ab0-4c5cd8cc7b23
+
 
 Athena keeps your notes, people, to-dos and days in one Postgres database on
 a Netlify site that you own. It collects from the accounts you connect, such
