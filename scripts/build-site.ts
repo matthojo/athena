@@ -61,7 +61,7 @@ export const DOCS: DocPage[] = [
   { slug: "extension", title: "Browser extension", group: "Reference", icon: "bookmark", file: "extension/README.md" },
   { slug: "contributing", title: "Contributing", group: "Project", icon: "pen", file: "CONTRIBUTING.md" },
   { slug: "changelog", title: "Changelog", group: "Project", icon: "clock", file: "CHANGELOG.md" },
-  { slug: "community", title: "Community", group: "Project", icon: "people", lede: "Where to ask, report, suggest and help." },
+  { slug: "community", title: "Community", group: "Project", icon: "people", lede: "Where to ask questions, report problems and suggest changes." },
   { slug: "license", title: "License", group: "Project", icon: "key", file: "LICENSE" },
 ];
 
@@ -687,7 +687,7 @@ ${AURORA}
   <section class="band" id="what-it-does" aria-labelledby="what-it-does-title">
     <header class="band__head">
       <p class="eyebrow">What it does</p>
-      <h2 class="band__title" id="what-it-does-title">Everything you'd ask yourself about, <span class="quiet">in one place that answers back.</span></h2>
+      <h2 class="band__title" id="what-it-does-title">Everything links up, <span class="quiet">and Ask answers from all of it with sources.</span></h2>
     </header>
     <ul class="features">${featureCards}</ul>
     <p class="band__more"><a class="link-arrow" href="guide.html">The guide goes through each of these in detail${icon("arrowRight")}</a></p>
@@ -698,7 +698,7 @@ ${AURORA}
       ? `<section class="band band--flush" aria-labelledby="screens-title">
     <header class="band__head">
       <p class="eyebrow">On your phone</p>
-      <h2 class="band__title" id="screens-title">Installs as an app. <span class="quiet">One thumb, one tap.</span></h2>
+      <h2 class="band__title" id="screens-title">Installs as an app on your phone, <span class="quiet">and keeps working offline.</span></h2>
     </header>
     <div class="shots" tabindex="0" role="group" aria-label="Screens from sample mode">${phoneShots}</div>
   </section>`
@@ -709,7 +709,7 @@ ${AURORA}
     <div class="panel panel--sunken privacy">
       <header class="privacy__head">
         <p class="eyebrow">Your data stays on your site</p>
-        <h2 class="band__title" id="privacy-title">Your database, your keys. <span class="quiet">Nobody else's server.</span></h2>
+        <h2 class="band__title" id="privacy-title">Your own database and keys, <span class="quiet">on your own Netlify account.</span></h2>
         <div class="split__text">${renderMarkdown(privacyAfter, "README.md").html}</div>
         <a class="btn btn--outline" href="security.html">${icon("shield")}Read the security model</a>
       </header>
@@ -721,11 +721,11 @@ ${AURORA}
     <div class="split">
       <div>
         <p class="eyebrow">Deploy your own</p>
-        <h2 class="band__title" id="deploy-title">About ten minutes, <span class="quiet">from one button to your own Athena.</span></h2>
+        <h2 class="band__title" id="deploy-title">Your own copy in about ten minutes. <span class="quiet">Netlify sets up the site and its database.</span></h2>
         <div class="split__text">${renderMarkdown(deployIntro, "README.md").html}</div>
         <div class="hero__actions">
           <a class="btn btn--ink" href="${DEPLOY_URL}" rel="noopener">${icon("arrowUp")}Deploy to Netlify</a>
-          <a class="btn btn--outline" href="getting-started.html">Full setup</a>
+          <a class="btn btn--outline" href="getting-started.html">Setup guide</a>
         </div>
       </div>
       <ol class="steps">${stepItems}</ol>
@@ -736,7 +736,7 @@ ${AURORA}
     <div class="split">
       <div>
         <p class="eyebrow">Try it locally</p>
-        <h2 class="band__title" id="try-title">Look around first. <span class="quiet">No account needed.</span></h2>
+        <h2 class="band__title" id="try-title">Try sample mode first. <span class="quiet">It runs in your browser on made-up data.</span></h2>
         <div class="split__text">${renderMarkdown(tryAfter, "README.md").html}</div>
       </div>
       <div>${renderMarkdown("```sh\n" + tryCode + "```", "README.md").html}</div>
@@ -746,7 +746,7 @@ ${AURORA}
   <section class="band" id="documentation" aria-labelledby="docs-title">
     <header class="band__head">
       <p class="eyebrow">Documentation</p>
-      <h2 class="band__title" id="docs-title">Written down, <span class="quiet">all of it.</span></h2>
+      <h2 class="band__title" id="docs-title">How it works, <span class="quiet">down to which tables are encrypted.</span></h2>
     </header>
     <ul class="doc-cards">${docCards}</ul>
   </section>
@@ -755,14 +755,14 @@ ${AURORA}
     <div class="panel community" id="license">
       <div>
         <p class="eyebrow">Open source</p>
-        <h2 class="band__title" id="community-title">Free software, <span class="quiet">built in the open.</span></h2>
+        <h2 class="band__title" id="community-title">Free software <span class="quiet">under the AGPL.</span></h2>
         <div class="split__text">${renderMarkdown(license, "README.md").html}</div>
       </div>
       <div class="community__actions">
         <a class="row-link" href="contributing.html">${icon("pen")}<span><strong>Contribute</strong><span>Setup, checks, and the rules every change follows</span></span>${icon("chevronRight")}</a>
         <a class="row-link" href="community.html">${icon("people")}<span><strong>Get help</strong><span>Questions, bugs and ideas</span></span>${icon("chevronRight")}</a>
         <a class="row-link" href="security.html#reporting-a-vulnerability">${icon("shield")}<span><strong>Report a vulnerability</strong><span>Privately, not in a public issue</span></span>${icon("chevronRight")}</a>
-        <a class="row-link" href="${REPO_URL}/releases" rel="noopener">${icon("clock")}<span><strong>Releases</strong><span>Every copy updates through a weekly pull request</span></span>${icon("chevronRight")}</a>
+        <a class="row-link" href="${REPO_URL}/releases" rel="noopener">${icon("clock")}<span><strong>Releases</strong><span>Your copy checks for a new one every Monday</span></span>${icon("chevronRight")}</a>
       </div>
     </div>
   </section>
@@ -874,7 +874,7 @@ function notFound(version: string): string {
 ${AURORA}
 <main id="content" class="not-found">
   <a class="brand" href="index.html">${BRAND_MARK}<span class="brand-name">Athena</span></a>
-  <h1 class="hero__title">Nothing here. <span class="quiet">The page may have moved.</span></h1>
+  <h1 class="hero__title">There's no page at this address. <span class="quiet">Search the docs, or start from home.</span></h1>
   <div class="hero__actions">
     <a class="btn btn--ink" href="index.html">${icon("home")}Home</a>
     <button class="btn btn--outline" type="button" data-search>${icon("search")}Search the docs</button>
