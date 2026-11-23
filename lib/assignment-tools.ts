@@ -25,6 +25,7 @@ import type { Anthropic } from "./ai";
 import { ASSIGNMENT_LIMITS as L, type AskLineup, type Handoff, type StageQuestion } from "./assignment-types";
 import { MAX_CHOICE, MAX_CHOICES, MAX_QUESTION, MIN_CHOICES } from "./team-skill";
 import { currentChecker } from "./trackers-store";
+import { relinked } from "./run-links";
 
 /** The most a stage may hand in as the work product. */
 export const MAX_WORK = 60_000;
@@ -162,7 +163,7 @@ function runStageTool(desk: StageDesk, name: string, raw: unknown, session: Aski
   if (name === "hand_off") {
     const input = HandOffInput.parse(raw ?? {});
     if (desk.questions.length) throw new Error("You've asked the owner. Stop here: their answers come back in your next turn.");
-    if (input.work !== undefined && input.work.length > MAX_WORK) throw new Error(`work: keep the document under ${MAX_WORK.toLocaleString("en-GB")} characters.`);
+    if (input.work !== undefined && relinked(input.work).length > MAX_WORK) throw new Error(`work: keep the document under ${MAX_WORK.toLocaleString("en-GB")} characters.`);
     let sendBack: StageDesk["sendBack"] = null;
     if (input.send_back_to !== undefined) {
       if (!desk.canSendBack) throw new Error("Not sent back: this assignment has had its one send-back. Hand off without send_back_to and say what's wrong in open: it goes to the owner.");
@@ -170,8 +171,9 @@ function runStageTool(desk: StageDesk, name: string, raw: unknown, session: Aski
       if (!input.open) throw new Error("Not sent back: say exactly what that stage should change, in open.");
       sendBack = { to: input.send_back_to, note: clip(input.open, L.handoff) };
     }
-    desk.handoff = fitHandoff({ did: input.did, open: input.open, next: input.next });
-    desk.work = input.work?.trim() ? input.work : desk.work;
+    // Its message wrote links so they couldn't be opened (lib/run-links.ts); what it hands back has them as they were.
+    desk.handoff = fitHandoff({ did: relinked(input.did), open: relinked(input.open ?? ""), next: relinked(input.next ?? "") });
+    desk.work = input.work?.trim() ? relinked(input.work) : desk.work;
     desk.sendBack = sendBack;
     return JSON.stringify({ done: sendBack ? `Handed off, and sent back to stage ${sendBack.to}` : "Handed off", note: "Athena moves the work on. Finish now with one or two sentences saying what you did." });
   }

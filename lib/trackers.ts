@@ -203,6 +203,16 @@ export function planTracker(input: TrackerInput, item: TrackedItem | null): Trac
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * The link a run may open for a tracker (lib/run-links.ts): its own link when the owner typed or approved it, or when
+ * it's the saved item's own; else, for a saved item's tracker, the item's own link; else none, and the run looks it
+ * up by name. A link a model chose that the owner hasn't approved is never given. Pure.
+ */
+export function runUrlOf(t: Pick<Tracker, "url" | "url_set_by" | "saved_id">, itemUrl: string | null): string | null {
+  if (t.url && (t.url_set_by === "owner" || t.url_set_by === "item")) return t.url;
+  return t.saved_id && itemUrl ? itemUrl : null;
+}
+
 /** A check's value for this tracker: a number as written, or one of its states. Throws TrackerInputError. Pure. */
 export function cleanValue(t: Pick<Tracker, "kind" | "states" | "currency" | "label">, raw: unknown): string {
   if (t.kind === "number") return cleanNumber(raw, { money: !!t.currency });

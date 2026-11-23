@@ -132,7 +132,7 @@ import type { CalendarPort } from "./rsvp";
 import type { SchedulingPort } from "./scheduling";
 import { PLAN_RULE, PROPOSE_RULE, PlanDraft, WAITS_NOTE, planCard, savePlan, withoutStep, type PlanCard, type PlanMode } from "./ask-plans";
 import { logChanges, type ActivitySource } from "./ask-activity";
-import { TurnGuard, isCollected, isWriteTool, type ReadFrom } from "./ask-guard";
+import { TurnGuard, isCollected, isWriteTool, needsOwnersGo, type ReadFrom } from "./ask-guard";
 import { BUSY_STEP_AGAIN, BUSY_STEP_FIRST, BUSY_STEP_ID } from "./ask-busy";
 import { tonightCard, type WatchPick } from "./watch-tonight";
 // Pictures in Ask and assistant chats (docs/ai-models.md, models-ask).
@@ -1578,7 +1578,8 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
           const queued = draft.steps[draft.steps.length - 1];
           queuedBy.set(queued.stands_for, { id: call.id, name, input: call.input });
           // Decided now: a change queued before anything of other people's was read can't have been caused by it.
-          const held = guard.mustWait(name);
+          // A tracker link the model chose waits for Go whatever was read (lib/run-links.ts).
+          const held = guard.mustWait(name) ?? (needsOwnersGo(name, call.input) ? "link" : null);
           if (held) {
             guard.hold(queued.stands_for, held);
             content = JSON.stringify({ ...(JSON.parse(content) as Record<string, unknown>), waits_for_go: true, note: WAITS_NOTE });
