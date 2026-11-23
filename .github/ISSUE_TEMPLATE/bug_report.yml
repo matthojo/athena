@@ -1,0 +1,60 @@
+name: Bug report
+description: Something in Athena doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. Your copy holds your own data, so before you post, take out real names, email addresses, phone numbers, places and screenshots of your content. Sample mode is a safe way to show a problem.
+
+        A security problem goes to [a private report](https://github.com/matthojo/athena/security/advisories/new), not here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to see it
+      description: The shortest way to make it happen again, ideally in sample mode.
+      placeholder: |
+        1. Open Ask
+        2. Type "…"
+        3. …
+  - type: textarea
+    id: about
+    attributes:
+      label: Details from Settings → About
+      description: Paste what Settings → About lists for a bug report (version, browser and so on).
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where you saw it
+      multiple: true
+      options:
+        - The app on a phone
+        - The app on a computer
+        - The browser extension
+        - An MCP client
+        - A collection or flow
+        - Deploying or updating
+        - Running it locally
+  - type: textarea
+    id: logs
+    attributes:
+      label: Errors or logs
+      description: From the browser console or Netlify's function logs, with anything personal taken out.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you post
+      options:
+        - label: I've taken my own personal data out of this report.
+          required: true

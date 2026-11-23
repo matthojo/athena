@@ -12,6 +12,7 @@
     "preview": "vite preview --config app/vite.config.ts",
     "export:obsidian": "tsx scripts/export-obsidian.ts",
     "test": "tsx --test 'lib/**/*.test.ts' 'app/src/**/*.test.ts' 'netlify/**/*.test.ts' 'scripts/**/*.test.ts'",
+    "check:licences": "tsx scripts/check-licences.ts",
     "typecheck": "tsc --noEmit -p . && tsc --noEmit -p app",
     "test:db": "ATHENA_DATA_KEY=2222222222222222222222222222222222222222222222222222222222222222 tsx --test --test-concurrency=1 'lib/*.db.test.ts' 'netlify/**/*.db.test.ts'"
   },
