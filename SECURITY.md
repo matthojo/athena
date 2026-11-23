@@ -2311,10 +2311,9 @@ A web-enabled assistant's turn gets Anthropic's server web fetch tool
 (`webFetchTool` in `lib/answer.ts`). It may open any link in the turn's own
 message, a page `web_search` returned, or a link `find_saved` gave. The
 fetch runs on Anthropic's side inside the model call, so Athena's leak check
-on a page's link (`ev.leaks`) only sees the request after it has gone. A
-link in a turn's message is therefore something the turn may send a request
-to, and the rule is: **a link goes into a run's message as one it may open
-only if the owner supplied or approved it.**
+on a page's link (`ev.leaks`) only sees the request after it has gone. So
+a link goes into a run's message as one it may open only if the owner
+supplied or approved it.
 
 - **A saved item's own link** is the owner's: it's what they saved. A run
   about the item gets it, and a tracker on the item opens it.
@@ -2329,18 +2328,20 @@ only if the owner supplied or approved it.**
   saved item still opens the item's link, and any other link isn't opened
   until the owner sets it again.
 - **`track` with a link a model chose waits for the owner's Go** (above),
-  for every assistant and for main Ask. The Go card's line is Athena's, not
-  the model's: what's tracked, the link's host and the whole link
-  (`stepLabel` in `lib/ask-plans.ts`). The link loses its fragment, which no
-  page needs; its query is kept, since a shop's link often needs it to name
-  the right product, and the owner sees it on the card. Go runs the step
+  for every assistant and for main Ask. Athena writes the Go card's line and
+  ignores the model's own step text: what's tracked, the link's host and the
+  whole link (`stepLabel` in `lib/ask-plans.ts`). The link loses its
+  fragment, which a browser never sends to the server. Its query is kept: a
+  shop's link often needs it to name the right product, and the owner sees
+  it on the card. Go runs the step
   under `asOwnersGo`, so the link is kept as the owner's; anywhere else a
   model's link is kept as the model's and never opened by a run.
 - **A model's words in a run's message can't open anything.** Every web
-  address in them is written with `[.]` and `[://]` (`unlinked`), so it's
-  readable but isn't a link the fetch tool would trust: a tracker's name and
-  its checks' shops or sites; a flow's values from earlier steps, in a think
-  step's message and task (`thinkPrompt`, `lib/flow-run.ts`); an
+  address in them is written with `[.]` and `[://]` (`unlinked`): a reader
+  still sees where it points, but the message holds no link to it. This
+  covers a tracker's name and its checks' shops or sites; a flow's values
+  from earlier steps, in a think step's message and task (`thinkPrompt`,
+  `lib/flow-run.ts`); an
   assignment's work, handoffs, suggested answers and send-back notes
   (`stageMessage`, `lib/assignment-run.ts`), where `hand_off` puts the
   work's links back as they were before the note is written; and the shop
@@ -2353,7 +2354,7 @@ only if the owner supplied or approved it.**
   it too when the owner asked to track something; a tracker an assistant
   started with its own link appears in a run's message with no link until
   the owner sets it; a model's addresses in tracker lines, flow values and
-  assignment stages can't be opened.
+  assignment stages are written so they can't be opened.
 
 ### Choosing models from other providers (`lib/models.ts`, migration `0076`)
 

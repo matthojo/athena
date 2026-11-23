@@ -353,7 +353,7 @@ test("a link a model chose for a tracker waits for the owner's Go, even on an as
   assert.ok(plan, "it waits as a plan");
   assert.equal(plan.why, "link");
   // The Go card shows the whole link and its host, in Athena's words, not the model's step line.
-  assert.equal(plan.steps[0].label, `Tracking price on shop.example.com, opening this link: ${KEPT}`);
+  assert.equal(plan.steps[0].label, `Tracking price on shop.example.com, checking ${KEPT}`);
   // The owner's Go: the tracker is made, its link theirs, and a run may open it.
   const went = await goPlan(plan.id, [0], { run: (tool, input) => runPlanTool(tool, input), log: async (changes) => changes });
   const made = went.changes.find((c) => c.kind === "tracker")!;

@@ -77,7 +77,7 @@ export function wholeReply(raw: unknown): AskReply {
 export function heldNote(why: "read" | "flagged" | "link" | undefined): string | null {
   if (why === "flagged") return "Something I read looked like an instruction, so I haven't changed anything. Tick what you want and tap Go.";
   if (why === "read") return "I read your accounts, files or the web before suggesting this, so I haven't done it. Tap Go if you want it.";
-  if (why === "link") return "I chose this link, so it waits for you: Athena only opens a link you've checked. Tap Go if it's right.";
+  if (why === "link") return "I chose this link, so it waits for you: Athena only opens links you've approved. Tap Go if it's right.";
   return null;
 }
 

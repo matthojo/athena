@@ -111,7 +111,7 @@ export function stepLabel(name: string, input: unknown): string {
     const link = modelLink((input as { url?: unknown }).url);
     const start = clip(assistantStepStart(name, input) ?? "Starting to track it");
     if (!link) return start;
-    return `${start} on ${new URL(link).hostname}, opening this link: ${link}`;
+    return `${start} on ${new URL(link).hostname}, checking ${link}`;
   }
   const own = input && typeof input === "object" ? (input as { step?: unknown }).step : undefined;
   if (typeof own === "string" && own.trim()) return clip(own);

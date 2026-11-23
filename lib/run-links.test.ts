@@ -51,7 +51,7 @@ test("track with a link a model chose always waits for Go; one on a saved item's
 test("the Go card shows the whole link and its host in Athena's words, never the model's line", () => {
   const long = `https://shop.example.com/${"kettles/".repeat(20)}blue?colour=blue&size=1.7l#top`;
   const label = stepLabel("track", { name: "Blue kettle", url: long, preset: "price", step: "Just a small thing" });
-  assert.equal(label, `Tracking the price on shop.example.com, opening this link: ${long.replace("#top", "")}`);
+  assert.equal(label, `Tracking the price on shop.example.com, checking ${long.replace("#top", "")}`);
   assert.doesNotMatch(label, /small thing/);
   // Without a link it's the usual line, the model's own if it gave one.
   assert.equal(stepLabel("track", { saved_id: "x", preset: "price", step: "Track the mug's price" }), "Track the mug's price");
