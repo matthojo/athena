@@ -14,11 +14,13 @@
  * "minimal"; 2.3% word error rate on a 101s test passage.
  *
  * Credentials are the gateway's own injected variables (GEMINI_API_KEY and
- * GOOGLE_GEMINI_BASE_URL), never a key of ours. Audio and transcripts pass
+ * GOOGLE_GEMINI_BASE_URL), or the owner's own GEMINI_API_KEY with Google's
+ * address when they set one (lib/llm/shared.ts). Audio and transcripts pass
  * straight through: nothing here stores or logs either.
  */
 
 import type { TokenUsage } from "./model-prices";
+import { credentials } from "./llm/shared";
 import { checkBudget, recordUsage } from "./spend";
 
 /** A listed gateway model (api.netlify.com/api/v1/ai-gateway/providers). */
@@ -77,11 +79,6 @@ const PROMPT = [
 /** The marker, or a lone timestamp ("00:00", "[0:00.0]"), means there was no speech. */
 const isNoSpeech = (text: string) => text.includes(NO_SPEECH) || /^[[(]?\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?[\])]?$/.test(text);
 
-function env(name: string): string | undefined {
-  // Netlify.env in functions; process.env elsewhere (scripts, tests).
-  const g = globalThis as { Netlify?: { env: { get(k: string): string | undefined } } };
-  return g.Netlify?.env.get(name) ?? process.env[name];
-}
 
 interface GeminiResponse {
   candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
@@ -96,9 +93,10 @@ export function voiceUsage(u: GeminiResponse["usageMetadata"]): TokenUsage {
 
 /** Transcribe one recording. Resolves to "" when there was no speech. */
 export async function transcribe(audio: ArrayBuffer, mimeType: string): Promise<string> {
-  const key = env("GEMINI_API_KEY");
-  const base = env("GOOGLE_GEMINI_BASE_URL");
-  if (!key || !base) throw new VoiceError("Voice isn't available on this deploy (AI Gateway isn't active)", 503);
+  // The gateway's injected key and address, or your own GEMINI_API_KEY with Google's address (lib/llm/shared.ts).
+  const c = credentials("gemini");
+  if (!c) throw new VoiceError("Voice isn't available on this deploy (no AI Gateway, and no GEMINI_API_KEY)", 503);
+  const { key, base } = c;
   // AI spend (lib/spend.ts): nothing is sent once today's budget is used.
   await checkBudget();
 

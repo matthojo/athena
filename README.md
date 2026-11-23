@@ -127,6 +127,8 @@ compliance standard.
 You'll need a Netlify account on a credit-based plan (Netlify Database and
 AI Gateway need one), and about ten minutes. Claude runs through Netlify AI
 Gateway, so there's no Anthropic key to set up; it uses your Netlify credits.
+If you'd rather pay the AI companies yourself, see
+[Use your own keys](#use-your-own-keys).
 
 ### 1. Deploy
 
@@ -189,7 +191,48 @@ Each of these is optional:
   walks through it.
 - **Notifications:** Settings → Notifications. On iPhone, add Athena to your
   Home Screen first.
-- **Claude:** see below.
+- **Your own AI and notification keys:** see
+  [Use your own keys](#use-your-own-keys).
+- **Claude:** see [Use it from Claude](#use-it-from-claude).
+
+## Use your own keys
+
+Athena works without any of these. Each one hands a part that Netlify or
+Athena would otherwise look after to a key you hold yourself.
+
+**AI providers.** Claude, and any other model you choose, runs through
+Netlify AI Gateway by default and is billed in Netlify credits. Set your
+own provider key as a secret, and Netlify stops handing out its key for that
+provider. Athena then calls the provider directly, and the provider bills
+you. It works one provider at a time:
+
+| Provider | Variable | Used for |
+|---|---|---|
+| Anthropic | `ANTHROPIC_API_KEY` | Ask, collections, the briefing, flows and assistants |
+| Google | `GEMINI_API_KEY` | Dictation and spoken questions, Gemini models, pictures |
+| OpenAI | `OPENAI_API_KEY` | OpenAI models, GPT Image pictures |
+| Meta | `META_API_KEY` | Llama models |
+| OpenRouter | `OPENROUTER_API_KEY` | OpenRouter models |
+| TypeSafe | `TYPESAFE_API_KEY` | Jev: quick, cheap checks in collections and Ask |
+
+```sh
+netlify env:set ANTHROPIC_API_KEY "<your Anthropic key>" --secret --scope functions
+```
+
+Then redeploy production. To leave the gateway entirely, set a key for
+every provider you use and turn AI features off under **Team settings → AI
+enablement** on Netlify. That switch covers every project on your team.
+
+**Notification keys (VAPID).** Athena makes its own key pair for push
+notifications and keeps the private half sealed under `ATHENA_DATA_KEY`. To
+hold the pair yourself, set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (as a
+secret) and, optionally, `VAPID_SUBJECT` (`mailto:you@example.com`). Make a
+pair with `npx web-push generate-vapid-keys`. After you redeploy, open
+Settings → Notifications on each device to move it to the new key.
+
+The [guide](GUIDE.md#your-own-keys-ai-providers-and-notifications) has each
+variable's optional address, what stops working without the gateway, and a
+command that sets the VAPID keys without printing them.
 
 ## Updating
 
