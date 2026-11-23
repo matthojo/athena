@@ -329,12 +329,17 @@ somewhere safe.
   extension
 - [CONTRIBUTING.md](CONTRIBUTING.md): setup, checks, and the rules for
   changes and releases
+- [SUPPORT.md](SUPPORT.md): where to ask for help
+- [GOVERNANCE.md](GOVERNANCE.md): how decisions are made, and the plans for
+  hosting
 - [CHANGELOG.md](CHANGELOG.md): what changed in each release
 
 ## Contributing
 
-Issues and pull requests are welcome. Please report security problems
-privately, as [SECURITY.md](SECURITY.md) describes, not in a public issue.
+Issues, ideas and pull requests are welcome. Ask questions in
+[Discussions](https://github.com/matthojo/athena/discussions), and report
+security problems privately, as [SECURITY.md](SECURITY.md) describes, not in
+a public issue.
 
 [CONTRIBUTING.md](CONTRIBUTING.md) covers setup, the checks to run and the
 rules every change follows. In short:
@@ -343,9 +348,19 @@ rules every change follows. In short:
 npm run typecheck && npm test && npm run build
 ```
 
+By contributing, you accept the
+[contribution terms](CONTRIBUTING.md#contribution-terms): you keep your
+copyright and grant the maintainer a broad licence, so Athena can also be
+offered as a hosted service. Everyone taking part follows the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
 Athena is free software under the [GNU Affero General Public License
 v3.0](LICENSE) or later. You can use, change and share it. If you run a
 changed version as a service for other people, you have to offer them its
-source code under the same license.
+source code under the same license. Every release stays available under it.
+
+The Athena name and logo aren't covered by the license:
+[TRADEMARKS.md](TRADEMARKS.md) says how to use them, and what a fork should
+do.

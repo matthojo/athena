@@ -42,6 +42,14 @@ Every piece of work reaches `main` as one feature branch and one pull request.
   the checks run and any open questions. Fixes after review are pushed to
   the same branch, not opened as new pull requests.
 
+## Only permissive code from elsewhere
+
+Contributors grant the maintainer a broad licence (`CONTRIBUTING.md`,
+"Contribution terms") so Athena can be relicensed or hosted. Don't
+add a dependency, or copy in code, under the GPL, AGPL, SSPL or a "source
+available" licence; `npm run check:licences` checks dependencies. Name the
+source and licence of anything copied in the pull request.
+
 ## Migrations are append-only
 
 Every copy of Athena applies `netlify/database/migrations/` in order. Never

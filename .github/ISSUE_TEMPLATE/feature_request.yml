@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest something Athena should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas that aren't fully formed are welcome in [Discussions](https://github.com/matthojo/athena/discussions). If you'd like to build this yourself, say so: agreeing the idea here first saves you work on a pull request that might not fit (GOVERNANCE.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The job, not the solution. "I want to see who I haven't spoken to in a month" rather than "add a filter".
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like Athena to do
+  - type: textarea
+    id: now
+    attributes:
+      label: How you manage today
+      description: Workarounds, or other tools that do it well.
+  - type: dropdown
+    id: build
+    attributes:
+      label: Would you like to build it?
+      options:
+        - "No"
+        - Yes, with some guidance
+        - Yes
