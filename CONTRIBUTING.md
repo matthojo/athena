@@ -105,26 +105,25 @@ By submitting a contribution to Athena (code, documentation, designs or
 anything else, by pull request or any other way), you agree to the
 following:
 
-1. **You keep your copyright**, and grant the maintainer a perpetual,
+1. You keep your copyright, and grant the maintainer a perpetual,
    worldwide, non-exclusive, royalty-free, irrevocable, sublicensable and
    transferable licence, under your copyright and any patents you hold that
    cover it, to use, copy, change, distribute, publicly display and perform
    your contribution, and to license it to others on any terms: open-source
    licences like the AGPL, or proprietary and commercial ones, including as
    part of a hosted service.
-2. **You're entitled to grant this.** The contribution is your own work, or
+2. You're entitled to grant this. The contribution is your own work, or
    you say in the pull request where any part came from and under what
    licence. If your employer has rights in what you create, they've allowed
    you to contribute it on these terms.
-3. **If you used an AI tool**, its terms let you contribute what it
+3. If you used an AI tool, its terms let you contribute what it
    produced, and you've reviewed and tested that output as your own work.
-4. **You give it "as is"**, without warranties, and don't have to support
+4. You give it "as is", without warranties, and don't have to support
    it.
 
-These terms are an agreement in addition to the AGPL, as GitHub's Terms of
-Service allow. Everyone else receives your contribution under the AGPL, as
-part of Athena. If you can't agree to them, say so in your pull request
-before it's merged.
+These terms are in addition to the AGPL. Everyone else receives your
+contribution under the AGPL, as part of Athena. If you can't agree to them,
+say so in your pull request before it's merged.
 
 ## Releasing (maintainers)
 

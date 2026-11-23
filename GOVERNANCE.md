@@ -1,9 +1,8 @@
 # Governance
 
 Athena is run by one maintainer, the owner of `github.com/matthojo/athena`,
-who decides what goes in, what each release contains, and where the project
-goes. That may change as the community grows. If it does, this file will say
-how.
+who decides what goes in and what each release contains. That may change
+as the community grows. If it does, this file will say how.
 
 ## How decisions are made
 
@@ -16,7 +15,7 @@ how.
 - **What fits:** Athena is a second brain for one person, on a Netlify
   site they own, with their content encrypted at rest and never seen by
   the project. A change that weakens that, such as sending data somewhere
-  new, won't be merged however it's offered.
+  new, won't be merged.
 
 When the answer is no, the maintainer says why.
 
