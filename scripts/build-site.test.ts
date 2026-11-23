@@ -75,7 +75,7 @@ test("README still has every piece the home page and Getting started are built f
   assert.ok(boldLeadItems(s.get("Your data stays on your site")!).length >= 3);
 
   const blurbs = docBlurbs(s.get("Documentation")!);
-  for (const d of DOCS.filter((d) => d.file && d.file !== "README.md" && d.file !== "LICENSE")) {
+  for (const d of DOCS.filter((d) => d.file && !d.lede && d.file !== "LICENSE")) {
     assert.ok(blurbs.has(d.file!), `Documentation lists ${d.file}`);
   }
   assert.match(blurbs.get("GUIDE.md")!, /in detail$/, "a blurb spans its wrapped lines");

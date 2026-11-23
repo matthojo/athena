@@ -61,7 +61,24 @@ export const DOCS: DocPage[] = [
   { slug: "extension", title: "Browser extension", group: "Reference", icon: "bookmark", file: "extension/README.md" },
   { slug: "contributing", title: "Contributing", group: "Project", icon: "pen", file: "CONTRIBUTING.md" },
   { slug: "changelog", title: "Changelog", group: "Project", icon: "clock", file: "CHANGELOG.md" },
-  { slug: "community", title: "Community", group: "Project", icon: "people", lede: "Where to ask questions, report problems and suggest changes." },
+  { slug: "support", title: "Getting help", group: "Project", icon: "chat", file: "SUPPORT.md" },
+  { slug: "governance", title: "Governance", group: "Project", icon: "people", file: "GOVERNANCE.md" },
+  {
+    slug: "code-of-conduct",
+    title: "Code of conduct",
+    group: "Project",
+    icon: "heart",
+    file: "CODE_OF_CONDUCT.md",
+    lede: "The Contributor Covenant, which everyone taking part in Athena follows.",
+  },
+  {
+    slug: "trademarks",
+    title: "Name and logo",
+    group: "Project",
+    icon: "tag",
+    file: "TRADEMARKS.md",
+    lede: "How to use the Athena name and logo, and what a fork should do.",
+  },
   { slug: "license", title: "License", group: "Project", icon: "key", file: "LICENSE" },
 ];
 
@@ -103,6 +120,9 @@ const ICON_PATHS = {
   home: `<path d="M4 10.6 12 4l8 6.6V19a1.5 1.5 0 0 1-1.5 1.5H15v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5H5.5A1.5 1.5 0 0 1 4 19z"/>`,
   github: `<path d="M9 19.5c-4 1.2-4-2-5.5-2.5M14.5 21v-3.2c0-1 .1-1.4-.5-2 2.6-.3 5.3-1.3 5.3-5.8a4.5 4.5 0 0 0-1.2-3.1 4.2 4.2 0 0 0-.1-3.1s-1-.3-3.2 1.2a11 11 0 0 0-5.8 0C6.8 3.5 5.8 3.8 5.8 3.8a4.2 4.2 0 0 0-.1 3.1A4.5 4.5 0 0 0 4.5 10c0 4.5 2.7 5.5 5.3 5.8-.6.6-.6 1.2-.5 2V21"/>`,
   info: `<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.1"/>`,
+  chat: `<path d="M5 18.5V7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v6a2.5 2.5 0 0 1-2.5 2.5H8.2z"/><path d="M9 10h6M9 12.8h3.5"/>`,
+  heart: `<path d="M12 19.5s-7-4.2-7-9.3A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.2c0 5.1-7 9.3-7 9.3z"/>`,
+  tag: `<path d="M3.8 12.2V5.5a1.7 1.7 0 0 1 1.7-1.7h6.7l8 8a1.7 1.7 0 0 1 0 2.4l-6.3 6.3a1.7 1.7 0 0 1-2.4 0z"/><circle cx="8.3" cy="8.3" r="1.3"/>`,
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;
@@ -444,6 +464,7 @@ function footer(version: string): string {
     <nav aria-label="Project"><p class="side-label">Project</p><ul>
       <li><a href="${REPO_URL}" rel="noopener">Source on GitHub</a></li>
       <li><a href="${REPO_URL}/releases" rel="noopener">Releases</a></li>
+      <li><a href="${REPO_URL}/discussions" rel="noopener">Discussions</a></li>
       <li><a href="${REPO_URL}/issues" rel="noopener">Issues</a></li>
       <li><a href="${REPO_URL}/security/advisories/new" rel="noopener">Report a vulnerability</a></li>
       <li><a href="${DEPLOY_URL}" rel="noopener">Deploy to Netlify</a></li>
@@ -474,7 +495,7 @@ function sidebar(current: string, version: string): string {
   ${items}
   <div class="side-status">
     <p class="side-status__title"><span class="dot"></span>Open source</p>
-    <p class="side-status__body">AGPL-3.0. Issues and pull requests welcome.</p>
+    <p class="side-status__body">AGPL-3.0. Issues, ideas and pull requests welcome.</p>
     <a class="btn btn--ink btn--sm" href="${REPO_URL}" rel="noopener">${icon("github")}GitHub</a>
   </div>
 </nav>`;
@@ -618,7 +639,7 @@ function homePage(readme: string, version: string): string {
     )
     .join("");
 
-  const docCards = DOCS.filter((d) => d.slug !== "license")
+  const docCards = DOCS.filter((d) => !["license", "code-of-conduct", "trademarks"].includes(d.slug))
     .map((d) => {
       const text = (d.file ? blurbs.get(d.file) : undefined) || d.lede || "";
       return `<li><a class="doc-card" href="${d.slug}.html">
@@ -760,7 +781,8 @@ ${AURORA}
       </div>
       <div class="community__actions">
         <a class="row-link" href="contributing.html">${icon("pen")}<span><strong>Contribute</strong><span>Setup, checks, and the rules every change follows</span></span>${icon("chevronRight")}</a>
-        <a class="row-link" href="community.html">${icon("people")}<span><strong>Get help</strong><span>Questions, bugs and ideas</span></span>${icon("chevronRight")}</a>
+        <a class="row-link" href="support.html">${icon("chat")}<span><strong>Get help</strong><span>Questions in Discussions, bugs in issues</span></span>${icon("chevronRight")}</a>
+        <a class="row-link" href="code-of-conduct.html">${icon("heart")}<span><strong>Code of conduct</strong><span>What everyone taking part follows</span></span>${icon("chevronRight")}</a>
         <a class="row-link" href="security.html#reporting-a-vulnerability">${icon("shield")}<span><strong>Report a vulnerability</strong><span>Privately, not in a public issue</span></span>${icon("chevronRight")}</a>
         <a class="row-link" href="${REPO_URL}/releases" rel="noopener">${icon("clock")}<span><strong>Releases</strong><span>Your copy checks for a new one every Monday</span></span>${icon("chevronRight")}</a>
       </div>
@@ -775,48 +797,8 @@ ${searchDialog()}
 }
 
 // ---------------------------------------------------------------------------
-// Hand-written pages
+// The license page
 // ---------------------------------------------------------------------------
-
-function communityMarkdown(): string {
-  return `## Ask a question or report a bug
-
-Open an issue on [GitHub](${REPO_URL}/issues). Say what you did, what you
-expected and what happened instead. **Settings → About** in your Athena shows
-your version and lists the details to copy into a bug report.
-
-Leave out anything personal: the issue is public, and so is every screenshot
-in it. Sample mode's made-up data is the safest thing to show.
-
-## Report a vulnerability
-
-Don't open a public issue. Use GitHub's
-[Report a vulnerability](${REPO_URL}/security/advisories/new) button on the
-repository's Security tab, as [the security model](security.html#reporting-a-vulnerability)
-describes.
-
-## Suggest a change
-
-Issues and pull requests are both welcome. [Contributing](contributing.html)
-covers setup, the checks to run and the rules every change follows. In short:
-
-\`\`\`sh
-npm run typecheck && npm test && npm run build
-\`\`\`
-
-## Stay up to date
-
-New versions come out as [releases](${REPO_URL}/releases), and the
-[changelog](changelog.html) says what changed in each. Your own copy checks
-for a new release every Monday and opens a pull request for it
-([Updating](getting-started.html#updating)).
-
-## License
-
-Athena is free software under the [GNU Affero General Public License v3.0](license.html)
-or later. By contributing, you agree that your contribution is licensed the same way.
-`;
-}
 
 function licenseBody(readme: string): string {
   const summary = sections(readme).get("License") ?? "";
@@ -916,9 +898,7 @@ export function build() {
     rendered.set(doc.slug, r);
   }
   for (const doc of DOCS.filter((d) => !d.sections)) {
-    if (doc.slug === "community") {
-      rendered.set(doc.slug, renderMarkdown(communityMarkdown(), "COMMUNITY.md"));
-    } else if (doc.slug === "license") {
+    if (doc.slug === "license") {
       const headings = [
         { depth: 2, id: "license", text: "In short" },
         { depth: 2, id: "full-text", text: "Full text" },
