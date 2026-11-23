@@ -71,6 +71,7 @@ const SETTINGS_WRITERS: Record<string, string> = {
   "lib/proactive/store.ts": "plain",
   "lib/recipes.ts": "plain",
   "lib/skills-store.ts": "plain",
+  "lib/team.ts": "plain",
 };
 
 /** Every file that seals bytes: the SEALED_BYTES store it fills, or why its bytes aren't counted. */

@@ -29,6 +29,7 @@ import { describeSource } from "../lib/sources";
 import type { Commitment, EntityKind, Note, Renewal, Upcoming, UpcomingItem } from "../types";
 import type { ViewId } from "../components/nav";
 import { profileSetupCard } from "../components/profile-card";
+import { accountsNoticeCard } from "../components/accounts-notice";
 import { homePersonal, rememberedName } from "../components/home-personal";
 import { pageHead } from "../components/page-head";
 import { phaseAt } from "../components/day-words";
@@ -276,6 +277,8 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
 
   // Until the owner has told Athena about themselves (or said not now): the profile wizard.
   const setupCard = profileSetupCard();
+  // Once, after the update that limits imported skills: those that lost their accounts (accounts-notice.ts).
+  const acctNotice = accountsNoticeCard();
 
   // Friday to Sunday: a way into the weekly review.
   const dow = new Date(`${localToday()}T12:00:00Z`).getUTCDay();
@@ -550,7 +553,7 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     offLiveNudges = () => (offLive(), cards.destroy());
   }, () => nudges.remove());
 
-  const blocks = [topbar, headline, ask.el, fwAsk, fwYesterday, today, fwCard, briefing, setupCard.el, review, weekBanner, todo, latest, catchup, personal.el, recent];
+  const blocks = [topbar, headline, ask.el, fwAsk, fwYesterday, today, fwCard, briefing, setupCard.el, acctNotice.el, review, weekBanner, todo, latest, catchup, personal.el, recent];
   if (!introPlayed) {
     blocks.forEach((b, i) => {
       b.classList.add("reveal");
@@ -573,7 +576,7 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     nudges,
     today,
     prep,
-    h("div", { class: "home-banners" }, personal.banner, fwCard, briefing, setupCard.el, review, weekBanner),
+    h("div", { class: "home-banners" }, personal.banner, fwCard, briefing, setupCard.el, acctNotice.el, review, weekBanner),
     h("section", { class: "bento", "aria-label": "Today" }, todo, latest, catchup),
     h("div", { class: "home-lower" }, personal.el, recent)
   );
@@ -859,6 +862,7 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
       clearInterval(dayClock);
       document.removeEventListener("visibilitychange", onBack);
       setupCard.destroy();
+      acctNotice.destroy();
       ask.destroy();
       personal.destroy();
       gone = true;

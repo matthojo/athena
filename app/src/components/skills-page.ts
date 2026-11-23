@@ -23,6 +23,9 @@ import { descriptionProblem, nameProblem, SKILL_LIMITS, slugName, skillTitle, ty
 import { isSampleMode } from "../db/api";
 import { listTeam, type TeamAssistant } from "../db/team";
 import { renderAvatarTile } from "../team/avatar";
+import { accountTicks } from "./account-ticks";
+import { itemAccounts } from "../db/item-accounts";
+import { skillImported } from "../../../lib/shared-limits";
 
 type Nav = { open: (id: string | null) => void };
 
@@ -319,7 +322,21 @@ export function skillEditorSection(id: string, nav: Nav & { back: () => void }):
     name.addEventListener("blur", () => {
       if (name.value && nameProblem(name.value)) name.value = slugName(name.value);
     });
-    const on = h("input", { type: "checkbox", role: "switch", class: "switch", id: "skill-on", checked: was?.enabled ?? !!d?.enabled, "aria-label": "On" }) as HTMLInputElement;
+    // Someone else's (from a file or a link): it starts off, and while Ask uses it only the accounts ticked here open.
+    const shared = !owned && (was ? !!was.imported : d?.from === "import" && skillImported(d.source as SkillSource | undefined));
+    const fresh = shared && !was;
+    const on = h("input", { type: "checkbox", role: "switch", class: "switch", id: "skill-on", checked: fresh ? false : (was?.enabled ?? !!d?.enabled), disabled: fresh, "aria-label": "On", "aria-describedby": "skill-on-hint" }) as HTMLInputElement;
+    let ticked: () => string[] = () => was?.accounts ?? [];
+    const accountsBox = h("div", { class: "skills-form__accounts" }, h("p", { class: "form__hint" }, "Loading your accounts…"));
+    if (shared)
+      void itemAccounts().then(
+        (list) => {
+          const t = accountTicks({ accounts: list, ticked: was?.accounts ?? [], idPrefix: "skill-acct", label: "Accounts it can open" });
+          ticked = t.value;
+          accountsBox.replaceChildren(t.el);
+        },
+        () => accountsBox.replaceChildren(h("p", { class: "form__hint" }, "Your accounts didn't load. Check you're online and try again."))
+      );
     let files = [...(start?.files ?? [])];
     const skipped = start?.skipped ?? [];
     const fileList = h("div", { class: "skill-files" });
@@ -372,9 +389,18 @@ export function skillEditorSection(id: string, nav: Nav & { back: () => void }):
       descHint,
       h("label", { class: "skills-form__label" }, h("span", {}, "Instructions"), body),
       h("div", { class: "skills-form__label" }, h("div", { class: "skills-form__row" }, h("span", {}, "Files"), addFileBtn), fileList, addFile),
+      shared
+        ? h(
+            "section",
+            { class: "skills-form__accounts-sec", "aria-labelledby": "skill-acct-title", "aria-describedby": "skill-acct-hint" },
+            h("h3", { class: "skills-form__caption", id: "skill-acct-title" }, "Accounts it can open"),
+            h("p", { class: "form__hint", id: "skill-acct-hint" }, "Someone else wrote this skill. While Ask uses it, Ask opens only the accounts you tick here."),
+            accountsBox
+          )
+        : null,
       owned
         ? h("p", { class: "skill-owned" }, assistantTag(who), h("span", {}, `Only ${ownerName} uses this skill, on every chat and run. Ask never uses it.`))
-        : h("label", { class: "skill-switch", for: "skill-on" }, h("span", {}, h("span", { class: "skill-switch__title" }, "On"), h("span", { class: "row__meta" }, "Ask uses it when a request matches what it's for.")), on),
+        : h("label", { class: "skill-switch", for: "skill-on" }, h("span", {}, h("span", { class: "skill-switch__title" }, "On"), h("span", { class: "row__meta", id: "skill-on-hint" }, fresh ? "Starts off. Switch it on here once you've saved it." : "Ask uses it when a request matches what it's for.")), on),
       problem,
       h("div", { class: "skills-form__actions" }, save)
     ) as HTMLFormElement;
@@ -387,7 +413,7 @@ export function skillEditorSection(id: string, nav: Nav & { back: () => void }):
       if (why) return;
       save.disabled = true;
       try {
-        const s = await saveSkill({ name: name.value.trim(), description: desc.value, body: body.value, extra: was?.extra ?? d?.extra ?? "", files, skipped, source, ...(owned ? {} : { enabled: on.checked }) }, was?.id);
+        const s = await saveSkill({ name: name.value.trim(), description: desc.value, body: body.value, extra: was?.extra ?? d?.extra ?? "", files, skipped, source, ...(owned ? {} : { enabled: on.checked }), ...(shared ? { accounts: ticked() } : {}) }, was?.id);
         showToast(was ? "Saved" : s.enabled ? `${s.title} is saved and on` : `${s.title} is saved. It's off until you switch it on.`, { icon: "check" });
         if (!was) nav.open(s.id);
         else paint(s, null, who);

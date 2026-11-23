@@ -8,6 +8,8 @@
  *   DELETE /api/skills/<id>                → { ok }
  *   POST   /api/skills/preview             { zip } | { entries: [{ path, data }] } | { skill_md, file? } | { url } → what would be saved; nothing is
  *   GET    /api/skills/<id>/download?format=md|zip → SKILL.md, or a zip of it and its files
+ *   GET    /api/skills/notice              → { skills: [{ id, name, title }] }: imported skills that lost their accounts (0085), once
+ *   DELETE /api/skills/notice              → { ok }: the notice is read and doesn't come back
  *
  * A zip and a folder's files come base64, at most 2 MB of them. A link is
  * fetched once, here, through the guard in lib/skill-fetch.ts. Behind the
@@ -16,7 +18,7 @@
  */
 import { AthenaInputError } from "../../lib/db";
 import { textUpTo } from "./body-limit";
-import { createSkill, deleteSkill, getSkill, listSkills, updateSkill, type Skill } from "../../lib/skills-store";
+import { accountsNotice, createSkill, deleteSkill, dismissAccountsNotice, getSkill, listSkills, updateSkill, type Skill } from "../../lib/skills-store";
 import { intakeEntries, serialiseSkillMd, SKILL_LIMITS, SkillFormatError, skillTitle, type IntakeEntry, type SkillPreview } from "../../lib/skills";
 import { readSkillZip, writeSkillZip } from "../../lib/skill-zip";
 import { fetchSkillFromLink } from "../../lib/skill-fetch";
@@ -61,6 +63,11 @@ export async function handleSkillRoutes(req: Request, segments: string[], body: 
     if (!second) {
       if (method === "GET") return json({ skills: (await listSkills()).map(skillView), max: SKILL_LIMITS.skills });
       if (method === "POST") return json(skillView(await createSkill((await body()) ?? {})), 201);
+      return nope();
+    }
+    if (second === "notice" && segments.length === 3) {
+      if (method === "GET") return json({ skills: (await accountsNotice()).map((s) => ({ ...s, title: skillTitle(s.name) })) });
+      if (method === "DELETE") return (await dismissAccountsNotice(), json({ ok: true }));
       return nope();
     }
     if (second === "preview" && segments.length === 3) {

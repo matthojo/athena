@@ -177,6 +177,13 @@ export interface TeamAssistant {
   web?: boolean;
   /** Its own thinking and picture models (docs/ai-models.md). Missing or empty: the same as Ask. Missing on older servers. */
   models?: AssistantModels;
+  /**
+   * Someone else shared it and the owner imported it (migration 0085). Its runs and chats open only the connected
+   * accounts in `accounts` (lib/shared-limits.ts). Missing on older servers.
+   */
+  imported?: boolean;
+  /** An imported one's connected accounts (connector ids), ticked by the owner. Empty: it opens none. Missing on older servers. */
+  accounts?: string[];
   paused: boolean;
   /** The routine it was made from, if any. */
   routine_id: string | null;
@@ -204,6 +211,8 @@ export interface TeamAssistantInput {
   web?: boolean;
   /** Its own models (TeamAssistant.models), the whole set. PATCH without it keeps them. think missing or null: the same as Ask; image missing: the same as Ask, null: no pictures. */
   models?: AssistantModels;
+  /** An imported one's connected accounts (TeamAssistant.accounts), the whole set. */
+  accounts?: string[];
   paused?: boolean;
   triggers?: TeamTriggerInput[];
 }

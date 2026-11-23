@@ -37,6 +37,8 @@ import {
 import { MAX_ASSISTANTS } from "../../../lib/team-types";
 import { avatarFromSeed } from "../../../lib/team-seed";
 import type { TeamAnswer } from "../../../lib/team-skill";
+import { orderAccounts, splitWouldLike } from "../../../lib/shared-limits";
+import { SAMPLE_ACCOUNTS } from "./item-accounts";
 
 export type { ShareEdits, ShareExport, ImportPreview };
 
@@ -141,8 +143,17 @@ async function samplePreview(bundle: SharedBundle): Promise<ImportPreview> {
   const team = await listTeam();
   const texts = [bundle.shared.instructions, bundle.shared.summary, bundle.skill?.body ?? "", ...(bundle.skill?.files.map((f) => f.text) ?? [])];
   // Sample mode has Linear and Gmail connected, as its sample accounts are.
-  const have = new Set(["linear", "gmail", "google-calendar"]);
-  return { ...bundle, needs: bundle.shared.needs.map((id) => ({ id, connected: have.has(id) })), links: linkedHosts(texts), room: team.length < MAX_ASSISTANTS };
+  const have = new Set(SAMPLE_ACCOUNTS.map((a) => a.provider));
+  const { offered, asksFirst } = splitWouldLike(bundle.shared.would_like);
+  return {
+    ...bundle,
+    shared: { ...bundle.shared, would_like: offered },
+    asks_first: asksFirst,
+    needs: bundle.shared.needs.map((id) => ({ id, connected: have.has(id) })),
+    accounts: orderAccounts(SAMPLE_ACCOUNTS, bundle.shared.needs),
+    links: linkedHosts(texts),
+    room: team.length < MAX_ASSISTANTS,
+  };
 }
 
 /** Sample mode's stand-in for a GitHub link: Dot, as someone else shared it. */
@@ -156,7 +167,7 @@ const SAMPLE_LINKED = {
   instructions: "When a Linear issue is assigned to me, add a to-do with its title and link. Leave the due date empty unless the issue has one.",
   triggers: [{ kind: "event", event: { source: "collected", connector: "linear", kind: "issue" } }],
   asks: [{ question: "Which context should work to-dos go in?", choices: ["Work", "No context"] }],
-  would_like: ["add_todo"],
+  would_like: ["add_todo", "complete_todo", "archive_or_restore"],
   web: false,
   personality: { tone: "crisp", traits: ["tidy", "quick"], pronoun: "they", greeting: "Ready when you are." },
 };
@@ -200,7 +211,7 @@ export async function previewImportLink(url: string): Promise<ImportPreview> {
 }
 
 /** Add it: paused, with only the ticked tools it asked for. Returns the new assistant. */
-export async function addImported(p: ImportPreview, choices: { answers: TeamAnswer[]; allow: string[]; web: boolean }): Promise<TeamAssistant> {
+export async function addImported(p: ImportPreview, choices: { answers: TeamAnswer[]; allow: string[]; web: boolean; accounts: string[] }): Promise<TeamAssistant> {
   if (isSampleMode()) {
     const w = p.shared;
     const made = await createAssistant(
@@ -215,13 +226,14 @@ export async function addImported(p: ImportPreview, choices: { answers: TeamAnsw
         paused: true,
         triggers: triggerInputs(w),
         answers: choices.answers,
+        accounts: choices.accounts,
       },
-      { sampleSkill: !p.skill },
+      { sampleSkill: !p.skill, imported: true },
     );
     if (p.skill) sampleKeepImportedSkill(made, withAnswers(p.skill.body, choices.answers), choices.answers, w.summary);
     return made;
   }
-  const input: ImportInput = { shared: p.shared, skill: p.skill, source: p.source, answers: choices.answers, allow: choices.allow, web: choices.web };
+  const input: ImportInput = { shared: p.shared, skill: p.skill, source: p.source, answers: choices.answers, allow: choices.allow, web: choices.web, accounts: choices.accounts };
   const { assistant } = await request<{ assistant: TeamAssistant }>("/team/import", { method: "POST", body: JSON.stringify(input) });
   teamChanged();
   return assistant;

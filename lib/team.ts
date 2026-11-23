@@ -24,6 +24,7 @@ import { sealText } from "./data-box";
 import { parseDays, parseTime } from "./routines";
 import { avatarFromSeed, nameFromSeed, newSeed, personalityFromSeed } from "./team-seed";
 import { checkAssistantModels, cleanAssistantModels, loadModelSettings } from "./models";
+import { cleanAccountIds, MAX_ITEM_ACCOUNTS, skillImported } from "./shared-limits";
 import {
   ACCENT_KEYS,
   ACCESSORY_IDS,
@@ -124,6 +125,8 @@ const inputSchema = z
     personality: personalitySchema.optional(),
     avatar: avatarSchema.optional(),
     allow: z.array(toolName).max(60).optional(),
+    // An imported assistant's connected accounts (lib/shared-limits.ts): ids, checked against the accounts there are.
+    accounts: z.array(z.string().regex(/^[0-9a-f-]{36}$/i, "an account id")).max(MAX_ITEM_ACCOUNTS).optional(),
     web: z.boolean().optional(),
     // Checked apart, with the owner's agreements (lib/models.ts checkAssistantModels).
     models: z.record(z.unknown()).optional(),
@@ -177,6 +180,10 @@ interface AssistantRow {
   web?: boolean | null;
   /** Its own models (0076). */
   models?: unknown;
+  /** 'shared' for an imported one (0085). */
+  origin?: string | null;
+  /** Connected accounts ticked for an imported one (0085). */
+  accounts?: string[] | null;
   paused: boolean;
   routine_id: string | null;
   memory: string | null;
@@ -199,7 +206,7 @@ interface TriggerRow {
   created_at: string | Date;
 }
 
-const A_COLUMNS = `id, payload, allow, web, models, paused, routine_id, memory, memory_updated_at, last_run_at, created_at, updated_at`;
+const A_COLUMNS = `id, payload, allow, web, models, origin, accounts, paused, routine_id, memory, memory_updated_at, last_run_at, created_at, updated_at`;
 const T_COLUMNS = `id, assistant_id, kind, days, at_time, event, paused, last_slot, last_fired_at, created_at`;
 
 interface Words {
@@ -265,6 +272,8 @@ function present(r: AssistantRow, triggers: TeamTrigger[], consent: Consent = {}
     allow: r.allow ?? [],
     web: r.web === true,
     models: cleanAssistantModels(r.models, consent),
+    imported: r.origin === "shared",
+    accounts: r.accounts ?? [],
     paused: r.paused,
     routine_id: r.routine_id,
     memory: cleanMemory(readJson<AssistantMemory>(r.memory)),
@@ -279,6 +288,7 @@ function present(r: AssistantRow, triggers: TeamTrigger[], consent: Consent = {}
 // ---------- assistants ----------
 
 export async function listAssistants(): Promise<TeamAssistant[]> {
+  await markImported();
   // A guest (assignment_id set; lib/assignments.ts) isn't on the team: not listed here, to main Ask's check_with_assistant, or counted toward the 12.
   const rows = await q<AssistantRow>(`SELECT ${A_COLUMNS} FROM team_assistants WHERE assignment_id IS NULL ORDER BY created_at, id`);
   const [rowsT, flowsT, { consent }] = await Promise.all([listTriggers(), jobTriggers(), loadModelSettings()]);
@@ -288,10 +298,41 @@ export async function listAssistants(): Promise<TeamAssistant[]> {
 
 export async function getAssistant(id: unknown): Promise<TeamAssistant | null> {
   if (typeof id !== "string" || !UUID.test(id)) return null;
+  await markImported();
   const [row] = await q<AssistantRow>(`SELECT ${A_COLUMNS} FROM team_assistants WHERE id = $1::uuid`, [id]);
   if (!row) return null;
   const [rowsT, flowsT, { consent }] = await Promise.all([listTriggers(id), jobTriggers(id), loadModelSettings()]);
   return present(row, [...rowsT, ...flowsT], consent);
+}
+
+/** Ticked account ids, keeping only accounts that are there (lib/shared-limits.ts). */
+async function knownAccounts(ids: string[]): Promise<string[]> {
+  const rows = await q<{ id: string }>(`SELECT id::text AS id FROM connectors`);
+  return cleanAccountIds(ids, new Set(rows.map((r) => r.id.toLowerCase())));
+}
+
+let marking: Promise<void> | null = null;
+/**
+ * Once: an assistant imported before migration 0085 whose own skill came from a file or a link (only an import
+ * writes one so) is marked imported. Its words are sealed, so this is code, not SQL. Never throws.
+ */
+function markImported(): Promise<void> {
+  marking ??= (async () => {
+    try {
+      const claimed = await qRaw<{ key: string }>(`INSERT INTO settings (key, value) VALUES ('team.origin_marked', 'true'::jsonb) ON CONFLICT (key) DO NOTHING RETURNING key`);
+      if (!claimed.length) return;
+      const { assistantSkill } = await import("./skills-store");
+      const rows = await q<{ id: string }>(`SELECT id FROM team_assistants WHERE origin IS NULL`);
+      for (const r of rows) {
+        const s = await assistantSkill(r.id).catch(() => null);
+        if (s && skillImported(s.source)) await qRaw(`UPDATE team_assistants SET origin = 'shared' WHERE id = $1::uuid AND origin IS NULL`, [r.id]);
+      }
+    } catch (error) {
+      marking = null;
+      console.warn("Athena team: couldn't mark imported assistants", error instanceof Error ? error.message.slice(0, 120) : error);
+    }
+  })();
+  return marking;
 }
 
 const FULL = `You have ${MAX_ASSISTANTS} assistants, which is the most a team can have. Remove one first.`;
@@ -335,6 +376,7 @@ async function insertJob(run: Run, assistantId: string, t: CleanTrigger, origin:
  */
 export async function createAssistant(raw: unknown, opts: { routineId?: string; now?: Date; origin?: "trigger" | "shared" } = {}): Promise<TeamAssistant> {
   const input = parse(inputSchema, raw ?? {});
+  const accounts = input.accounts ? await knownAccounts(input.accounts) : [];
   const w = words(input);
   const triggers = (input.triggers ?? []).map(cleanTrigger);
   const models = input.models ? await checkAssistantModels(input.models) : {};
@@ -344,11 +386,11 @@ export async function createAssistant(raw: unknown, opts: { routineId?: string; 
     const [{ n }] = await run<{ n: number }>(`SELECT count(*)::int AS n FROM team_assistants WHERE assignment_id IS NULL`);
     checkRoom(n);
     const [row] = await run<{ id: string }>(
-      `INSERT INTO team_assistants (payload, allow, paused, routine_id, created_at, updated_at, web, models)
-       SELECT $1, $2::text[], $3, $4::uuid, $5, $5, $7, $8::jsonb
+      `INSERT INTO team_assistants (payload, allow, paused, routine_id, created_at, updated_at, web, models, origin, accounts)
+       SELECT $1, $2::text[], $3, $4::uuid, $5, $5, $7, $8::jsonb, $9, $10::text[]
         WHERE (SELECT count(*) FROM team_assistants WHERE assignment_id IS NULL) < $6
        RETURNING id`,
-      [sealWords(w), [...new Set(input.allow ?? [])], input.paused === true, opts.routineId ?? null, now, MAX_ASSISTANTS, input.web === true, JSON.stringify(models)],
+      [sealWords(w), [...new Set(input.allow ?? [])], input.paused === true, opts.routineId ?? null, now, MAX_ASSISTANTS, input.web === true, JSON.stringify(models), opts.origin === "shared" ? "shared" : null, accounts],
     );
     if (!row) throw new AthenaInputError(FULL);
     for (const t of triggers) {
@@ -370,19 +412,21 @@ export async function updateAssistant(id: unknown, raw: unknown): Promise<TeamAs
   if (triggers?.length) await noGuest(was.id);
   // Sent: the whole set, checked. Left out: kept as it is.
   const models = input.models ? await checkAssistantModels(input.models) : (was.models ?? {});
+  const accounts = input.accounts ? await knownAccounts(input.accounts) : (was.accounts ?? []);
   const keep = new Set(was.triggers.map((t) => t.id));
   const jobs = new Map(was.triggers.filter((t) => t.flow_id).map((t) => [t.id, t]));
   const teamFlows = await import("./team-flows");
   const asFlows = !!triggers?.length && (await teamFlows.triggersMoved());
   const flowsNow = jobs.size ? new Map((await teamFlows.listJobFlows(was.id)).map((f) => [f.id, f])) : new Map();
   await tx(async (run) => {
-    await run(`UPDATE team_assistants SET payload = $2, allow = $3::text[], paused = $4, web = $5, models = $6::jsonb, updated_at = now() WHERE id = $1::uuid`, [
+    await run(`UPDATE team_assistants SET payload = $2, allow = $3::text[], paused = $4, web = $5, models = $6::jsonb, accounts = $7::text[], updated_at = now() WHERE id = $1::uuid`, [
       was.id,
       sealWords(w),
       input.allow ? [...new Set(input.allow)] : was.allow,
       input.paused ?? was.paused,
       input.web ?? was.web === true,
       JSON.stringify(models),
+      accounts,
     ]);
     // Turned back on: an imported assistant's flows, made paused with it and never run, come on with it.
     if (was.paused && input.paused === false && !triggers) await run(`UPDATE flows SET paused = false, updated_at = now() WHERE assistant_id = $1::uuid AND origin = 'shared' AND paused AND last_run_at IS NULL`, [was.id]);

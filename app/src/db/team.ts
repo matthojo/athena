@@ -74,6 +74,7 @@ function sampleApply(a: TeamAssistant, input: TeamAssistantInput): TeamAssistant
     ...(input.personality && { personality: input.personality }),
     ...(input.avatar && { avatar: input.avatar }),
     ...(input.allow && { allow: [...new Set(input.allow)] }),
+    ...(input.accounts && { accounts: [...new Set(input.accounts)] }),
     ...(input.paused !== undefined && { paused: input.paused }),
     // The contract's `web` (team/web-access.ts), until lib/team-types.ts has it.
     ...((input as { web?: boolean }).web !== undefined && { web: (input as { web?: boolean }).web === true }),
@@ -101,7 +102,7 @@ export async function getAssistant(id: string): Promise<TeamAssistant | null> {
 }
 
 /** Add an assistant. `answers` (setup's questions) go to the server, which writes its skill after it's added. */
-export async function createAssistant(input: TeamAssistantInput & { answers?: TeamAnswer[] }, opts: { sampleSkill?: boolean } = {}): Promise<TeamAssistant> {
+export async function createAssistant(input: TeamAssistantInput & { answers?: TeamAnswer[] }, opts: { sampleSkill?: boolean; imported?: boolean } = {}): Promise<TeamAssistant> {
   let made: TeamAssistant;
   if (isSampleMode()) {
     const list = sampleList();
@@ -125,6 +126,7 @@ export async function createAssistant(input: TeamAssistantInput & { answers?: Te
       created_at: now,
       updated_at: now,
       ...{ web: false },
+      ...(opts.imported ? { imported: true, accounts: [] } : {}),
     };
     const { answers, ...rest } = input;
     made = sampleApply(base, rest);

@@ -6,7 +6,10 @@
  *
  * Everything is shown before anything is kept: who it is, when it runs, the
  * accounts it needs and whether they're connected, the questions it asks,
- * what it would like to do without asking (each one unticked), looking
+ * what it would like to do without asking (each one unticked; only changes
+ * inside Athena that keep an Undo, and tracking, can be ticked, and anything
+ * else it asked for is listed as always asking first), the connected
+ * accounts it may open (each unticked, the ones it needs first), looking
  * things up online (unticked), the sites its words link to, and its whole
  * instructions and skill. It joins paused, so nothing runs until the owner
  * turns it on from its page.
@@ -23,7 +26,8 @@ import { MAX_ANSWER, type TeamAnswer } from "../../../lib/team-skill";
 import { MAX_ASSISTANTS } from "../../../lib/team-types";
 import { shareSeed } from "../../../lib/team-share";
 import { avatarFromSeed, renderAvatarTile } from "./avatar";
-import { allowOption } from "./setup-allow";
+import { SHARED_TOOLS, toolWords } from "../../../lib/shared-limits";
+import { accountTicks } from "../components/account-ticks";
 import { answersFor, questionsForm, type AnswerMap } from "./setup-questions";
 import { triggerSentence } from "./trigger-editor-words";
 import { creditWords, fromWords, needWords } from "./share-words";
@@ -125,12 +129,16 @@ export function openImportAssistant(opts: ImportOptions): void {
     const answers = (): TeamAnswer[] => [...answersFor(withChoices, picked), ...free.flatMap(({ q, input }) => (input.value.trim() ? [{ question: q.question, answer: input.value.trim() }] : []))];
 
     // What it would like to do alone: every one unticked.
-    const ticks = w.would_like.map((tool) => {
-      const o = allowOption(tool);
+    // Only what an import can grant is offered (lib/shared-limits.ts); the server checks again.
+    const ticks = w.would_like.filter((tool) => SHARED_TOOLS[tool]).map((tool) => {
+      const o = SHARED_TOOLS[tool];
       const box = h("input", { type: "checkbox", class: "wf-tick__box", value: tool }) as HTMLInputElement;
       return { box, el: h("label", { class: "wf-tick" }, box, h("span", {}, h("span", { class: "wf-tick__label" }, o.label), o.detail ? h("span", { class: "row__meta" }, o.detail) : null)) };
     });
     const web = w.web ? (h("input", { type: "checkbox", class: "wf-tick__box" }) as HTMLInputElement) : null;
+    // The connected accounts it may open: none until ticked, the ones it needs first.
+    const accounts = accountTicks({ accounts: p.accounts ?? [], ticked: [], needs: w.needs, idPrefix: "wf-acct", label: `Accounts ${name} can open` });
+    const asksFirst = p.asks_first ?? [];
 
     const add = h("button", { class: "btn btn--primary btn--block", type: "button", disabled: !p.room }, icons.plus(), `Import ${name}`) as HTMLButtonElement;
     const cancel = h("button", { class: "btn btn--soft btn--block", type: "button" }, "Cancel");
@@ -138,7 +146,7 @@ export function openImportAssistant(opts: ImportOptions): void {
     add.addEventListener("click", async () => {
       add.disabled = true;
       try {
-        const made = await addImported(p, { answers: answers(), allow: ticks.filter((t) => t.box.checked).map((t) => t.box.value), web: !!web?.checked });
+        const made = await addImported(p, { answers: answers(), allow: ticks.filter((t) => t.box.checked).map((t) => t.box.value), web: !!web?.checked, accounts: accounts.value() });
         sheet.close();
         opts.onAdded(made);
       } catch (error) {
@@ -164,12 +172,24 @@ export function openImportAssistant(opts: ImportOptions): void {
             h("p", { class: "form__hint" }, "Your answers go into its skill. You can skip any of them.")
           )
         : null,
+      section(
+        "Accounts it can open",
+        h("p", { class: "form__hint" }, `${name} opens only the accounts you tick, in its runs and in chat. You can change this on its page.`),
+        accounts.el
+      ),
       ticks.length || web
         ? section(
             "Can it go ahead without asking?",
             h("p", { class: "form__hint" }, `${name} would like to do these on its own. Anything you leave unticked waits for your Go.`),
             ...ticks.map((t) => t.el),
             web ? h("label", { class: "wf-tick" }, web, h("span", {}, h("span", { class: "wf-tick__label" }, "Look things up online"), h("span", { class: "row__meta" }, "Searches the web and reads pages it finds, while “Let Ask search the web” is on"))) : null
+          )
+        : null,
+      asksFirst.length
+        ? section(
+            "Always asks first",
+            h("p", { class: "form__hint" }, `${name} also asked to do these alone. An assistant someone shared can't, so each waits for your Go.`),
+            h("ul", { class: "wf-list" }, ...asksFirst.map((t) => h("li", {}, icons.shield(), h("span", {}, toolWords(t)))))
           )
         : null,
       p.links.length ? h("p", { class: "skills-error" }, icons.globe(), h("span", {}, `Its instructions link to ${p.links.join(", ")}. Athena didn't check ${p.links.length === 1 ? "that site" : "those sites"}.`)) : null,

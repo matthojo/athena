@@ -1724,7 +1724,9 @@ contracts between slices, is `docs/team.md`.
   folder (zipped for download) with `assistant.json` (format 1: name, job,
   instructions, summary, personality, avatar, triggers without ids, `asks`,
   `needs`, `would_like`, `web`, and optional `version`, `author`,
-  `based_on`), its `SKILL.md` and the skill's files. No migration.
+  `based_on`), its `SKILL.md` and the skill's files. Migration 0085 records
+  an import (`team_assistants.origin = 'shared'`) and the accounts ticked for
+  it (`team_assistants.accounts`).
   - **Share** (the assistant's page): `POST /api/team/<id>/export` with
     `edits` and `fine` returns a `ShareExport`: the file's contents with
     links into this Athena taken out (`scrubText`), and `findings` from
@@ -1737,12 +1739,31 @@ contracts between slices, is `docs/team.md`.
     `POST /api/team/import/preview` reads a zip, a folder's files, an
     `assistant.json` or a GitHub link (`parseShareLink`, `fetchGithubFolder`
     in `lib/skill-fetch.ts`) into an `ImportPreview` with each needed
-    account's connection. `POST /api/team/import` makes
-    the assistant paused, with `grantedTools` (asked for and ticked), and its
+    account's connection, `asks_first` (what it asked to do alone that an
+    import can't grant) and `accounts` (every account a turn could open, the
+    ones it needs first). `POST /api/team/import` makes
+    the assistant paused, with `grantedTools` (asked for, ticked, and in
+    `SHARED_TOOLS`: the flows catalogue's "add" group plus `track`,
+    `lib/shared-limits.ts`), the accounts ticked, and its
     skill as the assistant's own (`putAssistantSkill` with the file's
     files and source), the owner's answers appended (`withAnswers`); with no
     skill, `attachSkill` writes one after the response. An assistant with no
     looks gets the character its preview showed (`shareSeed`).
+  - **What an imported item reaches** (`lib/shared-limits.ts`,
+    `lib/shared-scope.ts`, `lib/shared-scope-db.ts`). An imported assistant's
+    turns (chat, run, a flow's think step) carry an `AccountScope` of its
+    ticked accounts (`runAssistantTurn`); an imported skill (source `upload`
+    or `link`) limits the turn when it comes into use (`SkillTools`' `onUse`)
+    or, picked with "/", before anything opens. `runAsk` opens only allowed
+    accounts (`SourcesPort.open`'s `only`, honoured in
+    `netlify/lib/connectors/answer-sources.ts`), drops the others' tools,
+    refuses a call to one, and wraps the Session's mail, Slack and calendar
+    ports (`scopedPorts`). Their words reach the model as someone else's:
+    `<shared_instructions>` and `<shared_skill>` in the persona block, and
+    `SHARED_SKILL_RULE` for an imported Ask skill. The app's ticks are
+    `components/account-ticks.ts` (import sheet, `team/detail-accounts.ts`,
+    the skill page), and Home's one-time `components/accounts-notice.ts`
+    reads `GET /api/skills/notice`.
   - **Sample mode** checks, previews and imports in the app against the sample
     team and people; a download there is `assistant.json` alone.
   - **The catalogue** is a separate GitHub repository; Athena only reads
@@ -1863,8 +1884,16 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
   (`lib/skill-fetch.ts`); or "Make this a skill" in Ask's menu
   (`lib/skill-draft.ts`), which drafts one from the conversation and opens
   the editor. Every import is a preview (`POST /api/skills/preview`) before
-  anything is saved; a draft is never saved or switched on by itself. Three
-  starters (weekly-review, plan-meals, meeting-prep) are added once, off.
+  anything is saved; a draft is never saved or switched on by itself, and
+  one from a file or a link is saved off whatever the request says
+  (`createSkill`). Three starters (weekly-review, plan-meals, meeting-prep)
+  are added once, off.
+- **Imported skills' accounts** (migration 0085, `ask_skills.accounts`).
+  While Ask uses a skill from a file or a link it opens only the accounts
+  ticked on the skill's page (see Team, "What an imported item reaches").
+  The first read after 0085 notes the imported skills there were then
+  (settings `skills.accounts_notice`, ids only); `GET /api/skills/notice`
+  lists those still with none ticked until `DELETE` marks it read.
 - **Assistants' own skills** (0069, `assistant_id`) are listed in Settings
   under Team with the assistant's avatar and name, no switch. They never
   count toward the 50, and Ask's list, "/" and `use_skill` skip them (see

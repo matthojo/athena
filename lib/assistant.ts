@@ -54,7 +54,7 @@ import { contextByName, contextsOf, filterByContext } from "./todo-context";
 import { getReadingItem, listReading, upsertReadingItem, type ReadingItem } from "./memory";
 import { KIND_WORDS, PROGRESS_UNITS, progressWords, READING_KINDS, READING_STATUSES, WATCH_READ, type ProgressUnit } from "./watch-read";
 import { isEncryptedPlaceholder } from "./encrypted";
-import { formatAthenaLink, linkKindOf } from "./links";
+import { formatAthenaLink, linkKindOf, ownerWroteNote, plainNewWebLinks } from "./links";
 import { zonedParts, zonedToInstant, zonedToday } from "./dates";
 import { guardText } from "./jev";
 import { CHANNEL_LABEL, DRAFT_CHANNELS, draftMessage, draftProviderName, type DraftChannel, type EmailDraft, type GmailPort, type SlackPort } from "./drafts";
@@ -1513,10 +1513,13 @@ export class Session {
             body: note.body,
             tags: note.tags,
           };
+          // A note the owner wrote: the model's text links plainly, so nothing it adds makes Athena fetch a page for a card,
+          // mention or embed (links the owner already chose a mode for keep it). lib/links.ts plainNewWebLinks.
+          const written = input.body !== undefined && ownerWroteNote(note.source) ? plainNewWebLinks(input.body, note.body) : input.body;
           const updated = (await updateNote(note.id, {
             title: input.title,
             // A Life log day keeps its Health line and Places section: Ask never sees them, so can't write them back (lib/health.ts, lib/places-line.ts).
-            body: input.body !== undefined && note.tags.includes("life-log") ? withPlacesSection(withHealthLine(input.body, lineIn(note.body)), placesSectionIn(note.body)) : input.body,
+            body: written !== undefined && note.tags.includes("life-log") ? withPlacesSection(withHealthLine(written, lineIn(note.body)), placesSectionIn(note.body)) : written,
             tags: input.tags,
           }))!;
           return this.record({

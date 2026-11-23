@@ -27,6 +27,7 @@
 import { checkFiles, cleanPath, intakeEntries, SkillFormatError, textOf, type IntakeEntry, type SkillFile, type SkillPreview, type SkillSkipped, type SkillSource } from "./skills";
 import { MAX_ANSWER, MAX_CHOICE, MAX_CHOICES, MAX_QUESTION, MAX_QUESTIONS, MAX_SUMMARY, type TeamAnswer } from "./team-skill";
 import { EVERYDAY } from "./todo-person";
+import { sharedToolAllowed, type AccountRow } from "./shared-limits";
 import {
   ACCENT_KEYS,
   ACCESSORY_IDS,
@@ -642,10 +643,13 @@ export function withAnswers(body: string, answers: TeamAnswer[]): string {
   return extra ? `${body.trim()}\n\n${extra}\n` : body;
 }
 
-/** The tools it may run alone: only ones it asked for and the owner ticked. Pure. */
+/**
+ * The tools it may run alone: only ones it asked for, the owner ticked, and an import may grant at all (changes
+ * inside Athena that keep an Undo, and `track`: lib/shared-limits.ts). Pure.
+ */
 export function grantedTools(w: Pick<SharedAssistant, "would_like">, ticked: unknown): string[] {
   const asked = new Set(w.would_like);
-  return [...new Set((Array.isArray(ticked) ? ticked : []).filter((t): t is string => typeof t === "string" && asked.has(t)))];
+  return [...new Set((Array.isArray(ticked) ? ticked : []).filter((t): t is string => typeof t === "string" && asked.has(t) && sharedToolAllowed(t)))];
 }
 
 /** Hosts its words link to, other than GitHub: shown on the preview, since nothing there was checked. Pure. */
@@ -692,6 +696,10 @@ export interface ImportNeed {
 /** POST /api/team/import/preview: everything an import would add, before anything is kept. */
 export interface ImportPreview extends SharedBundle {
   needs: ImportNeed[];
+  /** What it asked to do alone that an import can't grant: these always wait for the owner's Go. `shared.would_like` holds only the rest. */
+  asks_first: string[];
+  /** This Athena's connected accounts, the ones it needs first: one tick each, all unticked. */
+  accounts: AccountRow[];
   /** Sites its words link to, other than GitHub. */
   links: string[];
   /** There's room on the team for it. */
@@ -707,6 +715,8 @@ export interface ImportInput {
   /** Tools ticked to run without asking: only ones it asked for count. */
   allow: string[];
   web: boolean;
+  /** Connected accounts ticked for it (ids). None ticked: it opens none. */
+  accounts?: string[];
 }
 
 // ---------- a link to one ----------

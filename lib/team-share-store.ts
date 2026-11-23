@@ -17,7 +17,8 @@
  */
 import { AthenaInputError, q } from "./db";
 import { listFacts } from "./memory";
-import { listConnectors } from "./connectors";
+import { listConnectors, offeredInAsk, type Connector } from "./connectors";
+import { cleanAccountIds, orderAccounts, splitWouldLike, type AccountRow } from "./shared-limits";
 import { createAssistant, getAssistant, listAssistants } from "./team";
 import { triggersMoved } from "./team-flows";
 import { avatarFromSeed } from "./team-seed";
@@ -213,6 +214,15 @@ export function shareZip(x: ShareExport): Uint8Array {
 
 // ---------- adding one ----------
 
+/**
+ * This Athena's connected accounts as tick rows, the ones a shared needs first: every account a turn could open
+ * (a custom server only with "Use in Ask" on, since nothing else reaches one). Pure.
+ */
+export function accountRows(connectors: Connector[], needs: readonly string[]): AccountRow[] {
+  const rows = connectors.filter((c) => offeredInAsk(c)).map((c) => ({ id: c.id, provider: c.provider, name: c.name, ...(c.account_label ? { label: c.account_label } : {}) }));
+  return orderAccounts(rows, needs);
+}
+
 const asShareError = (error: unknown): never => {
   if (error instanceof SkillFormatError) throw new ShareFormatError(error.message.replace("for a skill", "for an assistant").replace("A skill is mostly text", "A shared assistant is mostly text"));
   throw error;
@@ -253,7 +263,17 @@ export async function previewImport(body: Record<string, unknown>, now = new Dat
   const [connectors, team] = await Promise.all([listConnectors().catch(() => []), listAssistants()]);
   const have = new Set(connectors.filter((c) => c.status !== "error").map((c) => c.provider));
   const texts = [bundle.shared.instructions, bundle.shared.summary, bundle.skill?.body ?? "", ...(bundle.skill?.files.map((f) => f.text) ?? [])];
-  return { ...bundle, needs: bundle.shared.needs.map((id) => ({ id, connected: have.has(id) })), links: linkedHosts(texts), room: team.length < MAX_ASSISTANTS };
+  // What it asks to do alone: only changes inside Athena that keep an Undo, and track, can be ticked; the rest always ask first.
+  const { offered, asksFirst } = splitWouldLike(bundle.shared.would_like);
+  return {
+    ...bundle,
+    shared: { ...bundle.shared, would_like: offered },
+    asks_first: asksFirst,
+    needs: bundle.shared.needs.map((id) => ({ id, connected: have.has(id) })),
+    accounts: accountRows(connectors, bundle.shared.needs),
+    links: linkedHosts(texts),
+    room: team.length < MAX_ASSISTANTS,
+  };
 }
 
 function sourceOf(raw: unknown, now: Date): SkillSource {
@@ -308,6 +328,8 @@ export async function importAssistant(body: Record<string, unknown>, now = new D
     // Once triggers are flows (lib/team-flows.ts), each becomes a paused flow of its own, marked as imported: turning
     // the assistant on turns on the ones that have never run (lib/team.ts updateAssistant).
     triggers: triggerInputs(w).map((t) => (asFlows ? { ...t, paused: true } : t)),
+    // The connected accounts the owner ticked for it; none ticked, it opens none (lib/shared-limits.ts).
+    accounts: cleanAccountIds(body.accounts),
   }, { origin: "shared" });
   const source = sourceOf(body.source, now);
   const fitted = skillBody ? fitTeamSkill({ body: withAnswers(skillBody, answers).slice(0, SKILL_LIMITS.body), summary: w.summary }, a) : null;

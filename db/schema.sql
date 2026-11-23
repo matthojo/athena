@@ -1652,3 +1652,9 @@ ALTER TABLE team_triggers ADD COLUMN IF NOT EXISTS moved_at TIMESTAMPTZ;
 ALTER TABLE team_runs ADD COLUMN IF NOT EXISTS flow_run_id UUID;
 ALTER TABLE team_runs ADD COLUMN IF NOT EXISTS flow_id UUID;
 CREATE UNIQUE INDEX IF NOT EXISTS team_runs_flow_run_idx ON team_runs (flow_run_id) WHERE flow_run_id IS NOT NULL;
+
+-- Items someone else shared (0085, lib/shared-limits.ts). `team_assistants.origin`: 'shared' for an imported
+-- assistant. `accounts`: the connected accounts (connectors.id) the owner ticked for an imported item; empty to start.
+ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS origin TEXT;
+ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS accounts TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE ask_skills ADD COLUMN IF NOT EXISTS accounts TEXT[] NOT NULL DEFAULT '{}';

@@ -255,6 +255,19 @@ export function plainWebLinks(text: string): string {
   return text.replace(webLinkRegex(), (_m, label: string, url: string) => `[${label}](${url})`);
 }
 
+/**
+ * Text a model wrote into a note the owner wrote (save_note with a note id): every web link's mode is dropped, as
+ * plainWebLinks does, except a link whose address already had that same mode in the note before (the owner's own
+ * choice, kept as it was). So a model's edit can't make Athena fetch a page to preview it.
+ */
+export function plainNewWebLinks(text: string, before: string): string {
+  const had = new Set(parseWebLinks(before).flatMap((l) => (l.mode ? [`${l.mode} ${l.url}`] : [])));
+  return text.replace(webLinkRegex(), (whole: string, label: string, url: string, dq?: string, sq?: string) => {
+    const mode = modeOf("web", dq, sq).mode;
+    return mode && had.has(`${mode} ${url}`) ? whole : `[${label}](${url})`;
+  });
+}
+
 /** A note the owner wrote in the app. Anything else (a collection, the assistant, a Shortcut, an agent) is Athena's or someone else's words. */
 export function ownerWroteNote(source: string | null | undefined): boolean {
   return source === "manual" || source === "app";
