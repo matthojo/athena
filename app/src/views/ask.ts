@@ -2476,6 +2476,8 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
     if (m.role === "athena" ? !m.answer : (!m.reply && !m.fallback) || (!m.reply && !!m.unreached)) return;
     // A reply the AI budget stopped answered nothing: no past conversations under it (components/spend-notice.ts).
     if (m.role === "answer" && (m.reply as { budget?: unknown } | null)?.budget) return;
+    // A reply that did something (set a reminder, added a to-do) gets no past chats: they would only share a word with the request (components/ask-answer.ts drops related items too).
+    if (m.role === "answer" && acted(m.reply)) return;
     const words = keywords(mentionsToText(m.question));
     // Only the same one's conversations: Athena's past chats for Athena, an assistant's own for it.
     const found = (await searchThreads(words, { except: c.id, limit: 6 })).filter((t) => relevant(t) && (t.thread.assistant_id ?? null) === (c.assistant_id ?? null)).slice(0, 3);

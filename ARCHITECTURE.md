@@ -855,7 +855,10 @@ delete tool.
   thread_id? }`. Nothing in front of it decides whether a message is a
   question or an instruction: the loop holds the read tools,
   `search_athena`, the connected accounts (`SourcesPort`), web search and
-  the write tools, and the model uses what the message needs. "What did
+  the write tools, and the model uses what the message needs. The first
+  search is the exception: a request ("Remind me tomorrow to call Sam",
+  `isRequest`) gets none, and no past chats in the prompt, because the
+  model looks up what it needs. "What did
   Gayle say about pricing, and add a to-do to follow up" is one run and one
   reply: the text in the answer shape with checked, numbered citations and
   `general`, and, when it changed something, `changes` (receipts with

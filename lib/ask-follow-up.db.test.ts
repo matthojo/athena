@@ -122,13 +122,14 @@ test("the brownie follow-up: \"Turn this into a recipe\" saves a recipe from the
   assert.equal(recipe.steps.length, 4);
   assert.equal(recipe.steps[3].text, "Fold in the flour and cocoa, pour into the tin and bake for 25 minutes.");
 
-  // It was made, not planned, though the first search read a collected note: the owner's words asked for it.
+  // It was made, not planned: a request gets no first search, so the collected note that "recipe" would match isn't read.
   assert.equal(reply.plan, undefined);
   // A reply about what was done: no keyword results, nothing related, no search footer.
   assert.equal(reply.text, "Saved **Brownies** to your recipes.");
   assert.equal(reply.found, true);
   assert.deepEqual(reply.related, []);
   assert.equal(reply.searched, "");
+  assert.ok(!steps.some((s) => s.id === "first"), "no first search");
   const done = steps.filter((s) => s.id === "r1").at(-1)!;
   assert.deepEqual([done.text, done.done, done.acts], ["Saved Brownies to Recipes", true, true]);
 

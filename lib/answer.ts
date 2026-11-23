@@ -656,6 +656,23 @@ export function questionQuery(question: string): string {
   return words.slice(0, 6).join(" OR ");
 }
 
+/** How a request opens ("remind", "add", "set"…): nothing needs looking up before the model reads it. */
+const REQUEST_START = new RegExp(
+  "^(?:(?:hey|hi|ok|okay)\\s+(?:athena\\s*)?[,.!]?\\s*)?(?:athena\\s*[,.!:]?\\s*)?(?:(?:please|pls|can you|could you|would you|will you)\\s+)*" +
+    "(?:remind|add|set|create|make|schedule|book|put|mark|tick|check off|move|reschedule|postpone|delete|remove|cancel|archive|unarchive|restore|rename|change|update|edit|" +
+    "save|log|track|note|jot|write|draft|send|reply|respond|email|message|text|start|stop|pause|resume|turn|snooze|pin|unpin|complete|finish|clear|undo)\\b",
+  "i",
+);
+/** "Remind me what Gayle said" is a question; "remind me to call Gayle" is a request. */
+const REMIND_ASKS = /^(?:.*?\b)?remind me (?:what|who|whom|whose|when|where|why|how|which|if|whether)\b/i;
+
+/** A message asking Athena to do something: "Remind me tomorrow at 8 to call Sam", "Add milk to my list". */
+export function isRequest(text: string): boolean {
+  const t = text.trim().replace(/^[\s"'“‘]+/, "");
+  if (!t || /\?\s*$/.test(t)) return false;
+  return REQUEST_START.test(t) && !REMIND_ASKS.test(t);
+}
+
 const RECALL_WHAT: Record<RecallHit["kind"], string> = {
   note: "note",
   commitment: "to-do",
@@ -1287,7 +1304,9 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
   const [money, webOn, region] = await Promise.all([loadAskMoney(), (deps.web ?? loadAskWeb)().catch(() => false), (deps.region ?? loadOwnerRegion)().catch(() => null)]);
   const athena = new AthenaTools(ev, tz, now, money, () => guard.sawOthers("collected"));
   // A Team run's prompt is the trigger's words, not a question: nothing in it is worth a search, and what a stray match returned would count as read.
-  const firstQuery = unattended ? "" : questionQuery(plain);
+  // A request ("Remind me tomorrow to call Sam") isn't a question either: the model looks up what it needs (find_people, search_athena) itself.
+  const request = !unattended && isRequest(plain);
+  const firstQuery = unattended || request ? "" : questionQuery(plain);
   const planMode: PlanMode = opts.plan ?? "auto";
 
   const step = opts.onStep;
@@ -1351,7 +1370,8 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     const earlierAsked = history.filter((t) => t.role === "user").map((t) => t.text);
     // An assistant answering has its own memory, not main Ask's past chats (docs/team.md).
     const persona = opts.persona ?? null;
-    const remember = !persona && (!history.length || bringsNewTopic(plain, history.map((t) => mentionsToText(t.text)), people));
+    // A request doesn't need them either.
+    const remember = !persona && !request && (!history.length || bringsNewTopic(plain, history.map((t) => mentionsToText(t.text)), people));
     const [kinds, profile, today, past, loadedSkills, desk] = await Promise.all([
       listKinds().catch(() => []),
       profilePromptBlock(),
@@ -1939,6 +1959,9 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       Object.assign(finished, { searched: "", related: [] });
       if (firstQuery) step?.({ id: "first", text: "Searching your notes", done: true, dropped: true });
     }
+    // An account that wouldn't open is named only under an answer about the owner's life. A reply that did something, or a general
+    // answer, never needed it (the app hides the line there too: components/ask-answer.ts).
+    if (acted || finished.general) finished.skipped = [];
     /** The model gave words of its own for this reply, through the answer tool or as plain text. */
     const said = !!answered || !!lastText;
     if (asking) Object.assign(finished, { text: prose(session.question) || "Which one?", sources: [], related: [], found: false });
