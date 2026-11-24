@@ -24,9 +24,9 @@ if (url) {
 }
 const skip = !url && "set ATHENA_TEST_DB_URL";
 const TZ = "Europe/London";
-const LEGO = "https://www.lego.com/en-gb/product/ferrari-daytona-sp3-42143";
-const SMYTHS = "https://www.smyths.co.uk/uk/en-gb/toys/lego/lego-technic/42143";
-const CHANNEL = "https://www.youtube.com/@hjdigital";
+const KIT = "https://shop.example.com/en-gb/product/racing-car-kit";
+const TOY_BARN = "https://toys.example.co.uk/kits/racing-car-kit";
+const CHANNEL = "https://video.example.com/@sample-channel";
 
 before(async () => {
   if (!url) return;
@@ -63,12 +63,12 @@ const run = async (s: Awaited<ReturnType<typeof session>>, name: string, input: 
 test("price: a save keeps the price as its price tracker's first check, once; the back-fill does the same for older items", { skip }, async () => {
   const { listTrackers, keepSavePoint, backfillSavePoints } = await import("./trackers-store");
   const { qRaw } = await import("./db");
-  const item = await saveProduct(LEGO, { name: "LEGO Technic Ferrari Daytona SP3", price: "42", currency: "GBP", shop: "LEGO" });
+  const item = await saveProduct(KIT, { name: "Racing car kit", price: "42", currency: "GBP", shop: "Brick & Co" });
   const [t] = await listTrackers({ saved_id: item.id });
-  assert.deepEqual([t.preset, t.label, t.prefix, t.currency, t.direction, t.name, t.url], ["price", "price", "£", "GBP", "lower", "LEGO Technic Ferrari Daytona SP3", LEGO]);
+  assert.deepEqual([t.preset, t.label, t.prefix, t.currency, t.direction, t.name, t.url], ["price", "price", "£", "GBP", "lower", "Racing car kit", KIT]);
   assert.deepEqual(
     t.points.map((p) => [p.value, p.source, p.url, p.checked_by, p.checked_at]),
-    [["42", "LEGO", LEGO, "save", item.saved_at]],
+    [["42", "Brick & Co", KIT, "save", item.saved_at]],
   );
   assert.equal(await keepSavePoint(item), false, "once");
   // A page with no price has nothing tracked.
@@ -76,7 +76,7 @@ test("price: a save keeps the price as its price tracker's first check, once; th
   assert.deepEqual(await listTrackers({ saved_id: plain.id }), []);
 
   // As if saved before 0073: no tracker at all. The back-fill makes it, and a rerun adds none.
-  const mug = await saveProduct("https://www.johnlewis.com/le-creuset-mug", { name: "Le Creuset mug", price: "16", currency: "GBP", shop: "John Lewis" });
+  const mug = await saveProduct("https://homeware.example.com/stoneware-mug", { name: "Stoneware mug", price: "16", currency: "GBP", shop: "Hollis & Hart" });
   await qRaw(`DELETE FROM trackers WHERE saved_id = $1`, [mug.id]);
   assert.ok((await backfillSavePoints()) >= 1);
   assert.equal(await backfillSavePoints(), 0);
@@ -90,24 +90,24 @@ test("price: record_value through Ask, kept with its link, the same price too; a
   const { logChanges, undoActivity, getActivity } = await import("./ask-activity");
   const { applyUndo } = await import("./assistant");
   const { listSaved } = await import("./saved");
-  const item = (await listSaved({ q: "Ferrari" })).items[0];
+  const item = (await listSaved({ q: "Racing car" })).items[0];
   const s = await session();
-  const out = await run(s, "record_value", { saved_id: item.id, value: "34", currency: "GBP", url: SMYTHS, source: "Smyths" });
+  const out = await run(s, "record_value", { saved_id: item.id, value: "34", currency: "GBP", url: TOY_BARN, source: "Toy Barn" });
   assert.ok(out.done, JSON.stringify(out));
   assert.deepEqual(out.news, { best: true, changed: true, target_reached: false });
   assert.equal(out.tell, true);
-  assert.equal(out.say, "£34 at Smyths, the lowest since you saved it. Say this first.");
+  assert.equal(out.say, "£34 at Toy Barn, the lowest since you saved it. Say this first.");
   const [change] = s.changes;
   assert.equal(change.kind, "tracker");
-  assert.equal(change.title, "LEGO Technic Ferrari Daytona SP3");
-  assert.equal(change.detail, "Price checked · £34 at Smyths · Lowest yet");
+  assert.equal(change.title, "Racing car kit");
+  assert.equal(change.detail, "Price checked · £34 at Toy Barn · Lowest yet");
   assert.deepEqual(change.open, { kind: "saved", id: item.id });
   assert.equal(change.news?.tell, true);
   // The same price again is a check too, and isn't news.
-  const again = await run(s, "record_value", { tracker_id: out.tracker_id, value: "34", currency: "GBP", url: SMYTHS, source: "Smyths" });
+  const again = await run(s, "record_value", { tracker_id: out.tracker_id, value: "34", currency: "GBP", url: TOY_BARN, source: "Toy Barn" });
   assert.equal(again.tell, false);
   assert.equal(again.say, undefined);
-  assert.equal(s.changes[1].detail, "Price checked · £34 at Smyths");
+  assert.equal(s.changes[1].detail, "Price checked · £34 at Toy Barn");
   let [t] = await listTrackers({ saved_id: item.id });
   assert.deepEqual(t.points.map((p) => [p.value, p.checked_by]), [["42", "save"], ["34", "ask"], ["34", "ask"]]);
 
@@ -124,27 +124,27 @@ test("price: record_value through Ask, kept with its link, the same price too; a
 test("price: a guess, a range, a symbol, another currency or no link keeps nothing", { skip }, async () => {
   const { listTrackers } = await import("./trackers-store");
   const { listSaved } = await import("./saved");
-  const item = (await listSaved({ q: "Ferrari" })).items[0];
+  const item = (await listSaved({ q: "Racing car" })).items[0];
   const before = (await listTrackers({ saved_id: item.id }))[0].points.length;
   const s = await session();
   for (const bad of [
-    { value: "about 35", currency: "GBP", url: SMYTHS },
-    { value: "30-40", currency: "GBP", url: SMYTHS },
-    { value: "£34", currency: "GBP", url: SMYTHS },
-    { value: "34", currency: "pounds", url: SMYTHS },
-    { value: "29", currency: "EUR", url: "https://www.lego.com/de-de/product/42143" },
-    { value: "34", currency: "GBP", url: "smyths.co.uk" },
+    { value: "about 35", currency: "GBP", url: TOY_BARN },
+    { value: "30-40", currency: "GBP", url: TOY_BARN },
+    { value: "£34", currency: "GBP", url: TOY_BARN },
+    { value: "34", currency: "pounds", url: TOY_BARN },
+    { value: "29", currency: "EUR", url: "https://shop.example.com/de-de/product/racing-car-kit" },
+    { value: "34", currency: "GBP", url: "toys.example.co.uk" },
     { value: "34", currency: "GBP", url: "javascript:alert(1)" },
   ]) {
     const out = await run(s, "record_value", { saved_id: item.id, ...bad });
     assert.ok(out.error, JSON.stringify(bad));
   }
-  assert.match((await run(s, "record_value", { saved_id: item.id, value: "29", currency: "EUR", url: SMYTHS })).error, /in GBP; a price in EUR isn't kept here and is never converted/);
+  assert.match((await run(s, "record_value", { saved_id: item.id, value: "29", currency: "EUR", url: TOY_BARN })).error, /in GBP; a price in EUR isn't kept here and is never converted/);
   assert.equal(s.changes.length, 0);
   assert.equal((await listTrackers({ saved_id: item.id }))[0].points.length, before);
-  assert.match((await run(s, "record_value", { tracker_id: "00000000-0000-4000-8000-000000000000", value: "1", url: SMYTHS })).error, /isn't there/);
+  assert.match((await run(s, "record_value", { tracker_id: "00000000-0000-4000-8000-000000000000", value: "1", url: TOY_BARN })).error, /isn't there/);
   const scarf = (await listSaved({ q: "Scarf" })).items[0];
-  assert.match((await run(s, "record_value", { saved_id: scarf.id, value: "12", url: SMYTHS })).error, /has no price tracker\. Use track/);
+  assert.match((await run(s, "record_value", { saved_id: scarf.id, value: "12", url: TOY_BARN })).error, /has no price tracker\. Use track/);
 });
 
 test("price: a target set with Undo, reached by a check and told; tracker_history reads it; the list shows the best price now", { skip }, async () => {
@@ -152,7 +152,7 @@ test("price: a target set with Undo, reached by a check and told; tracker_histor
   const { applyUndo } = await import("./assistant");
   const { ReadTools } = await import("./ask-tools");
   const { listSaved, getSaved } = await import("./saved");
-  const item = await saveProduct("https://www.smyths.co.uk/uk/en-gb/toys/lego/lego-technic/42115", { name: "LEGO Technic Lamborghini Sián", price: "35", currency: "GBP", shop: "Smyths" });
+  const item = await saveProduct("https://toys.example.co.uk/kits/supercar-kit", { name: "Supercar kit", price: "35", currency: "GBP", shop: "Toy Barn" });
   const s = await session();
   // Set £30 (none before), then replace with £33: Undo of the second puts £30 back, Undo of the first clears it.
   const first = await run(s, "set_tracker_target", { saved_id: item.id, value: "30" });
@@ -169,19 +169,19 @@ test("price: a target set with Undo, reached by a check and told; tracker_histor
 
   // With a £33 target, a £34 check isn't told; £32.50 is, plainly, first.
   await run(s, "set_tracker_target", { saved_id: item.id, value: "33" });
-  const above = await run(s, "record_value", { saved_id: item.id, value: "34", currency: "GBP", url: SMYTHS, source: "Smyths" });
+  const above = await run(s, "record_value", { saved_id: item.id, value: "34", currency: "GBP", url: TOY_BARN, source: "Toy Barn" });
   assert.equal(above.target_reached, undefined);
   assert.equal(above.tell, true, "still the lowest since it was saved");
-  const under = await run(s, "record_value", { saved_id: item.id, value: "32.50", currency: "GBP", url: SMYTHS, source: "Smyths" });
+  const under = await run(s, "record_value", { saved_id: item.id, value: "32.50", currency: "GBP", url: TOY_BARN, source: "Toy Barn" });
   assert.equal(under.target_reached, true);
-  assert.equal(under.say, "£32.50 at Smyths, under the £33 you asked for. Say this first.");
-  assert.match(s.changes.at(-1)!.detail, /^Price checked · £32\.50 at Smyths · Lowest yet · At your target$/);
+  assert.equal(under.say, "£32.50 at Toy Barn, under the £33 you asked for. Say this first.");
+  assert.match(s.changes.at(-1)!.detail, /^Price checked · £32\.50 at Toy Barn · Lowest yet · At your target$/);
 
   const tools = new ReadTools({ tz: TZ, cite: (kind, id) => `${kind}:${id}` });
   const [h] = JSON.parse(await tools.run("tracker_history", { saved_id: item.id }));
   assert.equal(h.ref, `saved:${item.id}`);
   assert.deepEqual(h.target, { wants: "£33 or less", op: "lte", value: "33", reached: true });
-  assert.equal(h.says, "£32.50 at Smyths, under the £33 you asked for.");
+  assert.equal(h.says, "£32.50 at Toy Barn, under the £33 you asked for.");
   assert.equal(h.first.value, "£35");
   assert.equal(h.checks, 3);
   // Clearing is one call, with Undo.
@@ -193,12 +193,12 @@ test("price: a target set with Undo, reached by a check and told; tracker_histor
   assert.equal(t.target!.value, "33");
 
   // Saved's list and find_saved say the best price now; the item's own page keeps the saved price.
-  const listed = (await listSaved({ q: "Lamborghini" })).items[0];
-  assert.deepEqual(listed.price_now, { amount: "32.50", currency: "GBP", shop: "Smyths" });
+  const listed = (await listSaved({ q: "Supercar" })).items[0];
+  assert.deepEqual(listed.price_now, { amount: "32.50", currency: "GBP", shop: "Toy Barn" });
   assert.equal((await getSaved(item.id))!.price_now, undefined);
-  const found = await run(s, "find_saved", { query: "Lamborghini" });
-  assert.equal(found[0].what, "Product · £32.50 · Smyths");
-  const mug = (await listSaved({ q: "Le Creuset" })).items[0];
+  const found = await run(s, "find_saved", { query: "Supercar" });
+  assert.equal(found[0].what, "Product · £32.50 · Toy Barn");
+  const mug = (await listSaved({ q: "Stoneware" })).items[0];
   assert.equal(mug.price_now, undefined, "only its saved price: nothing replaces it");
 });
 
@@ -208,26 +208,26 @@ test("stock: track starts it; a change of state is news; 'tell me when it's in s
   const { listTrackers, getTracker } = await import("./trackers-store");
   const { applyUndo } = await import("./assistant");
   const { listSaved } = await import("./saved");
-  const item = (await listSaved({ q: "Ferrari" })).items[0];
+  const item = (await listSaved({ q: "Racing car" })).items[0];
   const s = await session();
   const started = await run(s, "track", { saved_id: item.id, preset: "stock", target: {} });
   assert.ok(started.tracker_id, JSON.stringify(started));
   assert.equal(s.changes[0].detail, "Tracking stock · Tell me when it's in stock");
   const t = (await getTracker(started.tracker_id))!;
-  assert.deepEqual([t.kind, t.states, t.direction, t.target!.op, t.target!.value, t.url], ["state", ["in stock", "sold out"], "change", "eq", "in stock", LEGO]);
+  assert.deepEqual([t.kind, t.states, t.direction, t.target!.op, t.target!.value, t.url], ["state", ["in stock", "sold out"], "change", "eq", "in stock", KIT]);
   // The same preset twice is the one already there; a price and stock side by side.
   assert.match((await run(s, "track", { saved_id: item.id, preset: "stock" })).done, /^Already tracking stock/);
   assert.deepEqual((await listTrackers({ saved_id: item.id })).map((x) => x.preset).sort(), ["price", "stock"]);
 
-  const sold = await run(s, "record_value", { tracker_id: t.id, value: "Sold out", url: SMYTHS, source: "Smyths" });
+  const sold = await run(s, "record_value", { tracker_id: t.id, value: "Sold out", url: TOY_BARN, source: "Toy Barn" });
   assert.equal(sold.tell, false, "the first check: nothing to compare");
-  assert.equal((await run(s, "record_value", { tracker_id: t.id, value: "sold out", url: SMYTHS, source: "Smyths" })).tell, false, "the same state again is only kept");
-  assert.ok((await run(s, "record_value", { tracker_id: t.id, value: "available", url: SMYTHS })).error, "only its states");
-  const back = await run(s, "record_value", { saved_id: item.id, preset: "stock", value: "in stock", url: SMYTHS, source: "Smyths" });
+  assert.equal((await run(s, "record_value", { tracker_id: t.id, value: "sold out", url: TOY_BARN, source: "Toy Barn" })).tell, false, "the same state again is only kept");
+  assert.ok((await run(s, "record_value", { tracker_id: t.id, value: "available", url: TOY_BARN })).error, "only its states");
+  const back = await run(s, "record_value", { saved_id: item.id, preset: "stock", value: "in stock", url: TOY_BARN, source: "Toy Barn" });
   assert.deepEqual(back.news, { best: false, changed: true, target_reached: true });
   assert.equal(back.tell, true);
-  assert.equal(s.changes.at(-1)!.detail, "Stock checked · In stock at Smyths · Was sold out · At your target");
-  assert.equal(back.say, "In stock at Smyths. You asked to hear when it was. Say this first.");
+  assert.equal(s.changes.at(-1)!.detail, "Stock checked · In stock at Toy Barn · Was sold out · At your target");
+  assert.equal(back.say, "In stock at Toy Barn. You asked to hear when it was. Say this first.");
 
   // Undo of track stops it, checks and all; the price tracker stays.
   await applyUndo(s.changes[0].undo);
@@ -277,7 +277,7 @@ test("followers: an assistant tracks them on their own; its link waits for the o
   assert.deepEqual([t.saved_id, t.name, t.label, t.direction, t.url, t.assistant_id], [null, "My channel", "followers", "higher", CHANNEL, wren.id], "the assistant that started it checks it");
   assert.equal(s.changes[0].detail, "Tracking followers");
   assert.equal(s.changes[0].open, null);
-  await asTrackerChecker(wren.id, () => run(s, "record_value", { tracker_id: t.id, value: "12,400", url: CHANNEL, source: "YouTube" }));
+  await asTrackerChecker(wren.id, () => run(s, "record_value", { tracker_id: t.id, value: "12,400", url: CHANNEL, source: "Video" }));
   assert.deepEqual([(await getTracker(t.id))!.points[0].checked_by, (await getTracker(t.id))!.points[0].who], ["assistant", "Wren"]);
   assert.equal((await listTrackers({ standalone: true })).length, 1);
   assert.equal((await listTrackers({ assistant_id: wren.id }))[0].id, t.id);
@@ -298,26 +298,26 @@ test("followers: an assistant tracks them on their own; its link waits for the o
 
   // A scheduled run: the tracker's link is in its message (so it may open it), and record_value runs alone.
   const m = scripted([
-    [...opened("wf1", CHANNEL, "hjdigital - YouTube", "hjdigital. 12.6K subscribers. 12,612 followers."), keep("k1", { tracker_id: t.id, value: "12612", url: CHANNEL, source: "YouTube" })],
+    [...opened("wf1", CHANNEL, "sample-channel - Video", "sample-channel. 12.6K subscribers. 12,612 followers."), keep("k1", { tracker_id: t.id, value: "12612", url: CHANNEL, source: "Video" })],
     [answer({ text: "I checked your channel this morning.", sources: [] })],
   ]);
   const out = await runAssistantTurn(wren.id, "Every Monday at 09:00: do your job.", { mode: "run", client: m.client, now: new Date("2026-11-23T09:00:00Z"), shown: "Every Monday at 09:00" });
   const message = JSON.stringify(m.sent[0].messages);
   assert.ok(message.includes(`Tracker ${t.id}: My channel`), "the tracker is in the run's message");
   assert.ok(message.includes(`Link: ${CHANNEL}`), "with its link, as the owner's own");
-  assert.match(message, /Followers: last 12,400 followers at YouTube/);
+  assert.match(message, /Followers: last 12,400 followers at Video/);
   const fetch = (m.sent[0].tools ?? []).find((x) => (x as { name?: string }).name === "web_fetch") as unknown as { url_sources: { user_input: unknown } };
   assert.deepEqual(fetch.url_sources.user_input, { type: "all" });
   const kept = (out.reply.changes ?? []).find((c) => c.kind === "tracker")!;
-  assert.equal(kept.detail, "Checked · 12,612 followers at YouTube · Highest yet");
+  assert.equal(kept.detail, "Checked · 12,612 followers at Video · Highest yet");
   assert.equal((await getTracker(t.id))!.points.at(-1)!.checked_by, "assistant", "kept as Wren's, alone, with no Go");
   // News first, in the kept words and on the card.
-  assert.match(out.text, /^12,612 followers at YouTube, the highest so far\. I checked your channel this morning\./);
+  assert.match(out.text, /^12,612 followers at Video, the highest so far\. I checked your channel this morning\./);
   const words = runWords(wren, { text: out.text, found: out.reply.found, changes: out.reply.changes ?? [], planned: 0 });
   assert.equal(words.quiet, false);
 
   // The same count next week: kept, and quiet.
-  const m2 = scripted([[keep("k2", { tracker_id: t.id, value: "12612", url: CHANNEL, source: "YouTube" })], [answer({ text: "Still 12,612 followers.", sources: [] })]]);
+  const m2 = scripted([[keep("k2", { tracker_id: t.id, value: "12612", url: CHANNEL, source: "Video" })], [answer({ text: "Still 12,612 followers.", sources: [] })]]);
   const out2 = await runAssistantTurn(wren.id, "Every Monday at 09:00: do your job.", { mode: "run", client: m2.client, now: new Date("2026-11-30T09:00:00Z"), shown: "Every Monday at 09:00" });
   assert.equal(runWords(wren, { text: out2.text, found: out2.reply.found, changes: out2.reply.changes ?? [], planned: 0 }).quiet, true);
   assert.equal((await getTracker(t.id))!.points.length, 3, "every check is kept");
@@ -325,9 +325,9 @@ test("followers: an assistant tracks them on their own; its link waits for the o
   // A dip is only kept; reaching the target is told.
   const dip = await run(s, "record_value", { tracker_id: t.id, value: "12500", url: CHANNEL });
   assert.equal(dip.tell, false);
-  const goal = await run(s, "record_value", { tracker_id: t.id, value: "13,050", url: CHANNEL, source: "YouTube" });
+  const goal = await run(s, "record_value", { tracker_id: t.id, value: "13,050", url: CHANNEL, source: "Video" });
   assert.equal(goal.target_reached, true);
-  assert.equal(goal.say, "13,050 followers at YouTube, over the 13,000 followers you asked for. Say this first.");
+  assert.equal(goal.say, "13,050 followers at Video, over the 13,000 followers you asked for. Say this first.");
   // Undo of the check.
   await applyUndo(s.changes.at(-1)!.undo);
   assert.equal((await getTracker(t.id))!.points.at(-1)!.value, "12500");
@@ -374,7 +374,7 @@ test("who checks: Ask's track goes to the one assistant that fits, else nobody y
   const { createAssistant } = await import("./team");
   const { getTracker, createTracker } = await import("./trackers-store");
   const moss = await createAssistant({ name: "Moss", job: "Finds good prices for gift ideas", web: true });
-  const mug = await saveProduct("https://www.johnlewis.com/emma-bridgewater-mug", { name: "Emma Bridgewater mug" });
+  const mug = await saveProduct("https://homeware.example.com/spotted-mug", { name: "Spotted mug" });
   const s = await session();
   const one = await run(s, "track", { saved_id: mug.id, preset: "price", currency: "GBP" });
   assert.deepEqual(one.checker, { id: moss.id, name: "Moss" });
@@ -383,7 +383,7 @@ test("who checks: Ask's track goes to the one assistant that fits, else nobody y
   assert.equal((await getTracker(one.tracker_id))!.assistant_id, moss.id);
   // Two fit: nobody is picked.
   const nell = await createAssistant({ name: "Nell", job: "Watches prices at my favourite shops", web: true });
-  const jug = await saveProduct("https://www.johnlewis.com/emma-bridgewater-jug", { name: "Emma Bridgewater jug" });
+  const jug = await saveProduct("https://homeware.example.com/spotted-jug", { name: "Spotted jug" });
   const two = await run(s, "track", { saved_id: jug.id, preset: "price", currency: "GBP" });
   assert.equal(two.checker, null);
   assert.equal(two.checks, "Nobody is checking it yet.");
@@ -400,21 +400,21 @@ test("taking it on: an assistant's check on a tracker nobody checks makes it the
   const { asTrackerChecker, createTracker, getTracker, listTrackers, trackerOn, updateTracker, recordPoint } = await import("./trackers-store");
   const juno = await createAssistant({ name: "Juno", job: "Finds good prices for gift ideas", web: true, triggers: [{ kind: "schedule", days: [5], time: "17:00" }] });
   const otto = await createAssistant({ name: "Otto", job: "Watches prices at my favourite shops", web: true });
-  const PAGE = "https://www.johnlewis.com/staub-cocotte";
+  const PAGE = "https://homeware.example.com/cast-iron-pot";
 
   // The save-time tracker: nobody checks it and nobody chose (keepSavePoint is unchanged).
-  const pot = await saveProduct(PAGE, { name: "Staub cocotte", price: "250", currency: "GBP", shop: "John Lewis" });
+  const pot = await saveProduct(PAGE, { name: "Cast iron pot", price: "250", currency: "GBP", shop: "Hollis & Hart" });
   const saved = (await trackerOn(pot.id, { preset: "price" }))!;
   assert.deepEqual([saved.assistant_id, saved.assistant_set_by], [null, null]);
 
   // Ask's own check takes nothing on: only an assistant becomes a checker.
   const s = await session();
-  const byAsk = await run(s, "record_value", { saved_id: pot.id, value: "245", url: PAGE, source: "John Lewis", currency: "GBP" });
+  const byAsk = await run(s, "record_value", { saved_id: pot.id, value: "245", url: PAGE, source: "Hollis & Hart", currency: "GBP" });
   assert.equal(byAsk.took_on, undefined);
   assert.equal((await getTracker(saved.id))!.assistant_id, null);
 
   // Juno's first check takes it on, in the same statement, and says so.
-  const first = await asTrackerChecker(juno.id, () => run(s, "record_value", { saved_id: pot.id, value: "240", url: PAGE, source: "John Lewis", currency: "GBP" }));
+  const first = await asTrackerChecker(juno.id, () => run(s, "record_value", { saved_id: pot.id, value: "240", url: PAGE, source: "Hollis & Hart", currency: "GBP" }));
   assert.equal(first.took_on, true);
   assert.match(first.checks, /yours now/);
   assert.match(s.changes.at(-1)!.detail, / · Juno checks it now$/);
@@ -423,7 +423,7 @@ test("taking it on: an assistant's check on a tracker nobody checks makes it the
   assert.ok((await listTrackers({ assistant_id: juno.id })).some((t) => t.id === saved.id), "her page lists it, and her runs check it");
 
   // Otto's check on it is kept, and Juno stays the checker.
-  const second = await asTrackerChecker(otto.id, () => run(s, "record_value", { saved_id: pot.id, value: "239", url: PAGE, source: "John Lewis", currency: "GBP" }));
+  const second = await asTrackerChecker(otto.id, () => run(s, "record_value", { saved_id: pot.id, value: "239", url: PAGE, source: "Hollis & Hart", currency: "GBP" }));
   assert.equal(second.took_on, undefined);
   assert.doesNotMatch(s.changes.at(-1)!.detail, /checks it now/);
   assert.equal((await getTracker(saved.id))!.assistant_id, juno.id);
@@ -444,7 +444,7 @@ test("taking it on: an assistant's check on a tracker nobody checks makes it the
   // "Just me" chosen later from the block's menu: the next assistant's check doesn't take it back.
   await updateTracker(saved.id, { assistant_id: null }, { by: "owner" });
   assert.deepEqual([(await getTracker(saved.id))!.assistant_id, (await getTracker(saved.id))!.assistant_set_by], [null, "owner"]);
-  const third = await asTrackerChecker(juno.id, () => run(s, "record_value", { saved_id: pot.id, value: "238", url: PAGE, source: "John Lewis", currency: "GBP" }));
+  const third = await asTrackerChecker(juno.id, () => run(s, "record_value", { saved_id: pot.id, value: "238", url: PAGE, source: "Hollis & Hart", currency: "GBP" }));
   assert.equal(third.took_on, undefined);
   assert.equal((await getTracker(saved.id))!.assistant_id, null);
 
@@ -479,9 +479,9 @@ test("record_value starts tracking a saved product nothing tracks: hers, the che
   const { asTrackerChecker, createTracker, getTracker, listTrackers, removeTracker } = await import("./trackers-store");
   const { applyUndo } = await import("./assistant");
   const ada = await createAssistant({ name: "Ada", job: "Finds good prices for gift ideas", web: true });
-  const PAGE = "https://www.johnlewis.com/smeg-toaster";
+  const PAGE = "https://homeware.example.com/retro-toaster";
   // A product page saved without a price read: nothing is tracked on it.
-  const toaster = await saveProduct(PAGE, { name: "Smeg toaster", shop: "John Lewis" });
+  const toaster = await saveProduct(PAGE, { name: "Retro toaster", shop: "Hollis & Hart" });
   assert.equal((await listTrackers({ saved_id: toaster.id })).length, 0);
   const s = await session();
 
@@ -491,12 +491,12 @@ test("record_value starts tracking a saved product nothing tracks: hers, the che
   assert.equal((await listTrackers({ saved_id: toaster.id })).length, 0);
 
   // A value that isn't the page's own: nothing kept, and nothing left started.
-  const bad = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: toaster.id, value: "about 150", url: PAGE, source: "John Lewis", currency: "GBP" }));
+  const bad = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: toaster.id, value: "about 150", url: PAGE, source: "Hollis & Hart", currency: "GBP" }));
   assert.ok(bad.error);
   assert.equal((await listTrackers({ saved_id: toaster.id })).length, 0, "the tracker it started went with the refused check");
 
   // Ada reads it: tracking starts, hers, with the check.
-  const first = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: toaster.id, value: "149.99", url: PAGE, source: "John Lewis", currency: "GBP" }));
+  const first = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: toaster.id, value: "149.99", url: PAGE, source: "Hollis & Hart", currency: "GBP" }));
   assert.equal(first.started, true);
   assert.match(first.checks, /You started tracking this/);
   assert.match(s.changes.at(-1)!.detail, / · Ada started tracking it$/);
@@ -505,13 +505,13 @@ test("record_value starts tracking a saved product nothing tracks: hers, the che
   assert.ok((await listTrackers({ assistant_id: ada.id })).some((x) => x.id === t.id), "her page lists it");
 
   // Her next check reuses it.
-  const second = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: toaster.id, value: "139.99", url: PAGE, source: "John Lewis", currency: "GBP" }));
+  const second = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: toaster.id, value: "139.99", url: PAGE, source: "Hollis & Hart", currency: "GBP" }));
   assert.equal(second.started, undefined);
   assert.equal(second.tracker_id, t.id);
   assert.equal((await listTrackers({ saved_id: toaster.id })).length, 1);
   assert.equal((await getTracker(t.id))!.points.length, 2);
   // Stock, with its preset, is a second tracker of hers.
-  const stock = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: toaster.id, preset: "stock", value: "in stock", url: PAGE, source: "John Lewis" }));
+  const stock = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: toaster.id, preset: "stock", value: "in stock", url: PAGE, source: "Hollis & Hart" }));
   assert.equal(stock.started, true);
 
   // Undo of the check that started it stops the tracker; stopped, it isn't started again.
@@ -521,9 +521,9 @@ test("record_value starts tracking a saved product nothing tracks: hers, the che
   assert.match(again.error, /stopped tracking its stock/);
 
   // A saved item with as many trackers as it can have: refused, with why, and nothing kept.
-  const kettle = await saveProduct("https://www.johnlewis.com/smeg-kettle", { name: "Smeg kettle", shop: "John Lewis" });
+  const kettle = await saveProduct("https://homeware.example.com/retro-kettle", { name: "Retro kettle", shop: "Hollis & Hart" });
   for (const label of ["a", "b", "c", "d", "e", "f"]) await createTracker({ saved_id: kettle.id, label: `count ${label}`, kind: "number", direction: "change" }, { by: "owner" });
-  const full = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: kettle.id, value: "99", url: "https://www.johnlewis.com/smeg-kettle", currency: "GBP" }));
+  const full = await asTrackerChecker(ada.id, () => run(s, "record_value", { saved_id: kettle.id, value: "99", url: "https://homeware.example.com/retro-kettle", currency: "GBP" }));
   assert.equal(full.error, "Couldn't start tracking it, so nothing was kept. A saved item can have 6 trackers. Remove one first.");
   assert.equal((await listTrackers({ saved_id: kettle.id })).length, 6);
   void removeTracker;
@@ -531,17 +531,17 @@ test("record_value starts tracking a saved product nothing tracks: hers, the che
 
 test("several sources on a real tracker: reached while any shop's current price meets it, named in the summary", { skip }, async () => {
   const { recordPoint, setTarget, getTracker } = await import("./trackers-store");
-  const item = await saveProduct("https://www.lego.com/en-gb/product/bugatti-42083", { name: "LEGO Technic Bugatti", price: "349.99", currency: "GBP", shop: "LEGO" });
+  const item = await saveProduct("https://shop.example.com/en-gb/product/sports-car-kit", { name: "Sports car kit", price: "349.99", currency: "GBP", shop: "Brick & Co" });
   const t = (await (await import("./trackers-store")).trackerOn(item.id, { preset: "price" }))!;
   await setTarget(t.id, { value: "300" }, { by: "owner" });
-  const argos = await recordPoint(t.id, { value: "299", url: "https://www.argos.co.uk/bugatti", source: "Argos" }, { by: "ask" });
-  assert.equal(argos.news.target_reached, true);
-  const smyths = await recordPoint(t.id, { value: "329.99", url: "https://www.smyths.co.uk/bugatti", source: "Smyths" }, { by: "ask" });
-  assert.equal(smyths.news.target_reached, false, "the dearer check isn't news");
+  const deals = await recordPoint(t.id, { value: "299", url: "https://deals.example.co.uk/sports-car-kit", source: "Deal Depot" }, { by: "ask" });
+  assert.equal(deals.news.target_reached, true);
+  const toyBarn = await recordPoint(t.id, { value: "329.99", url: "https://toys.example.co.uk/sports-car-kit", source: "Toy Barn" }, { by: "ask" });
+  assert.equal(toyBarn.news.target_reached, false, "the dearer check isn't news");
   const after = (await getTracker(t.id))!;
-  assert.equal(after.summary!.target_reached, true, "Argos still meets it");
-  assert.equal(after.summary!.reached_by!.id, argos.point.id);
-  assert.equal(after.summary!.now!.id, argos.point.id);
+  assert.equal(after.summary!.target_reached, true, "Deal Depot still meets it");
+  assert.equal(after.summary!.reached_by!.id, deals.point.id);
+  assert.equal(after.summary!.now!.id, deals.point.id);
 });
 
 // ---------- routes, limits, sealing ----------
@@ -549,7 +549,7 @@ test("several sources on a real tracker: reached while any shop's current price 
 test("GET, POST, PATCH and DELETE /api/trackers, its points, and Undo", { skip }, async () => {
   const api = (await import("../netlify/functions/api")).default;
   const { listSaved } = await import("./saved");
-  const mug = (await listSaved({ q: "Le Creuset" })).items[0];
+  const mug = (await listSaved({ q: "Stoneware" })).items[0];
   const send = async (method: string, path: string, json?: unknown) => {
     const res = await api(new Request(`https://athena.test/api${path}`, { method, headers: { Authorization: "Bearer master-token-for-tests", ...(json !== undefined ? { "Content-Type": "application/json" } : {}) }, body: json !== undefined ? JSON.stringify(json) : undefined }), {} as never);
     const text = await res.text();
@@ -562,7 +562,7 @@ test("GET, POST, PATCH and DELETE /api/trackers, its points, and Undo", { skip }
   assert.equal(price.summary.first.checked_by, "save");
   assert.equal(price.summary.fresh, true, "saved today");
   // The owner's own check by hand, without a link.
-  const added = await send("POST", `/trackers/${price.id}/points`, { value: "14", source: "John Lewis" });
+  const added = await send("POST", `/trackers/${price.id}/points`, { value: "14", source: "Hollis & Hart" });
   assert.equal(added.status, 201);
   assert.equal(added.body.point.checked_by, "owner");
   assert.equal(added.body.news.best, true);
@@ -622,7 +622,7 @@ test("sealed at rest: names, links, labels, states, targets and values are ciphe
   for (const p of points) {
     assert.doesNotMatch(p.value, /^\d|^in stock|^sold out/);
     if (p.url) assert.doesNotMatch(p.url, /^https?:/);
-    if (p.source) assert.notEqual(p.source, "Smyths");
+    if (p.source) assert.notEqual(p.source, "Toy Barn");
     assert.match(p.checked_by, /^(save|owner|ask|assistant)$/);
   }
   const { ENCRYPTED } = await import("./encryption");
@@ -634,7 +634,7 @@ test("a saved item's trackers go with it", { skip }, async () => {
   const { deleteSaved, listSaved } = await import("./saved");
   const { listTrackers } = await import("./trackers-store");
   const { qRaw } = await import("./db");
-  const item = (await listSaved({ q: "Ferrari" })).items[0];
+  const item = (await listSaved({ q: "Racing car" })).items[0];
   assert.ok((await listTrackers({ saved_id: item.id })).length > 0);
   await deleteSaved(item.id);
   assert.equal((await qRaw(`SELECT 1 FROM trackers WHERE saved_id = $1`, [item.id])).length, 0);

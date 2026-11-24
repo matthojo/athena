@@ -19,7 +19,7 @@ test("a filter matches on source, connector, kind, saved action, tag and title w
   assert.equal(matchesFilter({ source: "saved" }, issue), false, "another source");
   assert.equal(matchesFilter({ source: "collected", match: "LOGIN" }, issue), true, "title words, any case");
   assert.equal(matchesFilter({ source: "collected", match: "signup" }, issue), false);
-  const gift = ev("saved", { savedAction: "gift_idea", title: "Lego Technic" });
+  const gift = ev("saved", { savedAction: "gift_idea", title: "Racing car kit" });
   assert.equal(matchesFilter({ source: "saved", savedAction: "gift-idea" }, gift), true, "gift-idea and gift_idea are one action");
   assert.equal(matchesFilter({ source: "saved", savedAction: "saved" }, gift), false);
   const note = ev("note", { tags: ["Trip", "japan"], title: "Kyoto" });
@@ -61,7 +61,7 @@ test("facets keep short strings, flags and tag lists only", () => {
   const f = cleanFacets({ title: "  A   long\ntitle ", mine: true, tags: ["#trip", "", 3 as unknown as string], body: undefined, "bad key": "x", empty: "  " });
   assert.deepEqual(f, { title: "A long title", mine: true, tags: ["trip"] });
   assert.equal(cleanFacets({ title: "x".repeat(500) }).title.toString().length, 200);
-  assert.equal(urlHost("https://www.amazon.co.uk/dp/1"), "amazon.co.uk");
+  assert.equal(urlHost("https://www.shop.example.co.uk/dp/1"), "shop.example.co.uk");
   assert.equal(urlHost("not a url"), undefined);
   assert.equal(collectedKind("linear", "note"), "issue");
   assert.equal(collectedKind("gmail", "note"), "email");
@@ -146,7 +146,7 @@ test("a routine becomes an assistant: title as name and job, question as instruc
 
 test("runLabel: the owner's side of a run's conversation, never the prompt", () => {
   assert.equal(runLabel(null, []), "Run now");
-  assert.equal(runLabel(null, [{ kind: "saved", facets: { savedAction: "gift_idea", title: "Lego Ferrari" } }]), "New gift idea: “Lego Ferrari”");
+  assert.equal(runLabel(null, [{ kind: "saved", facets: { savedAction: "gift_idea", title: "Racing car kit" } }]), "New gift idea: “Racing car kit”");
   assert.equal(runLabel(null, [{ kind: "collected", facets: { kind: "issue", title: "Fix sync" } }, { kind: "collected", facets: { kind: "issue", title: "iPad crash" } }]), "2 new issues");
 });
 
@@ -155,32 +155,32 @@ test("a routine check is quiet; a new best, a change of state or a reached targe
   const moss = { name: "Moss", personality: { tone: "warm", traits: [], pronoun: "she", greeting: "" } } as never;
   type News = { best: boolean; changed: boolean; target_reached: boolean; tell: boolean; line: string; value: string };
   const kept = (detail: string, news?: News) => ({ kind: "tracker" as const, action: "created" as const, detail, ...(news ? { news } : {}) });
-  const quiet = { best: false, changed: false, target_reached: false, tell: false, line: "£34 at Smyths.", value: "£34" };
-  const same = kept("Price checked · £34 at Smyths", quiet);
-  const low = kept("Price checked · £32 at Smyths · Lowest yet", { ...quiet, best: true, changed: true, tell: true, line: "£32 at Smyths, the lowest since you saved it.", value: "£32" });
-  const target = kept("Price checked · £29 at Smyths · At your target", { ...quiet, target_reached: true, changed: true, tell: true, line: "£29 at Smyths, under the £30 you asked for.", value: "£29" });
-  const stock = kept("Stock checked · In stock at Smyths · Was sold out", { ...quiet, changed: true, tell: true, line: "In stock at Smyths, since 16 Nov. It was sold out before.", value: "in stock" });
+  const quiet = { best: false, changed: false, target_reached: false, tell: false, line: "£34 at Toy Barn.", value: "£34" };
+  const same = kept("Price checked · £34 at Toy Barn", quiet);
+  const low = kept("Price checked · £32 at Toy Barn · Lowest yet", { ...quiet, best: true, changed: true, tell: true, line: "£32 at Toy Barn, the lowest since you saved it.", value: "£32" });
+  const target = kept("Price checked · £29 at Toy Barn · At your target", { ...quiet, target_reached: true, changed: true, tell: true, line: "£29 at Toy Barn, under the £30 you asked for.", value: "£29" });
+  const stock = kept("Stock checked · In stock at Toy Barn · Was sold out", { ...quiet, changed: true, tell: true, line: "In stock at Toy Barn, since 16 Nov. It was sold out before.", value: "in stock" });
   const dip = kept("Checked · 11,900 followers", { ...quiet, changed: true, line: "11,900 followers.", value: "11,900 followers" });
   assert.equal(isRoutineCheck(same), true);
   assert.equal(isRoutineCheck(dip), true, "a higher-is-better count that dipped is only kept");
   for (const c of [low, target, stock]) assert.equal(isRoutineCheck(c), false);
   // Without its news (a receipt read back from What Ask did), the marks say it.
-  assert.equal(isRoutineCheck(kept("Price checked · £34 at Smyths")), true);
-  assert.equal(isRoutineCheck(kept("Price checked · £32 at Smyths · Lowest yet")), false);
-  assert.equal(isRoutineCheck(kept("Stock checked · In stock at Smyths · Was sold out")), false);
+  assert.equal(isRoutineCheck(kept("Price checked · £34 at Toy Barn")), true);
+  assert.equal(isRoutineCheck(kept("Price checked · £32 at Toy Barn · Lowest yet")), false);
+  assert.equal(isRoutineCheck(kept("Stock checked · In stock at Toy Barn · Was sold out")), false);
   assert.equal(isRoutineCheck({ kind: "tracker", action: "created", detail: "Tracking the price" }), false, "starting to track is told");
-  assert.equal(runWords(moss, { text: "Still £34 at Smyths.", found: true, changes: [same], planned: 0 }).quiet, true, "nothing new: no card");
-  assert.equal(runWords(moss, { text: "It's down to £32 at Smyths, the lowest yet.", found: true, changes: [low], planned: 0 }).quiet, false, "a new low is told");
-  assert.equal(runWords(moss, { text: "£29 at Smyths, under the £30 you asked for.", found: true, changes: [target], planned: 0 }).quiet, false, "a reached target is told");
+  assert.equal(runWords(moss, { text: "Still £34 at Toy Barn.", found: true, changes: [same], planned: 0 }).quiet, true, "nothing new: no card");
+  assert.equal(runWords(moss, { text: "It's down to £32 at Toy Barn, the lowest yet.", found: true, changes: [low], planned: 0 }).quiet, false, "a new low is told");
+  assert.equal(runWords(moss, { text: "£29 at Toy Barn, under the £30 you asked for.", found: true, changes: [target], planned: 0 }).quiet, false, "a reached target is told");
   assert.equal(runWords(moss, { text: "Still £34. I added it to your gift list.", found: true, changes: [same, { kind: "list", action: "created" } as never], planned: 0 }).quiet, false, "another change is told");
-  assert.equal(runWords(moss, { text: "Still £34 at Smyths.", found: true, changes: [same], planned: 1 }).quiet, false, "something waiting for Go is told");
-  assert.equal(runWords(moss, { text: "It's back in stock at John Lewis.", found: true, changes: [], planned: 0 }).quiet, false, "news with nothing kept is told");
+  assert.equal(runWords(moss, { text: "Still £34 at Toy Barn.", found: true, changes: [same], planned: 1 }).quiet, false, "something waiting for Go is told");
+  assert.equal(runWords(moss, { text: "It's back in stock at Hollis & Hart.", found: true, changes: [], planned: 0 }).quiet, false, "news with nothing kept is told");
   // News goes first: a reply that buried it gets its line before the rest; one that led with it is left alone.
   const buried = runWords(moss, { text: "I checked three shops today.", found: true, changes: [same, target], planned: 0 });
-  assert.match(buried.text, /^£29 at Smyths, under the £30 you asked for\. I checked three shops today\./);
-  assert.match(buried.summary, /^£29 at Smyths, under the £30 you asked for\./);
-  const led = runWords(moss, { text: "£29 at Smyths now, under your £30.", found: true, changes: [target], planned: 0 });
-  assert.equal(led.text, "£29 at Smyths now, under your £30.");
+  assert.match(buried.text, /^£29 at Toy Barn, under the £30 you asked for\. I checked three shops today\./);
+  assert.match(buried.summary, /^£29 at Toy Barn, under the £30 you asked for\./);
+  const led = runWords(moss, { text: "£29 at Toy Barn now, under your £30.", found: true, changes: [target], planned: 0 });
+  assert.equal(led.text, "£29 at Toy Barn now, under your £30.");
   const silent = runWords(moss, { text: "", found: true, changes: [stock], planned: 0 });
-  assert.equal(silent.text, "In stock at Smyths, since 16 Nov. It was sold out before.");
+  assert.equal(silent.text, "In stock at Toy Barn, since 16 Nov. It was sold out before.");
 });
