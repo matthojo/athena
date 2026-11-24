@@ -3,7 +3,7 @@
 // Run: npx tsx --test lib/ask-plans.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PLAN_MIN_STEPS, PlanDraft, isPlannable, runSteps, stepLabel, substitute, undoAllChanges, withStepField, withoutStep, type PlanStep } from "./ask-plans";
+import { PLAN_MIN_STEPS, PlanDraft, cleanLimit, isPlannable, planLimit, runSteps, runStepsFrom, stepLabel, substitute, undoAllChanges, withStepField, withoutStep, type PlanStep } from "./ask-plans";
 import type { Change } from "./assistant";
 import { TOOLS } from "./assistant";
 
@@ -104,6 +104,42 @@ test("a step that fails doesn't stop the rest, and says why", async () => {
   });
   assert.deepEqual(results.map((r) => r.status), ["failed", "skipped", "done"]);
   assert.equal(results[0].error, "That person is already in Athena");
+});
+
+test("a step refused an account always stops Go, even when it made something; what it made is discarded, never kept", async () => {
+  const ACCT = "aaaaaaaa-1111-4111-8111-000000000001";
+  let refused: string | null = null;
+  const kept: string[] = [];
+  const dropped: string[] = [];
+  // The second step is refused the account part-way, and writes its draft without it anyway.
+  const went = await runStepsFrom(
+    steps(),
+    new Set([0, 1, 2]),
+    async (tool) => {
+      if (tool === "add_todo") refused = ACCT;
+      return [change(tool === "add_person" ? "person-1" : `${tool}-1`)];
+    },
+    {
+      before: () => (refused = null),
+      halt: () => refused,
+      keep: async (c) => (kept.push(...c.map((x) => x.id)), c),
+      discard: async (c) => void dropped.push(...c.map((x) => x.id)),
+    },
+  );
+  assert.deepEqual(went.halted, { at: 1, account_id: ACCT }, "Go stops at the refused step to ask");
+  assert.deepEqual(went.results.map((r) => r.status), ["done"], "the refused step isn't shown as done");
+  assert.deepEqual(kept, ["person-1"], "only the step before it is kept");
+  assert.deepEqual(dropped, ["add_todo-1"], "what it made without the account is discarded");
+});
+
+test("a plan's limit keeps ids only: the imported assistant and the imported skills in use", () => {
+  const A = "aaaaaaaa-1111-4111-8111-000000000001";
+  const S = "bbbbbbbb-2222-4222-8222-000000000002";
+  assert.equal(planLimit(null, []), null, "nothing imported: no limit");
+  assert.deepEqual(planLimit(null, [S, S]), { skill_ids: [S] });
+  assert.deepEqual(planLimit(A, [S]), { assistant_id: A, skill_ids: [S] });
+  assert.deepEqual(cleanLimit({ assistant_id: A }), { assistant_id: A }, "a plan kept before skills were recorded reads as it was");
+  assert.equal(cleanLimit({ assistant_id: "not an id", skill_ids: ["nor this"] }), null);
 });
 
 test("Undo all goes newest first, and one refusal doesn't stop the rest", async () => {

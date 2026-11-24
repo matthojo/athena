@@ -100,7 +100,7 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
       return (await savePlan([{ label: step.label, tool: step.tool, input: step.input, stands_for: randomUUID() }], { source: "routine" })).id;
     },
     async goPlan(planId, ctx, ticked) {
-      const [{ goPlan }, { runPlanTool, runAssistantTool }, { logChanges }, { isDraftTool }, { randomUUID }] = await Promise.all([
+      const [{ goPlan }, { runPlanTool, runAssistantTool, applyUndo }, { logChanges }, { isDraftTool }, { randomUUID }] = await Promise.all([
         import("./ask-plans"),
         import("./assistant"),
         import("./ask-activity"),
@@ -113,7 +113,7 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
         if (!ports.gmail) throw new AthenaInputError(NO_DRAFT_ACCOUNT);
         return draftChanges(await runAssistantTool(tool, input, { ...ports, now: now(), tz }), randomUUID);
       };
-      const went = await goPlan(planId, ticked, { run, log: (changes, c) => logChanges(changes, flowActivity(c, ctx)) });
+      const went = await goPlan(planId, ticked, { run, log: (changes, c) => logChanges(changes, flowActivity(c, ctx)), undo: (c) => applyUndo(c.undo, ports) });
       return changesOf(went.plan.ran?.results ?? null);
     },
     async dropPlan(planId) {

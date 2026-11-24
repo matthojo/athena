@@ -56,8 +56,8 @@ test("detection from the address alone: Maps, book shops, film sites", () => {
   assert.equal(detectFromUrl("https://maps.app.goo.gl/AbCdEf123")?.type, "place");
   assert.deepEqual(detectFromUrl("https://maps.apple.com/?q=Barbican&ll=51.52,-0.09"), { type: "place", facts: { name: "Barbican" } });
   // A book's ASIN is its ISBN-10; anything else on Amazon is a product.
-  assert.deepEqual(detectFromUrl("https://www.amazon.co.uk/Lapvona-Ottessa-Moshfegh/dp/1787333264/ref=sr_1_1"), { type: "book", facts: { isbn: "1787333264" } });
-  assert.deepEqual(detectFromUrl("https://www.amazon.co.uk/dp/B0CHX1W1XY"), { type: "product", facts: { shop: "Amazon" } });
+  assert.deepEqual(detectFromUrl("https://www.amazon.co.uk/Sample-Book-Title/dp/123456789X/ref=sr_1_1"), { type: "book", facts: { isbn: "123456789X" } });
+  assert.deepEqual(detectFromUrl("https://www.amazon.co.uk/dp/B0EXAMPLE1"), { type: "product", facts: { shop: "Amazon" } });
   assert.deepEqual(detectFromUrl("https://uk.bookshop.org/p/books/lapvona-ottessa-moshfegh/7140373?ean=9781787333260"), { type: "book", facts: {} });
   assert.equal(detectFromUrl("https://openlibrary.org/works/OL27448W")?.type, "book");
   assert.equal(detectFromUrl("https://www.themoviedb.org/tv/136315-the-bear")?.type, "show");

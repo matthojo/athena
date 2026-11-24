@@ -1771,21 +1771,32 @@ contracts between slices, is `docs/team.md`.
     `cantWorkNote` ("Dot can't work without Linear.", from `unmetNeeds` and
     `cantWorkWords` in `lib/shared-limits.ts`). The "Always asks first" rows
     take their words from `ASKS_FIRST_TOOLS`.
-  - **Go on an imported assistant's plan.** `runAsk` saves the plan with
-    `limit: { assistant_id }` when an imported assistant proposed it.
-    `goPlan` (`lib/ask-plans.ts`) runs its steps under `underGoLimit`: the
-    step runners' ports go through `limitedForGo` (strict `scopedPorts`, where
-    a look is refused too and the refused account is recorded). A step
-    that was refused and made nothing stops Go before it: the payload keeps
+  - **Go on a plan an imported item limits.** `runAsk` saves the plan with
+    `limit: { assistant_id?, skill_ids? }` (`planLimit`): the imported
+    assistant answering, and the imported skills that limited the turn
+    (`AccountScope.skills`, recorded by `limitForSkill`). `goPlan`
+    (`lib/ask-plans.ts`) works out who still holds it (`holders`: each still
+    imported, or removed) and runs its steps under `underGoLimit` with all of
+    their ticks: the step runners' ports go through `limitedForGo` (strict
+    `scopedPorts`, where a look is refused too and the refused account is
+    recorded). Steps run unlogged (`runStepsFrom`); one that wasn't refused
+    is logged (`keep`), and one that was refused stops Go before it however
+    it ended, and what it made is undone through `GoDeps.undo` (`discard`,
+    `applyUndo`) and never logged or shown. Then the payload keeps
     `paused` (the step, the account, the ticks and the results so far),
     `ran_at` goes back to NULL so it still counts as waiting, and the card
-    carries `needs_account`. `POST /api/assistant/plan` with `account`
-    (`once`, `always` or `skip`) carries on from that step (`carryOn`): once
-    adds the account to this Go's scope only, always ticks it for the
-    assistant, skip leaves the step out. Go and an answer claim the plan by
+    carries `needs_account`, with `skill` when an imported skill refused the
+    account (`refuser`: a skill is named before the assistant).
+    `POST /api/assistant/plan` with `account` (`once`, `always` or `skip`)
+    carries on from that step (`carryOn`): once adds the account to this
+    Go's scope only, always ticks it for the assistant (refused when a skill
+    refused it), skip leaves the step out. Go and an answer claim the plan by
     the sealed payload they read. The app draws the question in
-    `accountAskEl` (`views/ask.ts`); sample mode's imported Dot leaves such a
-    plan on Run now (`sampleLimits` in `db/sample-ask-plans.ts`).
+    `accountAskEl` (`views/ask.ts`): for a skill, Just this once, Skip it and
+    a link to `#/settings/skills/<id>`. In sample mode, imported Dot leaves
+    such a plan on Run now, and a plan request with the imported Deal notes
+    skill picked with "/" leaves one held by the skill (`sampleSkillPlan`;
+    both through `sampleLimits` in `db/sample-ask-plans.ts`).
   - **Sample mode** checks, previews and imports in the app against the sample
     team and people; a download there is `assistant.json` alone.
   - **The catalogue** is a separate GitHub repository; Athena only reads

@@ -29,7 +29,7 @@ import {
 } from "./trackers";
 
 const NOW = new Date("2026-11-16T12:00:00Z");
-const ITEM = { id: "5a3e0000-0000-4000-8000-000000000001", name: "LEGO Technic Ferrari", url: "https://www.lego.com/ferrari", currency: "GBP" };
+const ITEM = { id: "5a3e0000-0000-4000-8000-000000000001", name: "Racing car kit", url: "https://shop.example.com/racing-car-kit", currency: "GBP" };
 
 const tracker = (t: Partial<Tracker> & Pick<Tracker, "kind" | "direction" | "label">): Tracker => ({
   id: "t1",
@@ -115,60 +115,60 @@ test("words: the page's digits with the prefix or suffix, never rounded", () => 
   assert.equal(valueWords(STOCK, "in stock"), "in stock");
 });
 
-test("a price: saved at £42, cheaper at Smyths, a stale shop doesn't count as now", () => {
+test("a price: saved at £42, cheaper at Toy Barn, a stale shop doesn't count as now", () => {
   const points = [
-    point("42", "10-07", { checked_by: "save", source: "LEGO" }),
-    point("29", "10-10", { source: "Argos" }),
-    point("36", "11-10", { source: "Smyths" }),
-    point("34", "11-14", { source: "Smyths" }),
+    point("42", "10-07", { checked_by: "save", source: "Brick & Co" }),
+    point("29", "10-10", { source: "Deal Depot" }),
+    point("36", "11-10", { source: "Toy Barn" }),
+    point("34", "11-14", { source: "Toy Barn" }),
   ];
   const s = summarise(PRICE, points, { now: NOW })!;
-  assert.equal(s.now.value, "34", "Argos was checked more than 14 days before the newest");
+  assert.equal(s.now.value, "34", "Deal Depot was checked more than 14 days before the newest");
   assert.equal(s.best!.value, "29");
   assert.equal(s.first.checked_by, "save");
   assert.equal(s.fresh, true);
   assert.equal(s.checks, 4);
   assert.equal(s.sources, 3);
   const view = trackerView(PRICE, points, { now: NOW });
-  assert.equal(trackerSentence(view, { tz: "Europe/London", now: NOW })!.text, "£34 at Smyths, £8 under the saved price. The lowest was £29 on 10 Oct.");
+  assert.equal(trackerSentence(view, { tz: "Europe/London", now: NOW })!.text, "£34 at Toy Barn, £8 under the saved price. The lowest was £29 on 10 Oct.");
   assert.equal(trackerDetail(view, { tz: "Europe/London", now: NOW }), "Saved at £42 on 7 Oct · 4 checks at 3 shops");
-  assert.deepEqual(priceNowOf(PRICE, points), { amount: "34", currency: "GBP", shop: "Smyths" });
+  assert.deepEqual(priceNowOf(PRICE, points), { amount: "34", currency: "GBP", shop: "Toy Barn" });
   assert.equal(priceNowOf(PRICE, [points[0]]), null, "only the saved price: the list keeps it");
   // The lowest since it was saved.
-  const low = trackerView(PRICE, [points[0], point("34", "11-14", { source: "Smyths" })], { now: NOW });
-  assert.equal(trackerSentence(low, { now: NOW })!.text, "£34 at Smyths, the lowest since you saved it.");
-  assert.equal(trackerSentence(trackerView(PRICE, [points[0]]), { now: NOW })!.text, "£42 at LEGO, the price when you saved it.");
-  const dearer = trackerView(PRICE, [points[0], point("45", "11-14", { source: "LEGO" })], { now: NOW });
-  assert.equal(trackerSentence(dearer, { now: NOW })!.text, "£45 at LEGO, £3 more than when you saved it.");
+  const low = trackerView(PRICE, [points[0], point("34", "11-14", { source: "Toy Barn" })], { now: NOW });
+  assert.equal(trackerSentence(low, { now: NOW })!.text, "£34 at Toy Barn, the lowest since you saved it.");
+  assert.equal(trackerSentence(trackerView(PRICE, [points[0]]), { now: NOW })!.text, "£42 at Brick & Co, the price when you saved it.");
+  const dearer = trackerView(PRICE, [points[0], point("45", "11-14", { source: "Brick & Co" })], { now: NOW });
+  assert.equal(trackerSentence(dearer, { now: NOW })!.text, "£45 at Brick & Co, £3 more than when you saved it.");
 });
 
 test("a price target: set, and reached by the best price now; the lowest moves to the quieter line", () => {
   const t = { ...PRICE, target: { op: "lte" as const, value: "30", set_by: "owner" as const, assistant_id: null, set_at: "2026-11-01T00:00:00Z" } };
-  const set = trackerView(t, [point("42", "10-07", { checked_by: "save", source: "LEGO" }), point("29", "10-25", { source: "Argos" }), point("34", "11-14", { source: "Smyths" })], { now: NOW });
+  const set = trackerView(t, [point("42", "10-07", { checked_by: "save", source: "Brick & Co" }), point("29", "10-25", { source: "Deal Depot" }), point("34", "11-14", { source: "Toy Barn" })], { now: NOW });
   assert.equal(set.summary!.target_reached, false);
-  assert.equal(trackerSentence(set, { now: NOW })!.text, "£34 at Smyths. You asked to hear at £30 or less.");
+  assert.equal(trackerSentence(set, { now: NOW })!.text, "£34 at Toy Barn. You asked to hear at £30 or less.");
   assert.equal(trackerDetail(set, { now: NOW }), "Lowest £29 on 25 Oct · Saved at £42 on 7 Oct · 3 checks at 3 shops");
-  const reached = trackerView(t, [...set.points, point("27", "11-15", { source: "John Lewis" })], { now: NOW });
+  const reached = trackerView(t, [...set.points, point("27", "11-15", { source: "Hollis & Hart" })], { now: NOW });
   assert.equal(reached.summary!.target_reached, true);
-  assert.equal(trackerSentence(reached, { now: NOW })!.text, "£27 at John Lewis, under the £30 you asked for.");
+  assert.equal(trackerSentence(reached, { now: NOW })!.text, "£27 at Hollis & Hart, under the £30 you asked for.");
 });
 
 test("stock: a state; any change is news, and its target is being in stock", () => {
-  const before = [point("sold out", "11-01", { source: "Smyths" })];
-  const back = point("in stock", "11-12", { source: "Smyths" });
+  const before = [point("sold out", "11-01", { source: "Toy Barn" })];
+  const back = point("in stock", "11-12", { source: "Toy Barn" });
   const news = newsFor(STOCK, before, back);
   assert.deepEqual(news, { best: false, changed: true, target_reached: false });
   assert.equal(isNews(STOCK, news), true);
   assert.equal(isNews(STOCK, newsFor(STOCK, [back], point("in stock", "11-13"))), false, "the same state again is only kept");
-  assert.equal(checkDetail(STOCK, back, news, "sold out"), "Stock checked · In stock at Smyths · Was sold out");
+  assert.equal(checkDetail(STOCK, back, news, "sold out"), "Stock checked · In stock at Toy Barn · Was sold out");
   const view = trackerView(STOCK, [...before, back], { now: NOW });
   assert.equal(view.summary!.best, null);
   assert.equal(view.summary!.changed_at, back.checked_at);
-  assert.equal(trackerSentence(view, { now: NOW })!.text, "In stock at Smyths, since 12 Nov. It was sold out before.");
+  assert.equal(trackerSentence(view, { now: NOW })!.text, "In stock at Toy Barn, since 12 Nov. It was sold out before.");
   const waiting = { ...STOCK, target: { op: "eq" as const, value: "in stock", set_by: "owner" as const, assistant_id: null, set_at: "2026-11-01T00:00:00Z" } };
   assert.equal(newsFor(waiting, before, back).target_reached, true);
-  assert.equal(trackerSentence(trackerView(waiting, before, { now: NOW }), { now: NOW })!.text, "Sold out at Smyths. You asked to hear when it's in stock.");
-  assert.equal(trackerSentence(trackerView(waiting, [...before, back], { now: NOW }), { now: NOW })!.text, "In stock at Smyths. You asked to hear when it was.");
+  assert.equal(trackerSentence(trackerView(waiting, before, { now: NOW }), { now: NOW })!.text, "Sold out at Toy Barn. You asked to hear when it's in stock.");
+  assert.equal(trackerSentence(trackerView(waiting, [...before, back], { now: NOW }), { now: NOW })!.text, "In stock at Toy Barn. You asked to hear when it was.");
 });
 
 test("followers, higher is better: a new high is news, a dip is only kept; a target at or over", () => {
@@ -198,7 +198,7 @@ test("a number followed for any change: up or down is news", () => {
 });
 
 test("what the model reads, and the run's prompt line", () => {
-  const pts = [point("42", "10-07", { checked_by: "save", source: "LEGO" }), point("34", "11-14", { source: "Smyths", checked_by: "assistant", who: "Moss", assistant_id: "a1" })];
+  const pts = [point("42", "10-07", { checked_by: "save", source: "Brick & Co" }), point("34", "11-14", { source: "Toy Barn", checked_by: "assistant", who: "Moss", assistant_id: "a1" })];
   const t = { ...PRICE, id: "t9", target: { op: "lte" as const, value: "30", set_by: "owner" as const, assistant_id: null, set_at: "2026-11-01T00:00:00Z" } };
   const facts = trackerFacts(trackerView(t, pts, { now: NOW }), { now: NOW, tz: "Europe/London" }) as unknown as { tracker_id: string; better: string; target: unknown; now: { value: string }; points: Array<{ by: string }> };
   assert.equal(facts.tracker_id, "t9");
@@ -206,33 +206,33 @@ test("what the model reads, and the run's prompt line", () => {
   assert.deepEqual(facts.target, { wants: "£30 or less", op: "lte", value: "30", reached: false });
   assert.equal(facts.now.value, "£34");
   assert.equal(facts.points.at(-1)!.by, "Moss");
-  assert.equal(trackerPromptLine(trackerView(t, pts), { now: NOW, tz: "Europe/London" }), "Price: last £34 at Smyths on 14 Nov; lowest £34 (14 Nov); saved at £42; you want to hear at £30 or less.");
+  assert.equal(trackerPromptLine(trackerView(t, pts), { now: NOW, tz: "Europe/London" }), "Price: last £34 at Toy Barn on 14 Nov; lowest £34 (14 Nov); saved at £42; you want to hear at £30 or less.");
   assert.equal(trackerPromptLine(trackerView({ ...STOCK, id: "s" }, [])), "Stock: no checks yet.");
 });
 
 test("several sources: a target is reached while any source's current value meets it, and says which", () => {
   const t = { ...PRICE, target: { op: "lte" as const, value: "30", set_by: "owner" as const, assistant_id: null, set_at: "2026-11-01T00:00:00Z" } };
-  const argos = point("29", "11-05", { source: "Argos" });
-  const smyths = point("34", "11-14", { source: "Smyths" });
-  const view = trackerView(t, [point("42", "10-07", { checked_by: "save", source: "LEGO" }), argos, smyths], { now: NOW });
+  const deals = point("29", "11-05", { source: "Deal Depot" });
+  const toyBarn = point("34", "11-14", { source: "Toy Barn" });
+  const view = trackerView(t, [point("42", "10-07", { checked_by: "save", source: "Brick & Co" }), deals, toyBarn], { now: NOW });
   assert.equal(view.summary!.target_reached, true, "a dearer check at another shop doesn't clear it");
-  assert.equal(view.summary!.reached_by!.id, argos.id);
-  assert.equal(trackerSentence(view, { now: NOW })!.text, "£29 at Argos, under the £30 you asked for.");
-  // Once Argos's check is more than 14 days older than the newest, it isn't current: not reached.
-  const later = trackerView(t, [...view.points, point("34", "11-25", { source: "Smyths" })], { now: NOW });
+  assert.equal(view.summary!.reached_by!.id, deals.id);
+  assert.equal(trackerSentence(view, { now: NOW })!.text, "£29 at Deal Depot, under the £30 you asked for.");
+  // Once Deal Depot's check is more than 14 days older than the newest, it isn't current: not reached.
+  const later = trackerView(t, [...view.points, point("34", "11-25", { source: "Toy Barn" })], { now: NOW });
   assert.equal(later.summary!.target_reached, false);
   assert.equal(later.summary!.reached_by, null);
   // Stock: in stock at one shop while sold out at another is reached.
   const waiting = { ...STOCK, target: { op: "eq" as const, value: "in stock", set_by: "owner" as const, assistant_id: null, set_at: "2026-11-01T00:00:00Z" } };
-  const jl = point("in stock", "11-10", { source: "John Lewis" });
-  const stock = trackerView(waiting, [jl, point("sold out", "11-12", { source: "Smyths" })], { now: NOW });
+  const jl = point("in stock", "11-10", { source: "Hollis & Hart" });
+  const stock = trackerView(waiting, [jl, point("sold out", "11-12", { source: "Toy Barn" })], { now: NOW });
   assert.equal(stock.summary!.reached_by!.id, jl.id);
   // A check kept that meets it is told with its own source.
-  const n = newsFor(t, [argos], smyths);
+  const n = newsFor(t, [deals], toyBarn);
   assert.equal(n.target_reached, false, "the dearer check itself doesn't meet it");
-  const under = point("28", "11-15", { source: "Boots" });
-  const told = trackerView(t, [argos, smyths, under], { now: NOW });
-  assert.equal(newsLine(told, under, newsFor(t, [argos, smyths], under)), "£28 at Boots, under the £30 you asked for.");
+  const under = point("28", "11-15", { source: "Corner Chemist" });
+  const told = trackerView(t, [deals, toyBarn, under], { now: NOW });
+  assert.equal(newsLine(told, under, newsFor(t, [deals, toyBarn], under)), "£28 at Corner Chemist, under the £30 you asked for.");
 });
 
 test("who checks: assistants that fit a tracker, best first", () => {

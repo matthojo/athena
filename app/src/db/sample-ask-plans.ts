@@ -8,6 +8,8 @@ import type { ActivityEntry } from "./ask-plans";
 import { SAMPLE_IDS } from "./sample-data";
 import { SAMPLE_EVENT_ID } from "./scheduling";
 import { SAMPLE_FLOW_IDS, SAMPLE_RUN_IDS } from "./sample-flows";
+import { SAMPLE_ACCOUNTS } from "./item-accounts";
+import { sampleSkillList } from "./skills";
 
 const id = (n: number) => `5a3e0000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -39,7 +41,7 @@ type StepResult = NonNullable<AskPlan["ran"]>["results"][number];
 /** One ticked step "run" in sample mode: its receipt. */
 function sampleStep(plan: AskPlan, i: number): StepResult {
   // A Team run's plan (no routine of its own) gets a receipt for its own step, not the sample plan's.
-  const c = plan.source === "routine" ? { ...RECEIPTS[2], id: id(990030 + i), title: plan.steps[i].label.replace(/^Add a to-do:\s*/i, ""), detail: "To do", label: plan.steps[i].label } : (RECEIPTS[i] ?? { ...RECEIPTS[2], id: id(990020 + i), title: plan.steps[i].label });
+  const c = plan.source === "routine" || sampleLimits.get(plan.id)?.skill ? { ...RECEIPTS[2], id: id(990030 + i), title: plan.steps[i].label.replace(/^Add a to-do:\s*/i, ""), detail: "To do", label: plan.steps[i].label } : (RECEIPTS[i] ?? { ...RECEIPTS[2], id: id(990020 + i), title: plan.steps[i].label });
   if (plan.steps[i].tool === "draft_message") {
     const what = plan.steps[i].label.replace(/^Draft (?:a |an )?/i, "");
     const title = what.charAt(0).toUpperCase() + what.slice(1);
@@ -53,7 +55,10 @@ function sampleStep(plan: AskPlan, i: number): StepResult {
  * does (lib/ask-plans.ts goPlan). team.ts registers each with a way to read and tick its assistant.
  */
 export interface SampleLimit {
+  /** Who holds it now: an imported assistant, or an imported skill (`skill`). Null once it isn't imported. */
   assistant: () => { name: string; accounts: string[] } | null;
+  /** An imported skill in use when the plan was made: no Always, and the card links to its page. */
+  skill?: { id: string };
   tick: (accountId: string) => void;
   accounts: ReadonlyArray<{ id: string; provider: string; name: string; label?: string | null }>;
 }
@@ -79,7 +84,8 @@ function sampleRun(plan: AskPlan, ticked: number[], results: StepResult[], once:
     if (limit && a && acct && ![...a.accounts, ...once].includes(acct.id)) {
       paused.set(plan.id, { ticked, results, once });
       const { ran: _ran, ...rest } = plan;
-      return { plan: { ...rest, needs_account: { step: i, account: acct.name, label: acct.label ?? null, provider, assistant: a.name, results: [...results] } }, changes: results.slice(from).flatMap((r) => r.changes) };
+      const skill = limit.skill ? { skill: { id: limit.skill.id, title: a.name } } : {};
+      return { plan: { ...rest, needs_account: { step: i, account: acct.name, label: acct.label ?? null, provider, assistant: a.name, ...skill, results: [...results] } }, changes: results.slice(from).flatMap((r) => r.changes) };
     }
     results.push(sampleStep(plan, i));
   }
@@ -102,10 +108,40 @@ export function sampleAnswerAccount(plan: AskPlan, answer: "once" | "always" | "
   const acct = sampleLimits.get(plan.id)?.accounts.find((x) => x.provider === ask.provider);
   const results = [...at.results];
   const once = [...at.once];
+  if (answer === "always" && ask.skill) throw new Error(`Tick accounts for ${ask.skill.title} on its page in Settings → Ask → Skills, or pick Just this once or Skip it.`);
   if (answer === "always" && acct) sampleLimits.get(plan.id)?.tick(acct.id);
   else if (answer === "once" && acct) once.push(acct.id);
   else if (answer === "skip") results.push({ status: "skipped", error: `You said no to ${ask.account}.`, changes: [] });
   return sampleRun(plan, at.ticked, results, once);
+}
+
+/**
+ * A plan request while an imported sample skill is in use (picked with "/"): the plan records the skill, so its Go
+ * keeps to the accounts ticked for it, as the server does. Null for a skill of the owner's own.
+ */
+export function sampleSkillPlan(skillId: string): { plan: AskPlan; used: { id: string; name: string } } | null {
+  const now = () => sampleSkillList().find((s) => s.id === skillId) ?? null;
+  const s = now();
+  if (!s?.imported || s.assistant_id) return null;
+  const plan: AskPlan = {
+    id: crypto.randomUUID(),
+    source: "ask",
+    steps: [
+      { label: "Add a to-do: send Elena the revised terms", tool: "add_todo" },
+      { label: "Draft a reply to Elena about the 30-day terms", tool: "draft_message" },
+    ],
+  };
+  sampleLimits.set(plan.id, {
+    assistant: () => {
+      const k = now();
+      return k?.imported ? { name: k.title, accounts: [...(k.accounts ?? [])] } : null;
+    },
+    skill: { id: skillId },
+    // Ticked on the skill's page only.
+    tick: () => undefined,
+    accounts: SAMPLE_ACCOUNTS,
+  });
+  return { plan, used: { id: s.id, name: s.title } };
 }
 
 /** "Every Friday at 4pm, tell me what slipped this week": the receipt for a new routine. */

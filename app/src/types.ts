@@ -928,7 +928,7 @@ export interface AskPlan {
    * Go stopped before a step that needs an account the imported assistant that proposed it isn't allowed: nothing
    * reached it, and the card asks (Just this once, Always for <assistant>, Skip it). Mirrors lib/ask-plans.ts PlanAccountAsk.
    */
-  needs_account?: { step: number; account: string; label: string | null; provider: string; assistant: string; results: Array<{ status: "done" | "skipped" | "failed"; error?: string; changes: AssistantChange[] }> };
+  needs_account?: { step: number; account: string; label: string | null; provider: string; assistant: string; skill?: { id: string | null; title: string }; results: Array<{ status: "done" | "skipped" | "failed"; error?: string; changes: AssistantChange[] }> };
 }
 
 /** Ask's start_assignment card (docs/team.md "Assignments"): the proposed lineup, and the assignment's id once Go started it. */
