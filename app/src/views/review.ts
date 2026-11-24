@@ -7,10 +7,17 @@
  * about the owner (fact suggestions about "me") is grouped under About you,
  * after the rest. A card that's answered lifts away and the next one rises
  * into its place (lib/finish-motion.ts).
+ *
+ * Finds that say the same thing apart from a date or a number (a weekly class,
+ * a reminder email that repeats) share one card, "2 similar", which opens to
+ * answer each or dismiss them all (lib/suggestion-similar.ts). A card from an
+ * email can ignore emails like it in future syncs (components/ignore-sheet.ts),
+ * and one put on the calendar with Add to calendar is done, so it leaves.
  */
 
 import { h } from "../lib/dom";
 import "../styles/profile.css";
+import "../styles/review.css";
 import { icons } from "../components/icons";
 import { showToast } from "../components/toast";
 import { confidenceLabel } from "../components/commitment-sheet";
@@ -29,6 +36,8 @@ import { bookingAsk } from "../lib/create-event";
 import { prepareCreate } from "../db/scheduling";
 import { localToday } from "../lib/time";
 import { clockOfDay } from "../lib/clock";
+import { groupSimilar } from "../../../lib/suggestion-similar";
+import { openIgnoreSheet, senderName } from "../components/ignore-sheet";
 
 /** An email or event asking to meet, talk or move something: Check in offers "Suggest times". */
 const ASKS_TO_MEET = /\b(meet(ing)?|catch[ -]?up|call|chat|sync|1:1|coffee|reschedul\w*|find a time|another time|new time|move (it|the|our)|push (it|back)|when (are|is) you free|free (on|next|this))\b|\b(grab|find|book|set up|get)\s+(a |an |some )?(\d+\s*min\w*|half an hour|hour|time)\b/i;
@@ -129,10 +138,11 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
   // follows. The save runs alongside; the list repaints once the motion is
   // over, so nothing jumps.
   let leaving: Promise<unknown> = Promise.resolve();
-  async function act(s: Suggestion, action: "accept" | "reject", card: HTMLElement, how: "tap" | "swipe" = "tap") {
-    if (card.dataset.leaving !== undefined) return;
+  /** A card (or a repeat's row) lifting away; `restore` puts it back when the save fails. */
+  function depart(card: HTMLElement, cls: "is-accepted" | "is-rejected" | "is-lifted"): { motion: Promise<unknown>; restore: () => Promise<void> } | null {
+    if (card.dataset.leaving !== undefined) return null;
     card.dataset.leaving = "";
-    card.classList.add(how === "swipe" ? (action === "accept" ? "is-accepted" : "is-rejected") : "is-lifted");
+    card.classList.add(cls);
     card.querySelectorAll("button").forEach((b) => ((b as HTMLButtonElement).disabled = true));
     const heading = emptiedHeading(card);
     const motion = (async () => {
@@ -140,10 +150,7 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
       await Promise.all([collapse(card), heading ? collapse(heading) : null]);
     })();
     leaving = Promise.all([leaving, motion]);
-    try {
-      await resolveSuggestion(s, action);
-      showToast(action === "accept" ? ADDED[s.op] : "Dismissed", { icon: action === "accept" ? "check" : "close" });
-    } catch (error) {
+    const restore = async () => {
       await motion;
       delete card.dataset.leaving;
       card.classList.remove("is-accepted", "is-rejected", "is-lifted");
@@ -152,8 +159,45 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
       card.querySelectorAll("button").forEach((b) => ((b as HTMLButtonElement).disabled = false));
       if (heading) void expand(heading);
       void expand(card);
-      showToast(error instanceof Error ? error.message : "Couldn't save that", { icon: "wifiOff", timeoutMs: 4000 });
+    };
+    return { motion, restore };
+  }
+
+  const failed = (error: unknown) => showToast(error instanceof Error ? error.message : "Couldn't save that", { icon: "wifiOff", timeoutMs: 4000 });
+
+  async function act(s: Suggestion, action: "accept" | "reject" | "done", card: HTMLElement, how: "tap" | "swipe" = "tap") {
+    const going = depart(card, how === "swipe" ? (action === "accept" ? "is-accepted" : "is-rejected") : "is-lifted");
+    if (!going) return;
+    try {
+      await resolveSuggestion(s, action);
+      if (action === "done") showToast("On your calendar, and off your Inbox", { icon: "check" });
+      else showToast(action === "accept" ? ADDED[s.op] : "Dismissed", { icon: action === "accept" ? "check" : "close" });
+    } catch (error) {
+      await going.restore();
+      failed(error);
     }
+  }
+
+  /** "Dismiss all": the card and every repeat it holds. */
+  async function dismissAll(group: Suggestion[], card: HTMLElement) {
+    const going = depart(card, "is-lifted");
+    if (!going) return;
+    const results = await Promise.allSettled(group.map((s) => resolveSuggestion(s, "reject")));
+    const done = results.filter((r) => r.status === "fulfilled").length;
+    if (done === group.length) showToast(`Dismissed ${done}`, { icon: "close" });
+    else {
+      await going.restore();
+      failed(results.find((r): r is PromiseRejectedResult => r.status === "rejected")?.reason);
+    }
+  }
+
+  async function ignore(s: Suggestion, group: Suggestion[], card: HTMLElement) {
+    const out = await openIgnoreSheet(s, group.length - 1);
+    if (!out) return;
+    depart(card, "is-lifted");
+    const n = out.dismissed.length;
+    const where = out.accounts.length === 1 ? out.accounts[0] : `${out.accounts.length} accounts`;
+    showToast(`Ignored on ${where}. ${n} cleared from your Inbox`, { icon: "check" });
   }
 
   /** A group heading whose cards are all leaving once this one goes. */
@@ -172,7 +216,25 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
     return head;
   }
 
-  function card(s: Suggestion): HTMLElement {
+  /** Which find each card stands for: the keyboard answers the top one. */
+  const cardFor = new WeakMap<Element, Suggestion>();
+
+  /** A repeat inside a card's "similar" list: its own Add and Not right. */
+  function repeatRow(r: Suggestion): HTMLElement {
+    const add = h("button", { class: "btn btn--soft btn--sm", type: "button", "aria-label": `Add it: ${r.summary}` }, "Add");
+    const no = h("button", { class: "btn btn--ghost btn--sm", type: "button", "aria-label": `Not right: ${r.summary}` }, "Not right");
+    const row = h(
+      "li",
+      { class: "suggestion__repeat" },
+      h("span", { class: "suggestion__repeat-text" }, h("span", { class: "suggestion__repeat-summary" }, r.summary), h("span", { class: "suggestion__repeat-when" }, relativeTime(r.created_at))),
+      h("span", { class: "suggestion__repeat-actions" }, no, add)
+    );
+    add.addEventListener("click", () => void act(r, "accept", row));
+    no.addEventListener("click", () => void act(r, "reject", row));
+    return row;
+  }
+
+  function card(s: Suggestion, others: Suggestion[] = []): HTMLElement {
     const meta = SUGGESTION_META[s.op];
     const src = describeSource(s.source ?? null);
     const accept = h("button", { class: "btn btn--primary", type: "button" }, icons.check(), "Add it");
@@ -183,10 +245,30 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
     // A booking or an appointment (a table, the dentist, a class): add it, prefilled, with no one invited.
     const booking = meet ? null : bookingAsk(s, localToday(), (date, time) => zonedInstant(date, time, Intl.DateTimeFormat().resolvedOptions().timeZone));
     const addCal = booking ? h("button", { class: "btn btn--soft suggestion__times", type: "button" }, icons.calendar(), "Add to calendar") : null;
-    addCal?.addEventListener("click", () => {
+    // On the calendar is done: the card leaves once the sheet closes (unless Undo took the event back off).
+    addCal?.addEventListener("click", async () => {
       const { known: _known, ...input } = booking!;
-      void openCreateSheet(prepareCreate(input), { receiptInSheet: true, label: `Add to calendar: ${s.summary}` });
+      const added = await openCreateSheet(prepareCreate(input), { receiptInSheet: true, label: `Add to calendar: ${s.summary}` });
+      if (added) void act(s, "done", c);
     });
+    const group = [s, ...others];
+    const fromEmail = !!s.email || src.name === "Email digest";
+    const ignoreBtn = fromEmail ? h("button", { class: "suggestion__tool", type: "button" }, icons.mail(), "Ignore emails like this") : null;
+    ignoreBtn?.addEventListener("click", () => void ignore(s, group, c));
+    const repeats = others.length ? h("ul", { class: "suggestion__repeats", id: `similar-${s.id}`, hidden: true }, ...others.map(repeatRow)) : null;
+    const all = others.length ? h("button", { class: "btn btn--ghost btn--sm suggestion__dismiss-all", type: "button" }, icons.close(), `Dismiss all ${group.length}`) : null;
+    all?.addEventListener("click", () => void dismissAll(group, c));
+    const similar = others.length
+      ? h("button", { class: "suggestion__tool suggestion__similar", type: "button", "aria-expanded": "false", "aria-controls": `similar-${s.id}` }, icons.copy(), `${others.length} similar`, icons.chevronDown())
+      : null;
+    similar?.addEventListener("click", () => {
+      const open = similar.getAttribute("aria-expanded") !== "true";
+      similar.setAttribute("aria-expanded", String(open));
+      repeats!.hidden = !open;
+      all!.hidden = !open;
+    });
+    if (all) all.hidden = true;
+    const tools = similar || ignoreBtn ? h("div", { class: "suggestion__tools" }, similar, ignoreBtn) : null;
     const c = h(
       "article",
       { class: "card suggestion", "data-op": s.op, "data-flip": `s:${s.id}`, tabindex: -1, "aria-label": s.summary },
@@ -206,15 +288,19 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
         { class: "suggestion__source" },
         icons.sparkle(),
         h("span", {}, `From ${src.name}${src.label ? ` · ${src.label}` : ""}`),
+        s.email ? h("span", { class: "suggestion__sender", title: s.email.subject || undefined }, senderName(s.email.from)) : null,
         typeof s.confidence === "number" ? h("span", { class: "provenance__confidence", title: confidenceLabel(s.confidence) }, sureness(s.confidence)) : null
       ),
-      h("footer", { class: "suggestion__actions" }, suggest ?? addCal, reject, accept),
+      tools,
+      repeats,
+      h("footer", { class: "suggestion__actions" }, all, suggest ?? addCal, reject, accept),
       h("span", { class: "suggestion__stamp suggestion__stamp--add", "aria-hidden": "true" }, icons.check(), "Add"),
       h("span", { class: "suggestion__stamp suggestion__stamp--skip", "aria-hidden": "true" }, icons.close(), "Dismiss")
     );
     accept.addEventListener("click", () => void act(s, "accept", c));
     reject.addEventListener("click", () => void act(s, "reject", c));
     swipeable(c, (dir) => void act(s, dir === "right" ? "accept" : "reject", c, "swipe"));
+    cardFor.set(c, s);
     return c;
   }
 
@@ -243,9 +329,9 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
       h("div", { class: "group__head review__group", "data-flip": `head:${id}` }, h("h2", { class: "group__label", id }, title), h("span", { class: "page-count" }, String(n)));
     show(
       ...(mine.length && rest.length ? [head("review-rest", "Found in your sources", rest.length)] : []),
-      ...rest.map(card),
+      ...groupSimilar(rest).map(([lead, ...others]) => card(lead, others)),
       ...(mine.length ? [head("review-about", "About you", mine.length)] : []),
-      ...mine.map(card),
+      ...groupSimilar(mine).map(([lead, ...others]) => card(lead, others)),
       h("p", { class: "review__hint" }, "On a keyboard: A adds the top card, R dismisses it.")
     );
   }
@@ -264,7 +350,7 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
     const t = e.target as HTMLElement | null;
     if (t && (t.matches("input, textarea, select") || t.isContentEditable)) return;
     const first = stack.querySelector<HTMLElement>(".suggestion:not([data-leaving])");
-    const s = items[[...stack.querySelectorAll(".suggestion")].indexOf(first as Element)];
+    const s = first ? cardFor.get(first) : undefined;
     if (!first || !s) return;
     if (e.key === "a") act(s, "accept", first);
     else if (e.key === "r") act(s, "reject", first);

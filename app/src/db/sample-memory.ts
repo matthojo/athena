@@ -335,6 +335,19 @@ export function sampleSuggestions(): Suggestion[] {
       source_quote: "Your table for 4 at Dishoom King's Cross is booked. We'll hold it for 15 minutes.",
       confidence: 0.86,
     }, 0.15),
+    // A weekly class email: three finds alike but for the date, shown as one card with "2 similar".
+    ...[5, 12, 19].map((ahead, i) =>
+      s(12 + i, {
+        op: "event",
+        summary: `Appointment: Spin class at Northfield Leisure · ${addDays(today, ahead)}`,
+        payload: { title: "Spin class at Northfield Leisure", kind: "appointment", date: addDays(today, ahead), time: "07:00", location: "Northfield Leisure Centre" },
+        source: "email-digest-personal",
+        source_ref: null,
+        source_quote: "Your spin class is booked for 7am. Please arrive ten minutes early.",
+        confidence: 0.62,
+        email: { from: "Northfield Leisure <bookings@mail.northfield.example>", subject: "Your spin class is booked", connector_id: null },
+      }, 0.4 + i * 7)
+    ),
     s(4, {
       op: "interaction",
       summary: "You saw Tom at the residents' meeting",
