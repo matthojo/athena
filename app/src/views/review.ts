@@ -189,10 +189,10 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
         return failed(error);
       }
     }
-    const all = group.length > 1 ? ` (all ${group.length})` : "";
-    if (action === "done") showToast(`On your calendar, and off your Inbox${all}`, { icon: "check" });
-    else if (action === "accept") showToast(`${ADDED[lead.op]}${group.length > 1 ? " once" : ""}${all}`, { icon: "check" });
-    else showToast(`Dismissed${all}`, { icon: "close" });
+    const cleared = group.length > 1 ? `. All ${group.length} cleared from your Inbox` : "";
+    if (action === "done") showToast(`Added to your calendar${cleared}`, { icon: "check" });
+    else if (action === "accept") showToast(`${ADDED[lead.op]}${cleared}`, { icon: "check" });
+    else showToast(group.length > 1 ? `Dismissed all ${group.length}` : "Dismissed", { icon: "close" });
   }
 
   async function ignore(s: Suggestion, group: Suggestion[], card: HTMLElement) {
@@ -200,8 +200,8 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
     if (!out) return;
     depart(card, "is-lifted");
     const n = out.dismissed.length;
-    const where = out.accounts.length === 1 ? out.accounts[0] : `${out.accounts.length} accounts`;
-    showToast(`Ignored on ${where}. ${n} cleared from your Inbox`, { icon: "check" });
+    const where = out.accounts.length === 1 ? `${out.accounts[0]}'s email rules` : `the email rules on ${out.accounts.length} accounts`;
+    showToast(`Added to ${where}. ${n} cleared from your Inbox`, { icon: "check" });
   }
 
   /** A group heading whose cards are all leaving once this one goes. */

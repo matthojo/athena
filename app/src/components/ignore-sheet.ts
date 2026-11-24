@@ -32,7 +32,7 @@ export function openIgnoreSheet(s: Suggestion, repeats: number): Promise<IgnoreO
     type Option = { id: string; label: string; detail?: string; rule: () => IgnoreRule | null; field?: HTMLInputElement };
     const options: Option[] = [];
     if (choices.sender) options.push({ id: "sender", label: `From ${choices.sender}`, detail: s.email ? senderName(s.email.from) : undefined, rule: () => ({ kind: "sender", value: choices.sender! }) });
-    if (choices.domain) options.push({ id: "domain", label: `From anyone at ${choices.domain}`, detail: "Every address there, and its subdomains", rule: () => ({ kind: "sender", value: choices.domain! }) });
+    if (choices.domain) options.push({ id: "domain", label: `From anyone at ${choices.domain}`, detail: "Every address at this domain, including subdomains", rule: () => ({ kind: "sender", value: choices.domain! }) });
     // No email recorded (a find from before Athena kept it): the owner types who it was from.
     if (!choices.sender) {
       const from = input("text", "", { placeholder: "name@shop.example or shop.example", "aria-label": "Sender to skip", autocomplete: "off", inputmode: "email" });
@@ -73,7 +73,7 @@ export function openIgnoreSheet(s: Suggestion, repeats: number): Promise<IgnoreO
         h(
           "p",
           { class: "move-sheet__sub" },
-          `Athena stops reading them on this email account. ${repeats ? `This card (all ${repeats + 1})` : "This card"} leaves your Inbox, with anything else the rule catches. Change it any time in Settings, under the account's email rules.`
+          `Future syncs skip them on this email account. ${repeats ? `All ${repeats + 1} on this card leave` : "This card leaves"} your Inbox, along with anything else the rule matches. You can change this in Settings, under the account's email rules.`
         ),
         email,
         h("div", { class: "ignore-sheet__choices", role: "radiogroup", "aria-labelledby": "ignore-ask" }, ...rows),
