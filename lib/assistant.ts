@@ -66,7 +66,8 @@ import { SCHEDULING_GUIDANCE, SCHEDULING_TOOLS, SCHEDULING_TOOL_NAMES, runSchedu
 import { applyCreateUndo, applyMoveUndo, isCreateUndo, isMoveUndo, type MoveUndo, type SchedulingPort } from "./scheduling";
 import type { CalendarPort } from "./rsvp";
 import type { ConfirmCard } from "./assistant-confirm";
-import { isCollected } from "./ask-guard";
+import { isCollected, needsOwnersGo } from "./ask-guard";
+import { underOwnersGo } from "./run-links";
 import { RECIPE_GUIDANCE, RECIPE_TOOLS, RECIPE_TOOL_NAMES, applyRecipeUndo, isRecipeUndo, runRecipeTool, type RecipeUndo } from "./assistant-recipes";
 import { DOCUMENT_GUIDANCE, DOCUMENT_TOOLS, DOCUMENT_TOOL_NAMES, applyDocumentUndo, isDocumentUndo, runDocumentTool, type DocumentUndo } from "./assistant-documents";
 import {
@@ -1312,7 +1313,10 @@ export class Session {
     }
     // Planning: anything that would change something is kept for Go, not run (lib/ask-plans.ts). The tools that
     // only prepare a confirm card (lib/assistant-confirm.ts) run as they are: they wait for a tap of their own.
-    const queued = WAITS_FOR_TAP.has(name) || this.allow?.has(name) ? null : this.draft?.offer(name, input);
+    // A link a model chose for a tracker always waits for the owner's Go, allowlisted or not (lib/ask-guard.ts
+    // needsOwnersGo). Under their Go it's theirs; anywhere else it's kept as the model's, and no run opens it.
+    const mustGo = needsOwnersGo(name, input) && !underOwnersGo();
+    const queued = WAITS_FOR_TAP.has(name) || (this.allow?.has(name) && !mustGo) ? null : this.draft?.offer(name, input);
     if (queued) {
       this.queued = this.draft!.steps[this.draft!.steps.length - 1].label;
       return queued;

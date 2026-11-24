@@ -29,6 +29,8 @@ import { sealText } from "./data-box";
 import type { Anthropic } from "./ai";
 import type { Change } from "./assistant";
 import { assistantStepStart, stepActs } from "./steps";
+import { needsOwnersGo } from "./ask-guard";
+import { asOwnersGo, modelLink } from "./run-links";
 import type { ActivityContext, ActivityEntry } from "./ask-activity";
 
 /** Tools that change nothing until the owner taps something of their own, or only look: they run as they are while planning. */
@@ -71,9 +73,9 @@ export interface PlanCard {
   /**
    * Why even one change is waiting here rather than made (lib/ask-guard.ts): the turn had read other people's
    * words (an account's item, a web page, a file) and the owner's message didn't plainly ask for it, or
-   * something it read was flagged as an instruction.
+   * something it read was flagged as an instruction, or it sets a tracker link a model chose (lib/run-links.ts).
    */
-  why?: "read" | "flagged";
+  why?: "read" | "flagged" | "link";
   /** After Go: when, and each step's outcome in order. */
   ran?: { at: string; results: StepResult[] };
 }
@@ -100,8 +102,17 @@ const clip = (s: string, n = 80) => {
   return t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t;
 };
 
-/** A step's line: the model's own, else the running line the app shows for that tool ("Adding a to-do"). */
+/**
+ * A step's line: the model's own, else the running line the app shows for that tool ("Adding a to-do"). A tracker
+ * link a model chose is shown whole with its host, in Athena's words, never the model's: the owner's Go approves it.
+ */
 export function stepLabel(name: string, input: unknown): string {
+  if (needsOwnersGo(name, input)) {
+    const link = modelLink((input as { url?: unknown }).url);
+    const start = clip(assistantStepStart(name, input) ?? "Starting to track it");
+    if (!link) return start;
+    return `${start} on ${new URL(link).hostname}, checking ${link}`;
+  }
   const own = input && typeof input === "object" ? (input as { step?: unknown }).step : undefined;
   if (typeof own === "string" && own.trim()) return clip(own);
   return clip(assistantStepStart(name, input) ?? "Make a change");
@@ -338,7 +349,8 @@ export async function goPlan(id: unknown, tickedRaw: unknown, deps: GoDeps): Pro
   }
   // A routine plan with no routine is a Team run's (lib/team-chat.ts): What Ask did shows it as the team's, like the run's own changes.
   const ctx: ActivityContext = { source: plan.source === "routine" ? (plan.routine_id ? "routine" : "team") : "plan", thread_id: plan.thread_id, plan_id: plan.id, routine_id: plan.routine_id };
-  const results = await runSteps(plan.steps, ticked, async (tool, input) => deps.log(await deps.run(tool, input), ctx));
+  // The owner's Go: what a step sets is theirs, a tracker's link too (lib/run-links.ts).
+  const results = await asOwnersGo(() => runSteps(plan.steps, ticked, async (tool, input) => deps.log(await deps.run(tool, input), ctx)));
   const [row] = await q<Row>(
     `UPDATE ask_plans SET payload = $2 WHERE id = $1::uuid RETURNING id, source, thread_id, routine_id, payload, created_at, ran_at`,
     [plan.id, sealText(JSON.stringify({ steps: plan.steps, results } satisfies Payload))],

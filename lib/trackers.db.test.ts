@@ -264,11 +264,11 @@ const opened = (id: string, link: string, title: string, text: string): Block[] 
 ];
 const keep = (id: string, input: Record<string, unknown>): Block => ({ type: "tool_use", id, name: "record_value", input });
 
-test("followers: an assistant tracks them on their own; its run opens the link, a new high is told first, the same count again is quiet", { skip }, async () => {
+test("followers: an assistant tracks them on their own; its link waits for the owner, then its run opens it, a new high is told first, the same count again is quiet", { skip }, async () => {
   const { createAssistant } = await import("./team");
   const { runAssistantTurn } = await import("./team-chat");
   const { runWords } = await import("./team-run");
-  const { asTrackerChecker, getTracker, listTrackers } = await import("./trackers-store");
+  const { asTrackerChecker, getTracker, listTrackers, updateTracker } = await import("./trackers-store");
   const { applyUndo } = await import("./assistant");
   const wren = await createAssistant({ name: "Wren", job: "Keeps an eye on my channel", web: true, triggers: [{ kind: "schedule", days: [1], time: "09:00" }] });
   const s = await session();
@@ -284,6 +284,17 @@ test("followers: an assistant tracks them on their own; its run opens the link, 
   // A target, at or over by default for higher-is-better.
   assert.equal((await run(s, "set_tracker_target", { tracker_id: t.id, value: "13000" })).done !== undefined, true);
   assert.equal((await getTracker(t.id))!.target!.op, "gte");
+
+  // The link is the assistant's choice, not the owner's: kept as hers, and a run isn't given it to open.
+  assert.deepEqual([t.url_set_by, t.run_url], ["assistant", null]);
+  const m0 = scripted([[answer({ text: "Nothing to check yet.", sources: [] })]]);
+  await runAssistantTurn(wren.id, "Every Monday at 09:00: do your job.", { mode: "run", client: m0.client, now: new Date("2026-11-16T09:00:00Z"), shown: "Every Monday at 09:00", noMemory: true });
+  const before0 = JSON.stringify(m0.sent[0].messages);
+  assert.ok(before0.includes(`Tracker ${t.id}: My channel`), "the tracker is in the run's message");
+  assert.ok(!before0.includes(CHANNEL) && !before0.includes("Link:"), "with no link it may open: it looks it up by name");
+  // The owner saves the link as theirs (the app's tracker sheet): from now on a run may open it.
+  await updateTracker(t.id, { url: CHANNEL }, { by: "owner" });
+  assert.deepEqual([(await getTracker(t.id))!.url_set_by, (await getTracker(t.id))!.run_url], ["owner", CHANNEL]);
 
   // A scheduled run: the tracker's link is in its message (so it may open it), and record_value runs alone.
   const m = scripted([
@@ -320,6 +331,43 @@ test("followers: an assistant tracks them on their own; its run opens the link, 
   // Undo of the check.
   await applyUndo(s.changes.at(-1)!.undo);
   assert.equal((await getTracker(t.id))!.points.at(-1)!.value, "12500");
+});
+
+test("a link a model chose for a tracker waits for the owner's Go, even on an assistant's allowlist; after Go a run may open it", { skip }, async () => {
+  const { createAssistant } = await import("./team");
+  const { runAssistantTurn } = await import("./team-chat");
+  const { getTracker, listTrackers } = await import("./trackers-store");
+  const { goPlan } = await import("./ask-plans");
+  const { runPlanTool } = await import("./assistant");
+  const PAGE = "https://shop.example.com/kettle?colour=blue#reviews";
+  const KEPT = "https://shop.example.com/kettle?colour=blue";
+  // track is on her allowlist: what she may do alone.
+  const fern = await createAssistant({ name: "Fern", job: "Keeps an eye on a kettle", web: true, allow: ["track"], triggers: [{ kind: "schedule", days: [2], time: "08:00" }] });
+  const before = (await listTrackers({ standalone: true })).length;
+  const call: Block = { type: "tool_use", id: "t1", name: "track", input: { name: "Blue kettle", url: PAGE, label: "price", kind: "number", direction: "lower", currency: "GBP", step: "Tracking the kettle" } };
+  const m = scripted([[call], [answer({ text: "I'll keep an eye on the kettle.", sources: [] })]]);
+  const out = await runAssistantTurn(fern.id, "Every Tuesday at 08:00: do your job.", { mode: "run", client: m.client, now: new Date("2026-11-24T08:00:00Z"), shown: "Every Tuesday at 08:00", noMemory: true });
+  assert.equal((await listTrackers({ standalone: true })).length, before, "nothing was tracked alone");
+  assert.equal((out.reply.changes ?? []).length, 0);
+  const plan = out.reply.plan!;
+  assert.ok(plan, "it waits as a plan");
+  assert.equal(plan.why, "link");
+  // The Go card shows the whole link and its host, in Athena's words, not the model's step line.
+  assert.equal(plan.steps[0].label, `Tracking price on shop.example.com, checking ${KEPT}`);
+  // The owner's Go: the tracker is made, its link theirs, and a run may open it.
+  const went = await goPlan(plan.id, [0], { run: (tool, input) => runPlanTool(tool, input), log: async (changes) => changes });
+  const made = went.changes.find((c) => c.kind === "tracker")!;
+  const t = (await getTracker(made.id))!;
+  assert.deepEqual([t.url, t.url_set_by, t.run_url], [KEPT, "owner", KEPT], "kept without its fragment, as the card showed it");
+  assert.ok(went.plan.ran, "the plan ran once");
+  // Main Ask too: the owner asking to track something doesn't approve a link the model picked.
+  const m2 = scripted([[{ ...call, id: "t2", input: { ...(call.input as object), name: "Red kettle", url: "https://shop.example.com/red-kettle" } }], [answer({ text: "Ready for you to confirm.", sources: [] })]]);
+  const { runAsk } = await import("./answer");
+  const reply = await runAsk("Track the price of the red kettle", { sources: { open: async () => ({ accounts: [], skipped: [], close: async () => undefined }) }, client: m2.client, web: async () => false }, { now: new Date("2026-11-24T09:00:00Z") });
+  assert.equal(reply.plan?.why, "link", "one change the owner asked for still waits, because of its link");
+  assert.equal((await listTrackers({ standalone: true })).some((x) => x.name === "Red kettle"), false);
+  const { removeTracker } = await import("./trackers-store");
+  await removeTracker(t.id);
 });
 
 test("who checks: Ask's track goes to the one assistant that fits, else nobody yet; the app's choice is taken as given", { skip }, async () => {

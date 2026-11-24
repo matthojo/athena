@@ -20,6 +20,7 @@
 import { z } from "zod";
 import type { Anthropic } from "./ai";
 import { addDays, zonedParts } from "./dates";
+import { modelLink } from "./run-links";
 import { dayWords, entriesInRange, getDay, isDayEntryKind, searchDays, DAY_ENTRY_KINDS, type DayEntry } from "./days";
 import { healthDays, type HealthFigures } from "./health";
 import { foodLine, hoursMinutes, RECHARGE, stagesWords, workoutPhrase } from "./health-line";
@@ -1021,7 +1022,9 @@ export async function runTrackerTool(name: string, raw: unknown, record: (change
   const open = (t: { saved_id: string | null }) => (t.saved_id ? { kind: "saved" as const, id: t.saved_id } : null);
   try {
     if (name === "track") {
-      const input = TRACK_INPUT.parse(raw ?? {});
+      const parsed = TRACK_INPUT.parse(raw ?? {});
+      // A link the model chose loses its fragment, as the owner's Go card showed it (lib/ask-plans.ts stepLabel).
+      const input = parsed.url?.trim() ? { ...parsed, url: modelLink(parsed.url) ?? parsed.url } : parsed;
       const target = input.target ? { op: input.target.op, value: input.target.value === undefined ? "" : String(input.target.value) } : undefined;
       const { tracker, existed } = await store.createTracker({ ...input, target: target as never }, by);
       const facts = { tracker_id: tracker.id, name: tracker.name, label: tracker.label };

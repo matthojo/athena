@@ -332,7 +332,7 @@ test("approve: a stage with a checkpoint stops, Go carries on; a stage that fail
   assert.deepEqual([a.stages[0].status, a.stages[0].waits_for, a.stages[1].status], ["waiting", "approval", "pending"]);
   assert.equal(a.stages[0].handoff.did, "Did stage 1");
   assert.deepEqual(kinds().slice(-2), ["handoff", "approval"]);
-  assert.deepEqual([posts.at(-1)!.waits_for, posts.at(-1)!.text], ["approval", "Stage 1 of 3 is done. Have a look, then tap Go to carry on, or send it back."]);
+  assert.deepEqual([posts.at(-1)!.waits_for, posts.at(-1)!.text], ["approval", "Stage 1 of 3 is done. Have a look, then tap Approve to carry on, or send it back."]);
   assert.equal((await call("POST", `/team/assignments/${id}/answer`, { use: "suggested" })).status, 400, "nothing waits for an answer");
   assert.equal((await call("POST", `/team/assignments/${id}/answer`, {})).status, 400);
 
