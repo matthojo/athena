@@ -201,7 +201,7 @@ export function openShareFlow(flow: Flow): void {
           showToast(stopped.blocked.length ? "A step can't be shared yet." : "Something's still flagged. Edit it out, or say it's fine.", { icon: "flag" });
           return;
         }
-        showToast(isSampleMode() ? "Saved flow.json. Your own copy saves it in a zip." : `Saved ${x.slug}.zip. Share it however you like.`, { icon: "check" });
+        showToast(isSampleMode() ? "Saved flow.json. A signed-in Athena saves it in a zip." : `Saved ${x.slug}.zip. Share it however you like.`, { icon: "check" });
       } catch (error) {
         showToast(errorText(error), { icon: "refresh" });
       } finally {
@@ -222,7 +222,7 @@ export function openShareFlow(flow: Flow): void {
       h("div", { class: "wf-pair" }, h("label", { class: "skills-form__label" }, h("span", {}, "Your GitHub username"), author), h("label", { class: "skills-form__label" }, h("span", {}, "Version"), version)),
       h("p", { class: "form__hint fs-starts" }, "Wherever it's added, it starts switched off, and every step that changes something waits for their Go."),
       h("div", { class: "skills-form__actions" }, again, download),
-      h("p", { class: "form__hint" }, "The file has no link to your Athena. Send it to someone, keep it in your own GitHub repository, or offer it to a catalogue of flows.")
+      h("p", { class: "form__hint" }, "The file has no link to your Athena. Send it to someone, keep it in your own GitHub repository, or offer it to a Community catalogue.")
     );
     paintChecks(x);
   }

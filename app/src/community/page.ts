@@ -191,12 +191,12 @@ export function renderCommunity(ctx: { query: string | null }): { el: HTMLElemen
       return show(state({ icon: "globe", title: "Community isn't set up yet", sub: "This Athena has no catalogue address, so there's nothing to browse. Whoever runs it can add one. You can still add an item someone sent you.", actions: [addLink()] }));
     }
     if (!v.on) {
-      const on = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Turn it on");
+      const on = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Switch it on");
       on.addEventListener("click", () => {
         sw.checked = true;
         sw.dispatchEvent(new Event("change"));
       });
-      return show(state({ icon: "cloud", title: "Checking the catalogue is off", sub: "Turn it on to browse what other people shared, and to hear about updates to what you added from it. You can still add an item from a file or a link.", actions: [on, addLink()] }));
+      return show(state({ icon: "cloud", title: "Checking the catalogue is off", sub: "Switch it on to browse what other people shared, and to hear about updates to what you added from it. You can still add an item from a file or a link.", actions: [on, addLink()] }));
     }
     if (!v.items.length) {
       if (v.error) return show(state({ icon: "cloud", title: "Community didn't load", sub: `${v.error} Try again in a few minutes.`, actions: [retryButton()] }));

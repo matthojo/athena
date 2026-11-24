@@ -59,9 +59,9 @@ export function reachWords(r: Reach, kind: ShareKind): { title: string; lines: s
 
 /** The confirmation once it's added: its headline, what to do next, and where it now lives. */
 export function addedWords(kind: ShareKind, name: string): { title: string; body: string; open: string } {
-  if (kind === "assistant") return { title: `${name} joined your team, paused`, body: "Nothing runs until you turn it on from its page. Its accounts and what it may do alone are there too.", open: `Open ${name}` };
+  if (kind === "assistant") return { title: `${name} joined your team, paused`, body: "Nothing runs until you switch it on from its page. Its accounts and what it may do alone are there too.", open: `Open ${name}` };
   if (kind === "skill") return { title: `${name} is in your skills, off`, body: "Ask won't use it until you switch it on from its page.", open: "Open the skill" };
-  return { title: `${name} is in your flows, off`, body: "It won't run until you turn it on. You can try it first from its page.", open: "Open the flow" };
+  return { title: `${name} is in your flows, off`, body: "It won't run until you switch it on. You can try it first from its page.", open: "Open the flow" };
 }
 
 const NOUN: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow" };
@@ -91,9 +91,9 @@ export const addLabel = (kind: ShareKind, name: string): string => (kind === "as
 
 /** Under the Add button: how it lands. */
 export function landsWords(kind: ShareKind): string {
-  if (kind === "assistant") return "It joins paused. Nothing runs until you turn it on.";
+  if (kind === "assistant") return "It joins paused. Nothing runs until you switch it on.";
   if (kind === "skill") return "It starts off. Ask won't use it until you switch it on.";
-  return "It starts off. Nothing runs until you turn it on.";
+  return "It starts off. Nothing runs until you switch it on.";
 }
 
 // ---------- a flow's steps ----------

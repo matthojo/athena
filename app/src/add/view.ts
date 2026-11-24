@@ -397,7 +397,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
           ? h("p", { class: "form__hint add-sec__lede" }, `${name} would like to do these without asking. Anything you leave unticked waits for your Go.`)
           : h("p", { class: "form__hint" }, `Nothing. Every change ${name} wants to make waits for your Go.`),
         ...ticks.map((t) => t.el),
-        webBox ? h("label", { class: "wf-tick", for: "add-web" }, webBox, h("span", {}, h("span", { class: "wf-tick__label" }, "Look things up online"), h("span", { class: "row__meta" }, "Searches the web and reads pages it finds, while “Let Ask search the web” is on"))) : null
+        webBox ? h("label", { class: "wf-tick", for: "add-web" }, webBox, h("span", {}, h("span", { class: "wf-tick__label" }, "Search the web"), h("span", { class: "row__meta" }, "Searches and reads the pages it finds, while “Let Ask search the web” is on"))) : null
       );
       if (asksFirst.length)
         asksFirstSec = section(
