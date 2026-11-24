@@ -17,7 +17,7 @@ import { AthenaInputError, q } from "./db";
 import { listFacts } from "./memory";
 import { listConnectors, offeredInAsk, type Connector } from "./connectors";
 import { cleanAccountIds, orderAccounts, type AccountRow } from "./shared-limits";
-import { createAssistant, getAssistant } from "./team";
+import { createAssistant, getAssistant, updateAssistant } from "./team";
 import { triggersMoved } from "./team-flows";
 import { avatarFromSeed } from "./team-seed";
 import { MAX_GREETING, MAX_INSTRUCTIONS, MAX_JOB, MAX_NAME, type TeamAssistant } from "./team-types";
@@ -235,7 +235,32 @@ function sourceOf(raw: unknown, now: Date): SkillSource {
  * one Athena writes from the job and the answers. Returns the assistant; the
  * second value is the skill still being written, when there is one.
  */
-export async function importAssistant(body: Record<string, unknown>, now = new Date()): Promise<{ assistant: TeamAssistant; writing: Promise<unknown> | null }> {
+/**
+ * Update an assistant added from the catalogue to a newer version (the Add screen's Update): its job, instructions,
+ * personality and skill become the new version's, with the owner's answers. What it may do alone is only what the
+ * owner ticked this time that the new version asked for; the web and accounts likewise. Its name, looks, chats, runs
+ * and flows stay. It's paused, as a newly added one is. The second value is the skill still being written, if any.
+ */
+export async function updateImportedAssistant(id: string, body: Record<string, unknown>, now = new Date()): Promise<{ assistant: TeamAssistant; writing: Promise<unknown> | null }> {
+  const { w, answers, skillBody, files } = readImport(body);
+  const a = await updateAssistant(id, {
+    job: w.job,
+    instructions: w.instructions,
+    ...(w.personality ? { personality: w.personality } : {}),
+    allow: grantedTools(w, body.allow),
+    web: body.web === true && w.web,
+    paused: true,
+    accounts: cleanAccountIds(body.accounts),
+  });
+  const source = sourceOf(body.source, now);
+  const fitted = skillBody ? fitTeamSkill({ body: withAnswers(skillBody, answers).slice(0, SKILL_LIMITS.body), summary: w.summary }, a) : null;
+  if (!fitted) return { assistant: a, writing: attachSkill(a.id, answers) };
+  await putAssistantSkill(a.id, fitted, { basis: skillBasis(a), made: hashText(fitted.body.trim()), summary: fitted.summary, answers }, { files, source });
+  return { assistant: a, writing: null };
+}
+
+/** An import's body, read and checked: the shared assistant, the answers, and its skill's text and files. */
+function readImport(body: Record<string, unknown>) {
   let w;
   try {
     w = readShared(body.shared);
@@ -253,6 +278,11 @@ export async function importAssistant(body: Record<string, unknown>, now = new D
     if (error instanceof ShareFormatError) throw new AthenaInputError(error.message);
     throw error;
   }
+  return { w, answers, skillBody, files };
+}
+
+export async function importAssistant(body: Record<string, unknown>, now = new Date()): Promise<{ assistant: TeamAssistant; writing: Promise<unknown> | null }> {
+  const { w, answers, skillBody, files } = readImport(body);
   const asFlows = await triggersMoved();
   const a = await createAssistant({
     ...(w.name ? { name: w.name } : {}),

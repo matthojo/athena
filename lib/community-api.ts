@@ -7,7 +7,7 @@
  * their hash and reach again, and for a catalogue item checks the hash against the index. What's added starts
  * switched off, and nothing in a file is a permission: ticks, answers and switches come from the owner's choices.
  *
- * Routes (planned; netlify/lib/community-routes.ts):
+ * Routes (netlify/lib/community-routes.ts, then netlify/lib/community-add-routes.ts for preview and add):
  *
  * GET  /api/community                                → CatalogueView
  * POST /api/community/preview   AddRequest           → { preview: AddPreview }   (files: multipart, field `files`)
@@ -66,8 +66,11 @@ export interface AddPreview {
   from: { catalogue: string } | { link: string } | { files: string };
   /** For a catalogue item: its listing. */
   listing: Pick<CatalogueItem, "id" | "version" | "featured" | "added_at"> | null;
-  /** An item of this kind here that came from the same listing, if any: Add would update it. */
-  existing: { id: string; version: string | null } | null;
+  /**
+   * An item of this kind here that came from the same listing, if any: "You already have this", with a way to open
+   * it, and Update when the listing's files differ from what was added (`newer`). A second copy is a deliberate tap.
+   */
+  existing: { id: string; version: string | null; href: string; newer: boolean } | null;
   /** Files listed but not used (scripts, binaries, over the size limit), with why. */
   skipped: Array<{ path: string; reason: string }>;
 }
@@ -86,6 +89,11 @@ export interface AddChoices {
   money: boolean;
   /** For a flow with thinking steps: the assistant that runs it, or null for none (those steps are then refused). */
   assistant_id: string | null;
+  /**
+   * Update this one (the preview's `existing.id`) to the listing's version instead of adding a copy. Only for a
+   * catalogue item, and only the one the server finds came from that listing.
+   */
+  replace?: string | null;
 }
 
 export interface AddResult {
@@ -94,6 +102,8 @@ export interface AddResult {
   id: string;
   /** Where to open it in the app: "#/team/<id>", "#/settings/skills/<id>", "#/flows/<id>". */
   href: string;
+  /** It was an update of one already here, not a new one. */
+  updated?: boolean;
 }
 
 /** An item added from the catalogue, against the index now. */

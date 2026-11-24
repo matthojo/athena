@@ -24,6 +24,7 @@ import { MAX_ITEM_NEEDS } from "./shared-limits";
 import { addRemoved, findPersonal, scrubText, ShareFormatError, type Finding, type KnownTerm, type Removed } from "./team-share";
 import { readHeader, type ShareHeader } from "./share-kinds";
 import { triggerGives } from "./flow-trigger-gives";
+import { triggerWords } from "./flow-draft-words";
 import { EVENT_SOURCES, type EventFilter, type TeamWeekday } from "./team-types";
 import { FLOW_LIMITS, VALUE_KINDS, type CheckOp, type Flow, type FlowCondition, type FlowInput, type FlowStep, type FlowText, type FlowTrigger, type FlowUnfilled, type FlowValue, type GoMode, type ValueKind, type ValueRef } from "./flow-types";
 
@@ -824,7 +825,8 @@ export function exportFlow(flow: Pick<Flow, "name" | "trigger" | "steps" | "mone
   for (const a of asks) note("asks", a.question);
 
   const name = scrub(oneLine(edits.name ?? flow.name).slice(0, FLOW_LIMITS.name));
-  const summary = scrub(oneLine(edits.summary ?? "").slice(0, MAX_SUMMARY));
+  // Left alone, the summary is drafted from the trigger and steps (the owner's decision, 24 Nov 2026).
+  const summary = scrub(oneLine(edits.summary ?? draftSummary(flow)).slice(0, MAX_SUMMARY));
   note("name", name);
   note("summary", summary);
   const shared = readSharedFlow({
@@ -847,6 +849,44 @@ export function exportFlow(flow: Pick<Flow, "name" | "trigger" | "steps" | "mone
     ctx.fine ?? [],
   );
   return { shared, removed, findings, blanks: blanks.map(({ key, fills, pick, steps: at }) => ({ key, fills, ...(pick ? { pick } : {}), steps: at })), blocked, slug: flowSlug(shared.name) };
+}
+
+/** What each tool step does, for a drafted summary: never the owner's own words. */
+const DOES: Record<string, string> = {
+  find_people: "finds a person", find_notes: "finds notes", find_todos: "looks at your to-dos", find_items: "looks something up in Athena", find_records: "looks in your own types", find_saved: "finds something you saved", find_watch_read: "looks at Watch & read",
+  money: "looks at your payments", regular_payments: "looks at your regular payments", goals: "checks your goals", trips: "looks at your trips", purchases: "looks at your orders", habits: "checks your habits", days: "looks at your days", health: "looks at your health", places: "looks at where you went", weather: "checks the weather", work: "looks at your work", energy: "checks your energy use", tracker_history: "checks something you track", train_status: "checks your train", flight_status: "checks your flight", car_details: "checks the car",
+  add_todo: "adds a to-do", add_reminder: "reminds you", save_note: "writes a note", add_to_list: "adds to a list", add_person: "adds a person", remember: "remembers a detail", log_catch_up: "logs a catch-up", add_to_watch_read: "adds to Watch & read", update_watch_read: "updates Watch & read", complete_todo: "ticks off a to-do", change_todo: "changes a to-do", save_item: "saves an item", set_field: "sets a field", save_record: "adds a record", link_records: "links two things", save_trip: "adds a trip", save_purchase: "adds an order", file_saved_item: "files something you saved",
+  draft_email: "drafts an email for you", draft_message: "drafts a message for you",
+};
+
+/**
+ * A summary drafted from the trigger and the steps, with no model, for the share sheet to start from: "Every
+ * Saturday at 09:00, it adds a to-do and tells you." Only Athena's words: what the trigger matches, titles and step
+ * text are the owner's, so they're left out. Pure.
+ */
+export function draftSummary(flow: Pick<Flow, "trigger" | "steps">): string {
+  const t = flow.trigger;
+  // The trigger without the owner's own words (what an event or date matches, a tag).
+  const plain: FlowTrigger = t.kind === "event" ? { kind: "event", event: { source: t.event.source, ...(t.event.connector ? { connector: t.event.connector } : {}), ...(t.event.kind ? { kind: t.event.kind } : {}), ...(t.event.savedAction ? { savedAction: t.event.savedAction } : {}) } } : t.kind === "before" ? { ...t, match: undefined } : t;
+  const does: string[] = [];
+  const add = (w: string) => {
+    if (!does.includes(w)) does.push(w);
+  };
+  let checks = false;
+  eachFlowStep(flow.steps, (s) => {
+    if (s.kind === "tool") add(DOES[s.tool] ?? "does something in Athena");
+    else if (s.kind === "notify") add("tells you");
+    else if (s.kind === "ask") add("asks you what to do");
+    else if (s.kind === "think") add("works something out");
+    else if (s.kind === "assignment") add("starts an assignment");
+    else if (s.kind === "check") checks = true;
+  });
+  const when = triggerWords(plain);
+  if (!does.length) return `${when}.`;
+  const shown = does.slice(0, 3);
+  const list = shown.length === 1 ? shown[0] : `${shown.slice(0, -1).join(", ")} ${checks ? "or" : "and"} ${shown[shown.length - 1]}`;
+  const line = `${when}, it ${list}${does.length > 3 ? ", and more" : ""}.`;
+  return line.length <= MAX_SUMMARY ? line : `${line.slice(0, MAX_SUMMARY - 1).trimEnd()}…`;
 }
 
 /** flow.json as it's written: two-space JSON with a line at the end. Pure. */
@@ -891,6 +931,16 @@ export function stillUnfilled(steps: readonly FlowStep[], unfilled: readonly Imp
     const s = byId.get(u.step_id);
     return !!s && stepFieldJson(s, u.field) === u.was;
   });
+}
+
+/**
+ * Why a flow added from a file can't run yet, or null: questions nobody answered. Its switch, Run now and a try all
+ * refuse until each is set in its step (the owner's decision, 24 Nov 2026). Pure.
+ */
+export function unansweredWords(unfilled: readonly Pick<FlowUnfilled, "question">[] | undefined): string | null {
+  if (!unfilled?.length) return null;
+  const asks = [...new Set(unfilled.map((u) => u.question))];
+  return unfilled.length === 1 ? `Answer “${asks[0]}” in its step first.` : `Fill in the ${unfilled.length} steps that still have questions first.`;
 }
 
 /** Does any step need an assistant to run it (a thinking step)? Pure. */

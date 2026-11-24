@@ -15,15 +15,15 @@ import { ApiError, getToken, isSampleMode, request } from "./api";
 import { answersFor, buildPreview, itemFiles, NEWER_FORMAT_STATUS, sourceFor } from "../../../lib/community-add";
 import { verifyBundle } from "../../../lib/catalogue-types";
 import { importSharedFlow } from "../../../lib/flow-share";
-import { ShareFormatError } from "../../../lib/team-share";
+import { grantedTools, ShareFormatError } from "../../../lib/team-share";
 import { splitWouldLike } from "../../../lib/shared-limits";
 import { MAX_ASSISTANTS } from "../../../lib/team-types";
-import { sampleBundle } from "./sample-community";
+import { rememberSampleAdd, sampleAddedFrom, sampleBundle } from "./sample-community";
 import { sampleLinkFiles } from "../add/sample-items";
 import { addImported } from "./team-share";
-import { listTeam, teamChanged } from "./team";
-import { fetchSkills, saveSkill } from "./skills";
-import { createFlow, flowsChanged } from "./flows";
+import { listTeam, teamChanged, updateAssistant } from "./team";
+import { fetchSkill, fetchSkills, saveSkill } from "./skills";
+import { flowsChanged, sampleAddSharedFlow, sampleReplaceSharedFlow } from "./flows";
 
 export type { AddChoices, AddPreview, AddResult, CatalogueView, UpdateCheck };
 
@@ -93,10 +93,10 @@ async function sampleView(): Promise<CatalogueView> {
   const view: CatalogueView = { configured, on, host: configured ? "catalogue.example.com" : null, generated_at: null, items: [], added: [], error: null };
   if (!configured || !on) return view;
   if (state === "down") return { ...view, error: "Athena couldn't reach the Community catalogue." };
-  const { sampleCatalogue, SAMPLE_ADDED } = await import("./sample-community");
+  const { sampleCatalogue, sampleAddedIds } = await import("./sample-community");
   const index = await sampleCatalogue();
   const items = [...index.items].sort((a, b) => Date.parse(b.added_at) - Date.parse(a.added_at));
-  return { ...view, generated_at: index.generated_at, items, added: [...SAMPLE_ADDED] };
+  return { ...view, generated_at: index.generated_at, items, added: sampleAddedIds() };
 }
 
 /** GET /api/community: the catalogue as the server last read it, and the owner's switch. */
@@ -146,9 +146,10 @@ export async function previewAdd(source: AddSource): Promise<AddPreview> {
 /** POST /api/community/add: keeps it, switched off, with only what the owner chose. */
 export async function addItem(preview: AddPreview, choices: AddChoices): Promise<AddResult> {
   const result = isSampleMode() ? await sampleAdd(preview, choices) : await request<AddResult>("/community/add", { method: "POST", body: JSON.stringify({ preview, choices }) });
-  // The lists that hold it follow.
+  // The lists that hold it follow, and an Update clears its "Update available".
   if (result.kind === "assistant") teamChanged();
   else if (result.kind === "flow") flowsChanged();
+  if (result.updated) forgetUpdates();
   return result;
 }
 
@@ -167,7 +168,9 @@ async function samplePreview(source: AddSource): Promise<AddPreview> {
     const { item, bundle } = found;
     if (!(await verifyBundle(bundle, item))) throw new ShareFormatError("That listing's files don't match what the catalogue says they are, so Athena won't use them.");
     const kind = item.kind;
-    return await buildPreview({ files: { kind, files: bundle.files, skipped: [], folder: null }, from: { catalogue: item.id }, source: sourceFor({ catalogue: item.id }, at, "https://catalogue.example.com"), listing: item, existing: null });
+    const had = sampleAddedFrom(item.id);
+    const existing = had && had.kind === kind ? { id: had.id, version: had.version, href: HREF[kind](had.id), newer: had.hash !== item.hash } : null;
+    return await buildPreview({ files: { kind, files: bundle.files, skipped: [], folder: null }, from: { catalogue: item.id }, source: sourceFor({ catalogue: item.id }, at, "https://catalogue.example.com"), listing: item, existing });
   }
   if ("link" in source) {
     await new Promise((r) => setTimeout(r, 500));
@@ -181,7 +184,36 @@ async function samplePreview(source: AddSource): Promise<AddPreview> {
   return await buildPreview({ files, from: { files: name }, source: sourceFor({ files: name }, at) });
 }
 
+const HREF: Record<AddPreview["kind"], (id: string) => string> = {
+  assistant: (id) => `#/team/${encodeURIComponent(id)}`,
+  skill: (id) => `#/settings/skills/${encodeURIComponent(id)}`,
+  flow: (id) => `#/flows/${encodeURIComponent(id)}`,
+};
+
 async function sampleAdd(p: AddPreview, choices: AddChoices): Promise<AddResult> {
+  const result = choices.replace ? await sampleReplace(p, choices, choices.replace) : await sampleAddNew(p, choices);
+  if ("catalogue" in p.from) rememberSampleAdd(p.from.catalogue, { kind: result.kind, id: result.id, hash: p.hash, version: p.listing?.version ?? null });
+  return result;
+}
+
+/** Sample mode's Update: as the server's, the one from that listing only, keeping its name, switched off. */
+async function sampleReplace(p: AddPreview, choices: AddChoices, id: string): Promise<AddResult> {
+  const had = "catalogue" in p.from ? sampleAddedFrom(p.from.catalogue) : null;
+  if (!had || had.id !== id) throw new ShareFormatError("That isn't the one you added from this listing any more. Look at it again.");
+  const item = p.item;
+  if (item.kind === "assistant") {
+    const w = item.shared;
+    await updateAssistant(id, { job: w.job, instructions: w.instructions, allow: grantedTools(w, choices.allow), web: choices.web && w.web, accounts: choices.accounts, paused: true });
+  } else if (item.kind === "skill") {
+    const s = item.skill;
+    const was = await fetchSkill(id);
+    await saveSkill({ name: was?.name ?? s.name, description: s.description, body: s.body, extra: s.extra, files: s.files, skipped: s.skipped, enabled: false, accounts: choices.accounts }, id);
+  } else await sampleReplaceSharedFlow(id, importSharedFlow(item.flow, choices.answers));
+  forgetUpdates();
+  return { kind: p.kind, id, href: HREF[p.kind](id), updated: true };
+}
+
+async function sampleAddNew(p: AddPreview, choices: AddChoices): Promise<AddResult> {
   const item = p.item;
   if (item.kind === "assistant") {
     const { offered, asksFirst } = splitWouldLike(item.shared.would_like);
@@ -200,7 +232,7 @@ async function sampleAdd(p: AddPreview, choices: AddChoices): Promise<AddResult>
     const saved = await saveSkill({ name, description: s.description, body: s.body, extra: s.extra, files: s.files, skipped: s.skipped, source: s.source, enabled: false, accounts: choices.accounts });
     return { kind: "skill", id: saved.id, href: `#/settings/skills/${encodeURIComponent(saved.id)}` };
   }
-  const made = await createFlow(importSharedFlow(item.flow, choices.answers));
+  const made = await sampleAddSharedFlow(importSharedFlow(item.flow, choices.answers));
   return { kind: "flow", id: made.id, href: `#/flows/${encodeURIComponent(made.id)}` };
 }
 

@@ -5,7 +5,7 @@
 // Run: npx tsx --test lib/flow-share-export.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { allSharedSteps, BLOCKED_WHY, blankQuestion, exportFlow, flowSlug, importSharedFlow, needsAssistant, readSharedFlow, serialiseSharedFlow, stepFieldJson, stillUnfilled, type FlowExportContext } from "./flow-share";
+import { allSharedSteps, BLOCKED_WHY, blankQuestion, draftSummary, exportFlow, flowSlug, importSharedFlow, needsAssistant, readSharedFlow, serialiseSharedFlow, stepFieldJson, stillUnfilled, type FlowExportContext } from "./flow-share";
 import { checkSteps } from "./flows";
 import { reachOfFlow } from "./reach";
 import { ShareFormatError, type KnownTerm } from "./team-share";
@@ -353,3 +353,22 @@ function withoutSiteLink(steps: FlowStep[]): FlowStep[] {
   for (const s of allOf(copy)) if (s.kind === "notify") s.text = s.text.map((p) => (typeof p === "string" && p.includes("https:") ? p.replace(/ ?https:\/\/athena\.example\.com\S*/, "") : p));
   return copy;
 }
+
+test("draftSummary: the trigger and what the steps do, in Athena's words only", () => {
+  const f: Exportable = {
+    name: "Weekend",
+    money: false,
+    trigger: { kind: "schedule", days: [6], time: "09:00" },
+    steps: [
+      { id: "a", title: "Water Priya's plants", kind: "tool", tool: "add_todo", input: { title: ["Water Priya's plants"] }, go: "auto", gives: [] },
+      { id: "b", title: null, kind: "notify", text: ["Done"] },
+    ],
+  };
+  assert.equal(draftSummary(f), "Every Saturday at 09:00, it adds a to-do and tells you.");
+  const onEvent = draftSummary({ trigger: { kind: "event", event: { source: "note", tag: "priya", match: "Northwind Tower" } }, steps: [{ id: "c", title: null, kind: "check", condition: { left: { from: "trigger", key: "title" }, op: "exists" }, yes: [{ id: "d", title: null, kind: "notify", text: ["x"] }], no: [{ id: "e", title: null, kind: "tool", tool: "draft_email", input: {}, go: "ask", gives: [] }] }] });
+  assert.equal(onEvent, "When you write a note, it tells you or drafts an email for you.");
+  for (const own of ["Priya", "Northwind"]) assert.ok(!draftSummary(f).includes(own) && !onEvent.includes(own), own);
+  // The export starts from it, and the owner's own words win once they've written some, even none.
+  assert.equal(exportFlow(f, ctx()).shared.summary, "Every Saturday at 09:00, it adds a to-do and tells you.");
+  assert.equal(exportFlow(f, ctx({ edits: { summary: "" } })).shared.summary, "");
+});

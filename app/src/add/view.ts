@@ -22,6 +22,7 @@ import { isSampleMode } from "../db/api";
 import { addItem, addHash, isNewerFormat, parseAddHash, previewAdd, type AddChoices, type AddPreview, type AddSource } from "../db/community";
 import { itemAccounts, type AccountRow } from "../db/item-accounts";
 import { listTeam } from "../db/team";
+import { liveContexts, loadContexts } from "../db/todo-contexts";
 import { renderAvatarTile, avatarFromSeed } from "../team/avatar";
 import { questionsForm, type AnswerMap } from "../team/setup-questions";
 import { triggerSentence } from "../team/trigger-editor-words";
@@ -35,7 +36,7 @@ import type { ViewId } from "../components/nav";
 import { sharedFlowSteps } from "./flow-steps";
 import { entriesOf, filesFromDrop, takeHeldFiles, takeSharedFile } from "./hold";
 import { SAMPLE_LINKS } from "./sample-items";
-import { addedWords, addLabel, basedOnWords, fillsWords, KIND_LABEL, landsWords, makerWords, originWords, reachWords } from "./words";
+import { addedWords, addLabel, basedOnWords, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, originWords, reachWords, updatedWords, updateLandsWords } from "./words";
 
 type Go = (view: ViewId, opts?: { source?: string | null; noteId?: string | null }) => void;
 
@@ -309,6 +310,9 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       );
     }
     if (item.kind === "flow" && item.flow.asks.length) {
+      // A question that names a to-do context offers the owner's own.
+      if (item.flow.asks.some((a) => a.pick === "area" || a.pick === "where")) await loadContexts().catch(() => null);
+      if (!alive) return;
       const rows = item.flow.asks.map((a, i) => {
         const id = `add-ask-${i}`;
         const set = (v: string) => (v.trim() ? (answers[a.key] = v.trim()) : delete answers[a.key]);
@@ -319,10 +323,12 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
           const picker = personPicker({ value: null, label: a.question, placeholder: "Pick someone", onChange: (person) => set(person?.id ?? "") });
           field = picker.el;
           focus = picker.focus;
-        } else if (a.fills === "text" && a.choices.length) {
+        } else if (a.fills === "text" && (a.choices.length || ((a.pick === "area" || a.pick === "where") && liveContexts(a.pick).length))) {
           const qid = `ask${i}`;
           let picked: AnswerMap = {};
-          field = questionsForm([{ id: qid, question: a.question, choices: a.choices, allowOther: true }], picked, (m) => {
+          const own = a.pick === "area" || a.pick === "where";
+          const choices = own ? liveContexts(a.pick as "area" | "where").map((c) => c.name) : a.choices;
+          field = questionsForm([{ id: qid, question: a.question, choices, allowOther: !own }], picked, (m) => {
             picked = m;
             const raw = m[qid] ?? "";
             set(raw.startsWith("other:") ? raw.slice(6) : raw);
@@ -341,9 +347,9 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
           error.textContent = missing ? "Answer this to add the flow." : "";
           return missing ? (focus(), a.question) : null;
         });
-        const hint = fillsWords(a.fills);
+        const hint = fillsWords(a.fills, a.pick);
         // A row of choices labels itself (questionsForm); a field or picker gets the question as its label.
-        const label = a.fills === "text" && a.choices.length ? null : h("label", { class: "tq__q", for: id }, a.question);
+        const label = field.classList.contains("add-q__choices") ? null : h("label", { class: "tq__q", for: id }, a.question);
         return h("div", { class: "add-q" }, label, hint ? h("p", { class: "form__hint" }, hint) : null, field, error);
       });
       questionsSec = section("questions", "Its questions", h("p", { class: "form__hint add-sec__lede" }, "Each answer fills a gap in its steps. You'll see where below."), h("div", { class: "add-questions" }, ...rows));
@@ -416,7 +422,6 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     const links = linkedHosts(texts);
     const notes = [
       links.length ? h("p", { class: "add-note" }, icons.globe(), h("span", {}, `Its words link to ${links.join(", ")}. Athena didn't check ${links.length === 1 ? "that site" : "those sites"}.`)) : null,
-      p.existing ? h("p", { class: "add-note" }, icons.copy(), h("span", {}, `You already added ${p.existing.version ? `version ${p.existing.version} of ` : ""}this from Community. Adding it again keeps both, so you can compare them.`)) : null,
       !room ? h("p", { class: "add-note add-note--bad", role: "alert" }, icons.flag(), h("span", {}, `Your team has ${MAX_ASSISTANTS} assistants, the most it can have. Remove one to make room.`)) : null,
     ];
 
@@ -446,12 +451,44 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       );
     })();
 
-    // Add.
-    const addBtn = h("button", { class: "btn btn--primary add-foot__add", type: "button", disabled: !room }, icons.plus(), addLabel(p.kind, name)) as HTMLButtonElement;
+    // Already here: say so first, with a way to open it, and Update when the listing is newer. A second copy is a
+    // deliberate extra tap (the owner's decision, 24 Nov 2026).
+    const had = p.existing;
+    const w = had ? haveWords(p.kind, had, p.listing?.version ?? null) : null;
+    const haveCard =
+      had && w
+        ? h(
+            "section",
+            { class: `add-have${had.newer ? " add-have--newer" : ""}`, "aria-labelledby": "add-have-title" },
+            h("span", { class: "add-have__icon", "aria-hidden": "true" }, had.newer ? icons.refresh() : icons.check()),
+            h("div", { class: "add-have__text" }, h("h2", { class: "add-have__title", id: "add-have-title" }, w.title), h("p", { class: "add-have__sub" }, w.detail)),
+            h("a", { class: "btn btn--soft btn--sm add-have__open", href: had.href }, w.open)
+          )
+        : null;
+    let copying = !had;
+
+    // Add, or Update.
+    const addBtn = h("button", { class: "btn btn--primary add-foot__add", type: "button", disabled: !room && !had?.newer }, icons.plus(), addLabel(p.kind, name)) as HTMLButtonElement;
     const cancel = h("button", { class: "btn btn--ghost add-foot__cancel", type: "button" }, "Cancel");
     const problem = h("p", { class: "add-foot__problem", role: "alert", hidden: true });
+    const copyBtn = had ? (h("button", { class: "add-foot__copy", type: "button" }, "Add a second copy instead") as HTMLButtonElement) : null;
+    const label = () => (copying ? addLabel(p.kind, name) : had?.newer ? `Update ${name}` : w!.open);
+    const paintFoot = () => {
+      addBtn.replaceChildren(copying ? icons.plus() : had?.newer ? icons.refresh() : icons.arrowRight(), label());
+      addBtn.disabled = copying && !room;
+      if (copyBtn) copyBtn.hidden = copying;
+    };
+    copyBtn?.addEventListener("click", () => {
+      copying = true;
+      paintFoot();
+      addBtn.focus();
+    });
     cancel.addEventListener("click", startOver);
     addBtn.addEventListener("click", async () => {
+      if (had && !copying && !had.newer) {
+        location.hash = had.href;
+        return;
+      }
       const missing = checks.map((c) => c()).find(Boolean);
       if (missing) {
         problem.hidden = false;
@@ -461,30 +498,35 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       problem.hidden = true;
       addBtn.disabled = true;
       addBtn.classList.add("is-busy");
-      addBtn.lastChild!.textContent = "Adding…";
-      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null };
+      addBtn.lastChild!.textContent = copying ? "Adding…" : "Updating…";
+      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null, replace: copying ? null : had!.id };
       try {
         const result = await addItem(p, choices);
-        added(p.kind, name, result.href);
+        added(p.kind, name, result.href, !!result.updated);
       } catch (error) {
         if (!alive) return;
         addBtn.disabled = false;
         addBtn.classList.remove("is-busy");
-        addBtn.lastChild!.textContent = addLabel(p.kind, name);
+        addBtn.lastChild!.textContent = label();
         problem.hidden = false;
         problem.textContent = errorText(error);
       }
     });
-    const foot = h("div", { class: "add-foot" }, problem, h("div", { class: "add-foot__row" }, cancel, addBtn), h("p", { class: "add-foot__note" }, landsWords(p.kind)));
+    const footNote = h("p", { class: "add-foot__note" });
+    const paintNote = () => (footNote.textContent = copying ? landsWords(p.kind) : had?.newer ? updateLandsWords(p.kind) : "");
+    copyBtn?.addEventListener("click", paintNote);
+    paintFoot();
+    paintNote();
+    const foot = h("div", { class: "add-foot" }, problem, h("div", { class: "add-foot__row" }, cancel, addBtn), footNote, copyBtn);
 
-    show(hero, facts, reachCard, ...notes, needsSec, questionsSec, accountsSec, aloneSec, asksFirstSec, content, foot);
+    show(hero, haveCard, facts, reachCard, ...notes, needsSec, questionsSec, accountsSec, aloneSec, asksFirstSec, content, foot);
     focusHeading();
   }
 
   // ---------- added ----------
 
-  function added(kind: ShareKind, name: string, href: string) {
-    const w = addedWords(kind, name);
+  function added(kind: ShareKind, name: string, href: string, updated = false) {
+    const w = updated ? updatedWords(kind, name) : addedWords(kind, name);
     const open = h("a", { class: "btn btn--primary", href }, w.open, icons.arrowRight());
     const more = h("button", { class: "btn btn--soft", type: "button" }, "Add something else");
     more.addEventListener("click", startOver);

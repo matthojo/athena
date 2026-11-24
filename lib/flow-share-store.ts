@@ -11,7 +11,7 @@
  *   in its blanks and any they left listed as unfilled. A catalogue item keeps its listing's id, hash and version.
  */
 import { AthenaInputError } from "./db";
-import { createFlow, getFlow } from "./flows";
+import { createFlow, getFlow, updateFlow } from "./flows";
 import { knownTerms } from "./team-share-store";
 import { writeSkillZip } from "./skill-zip";
 import { MAX_QUESTION, MAX_SUMMARY } from "./team-skill";
@@ -78,6 +78,24 @@ export function flowZip(x: FlowExport): Uint8Array {
  * unanswered stay as unfilled fields. Throws AthenaInputError with words for the owner.
  */
 export async function addSharedFlow(shared: SharedFlow, answers: FlowAnswers, catalogue?: { id: string; hash: string; version?: string }): Promise<{ id: string }> {
+  const { input, listing } = readForAdd(shared, answers, catalogue);
+  const { unfilled, ...flowInput } = input;
+  const flow = await createFlow(flowInput, { unfilled, catalogue: listing });
+  return { id: flow.id };
+}
+
+/**
+ * Update a flow added from the catalogue to a newer version (the Add screen's Update): its name stays the owner's;
+ * its trigger and steps become the new version's, read and checked as for an add, with the owner's new answers. It
+ * goes off, as a newly added one does; who runs it stays. Throws AthenaInputError with words for the owner.
+ */
+export async function replaceSharedFlow(id: string, shared: SharedFlow, answers: FlowAnswers, catalogue: { id: string; hash: string; version?: string }): Promise<{ id: string }> {
+  const { input, listing } = readForAdd(shared, answers, catalogue);
+  const flow = await updateFlow(id, { trigger: input.trigger, steps: input.steps, money: false, paused: true }, { unfilled: input.unfilled, catalogue: listing });
+  return { id: flow.id };
+}
+
+function readForAdd(shared: SharedFlow, answers: FlowAnswers, catalogue?: { id: string; hash: string; version?: string }) {
   let input;
   try {
     input = importSharedFlow(readSharedFlow(shared), answers ?? {});
@@ -85,13 +103,11 @@ export async function addSharedFlow(shared: SharedFlow, answers: FlowAnswers, ca
     if (error instanceof ShareFormatError) throw new AthenaInputError(error.message);
     throw error;
   }
-  const { unfilled, ...flowInput } = input;
   let listing: { id: string; hash: string; version?: string } | undefined;
   if (catalogue) {
     if (!CATALOGUE_ID.test(catalogue.id) || !HASH.test(catalogue.hash)) throw new AthenaInputError("That catalogue listing isn't one Athena can read.");
     const version = typeof catalogue.version === "string" ? catalogue.version.trim().slice(0, 20) : "";
     listing = { id: catalogue.id, hash: catalogue.hash, ...(version ? { version } : {}) };
   }
-  const flow = await createFlow(flowInput, { unfilled, catalogue: listing });
-  return { id: flow.id };
+  return { input, listing };
 }

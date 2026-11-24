@@ -365,21 +365,47 @@ export async function sampleBundle(id: string): Promise<{ item: CatalogueItem; b
 
 /** Sample items already added: Gift price watch (an older version) and Dot (taken down since). */
 export const SAMPLE_ADDED = ["q8r3s7t2v6w1x5y9", "z2a6b1c5d9f4g8h3"];
+const GIFT = "q8r3s7t2v6w1x5y9";
+
+/** One item here that came from a sample listing: what Add or Update made, and the files' hash it was made from. */
+export interface SampleAdded {
+  kind: ShareKind;
+  id: string;
+  hash: string;
+  version: string | null;
+}
+
+/** Sample mode's record of what came from which listing, as the catalogue_* columns are on a real Athena. For this visit. */
+const added = new Map<string, SampleAdded>([[GIFT, { kind: "flow", id: SAMPLE_FLOW_IDS.gift, hash: `sha256-${"1".repeat(64)}`, version: "1.3" }]]);
+
+/** The item here that came from this listing, if any. */
+export const sampleAddedFrom = (catalogueId: string): SampleAdded | null => added.get(catalogueId) ?? null;
+/** Remember an Add or an Update from a listing. */
+export const rememberSampleAdd = (catalogueId: string, item: SampleAdded): void => void added.set(catalogueId, item);
+/** Every listing something here came from, for the list's "Added" marks: Dot's too, though it was taken down. */
+export const sampleAddedIds = (): string[] => [...new Set([...SAMPLE_ADDED, ...added.keys()])];
 
 /** What sample mode's own flow and assistant would hear from the daily check. */
 export async function sampleUpdates(): Promise<UpdateCheck[]> {
-  const gift = (await build()).find((a) => a.item.id === "q8r3s7t2v6w1x5y9")!.item;
+  const gift = (await build()).find((a) => a.item.id === GIFT)!.item;
+  const here = added.get(GIFT)!;
+  const newer: UpdateCheck[] =
+    here.hash === gift.hash
+      ? []
+      : [
+          {
+            kind: "flow",
+            id: here.id,
+            catalogue_id: gift.id,
+            version: here.version,
+            hash: here.hash,
+            newer: { version: gift.version, hash: gift.hash, summary: gift.summary, reach: gift.reach },
+            tier_here: 1,
+            withdrawn: null,
+          },
+        ];
   return [
-    {
-      kind: "flow",
-      id: SAMPLE_FLOW_IDS.gift,
-      catalogue_id: gift.id,
-      version: "1.3",
-      hash: `sha256-${"1".repeat(64)}`,
-      newer: { version: gift.version, hash: gift.hash, summary: gift.summary, reach: gift.reach },
-      tier_here: 1,
-      withdrawn: null,
-    },
+    ...newer,
     { kind: "assistant", id: SAMPLE_TEAM_IDS.dot, catalogue_id: WITHDRAWN[0].id, version: "1.0", hash: `sha256-${"2".repeat(64)}`, newer: null, withdrawn: { at: at(3), reason: WITHDRAWN[0].reason } },
   ];
 }

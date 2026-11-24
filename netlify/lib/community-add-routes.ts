@@ -3,7 +3,8 @@
  *
  *   POST /api/community/preview  { catalogue } | { link }, or multipart files (field `files`, each with a `path`)
  *                                → { preview: AddPreview }. Nothing is kept.
- *   POST /api/community/add      { preview, choices } → AddResult (201). Added switched off.
+ *   POST /api/community/add      { preview, choices } → AddResult (201). Added switched off. With `choices.replace`,
+ *                                the one already added from that listing is updated instead (200), switched off too.
  *
  * Every way in ends at the same preview (lib/community-add.ts buildPreview): the kind from the files, each read by
  * its own reader (an assistant by lib/team-share.ts, a skill by lib/skills.ts, a flow by lib/flow-share.ts), its
@@ -19,8 +20,10 @@
  * - a skill: lib/skills-store.ts createSkill: off (an imported skill always starts off), ticked accounts only;
  * - a flow: lib/flow-share-store.ts addSharedFlow: paused, blanks filled from the answers.
  *
- * Add never overwrites: an item already added from the same listing stays as it is, and the new one is added
- * beside it. Behind the same bearer token as the rest of the API.
+ * Add never overwrites by itself: the preview says "You already have this" when an item came from the same listing,
+ * and only an explicit `replace` naming that item updates it (its name and history stay, its content becomes the new
+ * version's, and it goes off). Otherwise a second copy is added beside it. Behind the same bearer token as the rest
+ * of the API.
  */
 import { CatalogueError, verifyBundle, type CatalogueBundle, type CatalogueItem } from "../../lib/catalogue-types";
 import type { AddChoices, AddPreview, AddRequest, AddResult } from "../../lib/community-api";
@@ -47,11 +50,15 @@ export interface CommunityAddDeps {
   fetchLink: (url: string) => Promise<IntakeEntry[]>;
   /** The catalogue's address, recorded as an added skill's source. */
   catalogueAddress: () => string | null;
-  /** An item of this kind here added from the same listing. */
-  existing: (kind: ShareKind, catalogueId: string) => Promise<{ id: string; version: string | null } | null>;
+  /** An item of this kind here added from the same listing, with the hash of what was added. */
+  existing: (kind: ShareKind, catalogueId: string) => Promise<{ id: string; version: string | null; hash: string | null } | null>;
   addAssistant: (input: ImportInput) => Promise<{ id: string; writing: Promise<unknown> | null }>;
   addSkill: (input: { name: string; description: string; body: string; extra: string; files: SharedSkill["files"]; skipped: SharedSkill["skipped"]; source: SkillSource; enabled: false; accounts: string[] }) => Promise<{ id: string }>;
   addFlow: (shared: SharedFlow, answers: FlowAnswers, catalogue?: { id: string; hash: string; version?: string }) => Promise<{ id: string }>;
+  /** Update one added from the catalogue to a newer version, as the add for its kind would, keeping its name. */
+  replaceAssistant: (id: string, input: ImportInput) => Promise<{ writing: Promise<unknown> | null }>;
+  replaceSkill: (id: string, input: { description: string; body: string; extra: string; files: SharedSkill["files"]; skipped: SharedSkill["skipped"]; accounts: string[] }) => Promise<void>;
+  replaceFlow: (id: string, shared: SharedFlow, answers: FlowAnswers, catalogue: { id: string; hash: string; version?: string }) => Promise<void>;
   /** Record the listing an assistant or skill came from (migration 0088). Flows record their own. */
   markCatalogue: (kind: "assistant" | "skill", id: string, listing: { id: string; hash: string; version: string | null }) => Promise<void>;
   now: () => Date;
@@ -59,7 +66,7 @@ export interface CommunityAddDeps {
 
 /** The server's own: the stores, the catalogue and the link guard. Loaded on first use, so tests never touch them. */
 export async function liveDeps(): Promise<CommunityAddDeps> {
-  const [{ loadBundle }, { fetchGithubFolder }, { catalogueUrl }, { q }, { importAssistant }, { createSkill, listSkills, freeName }, { addSharedFlow }] = await Promise.all([
+  const [{ loadBundle }, { fetchGithubFolder }, { catalogueUrl }, { q }, { importAssistant, updateImportedAssistant }, { createSkill, updateSkill, listSkills, freeName }, { addSharedFlow, replaceSharedFlow }] = await Promise.all([
     import("./community-catalogue"),
     import("../../lib/skill-fetch"),
     import("../../lib/community-config"),
@@ -74,8 +81,9 @@ export async function liveDeps(): Promise<CommunityAddDeps> {
     fetchLink: (url) => fetchGithubFolder(parseAddLink(url)),
     catalogueAddress: () => catalogueUrl() || null,
     existing: async (kind, catalogueId) => {
-      const [row] = await q<{ id: string; catalogue_version: string | null }>(`SELECT id::text AS id, catalogue_version FROM ${TABLE[kind]} WHERE catalogue_id = $1 ORDER BY created_at DESC LIMIT 1`, [catalogueId]);
-      return row ? { id: row.id, version: row.catalogue_version } : null;
+      const skillOnly = kind === "skill" ? " AND assistant_id IS NULL" : "";
+      const [row] = await q<{ id: string; catalogue_version: string | null; catalogue_hash: string | null }>(`SELECT id::text AS id, catalogue_version, catalogue_hash FROM ${TABLE[kind]} WHERE catalogue_id = $1${skillOnly} ORDER BY created_at DESC LIMIT 1`, [catalogueId]);
+      return row ? { id: row.id, version: row.catalogue_version, hash: row.catalogue_hash } : null;
     },
     addAssistant: async (input) => {
       const { assistant, writing } = await importAssistant(input as unknown as Record<string, unknown>);
@@ -87,6 +95,9 @@ export async function liveDeps(): Promise<CommunityAddDeps> {
       return createSkill({ ...input, name: freeName(input.name, taken) });
     },
     addFlow: addSharedFlow,
+    replaceAssistant: async (id, input) => ({ writing: (await updateImportedAssistant(id, input as unknown as Record<string, unknown>)).writing }),
+    replaceSkill: async (id, input) => void (await updateSkill(id, { ...input, enabled: false })),
+    replaceFlow: async (id, shared, answers, catalogue) => void (await replaceSharedFlow(id, shared, answers, catalogue)),
     markCatalogue: async (kind, id, l) => {
       await q(`UPDATE ${TABLE[kind]} SET catalogue_id = $2, catalogue_hash = $3, catalogue_version = $4 WHERE id = $1::uuid`, [id, l.id, l.hash, l.version]);
     },
@@ -121,6 +132,12 @@ export function parseAddLink(raw: string) {
 
 // ---------- previews ----------
 
+const HREF: Record<ShareKind, (id: string) => string> = {
+  assistant: (id) => `#/team/${encodeURIComponent(id)}`,
+  skill: (id) => `#/settings/skills/${encodeURIComponent(id)}`,
+  flow: (id) => `#/flows/${encodeURIComponent(id)}`,
+};
+
 const fromCatalogue = (bundle: CatalogueBundle): ItemFiles => {
   const kind = detectKind(bundle.files.map((f) => f.path));
   if (!kind) throw new ShareFormatError("That listing's files aren't an assistant, a skill or a flow.");
@@ -139,7 +156,8 @@ export async function previewOf(req: AddRequest | { files: IntakeEntry[]; name?:
   if ("catalogue" in req) {
     const id = String(req.catalogue).trim();
     const { item, bundle } = await catalogueBundle(id, deps);
-    const existing = await deps.existing(item.kind, item.id);
+    const had = await deps.existing(item.kind, item.id);
+    const existing = had ? { id: had.id, version: had.version, href: HREF[item.kind](had.id), newer: had.hash !== item.hash } : null;
     return buildPreview({ files: fromCatalogue(bundle), from: { catalogue: item.id }, source: sourceFor({ catalogue: item.id }, at, deps.catalogueAddress()), listing: item, existing });
   }
   if ("link" in req) {
@@ -176,6 +194,7 @@ export function readChoices(raw: unknown): AddChoices {
     web: c.web === true,
     money: c.money === true,
     assistant_id: typeof c.assistant_id === "string" ? c.assistant_id.slice(0, 64) : null,
+    replace: typeof c.replace === "string" ? c.replace.slice(0, 64) : null,
   };
 }
 
@@ -187,12 +206,6 @@ function fromOf(raw: unknown): AddPreview["from"] {
   }
   throw new ShareFormatError("That didn't arrive whole. Look at it again, then add it.");
 }
-
-const HREF: Record<ShareKind, (id: string) => string> = {
-  assistant: (id) => `#/team/${encodeURIComponent(id)}`,
-  skill: (id) => `#/settings/skills/${encodeURIComponent(id)}`,
-  flow: (id) => `#/flows/${encodeURIComponent(id)}`,
-};
 
 /**
  * Add what the owner looked at: its files read again (a listing's bundle fetched and checked again, refused when it
@@ -218,6 +231,7 @@ export async function addFrom(body: unknown, deps: CommunityAddDeps): Promise<{ 
   }
   const mark = listing ? { id: listing.id, hash: preview.hash, version: listing.version } : null;
   const item = preview.item;
+  if (choices.replace) return replaceFrom(choices.replace, preview, choices, listing, from, at, deps);
   if (item.kind === "assistant") {
     const { id, writing } = await deps.addAssistant({
       shared: item.shared,
@@ -238,15 +252,55 @@ export async function addFrom(body: unknown, deps: CommunityAddDeps): Promise<{ 
     if (mark) await deps.markCatalogue("skill", id, mark);
     return { result: { kind: "skill", id, href: HREF.skill(id) }, writing: null };
   }
+  const { id } = await deps.addFlow(item.flow, flowAnswers(item.flow, choices), mark ? { id: mark.id, hash: mark.hash, ...(mark.version ? { version: mark.version } : {}) } : undefined);
+  return { result: { kind: "flow", id, href: HREF.flow(id) }, writing: null };
+}
+
+/**
+ * Update the one already added from this listing to the version just read (the owner tapped Update): only that one,
+ * found again here whatever the app says, and only from the catalogue. Its kind's own update keeps its name and
+ * history and switches it off. Throws ShareFormatError.
+ */
+async function replaceFrom(id: string, preview: AddPreview, choices: AddChoices, listing: CatalogueItem | null, from: AddPreview["from"], at: string, deps: CommunityAddDeps): Promise<{ result: AddResult; writing: Promise<unknown> | null }> {
+  if (!listing) throw new ShareFormatError("Only something added from Community can be updated. Add it as a new one instead.");
+  const had = await deps.existing(preview.kind, listing.id);
+  if (!had || had.id !== id) throw new ShareFormatError("That isn't the one you added from this listing any more. Look at it again.");
+  const mark = { id: listing.id, hash: preview.hash, version: listing.version };
+  const item = preview.item;
+  const done = (writing: Promise<unknown> | null) => ({ result: { kind: preview.kind, id, href: HREF[preview.kind](id), updated: true }, writing });
+  if (item.kind === "assistant") {
+    const { writing } = await deps.replaceAssistant(id, {
+      shared: item.shared,
+      skill: item.skill,
+      source: sourceFor(from, at, deps.catalogueAddress()),
+      answers: answersFor(item.shared.asks, choices.answers),
+      allow: choices.allow,
+      web: choices.web && item.shared.web,
+      accounts: choices.accounts,
+    });
+    await deps.markCatalogue("assistant", id, mark);
+    return done(writing);
+  }
+  if (item.kind === "skill") {
+    const s = item.skill;
+    await deps.replaceSkill(id, { description: s.description, body: s.body, extra: s.extra, files: s.files, skipped: s.skipped, accounts: choices.accounts });
+    await deps.markCatalogue("skill", id, mark);
+    return done(null);
+  }
+  await deps.replaceFlow(id, item.flow, flowAnswers(item.flow, choices), { id: mark.id, hash: mark.hash, ...(mark.version ? { version: mark.version } : {}) });
+  return done(null);
+}
+
+/** A flow's answers by key, every question answered. Throws ShareFormatError naming the first left. */
+function flowAnswers(flow: SharedFlow, choices: AddChoices): FlowAnswers {
   const answers: FlowAnswers = {};
-  for (const a of item.flow.asks) {
+  for (const a of flow.asks) {
     const v = choices.answers[a.key];
     if (typeof v === "string" && v.trim()) answers[a.key] = v.trim();
   }
-  const missing = item.flow.asks.filter((a) => !answers[a.key]);
+  const missing = flow.asks.filter((a) => !answers[a.key]);
   if (missing.length) throw new ShareFormatError(`Answer “${missing[0].question}” first.`);
-  const { id } = await deps.addFlow(item.flow, answers, mark ? { id: mark.id, hash: mark.hash, ...(mark.version ? { version: mark.version } : {}) } : undefined);
-  return { result: { kind: "flow", id, href: HREF.flow(id) }, writing: null };
+  return answers;
 }
 
 // ---------- the routes ----------
@@ -347,7 +401,7 @@ export async function handleCommunityAddRoutes(
     if (!body) return json({ error: TOO_BIG }, 413);
     const { result, writing } = await addFrom(body, deps);
     if (writing) opts.waitUntil?.(writing);
-    return json(result, 201);
+    return json(result, result.updated ? 200 : 201);
   } catch (error) {
     if (error instanceof NewerFormatError) return json({ error: error.message, newer: true }, NEWER_FORMAT_STATUS);
     if (error instanceof ShareFormatError || error instanceof SkillFormatError) return json({ error: error.message }, 400);

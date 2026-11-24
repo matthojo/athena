@@ -960,6 +960,26 @@ button.flow-chip {
   color: var(--bad);
 }
 
+.flow-menu__item:disabled {
+  cursor: default;
+  color: var(--ink-3);
+}
+
+.flow-menu__item:disabled svg {
+  color: var(--ink-3);
+}
+
+.flow-menu__text {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xs) 0;
+}
+
+.flow-menu__why {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
 @media (hover: hover) {
   .flow-menu__item:hover {
     background: var(--sunken);

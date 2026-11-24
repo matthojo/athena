@@ -30,6 +30,7 @@ import { settleRun, stopRun, type FlowEffects, type Settle } from "../../lib/flo
 import { clip } from "../../lib/flow-steps";
 import type { EventFilter } from "../../lib/team-types";
 import type { TeamEventRow } from "../../lib/team-events";
+import { unansweredWords } from "../../lib/flow-share";
 
 type Json = (data: unknown, status?: number) => Response;
 
@@ -140,6 +141,9 @@ export async function handleFlowRoutes(req: Request, segments: string[], body: (
   if (!flow) return json({ error: "Not found" }, 404);
 
   if (third === "run") {
+    // A flow added from a file runs only once its questions are answered: a run would leave its blanks empty.
+    const unanswered = unansweredWords(flow.unfilled);
+    if (unanswered) return json({ error: unanswered }, 409);
     const b = (await body()) ?? {};
     const dry = b.dry === true;
     const fx = await deps.effects();

@@ -5,12 +5,13 @@
  * - What goes and what stays: the trigger and steps go; runs, your records and who runs it stay.
  * - What it reaches, worked out from the file (lib/reach.ts): nothing leaves the site, a model or a lookup (each
  *   named), or the web.
- * - Steps that can't go yet (they lean on your own types, fields or lists), by name, with why. Nothing downloads
- *   while there are any.
+ * - Steps that can't go yet (they lean on your own types or fields), by name, with why. Nothing downloads while
+ *   there are any.
  * - What Athena took out (links into your Athena), and what looks like yours: edit it out below, or say it's fine.
  *   The server checks again before it sends the file.
- * - The name, a summary, and a question for each record a step pointed at, worded by you, which whoever adds it
- *   answers with one of theirs. These change the file only, never the flow.
+ * - The name, a summary (drafted from the trigger and steps, no model), and a question for each record, list or
+ *   to-do context a step named, worded by you, which whoever adds it answers with one of theirs. These change the
+ *   file only, never the flow.
  *
  * The file is a zip with flow.json (flow.json alone in sample mode). It has no link to this Athena.
  */
@@ -149,7 +150,7 @@ export function openShareFlow(flow: Flow): void {
     const author = h("input", { class: "field", type: "text", value: w.author ?? "", maxlength: 39, autocomplete: "off", autocapitalize: "off", spellcheck: "false", placeholder: "Optional", "aria-label": "Your GitHub username" }) as HTMLInputElement;
     const version = h("input", { class: "field", type: "text", value: w.version ?? "1.0.0", maxlength: 20, autocomplete: "off", "aria-label": "Version" }) as HTMLInputElement;
 
-    // One question for each record a step pointed at. The owner words it; whoever adds the flow answers it.
+    // One question for each record, list or context a step named. The owner words it; whoever adds the flow answers it.
     const questions: Array<{ ask: SharedFlowAsk; input: HTMLInputElement }> = w.asks.map((ask, i) => {
       const input = h("input", { class: "field", type: "text", value: ask.question, maxlength: MAX_QUESTION, autocomplete: "off", "aria-label": `Question ${i + 1}`, "aria-describedby": `fs-ask-${i}-used` }) as HTMLInputElement;
       input.addEventListener("input", soon);

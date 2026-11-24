@@ -48,8 +48,8 @@ export function blockedLede(n: number): string {
 /** The hint under the questions, with or without any. */
 export function asksHint(n: number): string {
   return n
-    ? "Where a step points at one of your own records, whoever adds the flow picks one of theirs. Word each question so it makes sense to them."
-    : "None. No step points at one of your own records.";
+    ? "Where a step uses one of your own records, lists or contexts, whoever adds the flow picks one of theirs. Word each question so it makes sense to them."
+    : "None. No step uses your own records, lists or contexts.";
 }
 
 /** The line over the findings: a step's words change on the flow's page, the rest here. */

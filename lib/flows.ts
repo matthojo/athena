@@ -17,7 +17,7 @@ import { eventFilterSchema } from "./team";
 import { defaultGo, flowTool, isDraftTool } from "./flow-catalog";
 import { allSteps, depthOf, eachStep, triggerValues, valueWords, type FlowValues, type Frame } from "./flow-steps";
 import { triggerGives } from "./flow-triggers";
-import { needsAssistant, stillUnfilled, type ImportUnfilled } from "./flow-share";
+import { needsAssistant, stillUnfilled, unansweredWords, type ImportUnfilled } from "./flow-share";
 import type { ModelRef } from "./model-types";
 import {
   FLOW_LIMITS,
@@ -301,8 +301,11 @@ export async function createFlow(raw: unknown, extra: { unfilled?: ImportUnfille
   return presentFlow(row);
 }
 
-/** Change what the owner may set. Steps and the trigger are checked together. */
-export async function updateFlow(id: unknown, raw: unknown): Promise<Flow> {
+/**
+ * Change what the owner may set. Steps and the trigger are checked together. `extra` is for updating a shared flow
+ * to a newer version (lib/flow-share-store.ts replaceSharedFlow): its new blanks, and the listing it now matches.
+ */
+export async function updateFlow(id: unknown, raw: unknown, extra: { unfilled?: ImportUnfilled[]; catalogue?: FlowCatalogueRef } = {}): Promise<Flow> {
   const was = await getFlow(id);
   if (!was) throw new AthenaInputError("That flow isn't there any more", 404);
   const input = parse(inputSchema, raw ?? {}) as FlowInput;
@@ -311,15 +314,18 @@ export async function updateFlow(id: unknown, raw: unknown): Promise<Flow> {
   checkSteps(steps, trigger);
   // A shared flow's blanks stay until each field is set; until then, and until a thinking step has an assistant, it stays off.
   const [stored] = await q<{ payload: string }>(`SELECT payload FROM flows WHERE id = $1::uuid`, [was.id]);
-  const unfilled = stillUnfilled(steps, readJson<Words>(stored?.payload ?? null).unfilled);
+  const unfilled = stillUnfilled(steps, extra.unfilled ?? readJson<Words>(stored?.payload ?? null).unfilled);
   if (input.paused === false && was.paused) {
-    if (unfilled.length) throw new AthenaInputError(unfilled.length === 1 ? `Answer “${unfilled[0].question}” in its step first.` : `Fill in the ${unfilled.length} steps that still have questions first.`);
+    const why = unansweredWords(unfilled);
+    if (why) throw new AthenaInputError(why);
     if (was.origin === "shared" && !was.assistant_id && needsAssistant(steps)) throw new AthenaInputError("Pick an assistant to run its thinking steps first.");
   }
   const w: Words = { name: input.name !== undefined ? oneLine(input.name).slice(0, FLOW_LIMITS.name) || was.name : was.name, trigger, steps, ...(unfilled.length ? { unfilled } : {}) };
   const [row] = await q<FlowRow>(
-    `UPDATE flows SET payload = $2, trigger_kind = $3, schedule = $4::jsonb, money = $5, paused = $6, origin = $7, updated_at = now() WHERE id = $1::uuid RETURNING ${F_COLUMNS}`,
-    [was.id, sealText(JSON.stringify(w)), trigger.kind, JSON.stringify(plainSchedule(trigger)), input.money ?? was.money, input.paused ?? was.paused, input.origin ?? was.origin],
+    `UPDATE flows SET payload = $2, trigger_kind = $3, schedule = $4::jsonb, money = $5, paused = $6, origin = $7,
+       catalogue_id = COALESCE($8, catalogue_id), catalogue_hash = COALESCE($9, catalogue_hash), catalogue_version = CASE WHEN $8::text IS NULL THEN catalogue_version ELSE $10 END,
+       updated_at = now() WHERE id = $1::uuid RETURNING ${F_COLUMNS}`,
+    [was.id, sealText(JSON.stringify(w)), trigger.kind, JSON.stringify(plainSchedule(trigger)), input.money ?? was.money, (input.paused ?? was.paused) || (extra.unfilled !== undefined && unfilled.length > 0), input.origin ?? was.origin, extra.catalogue?.id ?? null, extra.catalogue?.hash ?? null, extra.catalogue?.version ?? null],
   );
   if (!row) throw new AthenaInputError("That flow isn't there any more", 404);
   return presentFlow(row);

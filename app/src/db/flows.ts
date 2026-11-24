@@ -5,12 +5,12 @@
  *
  * Like Team, Flows needs the server: nothing here is kept offline.
  */
-import { isSampleMode, request } from "./api";
+import { ApiError, isSampleMode, request } from "./api";
 import { sampleCatalog, sampleFlows, sampleRunFrom, type SampleFlows } from "./sample-flows";
 import { triggerGives } from "../../../lib/flow-trigger-gives";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
 import { listTeam } from "./team";
-import { needsAssistant, stillUnfilled, type ImportedFlowInput, type ImportUnfilled } from "../../../lib/flow-share";
+import { needsAssistant, stillUnfilled, unansweredWords, type ImportedFlowInput, type ImportUnfilled } from "../../../lib/flow-share";
 import { FLOW_LIMITS, type CatalogEntry, type Flow, type FlowDraft, type FlowInput, type FlowListResponse, type FlowRun, type FlowSuggestion } from "../../../lib/flow-types";
 
 export type { CatalogEntry, Flow, FlowDraft, FlowInput, FlowListResponse, FlowRun, FlowSuggestion };
@@ -125,6 +125,13 @@ export async function sampleAddSharedFlow(input: ImportedFlowInput): Promise<Flo
   return { ...made, ...(left.length ? { unfilled: left.map(({ was: _was, ...u }) => u) } : {}) };
 }
 
+/** Sample mode's Update of a shared flow to a newer version, as lib/flow-share-store.ts replaceSharedFlow does it. */
+export async function sampleReplaceSharedFlow(id: string, input: ImportedFlowInput): Promise<Flow> {
+  const { unfilled, trigger, steps } = input;
+  sampleUnfilled.set(id, unfilled);
+  return updateFlow(id, { trigger, steps, money: false, paused: true });
+}
+
 export async function updateFlow(id: string, input: FlowInput): Promise<Flow> {
   let next: Flow;
   if (isSampleMode()) {
@@ -208,6 +215,8 @@ export async function runFlow(id: string, dry: boolean): Promise<FlowRun> {
     const s = store();
     const f = sampleFlow(id);
     if (!f) throw notThere();
+    const unanswered = unansweredWords(f.unfilled);
+    if (unanswered) throw new ApiError(unanswered, 409);
     const last = latestOf(id);
     const state = sampleRunFrom(s, f, { label: dry ? (last?.label ?? "A try") : "Run now", at: Date.now(), decisions: {}, dry });
     s.runs.push(state);

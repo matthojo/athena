@@ -28,7 +28,7 @@ import { accountTicks } from "./account-ticks";
 import { itemAccounts } from "../db/item-accounts";
 import { skillImported } from "../../../lib/shared-limits";
 import { communityHash } from "../community/words";
-import { catalogueStatus } from "../community/status";
+import { catalogueStatus, updateDot, UPDATE_WORDS } from "../community/status";
 
 type Nav = { open: (id: string | null) => void };
 
@@ -100,7 +100,7 @@ function skillRow(s: AppSkill, nav: Nav, refresh: () => void): HTMLElement {
     h(
       "span",
       { class: "row__body" },
-      h("span", { class: "row__title" }, s.title),
+      h("span", { class: "row__title" }, s.title, updateDot("skill", s.id, () => open.setAttribute("aria-label", `${s.title}. ${UPDATE_WORDS}. ${s.description}. Edit`))),
       h("span", { class: "row__meta skill-row__desc" }, s.description),
       h("span", { class: "row__meta" }, `${usedWords(s)} · ${sourceWords(s.source)}`)
     )

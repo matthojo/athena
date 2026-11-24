@@ -41,10 +41,11 @@ interface Calls {
   skill: unknown[];
   flow: unknown[];
   marked: unknown[];
+  replaced: unknown[];
 }
 
 function fakes(over: Partial<CommunityAddDeps> = {}): { deps: CommunityAddDeps; calls: Calls } {
-  const calls: Calls = { assistant: [], skill: [], flow: [], marked: [] };
+  const calls: Calls = { assistant: [], skill: [], flow: [], marked: [], replaced: [] };
   const deps: CommunityAddDeps = {
     loadBundle: async () => {
       throw new Error("no catalogue in this test");
@@ -55,6 +56,9 @@ function fakes(over: Partial<CommunityAddDeps> = {}): { deps: CommunityAddDeps; 
     addAssistant: async (input) => (calls.assistant.push(input), { id: "11111111-1111-4111-8111-111111111111", writing: null }),
     addSkill: async (input) => (calls.skill.push(input), { id: "22222222-2222-4222-8222-222222222222" }),
     addFlow: async (shared, answers, catalogue) => (calls.flow.push({ shared, answers, catalogue }), { id: "33333333-3333-4333-8333-333333333333" }),
+    replaceAssistant: async (id, input) => (calls.replaced.push({ kind: "assistant", id, input }), { writing: null }),
+    replaceSkill: async (id, input) => void calls.replaced.push({ kind: "skill", id, input }),
+    replaceFlow: async (id, shared, answers, catalogue) => void calls.replaced.push({ kind: "flow", id, shared, answers, catalogue }),
     markCatalogue: async (kind, id, listing) => void calls.marked.push({ kind, id, listing }),
     now: () => new Date("2026-11-24T10:00:00Z"),
     ...over,
@@ -124,10 +128,12 @@ test("a skill from files: tier 2, named by its title", async () => {
 test("a catalogue listing: checked against its hash, and refused when its files don't match", async () => {
   const files = [{ path: "flow.json", text: JSON.stringify(FLOW) }];
   const good = await catalogue(files);
-  const p = await previewOf({ catalogue: good.item.id }, fakes({ loadBundle: async () => good, existing: async () => ({ id: "x", version: "0.9.0" }) }).deps);
+  const p = await previewOf({ catalogue: good.item.id }, fakes({ loadBundle: async () => good, existing: async () => ({ id: "x", version: "0.9.0", hash: "sha256-old" }) }).deps);
   assert.deepEqual(p.from, { catalogue: good.item.id });
   assert.equal(p.listing?.featured, true);
-  assert.deepEqual(p.existing, { id: "x", version: "0.9.0" });
+  assert.deepEqual(p.existing, { id: "x", version: "0.9.0", href: "#/flows/x", newer: true });
+  const same = await previewOf({ catalogue: good.item.id }, fakes({ loadBundle: async () => good, existing: async () => ({ id: "x", version: "1.0.0", hash: good.item.hash }) }).deps);
+  assert.equal(same.existing?.newer, false);
   const tampered = { item: good.item, bundle: { ...good.bundle, files: [{ path: "flow.json", text: JSON.stringify({ ...FLOW, name: "Changed" }) }] } };
   await assert.rejects(previewOf({ catalogue: good.item.id }, fakes({ loadBundle: async () => tampered }).deps), /don't match/);
 });
@@ -221,7 +227,7 @@ test("a flow from the catalogue passes its listing to the flow's own import", as
 
 test("readChoices: only the shapes, nothing else", () => {
   const c = readChoices({ answers: { a: "b", n: 3 }, accounts: ["not an id", "44444444-4444-4444-8444-444444444444"], allow: ["add_todo", 7], web: "yes", money: true, assistant_id: 9 });
-  assert.deepEqual(c, { answers: { a: "b" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: false, money: true, assistant_id: null });
+  assert.deepEqual(c, { answers: { a: "b" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: false, money: true, assistant_id: null, replace: null });
 });
 
 // ---------- the routes ----------
@@ -270,4 +276,27 @@ test("only POST, and only its own two paths", async () => {
   assert.equal(get!.status, 405);
   assert.equal(await handleCommunityAddRoutes(post("/api/community/updates", "{}"), segs("/api/community/updates"), json, { deps }), null);
   assert.equal(await handleCommunityAddRoutes(post("/api/community", "{}"), segs("/api/community"), json, { deps }), null);
+});
+
+test("Update replaces only the one added from that listing, found again here; otherwise Add adds a copy", async () => {
+  const files = [{ path: "flow.json", text: JSON.stringify(FLOW) }];
+  const got = await catalogue(files);
+  const mine = "44444444-4444-4444-8444-444444444444";
+  const { deps, calls } = fakes({ loadBundle: async () => got, existing: async () => ({ id: mine, version: "0.9.0", hash: "sha256-old" }) });
+  const p = await previewOf({ catalogue: got.item.id }, deps);
+  const res = await handleCommunityAddRoutes(post("/api/community/add", JSON.stringify({ preview: p, choices: { answers: { context: "Home" }, replace: mine } }), "application/json"), segs("/api/community/add"), json, { deps });
+  assert.equal(res!.status, 200);
+  assert.deepEqual(await res!.json(), { kind: "flow", id: mine, href: `#/flows/${mine}`, updated: true });
+  assert.equal(calls.flow.length, 0, "no copy");
+  assert.deepEqual((calls.replaced[0] as { id: string; answers: unknown; catalogue: unknown }).answers, { context: "Home" });
+  assert.deepEqual((calls.replaced[0] as { catalogue: unknown }).catalogue, { id: got.item.id, hash: got.item.hash, version: "1.0.0" });
+  // Some other id, or one that isn't from the catalogue, is refused; nothing changes.
+  await assert.rejects(addFrom({ preview: p, choices: { answers: { context: "Home" }, replace: "55555555-5555-4555-8555-555555555555" } }, deps), /isn't the one you added/);
+  const fromFiles = await previewOf({ files: entries({ "flow.json": JSON.stringify(FLOW) }) }, deps);
+  await assert.rejects(addFrom({ preview: fromFiles, choices: { answers: { context: "Home" }, replace: mine } }, deps), /Only something added from Community/);
+  // Without replace, Add adds a second copy beside it.
+  const copy = await addFrom({ preview: p, choices: { answers: { context: "Home" } } }, deps);
+  assert.equal(copy.result.updated, undefined);
+  assert.equal(calls.flow.length, 1);
+  assert.equal(calls.replaced.length, 1);
 });

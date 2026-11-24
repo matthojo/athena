@@ -28,7 +28,7 @@ import { openStepSheet } from "./step-sheet";
 import { openTriggerSheet } from "./trigger-sheet";
 import { openHandSheet } from "./hand-sheet";
 import { openShareFlow } from "./share-sheet";
-import { needsAssistant } from "../../../lib/flow-share";
+import { needsAssistant, unansweredWords } from "../../../lib/flow-share";
 import { refKey } from "./text";
 import { triggerWords } from "./words";
 import { catalogueStatus } from "../community/status";
@@ -470,7 +470,9 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
   // ---------- the More menu ----------
   more.addEventListener("click", () => {
     if (!flow) return;
-    const runNow = h("button", { class: "flow-menu__item", type: "button" }, icons.play(), "Run now");
+    // A flow added from a file can't run until its questions are answered: Run now says so instead.
+    const unanswered = unansweredWords(flow.unfilled);
+    const runNow = h("button", { class: "flow-menu__item", type: "button", disabled: !!unanswered, ...(unanswered ? { "aria-describedby": "flow-run-why" } : {}) }, icons.play(), unanswered ? h("span", { class: "flow-menu__text" }, "Run now", h("span", { class: "flow-menu__why", id: "flow-run-why" }, unanswered)) : "Run now");
     const rename = h("button", { class: "flow-menu__item", type: "button" }, icons.pen(), "Rename");
     const share = h("button", { class: "flow-menu__item", type: "button" }, icons.send(), "Share");
     const giveBackBtn = assistant ? h("button", { class: "flow-menu__item", type: "button" }, icons.restore(), `Run it without ${assistant.name}`) : null;
@@ -487,8 +489,8 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
       try {
         const run = await runFlow(flow.id, false);
         ctx.openRun(run.id);
-      } catch {
-        showToast("Couldn't start it. Try again.");
+      } catch (error) {
+        showToast((error as { status?: number }).status === 409 && error instanceof Error ? error.message : "Couldn't start it. Try again.");
       }
     });
     rename.addEventListener("click", () => {

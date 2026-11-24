@@ -630,6 +630,69 @@
   color: var(--bad);
 }
 
+/* Already here: the first thing said, with a way to open it. */
+.add-have {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--mint-wash);
+}
+
+.add-have--newer {
+  background: var(--accent-wash);
+}
+
+.add-have__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--flow-mint-ink, var(--good));
+}
+
+.add-have--newer .add-have__icon {
+  color: var(--accent-ink);
+}
+
+.add-have__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.add-have__text {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.add-have__title {
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+}
+
+.add-have__sub {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.add-have__open {
+  flex: none;
+  margin-left: auto;
+}
+
 /* All of it. */
 .add-pre {
   max-height: 60vh;
@@ -714,6 +777,28 @@
   color: var(--ink-3);
   font-size: var(--text-meta);
   text-align: center;
+}
+
+.add-foot__note:empty {
+  display: none;
+}
+
+.add-foot__copy {
+  align-self: center;
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: var(--text-small);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.add-foot__copy[hidden] {
+  display: none;
 }
 
 .add-foot__problem {

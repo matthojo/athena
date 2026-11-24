@@ -7,8 +7,10 @@
  * It stays empty unless the daily check (GET /api/community/updates) has something to say about that item:
  *
  * - **Update available.** A change of reach tier leads, then the version and the listing's summary. Nothing updates
- *   by itself: "See what changed" opens the preview (#/add?catalogue=<id>), where the owner's own edits stay unless
- *   they choose to replace them.
+ *   by itself: "Look at the new version" opens the preview (#/add?catalogue=<id>), where Update replaces this one's
+ *   content and keeps its name and history.
+ * - **On the lists.** `updateDot(kind, id)` beside an item's name on the Team, Flows and Skills lists: a small dot
+ *   when there's an update, named "Update available" for a screen reader.
  * - **Taken down.** The catalogue's reason, in its words. The server paused the item once when it was withdrawn;
  *   the owner can switch it back on or remove it. It stays theirs either way.
  */
@@ -62,18 +64,18 @@ function updateBanner(c: UpdateCheck): HTMLElement | null {
   const n = c.newer;
   if (!n) return null;
   const tier = tierChangeWords(c.tier_here, n.reach);
-  const see = h("a", { class: "btn btn--primary btn--sm", href: addHash({ catalogue: c.catalogue_id }) }, "See what changed");
+  const see = h("a", { class: "btn btn--primary btn--sm", href: addHash({ catalogue: c.catalogue_id }) }, "Look at the new version");
   return h(
     "section",
-    { class: "cm-banner cm-banner--update", "aria-label": "Update available" },
+    { class: "cm-banner cm-banner--update", "aria-label": UPDATE_WORDS },
     h("span", { class: "cm-banner__icon", "aria-hidden": "true" }, icons.refresh()),
     h(
       "div",
       { class: "cm-banner__body" },
-      h("p", { class: "cm-banner__title" }, "Update available"),
+      h("p", { class: "cm-banner__title" }, UPDATE_WORDS),
       tier ? h("p", { class: "cm-banner__reach" }, tier) : null,
       h("p", { class: "cm-banner__text" }, `${versionWords(c.version, n.version)}. ${n.summary}`),
-      h("p", { class: "cm-banner__text" }, `It won't update by itself. Any edits you made to this ${NOUN[c.kind]} stay unless you choose to replace them.`),
+      h("p", { class: "cm-banner__text" }, `It won't update by itself. Updating keeps this ${NOUN[c.kind]}'s name and history, and replaces the rest with the new version.`),
       h("div", { class: "cm-banner__acts" }, see)
     )
   );
@@ -135,6 +137,23 @@ function withdrawnBanner(c: UpdateCheck, r: Running | null, repaint: () => void)
     )
   );
 }
+
+/**
+ * A small dot beside an item's name on its list, shown when the catalogue has a newer version. One check serves the
+ * whole list (updateFor shares it). `onFound` lets a row that names itself for a screen reader add the words.
+ */
+export function updateDot(kind: ShareKind, id: string, onFound?: () => void): HTMLElement {
+  const dot = h("span", { class: "cm-dot", role: "img", "aria-label": UPDATE_WORDS, title: UPDATE_WORDS, hidden: true });
+  void updateFor(kind, id).then((c) => {
+    if (!c?.newer) return;
+    dot.hidden = false;
+    onFound?.();
+  });
+  return dot;
+}
+
+/** The dot's name, and the banner's title. */
+export const UPDATE_WORDS = "Update available";
 
 /** Mount on an item's page. Empty unless the catalogue has news about this item. */
 export function catalogueStatus(kind: ShareKind, id: string): HTMLElement {

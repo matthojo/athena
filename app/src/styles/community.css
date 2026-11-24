@@ -606,3 +606,21 @@
     transform: translateY(-1px);
   }
 }
+
+/* ---------- the update dot on the Team, Flows and Skills lists ---------- */
+
+.cm-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-wash);
+  vertical-align: 0.15em;
+}
+
+.cm-dot[hidden] {
+  display: none;
+}
