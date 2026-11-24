@@ -85,7 +85,8 @@ export async function catalogueView(store: CommunityStore = dbCommunityStore): P
   const raw = await store.switchRow();
   let on = readCommunityCheck(raw);
   if (configured && raw === undefined) on = (await store.saveSwitch(true)).on;
-  const view: CatalogueView = { configured, on, generated_at: null, items: [], added: [], error: null };
+  const root = catalogueDeps.root();
+  const view: CatalogueView = { configured, on, host: root ? root.replace(/^https?:\/\//, "") : null, generated_at: null, items: [], added: [], error: null };
   if (!configured || !on) return view;
   const added = [...new Set((await store.installed()).map((r) => r.catalogue_id))];
   try {

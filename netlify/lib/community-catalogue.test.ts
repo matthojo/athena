@@ -313,7 +313,7 @@ test("with no catalogue set, the view says so, fetches nothing and leaves the sw
   const cat = use({});
   const { store, state } = memoryStore([], undefined);
   const view = await catalogueView(store);
-  assert.deepEqual(view, { configured: false, on: false, generated_at: null, items: [], added: [], error: null });
+  assert.deepEqual(view, { configured: false, on: false, host: null, generated_at: null, items: [], added: [], error: null });
   assert.deepEqual(state.saves, []);
   assert.equal(cat.seen.length, 0);
 });

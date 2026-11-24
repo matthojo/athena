@@ -28,6 +28,8 @@ export interface CatalogueView {
   configured: boolean;
   /** The owner's "Check the Community catalogue" switch. */
   on: boolean;
+  /** Where the list comes from, for the line that says so: the catalogue's host and path, "catalogue.example.com/v1". */
+  host?: string | null;
   /** When the index was made, as it says. Null when none was read. */
   generated_at: string | null;
   /** Items this Athena can read (formatReadable), newest first. Empty while off or not configured. */

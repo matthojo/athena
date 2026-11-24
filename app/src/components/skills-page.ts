@@ -26,6 +26,8 @@ import { renderAvatarTile } from "../team/avatar";
 import { accountTicks } from "./account-ticks";
 import { itemAccounts } from "../db/item-accounts";
 import { skillImported } from "../../../lib/shared-limits";
+import { communityHash } from "../community/words";
+import { catalogueStatus } from "../community/status";
 
 type Nav = { open: (id: string | null) => void };
 
@@ -180,7 +182,8 @@ function openAddSheet(nav: Nav, done: () => void): void {
       option("pen", "Write one", "Name it, say when to use it, and write the steps", () => closeThen(sheet, () => nav.open("new"))),
       option("capture", "Upload a SKILL.md or .zip", "A zip can hold reference files too", () => fileInput.click()),
       option("folder", "Upload a folder", "A folder with SKILL.md in it", () => folderInput.click()),
-      option("link", "Import from a link", "A GitHub folder, or a link to a SKILL.md", () => linkStep())
+      option("link", "Import from a link", "A GitHub folder, or a link to a SKILL.md", () => linkStep()),
+      option("globe", "Browse Community", "Skills other people shared, reviewed before they're listed", () => closeThen(sheet, () => (location.hash = communityHash("skill"))))
     ),
     fileInput,
     folderInput
@@ -219,7 +222,7 @@ function openAddSheet(nav: Nav, done: () => void): void {
   }
 }
 
-const iconOf = (name: "pen" | "capture" | "folder" | "link") => icons[name]();
+const iconOf = (name: "pen" | "capture" | "folder" | "link" | "globe") => icons[name]();
 
 /** Close the sheet, then go: its history entry is taken back first, so the new page isn't. */
 function closeThen(sheet: SheetHandle, go: () => void): void {
@@ -381,6 +384,7 @@ export function skillEditorSection(id: string, nav: Nav & { back: () => void }):
     const form = h(
       "form",
       { class: "skills-form", novalidate: true },
+      was && !owned ? catalogueStatus("skill", was.id) : null,
       d?.from === "chat" ? h("p", { class: "skills-draft-note" }, icons.sparkle(), h("span", {}, "Ask drafted this from your conversation. Nothing is saved until you tap Save, and it stays off until you switch it on.")) : null,
       d?.from === "import" ? h("p", { class: "skills-draft-note" }, icons.link(), h("span", {}, `${sourceWords({ ...(d.source as SkillSource), at: "" })}. Nothing is saved until you tap Save.`)) : null,
       h("label", { class: "skills-form__label" }, h("span", {}, "Name"), name),

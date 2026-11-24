@@ -19,6 +19,7 @@
  * added. Enter moves on; ⌘/Ctrl+Enter adds. Esc or a drag down closes,
  * keeping the draft; Esc in Name and look goes back to the talk.
  */
+import { communityHash } from "../community/words";
 import "../styles/team-setup.css";
 import { h } from "../lib/dom";
 import { icons } from "../components/icons";
@@ -218,7 +219,13 @@ export function openSetup(opts: SetupOptions): SheetHandle {
       sheet.close();
       window.setTimeout(() => opts.onImport?.(), 450);
     });
-    const el = h("section", { class: "ts-step" }, ...nodes, f, h("p", { class: "ts-label" }, "Or start from one of these"), h("div", { class: "ts-examples" }, ...chips), shared);
+    // Community (app/src/community/page.ts): assistants other people shared, reviewed.
+    const browse = h("button", { class: "link-btn ts-shared", type: "button" }, "Or browse Community");
+    browse.addEventListener("click", () => {
+      sheet.close();
+      window.setTimeout(() => (location.hash = communityHash("assistant")), 450);
+    });
+    const el = h("section", { class: "ts-step" }, ...nodes, f, h("p", { class: "ts-label" }, "Or start from one of these"), h("div", { class: "ts-examples" }, ...chips), shared, browse);
     requestAnimationFrame(fit);
     return { el, focus: () => (finePointer() ? f.focus() : h2.focus()) };
   }
