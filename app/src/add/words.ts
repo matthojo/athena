@@ -5,16 +5,21 @@
  */
 import type { AddPreview } from "../../../lib/community-api";
 import { LOOKUP_TOOLS } from "../../../lib/reach";
-import { tierWords } from "../community/words";
+import { listingIdOf } from "../../../lib/community-site";
+import { downloadWords, tierWords } from "../community/words";
 import type { Reach } from "../../../lib/reach";
 import type { ShareKind } from "../../../lib/share-kinds";
 import { FLOW_DRAFT_TOOLS, FLOW_LOOK_TOOLS, FLOW_SHARE_TOOLS, type FlowPick, type SharedFlowStep } from "../../../lib/flow-share";
 
 export const KIND_LABEL: Record<ShareKind, string> = { assistant: "Assistant", skill: "Skill", flow: "Flow" };
 
-/** "From Community", or "Not from Community" with where it did come from. */
+/** "From Community", with how often it was downloaded when the catalogue says; or "Not from Community" with where it did come from. */
 export function originWords(p: Pick<AddPreview, "from" | "listing">): { community: boolean; title: string; detail: string } {
-  if ("catalogue" in p.from) return { community: true, title: "From Community", detail: p.listing?.featured ? "Reviewed and featured in the catalogue" : "Reviewed for the catalogue" };
+  if ("catalogue" in p.from) {
+    const reviewed = p.listing?.featured ? "Reviewed and featured in the catalogue" : "Reviewed for the catalogue";
+    const downloads = downloadWords(p.listing?.downloads);
+    return { community: true, title: "From Community", detail: downloads ? `${reviewed} · ${downloads}` : reviewed };
+  }
   if ("link" in p.from) return { community: false, title: "Not from Community", detail: linkWords(p.from.link) };
   return { community: false, title: "Not from Community", detail: p.from.files ? `From ${p.from.files}` : "From a file" };
 }
@@ -39,8 +44,8 @@ export function makerWords(header: AddPreview["header"]): string {
   return line ? line.charAt(0).toUpperCase() + line.slice(1) : "";
 }
 
-/** "Based on github.com/…", when it says it was made from another item. */
-export const basedOnWords = (header: AddPreview["header"]): string => (header.based_on ? `Based on ${header.based_on.replace(/^https:\/\/(www\.)?/, "")}` : "");
+/** "Based on github.com/…", or "Based on a Community listing", when it says it was made from another item. */
+export const basedOnWords = (header: AddPreview["header"]): string => (!header.based_on ? "" : listingIdOf(header.based_on) ? "Based on a Community listing" : `Based on ${header.based_on.replace(/^https:\/\/(www\.)?/, "")}`);
 
 const list = (xs: readonly string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
@@ -108,6 +113,18 @@ export function goWords(s: SharedFlowStep): string | null {
   if (s.kind !== "tool" || !changesSomething(s)) return null;
   if (FLOW_DRAFT_TOOLS.includes(s.tool)) return "A draft: it always waits for your Go, and nothing is sent";
   return s.go === "auto" ? "It asked to run on its own. You can allow that once it's added" : null;
+}
+
+/**
+ * A tool step's filled fields, in the order the step's sheet lists them (the catalogue's), as the flow editor shows a
+ * step: the first is its body, the rest each go under it with the field's name ("Day", "Time"). A field the catalogue
+ * doesn't know keeps its key, in words. Pure.
+ */
+export function toolStepFields<T extends readonly unknown[]>(input: Readonly<Record<string, T>>, fields: ReadonlyArray<{ key: string; label: string }> = []): { first: string | null; rest: Array<{ key: string; label: string }> } {
+  const known = fields.map((f) => f.key);
+  const keys = [...known.filter((k) => k in input), ...Object.keys(input).filter((k) => !known.includes(k))].filter((k) => (input[k] ?? []).length);
+  const label = (k: string) => fields.find((f) => f.key === k)?.label ?? k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+  return { first: keys[0] ?? null, rest: keys.slice(1).map((key) => ({ key, label: label(key) })) };
 }
 
 /** The hint under a question whose answer is one of the owner's records, lists or contexts. Empty for words. */

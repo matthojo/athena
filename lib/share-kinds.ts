@@ -9,10 +9,10 @@
  *   flow.json        a flow (lib/flow-share.ts)
  *
  * The JSON files carry the same optional header: `format` (the file format, a whole number), `version` (the
- * author's own, free text like 1.2.0), `author` (a GitHub username) and `based_on` (the github.com link of the item
- * it was made from). A SKILL.md has no header of its own: its kind comes from its name.
+ * author's own, free text like 1.2.0), `author` (a GitHub username) and `based_on` (the item it was made from: a
+ * github.com link, or its listing on the Community site). A SKILL.md has no header of its own: its kind comes from its name.
  */
-import { githubLink } from "./team-share";
+import { basedOnLink } from "./team-share";
 
 export const SHARE_KINDS = ["assistant", "skill", "flow"] as const;
 export type ShareKind = (typeof SHARE_KINDS)[number];
@@ -32,7 +32,7 @@ export interface ShareHeader {
   version?: string;
   /** A GitHub username, when the author wants credit. */
   author?: string;
-  /** The item this one was made from: a github.com link. */
+  /** The item this one was made from: a github.com link, or its listing on the Community site (lib/community-site.ts). */
   based_on?: string;
 }
 
@@ -47,7 +47,7 @@ export function readHeader(raw: Record<string, unknown>): ShareHeader {
   const version = typeof raw.version === "string" && VERSION.test(raw.version.trim()) ? raw.version.trim() : undefined;
   const handle = typeof raw.author === "string" ? raw.author.trim().replace(/^@/, "") : "";
   const author = GITHUB_USER.test(handle) ? handle : undefined;
-  const basedOn = githubLink(raw.based_on);
+  const basedOn = basedOnLink(raw.based_on);
   return { ...(version ? { version } : {}), ...(author ? { author } : {}), ...(basedOn ? { based_on: basedOn } : {}) };
 }
 

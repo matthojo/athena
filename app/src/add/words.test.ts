@@ -2,7 +2,7 @@
 // added. Made-up items only. Run: npx tsx --test app/src/add/words.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addedWords, changesSomething, FLOW_CHANGE_TOOLS, goWords, makerWords, originWords, reachWords } from "./words";
+import { addedWords, basedOnWords, changesSomething, FLOW_CHANGE_TOOLS, goWords, makerWords, originWords, reachWords, toolStepFields } from "./words";
 import { FLOW_SHARE_TOOLS, type SharedFlowStep } from "../../../lib/flow-share";
 
 test("where it came from: only a catalogue item is from Community", () => {
@@ -10,6 +10,42 @@ test("where it came from: only a catalogue item is from Community", () => {
   assert.deepEqual(originWords({ from: { link: "https://github.com/sample-author/athena-items/tree/main/tidy" }, listing: null }), { community: false, title: "Not from Community", detail: "From github.com/sample-author/athena-items" });
   assert.equal(originWords({ from: { files: "tidy.zip" }, listing: null }).detail, "From tidy.zip");
   assert.equal(originWords({ from: { files: "" }, listing: null }).detail, "From a file");
+});
+
+test("a Community item says how often it was downloaded, rounded, and nothing when the index doesn't count", () => {
+  const listing = { id: "0123456789abcdef", version: null, featured: false, added_at: "", author: null };
+  const from = { catalogue: "0123456789abcdef" };
+  assert.equal(originWords({ from, listing: { ...listing, downloads: 1_234 } }).detail, "Reviewed for the catalogue · 1k+ downloads");
+  assert.equal(originWords({ from, listing: { ...listing, downloads: 150 } }).detail, "Reviewed for the catalogue · 100+ downloads");
+  assert.equal(originWords({ from, listing }).detail, "Reviewed for the catalogue");
+  assert.equal(originWords({ from, listing: { ...listing, downloads: 0 } }).detail, "Reviewed for the catalogue");
+});
+
+test("what it was based on: a GitHub folder by its address, a Community listing by name", () => {
+  assert.equal(basedOnWords({ based_on: "https://github.com/sample-author/athena-items/tree/main/flows/bins" }), "Based on github.com/sample-author/athena-items/tree/main/flows/bins");
+  assert.equal(basedOnWords({ based_on: "https://athena-community.netlify.app/items/k3m9p2q7r4s8t1v6/" }), "Based on a Community listing");
+  assert.equal(basedOnWords({}), "");
+});
+
+test("a tool step's fields in its sheet's order: the first is its body, the rest named", () => {
+  const fields = [
+    { key: "text", label: "What it says" },
+    { key: "date", label: "Day" },
+    { key: "time", label: "Time" },
+    { key: "repeat", label: "Repeat" },
+  ];
+  // As the file has them: out of order, one empty, one the catalogue doesn't know.
+  const input = { time: ["20:00"], text: ["Bins out tonight: ", { blank: "bins" }], repeat: [], date: [{ from: "trigger", key: "date" }], lead_time: ["1"] };
+  assert.deepEqual(toolStepFields(input, fields), {
+    first: "text",
+    rest: [
+      { key: "date", label: "Day" },
+      { key: "time", label: "Time" },
+      { key: "lead_time", label: "Lead time" },
+    ],
+  });
+  assert.deepEqual(toolStepFields({}, fields), { first: null, rest: [] });
+  assert.deepEqual(toolStepFields({ query: ["gift ideas"] }), { first: "query", rest: [] });
 });
 
 test("who made it, as the file says", () => {

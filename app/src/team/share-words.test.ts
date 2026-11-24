@@ -30,4 +30,5 @@ test("where it came from, and who made it", () => {
   assert.equal(creditWords({ author: "sample-author", version: "1.2.0" }), "By @sample-author · version 1.2.0");
   assert.equal(creditWords({ version: "2" }), "Version 2");
   assert.equal(creditWords({}), "");
+  assert.equal(creditWords({ author: "sample-author", based_on: "https://athena-community.netlify.app/items/k3m9p2q7r4s8t1v6/" }), "By @sample-author · based on a Community listing");
 });

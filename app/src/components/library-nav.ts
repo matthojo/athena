@@ -22,7 +22,7 @@ import { segmentItems, withKinds, type LibraryGroup, type LibraryItem } from "..
 
 export type { LibraryGroup, LibraryItem };
 
-export type LibrarySection = "notes" | "saved" | "recipes" | "days" | "loops" | "person" | "place" | "organisation" | "event" | "trips" | "purchases" | "money" | "house" | "health" | "habits" | "admin" | "reading" | "music" | "work" | "goals" | "graph" | KindView;
+export type LibrarySection = "notes" | "saved" | "recipes" | "days" | "loops" | "person" | "place" | "organisation" | "event" | "trips" | "purchases" | "money" | "house" | "health" | "habits" | "admin" | "reading" | "music" | "work" | "goals" | "graph" | "community" | KindView;
 
 /** The section ids views pass in, as the views they are. */
 const SECTION_VIEW: Record<Exclude<LibrarySection, KindView>, ViewId> = {
@@ -47,6 +47,7 @@ const SECTION_VIEW: Record<Exclude<LibrarySection, KindView>, ViewId> = {
   work: "work",
   goals: "goals",
   graph: "graph",
+  community: "community",
 };
 
 const kindIcon = (icon: string): IconName => (icon in icons ? (icon as IconName) : "folder");

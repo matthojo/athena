@@ -162,8 +162,69 @@
 }
 
 .cm-list > .cm-group__title:first-child,
+.cm-list > .cm-group__head:first-child,
 .cm-skeleton > .skeleton:first-child {
   margin-top: var(--space-xs);
+}
+
+/* The first heading, with the order beside it. */
+.cm-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0 var(--space-xs);
+}
+
+.cm-group__head > .cm-group__title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-group__head > .cm-sort {
+  flex: none;
+}
+
+.cm-sort {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+}
+
+.cm-sort__item {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.cm-sort__item[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+}
+
+@media (hover: hover) {
+  .cm-sort__item:not([aria-pressed="true"]):hover {
+    color: var(--ink);
+  }
+}
+
+@media (pointer: coarse) {
+  .cm-sort__item {
+    height: 36px;
+  }
 }
 
 .cm-skeleton > .skeleton:first-child {
@@ -540,6 +601,11 @@
   color: var(--bad);
 }
 
+/* On its own, Remove lines up with the words above it rather than sitting a padding's width in. */
+.cm-banner__acts > .cm-remove:first-child {
+  margin-left: calc(-1 * var(--space-sm));
+}
+
 /* On an item's page: room above and below the banner. */
 .cm-status:not(:empty) {
   margin-block: var(--space-sm) var(--space-md);
@@ -558,11 +624,16 @@
   display: none;
 }
 
-/* A wide screen: the items as cards, two across, so a row isn't a long line with a chevron far off. */
+/*
+ * A wide screen: the items as cards, so a row isn't a long line with a chevron far off. Six tracks, each card
+ * spanning three: two across. Whatever the count, the grid has no hole: an odd list ends with one card across the
+ * whole row, and an odd number of featured picks leads with one. Wider still, three featured picks sit in one row
+ * of three (and six in two).
+ */
 @media (min-width: 1024px) {
   .card.cm-group {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: var(--space-sm);
     overflow: visible;
     background: none;
@@ -585,6 +656,21 @@
     display: none;
   }
 
+  .cm-group > .cm-row {
+    grid-column: span 3;
+  }
+
+  .cm-group:not(.cm-group--featured) > .cm-row:last-child:nth-child(odd),
+  .cm-group--featured > .cm-row:first-child:nth-last-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  /* A card across the whole row keeps its words to a readable length. */
+  .cm-group > .cm-row:last-child:nth-child(odd) .cm-row__summary,
+  .cm-group--featured > .cm-row:first-child:nth-last-child(odd) .cm-row__summary {
+    max-width: 68ch;
+  }
+
   .cm-group > .cm-row:not(.cm-row--ghost):hover {
     background: var(--surface);
     border-color: var(--line-strong);
@@ -598,6 +684,13 @@
   .cm-row__chevron {
     align-self: start;
     margin-top: 2px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .cm-group--featured[data-count="3"] > .cm-row:nth-child(n),
+  .cm-group--featured[data-count="6"] > .cm-row:nth-child(n) {
+    grid-column: span 2;
   }
 }
 
@@ -623,4 +716,165 @@
 
 .cm-dot[hidden] {
   display: none;
+}
+
+/* ---------- Submit to Community (community/submit.ts) ---------- */
+
+.cm-submit {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.cm-submit[hidden],
+.cm-submit__panel[hidden] {
+  display: none;
+}
+
+.cm-submit__toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  color: inherit;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .cm-submit__toggle:hover {
+    background: color-mix(in oklch, var(--sunken) 55%, var(--surface));
+  }
+}
+
+.cm-submit__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+.cm-submit__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.cm-submit__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cm-submit__words {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cm-submit__label {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.cm-submit__hint {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cm-submit__chevron {
+  display: grid;
+  color: var(--ink-3);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.cm-submit__chevron svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cm-submit__toggle[aria-expanded="true"] .cm-submit__chevron {
+  transform: rotate(180deg);
+}
+
+.cm-submit__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.cm-submit__lede,
+.cm-submit__note {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.cm-submit__note {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.cm-submit__steps {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cm-submit__step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+.cm-submit__n {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--sunken);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.cm-submit__title {
+  display: block;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  line-height: 24px;
+}
+
+.cm-submit__sub {
+  display: block;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+  color: var(--ink-2);
+}
+
+.cm-submit__go svg {
+  width: 15px;
+  height: 15px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-submit__chevron {
+    transition: none;
+  }
 }

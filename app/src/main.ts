@@ -371,7 +371,7 @@ function mountShell() {
       current = lazyView(chunks.flows, ({ renderFlows }) => renderFlows({ go: (view, opts) => go(view, opts), param }));
     } else if (route.view === "community") {
       const query = route.source;
-      current = lazyView(chunks.community, ({ renderCommunity }) => renderCommunity({ query }));
+      current = lazyView(chunks.community, ({ renderCommunity }) => renderCommunity({ query, go: (view) => go(view) }));
     } else if (route.view === "add") {
       current = lazyView(chunks.add, ({ renderAdd }) => renderAdd({ go: (view, opts) => go(view, opts) }));
     } else if (route.view === "saved") {

@@ -61,7 +61,9 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
   const more = h("button", { class: "icon-btn icon-btn--ghost flow-more", type: "button", "aria-label": "More" }, icons.more());
   const body = h("div", { class: "flow-ed", "aria-busy": "true" });
   const foot = h("div", { class: "flow-foot", hidden: true });
-  const el = h("div", { class: "view flows flows--editor" }, h("div", { class: "flow-top" }, back, more), catalogueStatus("flow", ctx.id), body, foot);
+  const el = h("div", { class: "view flows flows--editor" }, h("div", { class: "flow-top" }, back, more), body, foot);
+  // The catalogue's word on this flow (an update, or taken down): under its title and switch, drawn once.
+  const status = catalogueStatus("flow", ctx.id);
 
   let alive = true;
   let flow: Flow;
@@ -418,6 +420,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     const notesEl = notes.length ? h("div", { class: "flow-drawn", role: "note" }, h("span", { class: "flow-drawn__title" }, "Athena made these steps from your sentence. Check them:"), h("ul", {}, ...notes.map((x) => h("li", {}, x)))) : null;
     body.replaceChildren(
       hero(),
+      status,
       notesEl ?? "",
       h("span", { class: "flow-eyebrow" }, "When"),
       triggerCard(),

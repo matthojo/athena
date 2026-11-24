@@ -18,6 +18,9 @@ import { SHARE_FORMAT } from "./team-share";
 import { FLOW_SHARE_FORMAT } from "./flow-share";
 import { detectKind, KIND_FILES, SHARE_KINDS, type ShareKind } from "./share-kinds";
 import type { Reach } from "./reach";
+import { CATALOGUE_ID } from "./community-site";
+
+export { COMMUNITY_SITE, submitPageUrl } from "./community-site";
 
 export const CATALOGUE_FORMAT = 1;
 export const INDEX_FILE = "index.json";
@@ -43,6 +46,8 @@ export const CATALOGUE_LIMITS = {
   reason: 300,
   needs: 10,
   lookups: 10,
+  /** A download count above this is refused: no real count is near it. */
+  downloads: 1_000_000_000,
 } as const;
 
 /** The newest file format of each kind this Athena reads. An item whose `min_format` is higher is hidden. */
@@ -65,8 +70,7 @@ export class CatalogueError extends Error {
 
 // ---------- pieces ----------
 
-/** Lowercase letters and digits without i, l, o and u (Crockford's base 32), 16 of them: 80 random bits. */
-export const CATALOGUE_ID = /^[0-9abcdefghjkmnpqrstvwxyz]{16}$/;
+export { CATALOGUE_ID };
 const ID_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz";
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HASH = /^sha256-[0-9a-f]{64}$/;
@@ -127,6 +131,11 @@ export interface CatalogueItem {
   added_at: string;
   /** Where its CatalogueBundle is, relative to the catalogue's root. */
   bundle: string;
+  /**
+   * How many times it was downloaded, as the Community site counts it. Optional: an index from before the site
+   * counted leaves it out, and the screens then say nothing about it.
+   */
+  downloads?: number;
 }
 
 /** An item taken down. Copies that added it say so on its page; it stays theirs. */
@@ -160,6 +169,7 @@ export const catalogueItemSchema: z.ZodType<CatalogueItem> = z
     featured: z.boolean(),
     added_at: when,
     bundle: z.string().max(260).regex(BUNDLE_PATH),
+    downloads: z.number().int().min(0).max(CATALOGUE_LIMITS.downloads).optional(),
   })
   .strict();
 

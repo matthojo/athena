@@ -26,6 +26,8 @@ interface Seed {
   reach: Reach;
   featured: boolean;
   days: number;
+  /** Made-up counts; the newest two have none, as an index from before the site counted would. */
+  downloads?: number;
   files: CatalogueFile[];
 }
 
@@ -97,6 +99,7 @@ const SEEDS: Seed[] = [
     reach: reach(2),
     featured: true,
     days: 6,
+    downloads: 2340,
     files: [
       { path: "SKILL.md", text: skillMd("meeting-notes", "Use when asked to write up a meeting.", "Write three short sections: Decisions, Actions (each with an owner and a date) and Open questions. Keep each line under twenty words.") },
       { path: "references/example.md", text: "# Example\n\n## Decisions\n- Launch moves to March.\n\n## Actions\n- Sam: draft the plan by Friday.\n" },
@@ -113,6 +116,7 @@ const SEEDS: Seed[] = [
     reach: reach(3),
     featured: false,
     days: 9,
+    downloads: 1180,
     files: [
       {
         path: "assistant.json",
@@ -137,6 +141,7 @@ const SEEDS: Seed[] = [
     reach: reach(2, { model: false, lookups: ["weather"] }),
     featured: false,
     days: 11,
+    downloads: 86,
     files: [
       {
         path: "flow.json",
@@ -163,6 +168,7 @@ const SEEDS: Seed[] = [
     reach: reach(2),
     featured: false,
     days: 14,
+    downloads: 412,
     files: [{ path: "SKILL.md", text: skillMd("polite-no", "Use when asked to decline an invitation or a request.", "Thank them, say no plainly in one sentence, and offer something smaller only if it's true. No long reasons.") }],
   },
   {
@@ -176,6 +182,7 @@ const SEEDS: Seed[] = [
     reach: reach(2, { model: false, lookups: ["train_status"] }),
     featured: false,
     days: 17,
+    downloads: 1520,
     files: [
       {
         path: "flow.json",
@@ -202,6 +209,7 @@ const SEEDS: Seed[] = [
     reach: reach(2, { needs: ["linear", "slack"] }),
     featured: false,
     days: 20,
+    downloads: 57,
     files: [
       {
         path: "assistant.json",
@@ -226,6 +234,7 @@ const SEEDS: Seed[] = [
     reach: reach(2),
     featured: false,
     days: 24,
+    downloads: 3,
     files: [{ path: "SKILL.md", text: skillMd("recipe-scaler", "Use when asked to make a recipe for more or fewer people.", "Multiply each amount, then round to the nearest spoon, 5 g or 25 ml. Keep cooking times the same unless the tin size changes.") }],
   },
   {
@@ -239,6 +248,7 @@ const SEEDS: Seed[] = [
     reach: reach(2, { needs: ["gmail"] }),
     featured: false,
     days: 30,
+    downloads: 9800,
     files: [
       {
         path: "flow.json",
@@ -263,6 +273,7 @@ const SEEDS: Seed[] = [
     reach: reach(2),
     featured: false,
     days: 38,
+    downloads: 640,
     files: [{ path: "SKILL.md", text: skillMd("weekly-review", "Use for a weekly review.", "List what got done, what slipped and why in a few words, then ask for one thing to carry into next week.") }],
   },
   {
@@ -276,6 +287,7 @@ const SEEDS: Seed[] = [
     reach: reach(2, { needs: ["strava"] }),
     featured: false,
     days: 45,
+    downloads: 230,
     files: [
       {
         path: "assistant.json",
@@ -300,6 +312,7 @@ const SEEDS: Seed[] = [
     reach: reach(2),
     featured: false,
     days: 52,
+    downloads: 15,
     files: [
       {
         path: "flow.json",
@@ -345,6 +358,7 @@ function build() {
         featured: s.featured,
         added_at: at(s.days),
         bundle: `bundles/${s.id}.json`,
+        ...(s.downloads !== undefined ? { downloads: s.downloads } : {}),
       };
       return { item, bundle: { id: s.id, hash, kind: s.kind, files: s.files.map((f) => ({ ...f })) } };
     })
@@ -380,6 +394,8 @@ const added = new Map<string, SampleAdded>([[GIFT, { kind: "flow", id: SAMPLE_FL
 
 /** The item here that came from this listing, if any. */
 export const sampleAddedFrom = (catalogueId: string): SampleAdded | null => added.get(catalogueId) ?? null;
+/** The listing an item here came from, if any: a shared copy names it as based_on. */
+export const sampleListingOf = (kind: ShareKind, id: string): string | null => [...added].find(([, a]) => a.kind === kind && a.id === id)?.[0] ?? null;
 /** Remember an Add or an Update from a listing. */
 export const rememberSampleAdd = (catalogueId: string, item: SampleAdded): void => void added.set(catalogueId, item);
 /** Every listing something here came from, for the list's "Added" marks: Dot's too, though it was taken down. */

@@ -372,3 +372,14 @@ test("draftSummary: the trigger and what the steps do, in Athena's words only", 
   assert.equal(exportFlow(f, ctx()).shared.summary, "Every Saturday at 09:00, it adds a to-do and tells you.");
   assert.equal(exportFlow(f, ctx({ edits: { summary: "" } })).shared.summary, "");
 });
+
+test("export: a flow from Community names its listing as based_on; the file reads it back", () => {
+  const listing = "https://athena-community.netlify.app/items/k3m9p2q7r4s8t1v6/";
+  const x = exportFlow(renewal(), ctx({ basedOn: listing }));
+  assert.equal(x.shared.based_on, listing);
+  assert.equal(readSharedFlow(JSON.parse(serialiseSharedFlow(x.shared))).based_on, listing);
+  assert.equal(exportFlow(renewal(), ctx()).shared.based_on, undefined);
+  assert.equal(exportFlow(renewal(), ctx({ basedOn: null })).shared.based_on, undefined);
+  // Somewhere that isn't GitHub or the Community site is left out, never written.
+  assert.equal(exportFlow(renewal(), ctx({ basedOn: "https://catalogue.example.com/items/k3m9p2q7r4s8t1v6/" })).shared.based_on, undefined);
+});

@@ -12,9 +12,9 @@
  * (netlify/lib/community-catalogue.ts); the daily check (netlify/functions/community-check.ts) uses the same code.
  */
 import { AthenaInputError, q } from "../../lib/db";
-import { COMMUNITY_KEY, readCommunityCheck, saveCommunityCheck } from "../../lib/community-config";
+import { COMMUNITY_KEY, readCommunityCheck, saveCommunityCheck, submitPageUrl } from "../../lib/community-config";
 import { CatalogueError } from "../../lib/catalogue-types";
-import type { CatalogueView, UpdateCheck } from "../../lib/community-api";
+import type { CatalogueView, CommunitySettings, UpdateCheck } from "../../lib/community-api";
 import type { Reach } from "../../lib/reach";
 import { catalogueDeps, compareInstalled, flowTier, getIndex, pauseKey, readableItems, toPause, type InstalledItem } from "./community-catalogue";
 
@@ -134,7 +134,11 @@ export async function handleCommunityRoutes(req: Request, segments: string[], bo
     if (!second && segments.length === 2) return method === "GET" ? json(await catalogueView(store)) : nope();
     if (second === "updates" && segments.length === 3) return method === "GET" ? json({ updates: await communityUpdates(store) }) : nope();
     if (second === "settings" && segments.length === 3) {
-      if (method === "GET") return json({ on: readCommunityCheck(await store.switchRow()), configured: !!catalogueDeps.root() });
+      if (method === "GET") {
+        const root = catalogueDeps.root();
+        const settings: CommunitySettings = { on: readCommunityCheck(await store.switchRow()), configured: !!root, submit: submitPageUrl(root) };
+        return json(settings);
+      }
       if (method !== "PUT") return nope();
       const on = ((await body()) as { on?: unknown } | null)?.on;
       if (typeof on !== "boolean") throw new AthenaInputError("Send on: true or false");

@@ -10,7 +10,8 @@
  *   is created off, origin `shared`, every tool step waiting for Go, money and the web off, with the owner's answers
  *   in its blanks and any they left listed as unfilled. A catalogue item keeps its listing's id, hash and version.
  */
-import { AthenaInputError } from "./db";
+import { AthenaInputError, q } from "./db";
+import { catalogueUrl, listingPageUrl } from "./community-config";
 import { createFlow, getFlow, updateFlow } from "./flows";
 import { knownTerms } from "./team-share-store";
 import { writeSkillZip } from "./skill-zip";
@@ -59,8 +60,11 @@ export async function exportFlowFor(id: string, opts: { body?: Record<string, un
   const body = opts.body ?? {};
   const fine = Array.isArray(body.fine) ? body.fine.filter((f): f is string => typeof f === "string").slice(0, 200) : [];
   const known = opts.known ?? (await knownTerms());
+  // Added from Community: the copy names its listing as what it was made from.
+  const [row] = await q<{ catalogue_id: string | null }>(`SELECT catalogue_id FROM flows WHERE id = $1::uuid`, [flow.id]);
+  const basedOn = row?.catalogue_id ? listingPageUrl(catalogueUrl(), row.catalogue_id) : null;
   try {
-    return exportFlow(flow, { ownHosts: opts.hosts, known, edits: readFlowEdits(body.edits), fine });
+    return exportFlow(flow, { ownHosts: opts.hosts, known, edits: readFlowEdits(body.edits), fine, basedOn });
   } catch (error) {
     if (error instanceof ShareFormatError) throw new AthenaInputError(`It can't be shared as it is: ${error.message}`);
     throw error;

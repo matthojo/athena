@@ -24,6 +24,7 @@
  * keys dropped, and nothing in it is a permission. On import the assistant
  * starts paused, with nothing allowed to run alone unless the owner ticks it.
  */
+import { listingLink } from "./community-site";
 import { checkFiles, cleanPath, intakeEntries, SkillFormatError, textOf, type IntakeEntry, type SkillFile, type SkillPreview, type SkillSkipped, type SkillSource } from "./skills";
 import { MAX_ANSWER, MAX_CHOICE, MAX_CHOICES, MAX_QUESTION, MAX_QUESTIONS, MAX_SUMMARY, type TeamAnswer } from "./team-skill";
 import { EVERYDAY } from "./todo-person";
@@ -236,6 +237,9 @@ function names(raw: unknown, field: string, re: RegExp, max: number): string[] {
 }
 
 /** A github.com link, or nothing: a shared only ever points back at GitHub. */
+/** What a `based_on` may name: a github.com link, or a listing on the Community site. Undefined for anything else. Pure. */
+export const basedOnLink = (raw: unknown): string | undefined => githubLink(raw) ?? listingLink(raw);
+
 export function githubLink(raw: unknown): string | undefined {
   if (typeof raw !== "string" || raw.length > 300) return undefined;
   try {
@@ -269,7 +273,7 @@ export function readShared(raw: unknown): SharedAssistant {
   const triggers = triggersRaw.map(readTrigger);
   const version = typeof raw.version === "string" && VERSION.test(raw.version.trim()) ? raw.version.trim() : undefined;
   const author = typeof raw.author === "string" && GITHUB_USER.test(raw.author.trim().replace(/^@/, "")) ? raw.author.trim().replace(/^@/, "") : undefined;
-  const basedOn = githubLink(raw.based_on);
+  const basedOn = basedOnLink(raw.based_on);
   return {
     format: SHARE_FORMAT,
     name: text(raw.name, "name", MAX_NAME),

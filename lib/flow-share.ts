@@ -530,6 +530,11 @@ export interface FlowExportContext {
   edits?: { name?: string; summary?: string; version?: string; author?: string; asks?: SharedFlowAsk[] };
   /** Finding ids the owner said are fine to share. */
   fine?: readonly string[];
+  /**
+   * The flow's listing on the Community site, when it was added from there (lib/community-site.ts listingPageUrl):
+   * the file's `based_on`, so whoever adds this copy can see what it was made from.
+   */
+  basedOn?: string | null;
 }
 
 /** A blank the export made where a step pointed at one of the owner's records. */
@@ -841,6 +846,7 @@ export function exportFlow(flow: Pick<Flow, "name" | "trigger" | "steps" | "mone
     web: allSharedSteps(steps).some((s) => s.kind === "think" && s.web),
     version: edits.version,
     author: edits.author,
+    based_on: ctx.basedOn ?? undefined,
   });
   checkSharedFlowSteps(shared);
   const findings = findPersonal(

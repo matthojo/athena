@@ -6,6 +6,7 @@
  * Adding one happens on the `#/add` screen (app/src/db/community.ts); sample mode's Add for a flow is
  * db/flows.ts sampleAddSharedFlow.
  */
+import { COMMUNITY_SITE, listingPageUrl } from "../../../lib/community-site";
 import { getToken, isSampleMode, request } from "./api";
 import { samplePeople, samplePlaces, sampleOrganisations } from "./sample-data";
 import { exportFlow, serialiseSharedFlow, type FlowExport, type FlowExportBlocked, type FlowExportContext } from "../../../lib/flow-share";
@@ -35,7 +36,9 @@ function sampleKnown(): KnownTerm[] {
 export async function checkFlowExport(flow: Flow, edits: FlowShareEdits, fine: string[]): Promise<FlowExport> {
   if (isSampleMode()) {
     try {
-      return exportFlow(flow, { ownHosts: [location.hostname], known: sampleKnown(), edits, fine });
+      const { sampleListingOf } = await import("./sample-community");
+      const listing = sampleListingOf("flow", flow.id);
+      return exportFlow(flow, { ownHosts: [location.hostname], known: sampleKnown(), edits, fine, basedOn: listing ? listingPageUrl(COMMUNITY_SITE, listing) : null });
     } catch (error) {
       if (error instanceof ShareFormatError) throw new Error(`It can't be shared as it is: ${error.message}`);
       throw error;

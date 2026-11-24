@@ -13,6 +13,7 @@
  * POST /api/community/preview   AddRequest           → { preview: AddPreview }   (files: multipart, field `files`)
  * POST /api/community/add       { preview, choices } → AddResult
  * GET  /api/community/updates                        → { updates: UpdateCheck[] }
+ * GET  /api/community/settings                       → CommunitySettings
  * PUT  /api/community/settings  { on: boolean }      → { on: boolean }           (lib/community-config.ts)
  */
 import type { CatalogueFile, CatalogueItem } from "./catalogue-types";
@@ -22,9 +23,17 @@ import type { ShareHeader, ShareKind } from "./share-kinds";
 import type { SkillPreview } from "./skills";
 import type { SharedAssistant, SharedSkill } from "./team-share";
 
+/** The owner's switch, whether there's a catalogue, and where to send an item in. Read without contacting the catalogue. */
+export interface CommunitySettings {
+  on: boolean;
+  configured: boolean;
+  /** The Community site's page for sending an item in (`/submit/` at the catalogue's host), or null without one. */
+  submit: string | null;
+}
+
 /** The Community screen's data. */
 export interface CatalogueView {
-  /** ATHENA_CATALOGUE_URL is set. */
+  /** There's a catalogue: the Community site, or the one ATHENA_CATALOGUE_URL names. */
   configured: boolean;
   /** The owner's "Check the Community catalogue" switch. */
   on: boolean;
@@ -65,7 +74,7 @@ export interface AddPreview {
   /** Where it came from. */
   from: { catalogue: string } | { link: string } | { files: string };
   /** For a catalogue item: its listing. */
-  listing: Pick<CatalogueItem, "id" | "version" | "featured" | "added_at" | "author"> | null;
+  listing: Pick<CatalogueItem, "id" | "version" | "featured" | "added_at" | "author" | "downloads"> | null;
   /**
    * An item of this kind here that came from the same listing, if any: "You already have this", with a way to open
    * it, and Update when the listing's files differ from what was added (`newer`). A second copy is a deliberate tap.

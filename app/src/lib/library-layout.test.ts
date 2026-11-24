@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { LIBRARY_LAYOUT, groupOf, segmentItems, withKinds, type LibraryItem } from "./library-layout";
 
-const ALL_SECTIONS = ["notes", "saved", "reading", "music", "recipes", "people", "places", "organisations", "events", "trips", "house", "money", "purchases", "admin", "health", "habits", "goals", "work", "graph", "archived", "settings"];
+const ALL_SECTIONS = ["notes", "saved", "reading", "music", "recipes", "people", "places", "organisations", "events", "trips", "house", "money", "purchases", "admin", "health", "habits", "goals", "work", "community", "graph", "archived", "settings"];
 
 test("every section appears exactly once", () => {
   const views = LIBRARY_LAYOUT.flatMap((g) => g.items.map((i) => i.view));
@@ -47,6 +47,8 @@ test("segments: the section's own group, never More, never a group of one", () =
     ["house", "money", "purchases", "admin"]
   );
   assert.deepEqual(segmentItems(LIBRARY_LAYOUT, "graph"), []);
+  assert.deepEqual(segmentItems(LIBRARY_LAYOUT, "community"), []);
+  assert.equal(groupOf(LIBRARY_LAYOUT, "community")?.id, "more");
   assert.deepEqual(segmentItems(LIBRARY_LAYOUT, "home"), []);
   assert.deepEqual(segmentItems(LIBRARY_LAYOUT, "days"), []);
   const one: LibraryItem[] = [{ view: "kind:wine", label: "Wines", icon: "wine" }];

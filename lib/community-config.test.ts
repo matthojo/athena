@@ -3,7 +3,8 @@
 // Run: npx tsx --test lib/community-config.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { catalogueFileUrl, catalogueUrl, cleanCatalogueUrl, readCommunityCheck } from "./community-config";
+import { catalogueFileUrl, catalogueUrl, cleanCatalogueUrl, readCommunityCheck, submitPageUrl } from "./community-config";
+import { COMMUNITY_SITE } from "./catalogue-types";
 
 test("the catalogue address: https only, trimmed, no trailing slash, query or credentials", () => {
   assert.equal(cleanCatalogueUrl(undefined), "");
@@ -18,17 +19,29 @@ test("the catalogue address: https only, trimmed, no trailing slash, query or cr
   assert.equal(cleanCatalogueUrl("not a url"), "");
 });
 
-test("catalogueUrl is empty unless ATHENA_CATALOGUE_URL is set", () => {
+test("catalogueUrl is the Community site unless ATHENA_CATALOGUE_URL names another, or none", () => {
   const saved = process.env.ATHENA_CATALOGUE_URL;
   try {
     delete process.env.ATHENA_CATALOGUE_URL;
-    assert.equal(catalogueUrl(), "");
+    assert.equal(catalogueUrl(), COMMUNITY_SITE);
+    assert.equal(cleanCatalogueUrl(COMMUNITY_SITE), COMMUNITY_SITE, "the default is a clean https root");
+    process.env.ATHENA_CATALOGUE_URL = "  ";
+    assert.equal(catalogueUrl(), COMMUNITY_SITE, "set but blank counts as unset");
     process.env.ATHENA_CATALOGUE_URL = "https://catalogue.example.com/";
     assert.equal(catalogueUrl(), "https://catalogue.example.com");
+    process.env.ATHENA_CATALOGUE_URL = "off";
+    assert.equal(catalogueUrl(), "", "anything that isn't an address means no catalogue");
   } finally {
     if (saved === undefined) delete process.env.ATHENA_CATALOGUE_URL;
     else process.env.ATHENA_CATALOGUE_URL = saved;
   }
+});
+
+test("the page for sending an item in is /submit/ at the catalogue's host", () => {
+  assert.equal(submitPageUrl("https://catalogue.example.com"), "https://catalogue.example.com/submit/");
+  assert.equal(submitPageUrl("https://catalogue.example.com/v1"), "https://catalogue.example.com/submit/");
+  assert.equal(submitPageUrl(COMMUNITY_SITE), `${COMMUNITY_SITE}/submit/`);
+  assert.equal(submitPageUrl(""), null);
 });
 
 test("a file's address stays under the catalogue's root", () => {

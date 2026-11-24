@@ -32,6 +32,7 @@ import { MAX_QUESTION, MAX_SUMMARY } from "../../../lib/team-skill";
 import type { Finding } from "../../../lib/team-share";
 import { findingKindWords, removedWords } from "../team/share-words";
 import { stepTitle } from "./words";
+import { submitToCommunity } from "../community/submit";
 import { stepTile } from "./parts";
 import { asksHint, blockedLede, flowFindingsLede, flowWhereWords, reachWords, usedByWords } from "./share-words";
 
@@ -222,7 +223,8 @@ export function openShareFlow(flow: Flow): void {
       h("div", { class: "wf-pair" }, h("label", { class: "skills-form__label" }, h("span", {}, "Your GitHub username"), author), h("label", { class: "skills-form__label" }, h("span", {}, "Version"), version)),
       h("p", { class: "form__hint fs-starts" }, "Wherever it's added, it starts switched off, and every step that changes something waits for their Go."),
       h("div", { class: "skills-form__actions" }, again, download),
-      h("p", { class: "form__hint" }, "The file has no link to your Athena. Send it to someone, keep it in your own GitHub repository, or offer it to a Community catalogue.")
+      h("p", { class: "form__hint" }, "The file has no link to your Athena. Send it to someone, or keep it in a GitHub repository of yours."),
+      submitToCommunity("flow")
     );
     paintChecks(x);
   }

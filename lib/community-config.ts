@@ -2,14 +2,18 @@
  * Community: where the catalogue is, and the owner's switch for checking it. Server-side (it reads the environment
  * and settings); the helpers marked pure are tested.
  *
- * - `ATHENA_CATALOGUE_URL`: the catalogue's root, an https address (index.json is read from there). Empty by
- *   default, and while it's empty Athena never contacts a catalogue. http is accepted only for localhost, for a
- *   catalogue served while developing.
+ * - `ATHENA_CATALOGUE_URL`: the catalogue's root, an https address (index.json is read from there). Unset, it's
+ *   the Community site (COMMUNITY_SITE). Set to anything that isn't an https address (`off`, say), there's no
+ *   catalogue and Athena never contacts one. http is accepted only for localhost, for a catalogue served while
+ *   developing. Either way nothing is fetched until the owner opens Community (the switch below).
  * - "Check the Community catalogue": settings row `community`, `{ on: boolean }`, plain. Off until the owner turns
  *   it on. While it's off Athena's server fetches nothing from the catalogue; adding an item from a file or a link
  *   still works.
  */
 import { AthenaInputError, q } from "./db";
+import { COMMUNITY_SITE } from "./community-site";
+
+export { listingPageUrl, submitPageUrl } from "./community-site";
 
 const env = (k: string): string | undefined => (globalThis as { Netlify?: { env: { get(k: string): string | undefined } } }).Netlify?.env.get(k) ?? process.env[k];
 
@@ -28,8 +32,14 @@ export function cleanCatalogueUrl(raw: string | undefined | null): string {
   }
 }
 
-/** The catalogue's root from `ATHENA_CATALOGUE_URL`, or "" when there isn't one (the default). */
-export const catalogueUrl = (): string => cleanCatalogueUrl(env("ATHENA_CATALOGUE_URL"));
+/**
+ * The catalogue's root: `ATHENA_CATALOGUE_URL` when it's set, else the Community site. "" when the variable is set
+ * to something that isn't a catalogue address, so an owner can have none.
+ */
+export const catalogueUrl = (): string => {
+  const set = env("ATHENA_CATALOGUE_URL");
+  return cleanCatalogueUrl(set === undefined || !set.trim() ? COMMUNITY_SITE : set);
+};
 
 /**
  * A file's address under the catalogue's root: `path` as an index gives it ("index.json", "bundles/<id>.json").

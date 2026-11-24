@@ -186,7 +186,7 @@ export interface PreviewInput {
   /** Where a skill or assistant's skill records it came from. */
   source: SkillSource;
   /** For a catalogue item: its listing. Its kind must match the files. */
-  listing?: Pick<CatalogueItem, "id" | "kind" | "version" | "featured" | "added_at" | "author"> | null;
+  listing?: Pick<CatalogueItem, "id" | "kind" | "version" | "featured" | "added_at" | "author" | "downloads"> | null;
   existing?: AddPreview["existing"];
 }
 
@@ -210,7 +210,7 @@ export async function buildPreview(input: PreviewInput): Promise<AddPreview> {
     files: [...files],
     hash: await bundleHash(files),
     from: input.from,
-    listing: input.listing ? { id: input.listing.id, version: input.listing.version, featured: input.listing.featured, added_at: input.listing.added_at, author: input.listing.author ?? null } : null,
+    listing: input.listing ? { id: input.listing.id, version: input.listing.version, featured: input.listing.featured, added_at: input.listing.added_at, author: input.listing.author ?? null, ...(input.listing.downloads !== undefined ? { downloads: input.listing.downloads } : {}) } : null,
     existing: input.existing ?? null,
     skipped: allSkipped,
   };

@@ -1,8 +1,9 @@
 /**
- * #/community (and #/community?kind=flow): the reviewed catalogue of assistants, skills and flows other people
- * shared. A filter by kind, a search, featured picks first and then the newest. Each row says what it is, who made
- * it, what it reaches in plain words, and the accounts it needs, marked connected or not; tapping one opens its
- * preview at #/add?catalogue=<id>, where nothing is kept until the owner says Add.
+ * #/community (and #/community?kind=flow&sort=downloads): the reviewed catalogue of assistants, skills and flows
+ * other people shared. A filter by kind, a search, and an order: featured picks first and then the newest, or the
+ * most downloaded (offered once the index carries counts). Each row says what it is, who made it, how often it was
+ * downloaded when the index says, what it reaches in plain words, and the accounts it needs, marked connected or
+ * not; tapping one opens its preview at #/add?catalogue=<id>, where nothing is kept until the owner says Add.
  *
  * Only Athena's server reads the catalogue (app/src/db/community.ts → GET /api/community). A plain line under the
  * title says what is read and from where, with the switch that stops it. States: loading, offline, unreachable,
@@ -12,6 +13,8 @@ import "../styles/community.css";
 import { h } from "../lib/dom";
 import { icons, type IconName } from "../components/icons";
 import { pageHead } from "../components/page-head";
+import { librarySegments } from "../components/library-nav";
+import type { ViewId } from "../components/nav";
 import { showToast } from "../components/toast";
 import { brandLogo } from "../components/brand-logo";
 import { shortDate } from "../lib/format";
@@ -20,16 +23,22 @@ import { addHash, ADD_ROUTE, fetchCatalogue, setCommunityCheck, type CatalogueVi
 import { itemAccounts } from "../db/item-accounts";
 import type { CatalogueItem } from "../../../lib/catalogue-types";
 import type { ShareKind } from "../../../lib/share-kinds";
-import { communityHash, filtered, KIND_WORDS, readKind, tierDetail, tierIcon, tierWords, type KindFilter } from "./words";
+import { communityHash, downloadWords, filtered, hasDownloads, KIND_WORDS, readKind, readSort, tierDetail, tierIcon, tierWords, type CommunitySort, type KindFilter } from "./words";
 
 const KIND_ICON: Record<ShareKind, IconName> = { assistant: "person", skill: "book", flow: "loop" };
 const FILTERS: KindFilter[] = ["all", "assistant", "skill", "flow"];
 const filterLabel = (k: KindFilter) => (k === "all" ? "All" : KIND_WORDS[k].many);
 
-/** The search box and filter as the address gives them: #/community?kind=flow. */
-export function renderCommunity(ctx: { query: string | null }): { el: HTMLElement; destroy: () => void } {
+const SORTS: ReadonlyArray<{ sort: CommunitySort; label: string }> = [
+  { sort: "featured", label: "Featured first" },
+  { sort: "downloads", label: "Most downloaded" },
+];
+
+/** The filter and order as the address gives them: #/community?kind=flow&sort=downloads. */
+export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId) => void }): { el: HTMLElement; destroy: () => void } {
   const params = new URLSearchParams(ctx.query ?? "");
   let kind = readKind(params.get("kind"));
+  let sort = readSort(params.get("sort"));
   let query = "";
   let view: CatalogueView | null = null;
   let connected = new Set<string>();
@@ -37,7 +46,7 @@ export function renderCommunity(ctx: { query: string | null }): { el: HTMLElemen
 
   // ---------- the head ----------
   const fromFile = h("a", { class: "btn btn--soft btn--sm", href: ADD_ROUTE }, icons.plus(), h("span", {}, "From a file or link"));
-  const head = pageHead({ title: "Community", lede: "Assistants, skills and flows other people made. Each one is reviewed before it's listed, and nothing is added until you say so.", actions: [fromFile] });
+  const head = pageHead({ segments: ctx.go ? librarySegments("community", ctx.go) : undefined, title: "Community", lede: "Assistants, skills and flows other people made. Each one is reviewed before it's listed, and nothing is added until you say so.", actions: [fromFile] });
 
   // The plain line: what's read, from where, and the switch.
   const swId = "community-check";
@@ -54,12 +63,25 @@ export function renderCommunity(ctx: { query: string | null }): { el: HTMLElemen
     b.addEventListener("click", () => {
       if (kind === k) return;
       kind = k;
-      history.replaceState(history.state, "", communityHash(kind));
+      history.replaceState(history.state, "", communityHash(kind, sort));
       paint();
     });
     return { b, count, k };
   });
   const filter = h("div", { class: "cm-filters", role: "group", "aria-label": "Show" }, ...filterButtons.map((f) => f.b));
+
+  // The order: shown beside the list's first heading, once the index carries download counts.
+  const sortButtons = SORTS.map((o) => {
+    const b = h("button", { class: "cm-sort__item", type: "button", "aria-pressed": String(o.sort === sort) }, o.label) as HTMLButtonElement;
+    b.addEventListener("click", () => {
+      if (sort === o.sort) return;
+      sort = o.sort;
+      history.replaceState(history.state, "", communityHash(kind, sort));
+      paint();
+    });
+    return { b, sort: o.sort };
+  });
+  const sorter = h("div", { class: "cm-sort", role: "group", "aria-label": "Order" }, ...sortButtons.map((s) => s.b));
   const controls = h("div", { class: "cm-controls", hidden: true }, search, filter);
 
   const note = h("p", { class: "cm-note", role: "status", hidden: true });
@@ -150,7 +172,8 @@ export function renderCommunity(ctx: { query: string | null }): { el: HTMLElemen
     });
     const needWords = item.needs.length ? ` Needs ${item.needs.map((p) => `${accountName(p)}, ${connected.has(p) ? "connected" : "not connected"}`).join("; ")}.` : "";
     const by = item.author ? `by ${item.author}` : "Author not named";
-    const label = `${item.name}. ${KIND_WORDS[item.kind].one} ${by}. ${item.summary} ${tier}.${needWords}${added ? " Already added." : ""}`;
+    const downloads = downloadWords(item.downloads);
+    const label = `${item.name}. ${KIND_WORDS[item.kind].one} ${by}.${downloads ? ` ${downloads}.` : ""} ${item.summary} ${tier}.${needWords}${added ? " Already added." : ""}`;
     return h(
       "a",
       { class: `cm-row cm-row--${item.kind}`, href: addHash({ catalogue: item.id }), "data-id": item.id, "aria-label": label },
@@ -160,17 +183,22 @@ export function renderCommunity(ctx: { query: string | null }): { el: HTMLElemen
         { class: "cm-row__body" },
         h("span", { class: "cm-row__top" }, h("span", { class: "cm-row__name" }, item.name), added ? h("span", { class: "badge cm-row__added" }, "Added") : null),
         h("span", { class: "cm-row__summary" }, item.summary),
-        h("span", { class: "cm-row__meta" }, h("span", { class: "cm-row__kind" }, KIND_WORDS[item.kind].one), h("span", { class: "cm-row__by" }, by)),
+        h("span", { class: "cm-row__meta" }, h("span", { class: "cm-row__kind" }, KIND_WORDS[item.kind].one), h("span", { class: "cm-row__by" }, by), downloads ? h("span", { class: "cm-row__downloads" }, downloads) : null),
         h("ul", { class: "cm-needs", "aria-hidden": "true" }, h("li", { class: `cm-tier cm-tier--${item.reach.tier}`, title: tierDetail(item.reach.tier) }, icons[tierIcon(item.reach)](), h("span", {}, tier)), ...needs)
       ),
       h("span", { class: "cm-row__chevron", "aria-hidden": "true" }, icons.chevronRight())
     );
   }
 
-  function group(title: string, items: CatalogueItem[], added: Set<string>): HTMLElement[] {
+  /** A heading and its items. The first heading on the page carries the order, when there is one to choose. */
+  function group(title: string, items: CatalogueItem[], added: Set<string>, o: { featured?: boolean; first?: boolean } = {}): HTMLElement[] {
     if (!items.length) return [];
-    return [h("h2", { class: "cm-group__title" }, title), h("div", { class: "card card--flush cm-group" }, ...items.map((i) => row(i, added.has(i.id))))];
+    const heading = h("h2", { class: "cm-group__title" }, title);
+    const top = o.first && canSort ? h("div", { class: "cm-group__head" }, heading, sorter) : heading;
+    return [top, h("div", { class: `card card--flush cm-group${o.featured ? " cm-group--featured" : ""}`, "data-count": String(items.length) }, ...items.map((i) => row(i, added.has(i.id))))];
   }
+
+  let canSort = false;
 
   function paint() {
     if (!alive || !view) return;
@@ -188,7 +216,7 @@ export function renderCommunity(ctx: { query: string | null }): { el: HTMLElemen
     note.hidden = true;
 
     if (!v.configured) {
-      return show(state({ icon: "globe", title: "Community isn't set up yet", sub: "This Athena has no catalogue address, so there's nothing to browse. Whoever runs it can add one. You can still add an item someone sent you.", actions: [addLink()] }));
+      return show(state({ icon: "globe", title: "Community is turned off here", sub: "Whoever runs this Athena set it to use no catalogue, so there's nothing to browse. You can still add something someone sent you.", actions: [addLink()] }));
     }
     if (!v.on) {
       const on = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Switch it on");
@@ -207,7 +235,10 @@ export function renderCommunity(ctx: { query: string | null }): { el: HTMLElemen
       note.replaceChildren(icons.clock(), h("span", {}, `${v.error} This is the list from ${v.generated_at ? shortDate(v.generated_at) : "earlier"}.`));
     }
 
-    const { items, counts } = filtered(v.items, kind, query, accountName);
+    canSort = hasDownloads(v.items);
+    const order: CommunitySort = canSort ? sort : "featured";
+    for (const s of sortButtons) s.b.setAttribute("aria-pressed", String(s.sort === order));
+    const { items, counts } = filtered(v.items, kind, query, accountName, order);
     for (const f of filterButtons) {
       f.b.setAttribute("aria-pressed", String(f.k === kind));
       f.count.textContent = String(counts[f.k]);
@@ -221,10 +252,12 @@ export function renderCommunity(ctx: { query: string | null }): { el: HTMLElemen
       const where = kind === "all" ? "" : ` in ${KIND_WORDS[kind].many.toLowerCase()}`;
       return show(state({ icon: "search", title: searching ? `Nothing matches “${query.trim()}”${where}` : `No ${KIND_WORDS[kind as ShareKind].many.toLowerCase()} yet`, sub: searching ? "Try fewer words, or a name, an account or an author." : "Try another kind.", actions: searching ? [clear] : [] }));
     }
-    if (searching) return show(...group(`${items.length} ${items.length === 1 ? "result" : "results"}`, items, added));
+    if (searching) return show(...group(`${items.length} ${items.length === 1 ? "result" : "results"}`, items, added, { first: true }));
+    // The order's own name is on the button beside it, so the heading says how many.
+    if (order === "downloads") return show(...group(kind === "all" ? `${items.length} ${items.length === 1 ? "item" : "items"}` : `${items.length} ${(items.length === 1 ? KIND_WORDS[kind].one : KIND_WORDS[kind].many).toLowerCase()}`, items, added, { first: true }));
     const featured = items.filter((i) => i.featured);
     const rest = items.filter((i) => !i.featured);
-    show(...group("Featured", featured, added), ...group("Newest", rest, added));
+    show(...group("Featured", featured, added, { featured: true, first: true }), ...group("Newest", rest, added, { first: !featured.length }));
   }
 
   async function load() {

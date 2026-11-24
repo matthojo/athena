@@ -31,6 +31,7 @@ import type { Finding, SharedAsk } from "../../../lib/team-share";
 import { allowOption } from "./setup-allow";
 import { cap, pronouns } from "./detail-words";
 import { findingKindWords, findingsLede, removedWords, whereWords } from "./share-words";
+import { submitToCommunity } from "../community/submit";
 
 const errorText = (error: unknown) => (error instanceof Error && error.message && !/fetch|network|Failed/i.test(error.message) ? error.message : "That didn't work. Check you're online.");
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -205,7 +206,8 @@ export function openShareAssistant(a: TeamAssistant): void {
       h("div", { class: "wf-pair" }, h("label", { class: "skills-form__label" }, h("span", {}, "Your GitHub username"), author), h("label", { class: "skills-form__label" }, h("span", {}, "Version"), version)),
       h("label", { class: "skill-switch", for: "wf-no-looks" }, h("span", {}, h("span", { class: "skill-switch__title" }, `Leave out ${a.name}'s looks`), h("span", { class: "row__meta" }, "Whoever adds it gets a new character.")), noLooks),
       h("div", { class: "skills-form__actions" }, again, download),
-      h("p", { class: "form__hint" }, "The file has no link to your Athena. Send it to someone, keep it in your own GitHub repository, or open a pull request to a catalogue of assistants.")
+      h("p", { class: "form__hint" }, "The file has no link to your Athena. Send it to someone, or keep it in a GitHub repository of yours."),
+      submitToCommunity("assistant")
     );
     paintFindings(x.findings);
     paintRemoved(x);

@@ -21,7 +21,7 @@ export function communitySetting(): HTMLElement {
       input.checked = on && configured;
       input.disabled = !configured;
       if (!configured) {
-        sub.textContent = "This Athena has no catalogue address, so there's nothing to check.";
+        sub.textContent = "Whoever runs this Athena set it to use no catalogue, so there's nothing to check.";
         browse.hidden = true;
       }
     },

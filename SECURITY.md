@@ -2098,25 +2098,41 @@ and start switched off. Nothing in a file is a permission.
 
 **Reading the catalogue: what leaves the site.**
 
+- **Which host.** The Community site, `athena-community.netlify.app`
+  (`COMMUNITY_SITE` in `lib/community-site.ts`), unless the site's owner sets
+  `ATHENA_CATALOGUE_URL` to another catalogue, or to `off` for none.
 - **Only the server, only the catalogue's files.** Athena's server reads
-  `index.json` and an item's bundle from under `ATHENA_CATALOGUE_URL`
-  (`netlify/lib/community-catalogue.ts`), through `publicFetch` (https only,
-  every address checked as it connects). Each request is a plain GET with
-  `Accept: application/json` and nothing else: no site address, account,
-  API key, cookie or token, and no body. A redirect is followed only while
-  it stays under the catalogue's root, and `catalogueFileUrl` refuses a path
+  `index.json` and an item's bundle (`bundles/<id>.json`) from under the
+  catalogue's root (`netlify/lib/community-catalogue.ts`), through
+  `publicFetch` (https only, every address checked as it connects). Each
+  request is a plain GET with `Accept: application/json` and nothing else:
+  no site address, account, API key, cookie or token, and no body. What the
+  host can see is what any web server sees: a request from Netlify's
+  servers, when, and which file, so a bundle read tells it that some copy of
+  Athena opened that item. It may count those reads as downloads; nothing in
+  them names the owner or their site. A redirect is followed only while it
+  stays under the catalogue's root, and `catalogueFileUrl` refuses a path
   that leaves it. The browser never contacts the catalogue.
 - **How often.** The index at most once a day (kept in the `community` blob
   store, plain: it's the catalogue's public list), and a bundle only when the
   owner opens an item. The daily check (`netlify/functions/community-check.ts`)
   and the update check fetch nothing while nothing from the catalogue is
   added.
-- **The switch.** `ATHENA_CATALOGUE_URL` is empty by default, and then
-  nothing is ever fetched. Opening Community the first time switches "Check
-  the Community catalogue" on (the owner's decision); the page says what is
-  read and from where beside the switch, and Settings → Ask has it too. Off
-  means no request at all: no browsing, no update or withdrawn checks.
-  Adding from a file or a link still works.
+- **The switch.** Nothing is fetched until the owner opens Community: the
+  switch is off until then, so a new copy contacts the site for nothing.
+  Opening Community the first time switches "Check the Community catalogue"
+  on (the owner's decision); the page names the host beside the switch, and
+  Settings → Ask has it too. Off means no request at all: no browsing, no
+  update or withdrawn checks. Adding from a file or a link still works.
+- **Submit to Community sends nothing.** The share sheets say how to submit
+  (the folder in a public GitHub repository of the owner's, then shared on
+  the site) and open the site's `/submit/` page in the browser, with
+  `rel="noopener noreferrer"`, so the site isn't told which Athena sent the
+  owner. Athena never publishes anything. The page's address comes from
+  `GET /api/community/settings`, which doesn't contact the site.
+- **A download count is the site's word.** `downloads` on an index item is
+  shown rounded and used to order the list, nothing else; it's checked as a
+  whole number within a cap, and an index without it reads as before.
 - **A withdrawn item is paused once** (assistant or flow paused, skill
   switched off) and remembered in the plain settings row `community_paused`,
   so switching it back on sticks. Nothing is deleted or updated by itself.
@@ -2168,7 +2184,11 @@ and start switched off. Nothing in a file is a permission.
 
 - **What a shared flow carries.** Its name, a summary, its trigger and steps,
   the questions it asks whoever adds it, the accounts its trigger needs, and
-  whether it would like to read spending or search the web. Never its id,
+  whether it would like to read spending or search the web. A flow added
+  from Community also names its listing's public page as `based_on`: the
+  catalogue's own id, nothing of the owner's. A `based_on` is kept only when
+  it's a github.com link or a listing on the Community site; anything else in
+  a file is dropped. Never its id,
   runs, values, the assistant it was handed to, or a record id: steps are
   numbered afresh, and a step field that held one of the owner's records,
   list names or to-do contexts becomes a blank with a question ("Which

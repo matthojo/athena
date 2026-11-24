@@ -63,6 +63,36 @@ test("export route: a flow as a file, flagged until settled, then a zip with flo
   assert.deepEqual(files.map((f) => f.path), ["renewal-call/flow.json"]);
 });
 
+test("a flow added from Community is shared with its listing as based_on; one made here has none", { skip }, async () => {
+  const { addSharedFlow, exportFlowFor } = await import("./flow-share-store");
+  const { createFlow } = await import("./flows");
+  const { readSharedFlow } = await import("./flow-share");
+  const { COMMUNITY_SITE } = await import("./community-site");
+  const saved = process.env.ATHENA_CATALOGUE_URL;
+  delete process.env.ATHENA_CATALOGUE_URL;
+  try {
+    const shared = readSharedFlow({
+      format: 1,
+      name: "Bin day",
+      trigger: { kind: "schedule", days: [3], time: "19:00" },
+      steps: [{ id: "s1", title: null, kind: "tool", tool: "add_reminder", input: { text: ["Bins out tonight"], time: ["20:00"] }, go: "auto", gives: [] }],
+      asks: [],
+    });
+    const { id } = await addSharedFlow(shared, {}, { id: "k3m9p2q7r4s8t1v6", hash: HASH, version: "1.0" });
+    const fromCommunity = await exportFlowFor(id, { hosts: ["athena.example.com"], known: [] });
+    assert.equal(fromCommunity.shared.based_on, `${COMMUNITY_SITE}/items/k3m9p2q7r4s8t1v6/`);
+    const made = await createFlow({ name: "Bins", trigger: { kind: "manual" }, steps: [{ id: "a", title: null, kind: "notify", text: ["Bins out"] }] });
+    const own = await exportFlowFor(made.id, { hosts: ["athena.example.com"], known: [] });
+    assert.equal(own.shared.based_on, undefined);
+    // Pointed at another catalogue, the listing isn't the Community site's, so the file names none.
+    process.env.ATHENA_CATALOGUE_URL = "https://catalogue.example.com";
+    assert.equal((await exportFlowFor(id, { hosts: ["athena.example.com"], known: [] })).shared.based_on, undefined);
+  } finally {
+    if (saved === undefined) delete process.env.ATHENA_CATALOGUE_URL;
+    else process.env.ATHENA_CATALOGUE_URL = saved;
+  }
+});
+
 test("addSharedFlow: off, origin shared, Go on every change step, money off, catalogue kept", { skip }, async () => {
   const { addSharedFlow } = await import("./flow-share-store");
   const { getFlow, updateFlow } = await import("./flows");

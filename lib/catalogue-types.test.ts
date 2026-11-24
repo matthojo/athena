@@ -124,6 +124,19 @@ test("an index reads whole", () => {
   assert.equal(i.withdrawn[0].reason, "It stopped working.");
 });
 
+test("a download count is optional, a whole number and kept as given", () => {
+  const counted = parseCatalogueIndex(index({ items: [item({ downloads: 1234 })] }));
+  assert.equal(counted.items[0].downloads, 1234);
+  assert.equal(parseCatalogueIndex(index({ items: [item({ downloads: 0 })] })).items[0].downloads, 0);
+  // An index from before the site counted: no key at all, and it reads as before.
+  const older = parseCatalogueIndex(index());
+  assert.equal("downloads" in older.items[0], false);
+  refusesIndex({ items: [item({ downloads: -1 })] }, /downloads/);
+  refusesIndex({ items: [item({ downloads: 2.5 })] }, /downloads/);
+  refusesIndex({ items: [item({ downloads: "100+" as never })] }, /downloads/);
+  refusesIndex({ items: [item({ downloads: CATALOGUE_LIMITS.downloads + 1 })] }, /downloads/);
+});
+
 test("an index is refused whole when something doesn't fit", () => {
   refusesIndex({ format: 2 }, /format/);
   refusesIndex({ items: [item({ id: "NOT-AN-ID" })] }, /items\.0\.id/);

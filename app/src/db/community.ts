@@ -10,10 +10,10 @@
  * `#/community` is the catalogue itself.
  */
 import type { IntakeEntry } from "../../../lib/skills";
-import type { AddChoices, AddPreview, AddResult, CatalogueView, UpdateCheck } from "../../../lib/community-api";
+import type { AddChoices, AddPreview, AddResult, CatalogueView, CommunitySettings, UpdateCheck } from "../../../lib/community-api";
 import { ApiError, getToken, isSampleMode, request } from "./api";
 import { answersFor, buildPreview, itemFiles, NEWER_FORMAT_STATUS, sourceFor } from "../../../lib/community-add";
-import { verifyBundle } from "../../../lib/catalogue-types";
+import { COMMUNITY_SITE, submitPageUrl, verifyBundle } from "../../../lib/catalogue-types";
 import { importSharedFlow } from "../../../lib/flow-share";
 import { grantedTools, ShareFormatError } from "../../../lib/team-share";
 import { splitWouldLike } from "../../../lib/shared-limits";
@@ -25,7 +25,7 @@ import { listTeam, teamChanged, updateAssistant } from "./team";
 import { fetchSkill, fetchSkills, saveSkill } from "./skills";
 import { flowsChanged, sampleAddSharedFlow, sampleReplaceSharedFlow } from "./flows";
 
-export type { AddChoices, AddPreview, AddResult, CatalogueView, UpdateCheck };
+export type { AddChoices, AddPreview, AddResult, CatalogueView, CommunitySettings, UpdateCheck };
 
 /** Where an item to add comes from. */
 export type AddSource = { catalogue: string } | { link: string } | { files: IntakeEntry[]; name?: string };
@@ -90,7 +90,7 @@ async function sampleView(): Promise<CatalogueView> {
   // Opening Community the first time switches the check on, as on a real Athena.
   if (configured && store.get(SAMPLE_COMMUNITY_SWITCH) === null) store.set(SAMPLE_COMMUNITY_SWITCH, "on");
   const on = store.get(SAMPLE_COMMUNITY_SWITCH) === "on";
-  const view: CatalogueView = { configured, on, host: configured ? "catalogue.example.com" : null, generated_at: null, items: [], added: [], error: null };
+  const view: CatalogueView = { configured, on, host: configured ? new URL(COMMUNITY_SITE).host : null, generated_at: null, items: [], added: [], error: null };
   if (!configured || !on) return view;
   if (state === "down") return { ...view, error: "Athena couldn't reach the Community catalogue." };
   const { sampleCatalogue, sampleAddedIds } = await import("./sample-community");
@@ -117,10 +117,13 @@ export async function setCommunityCheck(on: boolean): Promise<boolean> {
   return (await request<{ on: boolean }>("/community/settings", { method: "PUT", body: JSON.stringify({ on }) })).on;
 }
 
-/** GET /api/community/settings: the switch, and whether a catalogue is set at all. */
-export async function loadCommunityCheck(): Promise<{ on: boolean; configured: boolean }> {
-  if (isSampleMode()) return { on: store.get(SAMPLE_COMMUNITY_SWITCH) !== "off", configured: store.get(SAMPLE_CATALOGUE_STATE) !== "none" };
-  return request<{ on: boolean; configured: boolean }>("/community/settings");
+/** GET /api/community/settings: the switch, whether a catalogue is set at all, and its page for sending an item in. */
+export async function loadCommunityCheck(): Promise<CommunitySettings> {
+  if (isSampleMode()) {
+    const configured = store.get(SAMPLE_CATALOGUE_STATE) !== "none";
+    return { on: store.get(SAMPLE_COMMUNITY_SWITCH) !== "off", configured, submit: configured ? submitPageUrl(COMMUNITY_SITE) : null };
+  }
+  return request<CommunitySettings>("/community/settings");
 }
 
 /** POST /api/community/preview: the item read and checked, its reach worked out. Nothing is kept. */
@@ -170,7 +173,7 @@ async function samplePreview(source: AddSource): Promise<AddPreview> {
     const kind = item.kind;
     const had = sampleAddedFrom(item.id);
     const existing = had && had.kind === kind ? { id: had.id, version: had.version, href: HREF[kind](had.id), newer: had.hash !== item.hash } : null;
-    return await buildPreview({ files: { kind, files: bundle.files, skipped: [], folder: null }, from: { catalogue: item.id }, source: sourceFor({ catalogue: item.id }, at, "https://catalogue.example.com"), listing: item, existing });
+    return await buildPreview({ files: { kind, files: bundle.files, skipped: [], folder: null }, from: { catalogue: item.id }, source: sourceFor({ catalogue: item.id }, at, COMMUNITY_SITE), listing: item, existing });
   }
   if ("link" in source) {
     await new Promise((r) => setTimeout(r, 500));

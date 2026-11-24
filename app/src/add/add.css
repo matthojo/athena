@@ -744,10 +744,30 @@
   cursor: default;
 }
 
-.add-step__inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+/* A tool step's other fields, under its body: the name quiet, the value as the body reads. */
+.add-step__fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px var(--space-sm);
+  margin: 6px 0 2px;
+  font-size: var(--text-small);
+}
+
+.add-step__field {
+  display: contents;
+}
+
+.add-step__field dt {
+  color: var(--ink-3);
+  font-weight: var(--weight-medium);
+  line-height: 24px;
+}
+
+.add-step__field dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--ink-2);
+  line-height: 24px;
 }
 
 .add-flow .flow-lanes {
@@ -761,16 +781,12 @@
 
 /* ---------- adding ---------- */
 
+/* The bar's solid backing and where it sits are shared with the flow page's (styles/flows.css, "Sticky foot"). */
 .add-foot {
-  position: sticky;
-  bottom: calc(var(--dock-height, 0px) + var(--safe-bottom, 0px));
-  z-index: var(--z-sticky);
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-top: var(--space-sm);
-  padding: var(--space-md) 0 var(--space-sm);
-  background: linear-gradient(to bottom, transparent, var(--canvas) 28%);
 }
 
 .add-foot__row {

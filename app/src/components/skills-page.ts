@@ -29,6 +29,7 @@ import { itemAccounts } from "../db/item-accounts";
 import { skillImported } from "../../../lib/shared-limits";
 import { communityHash } from "../community/words";
 import { catalogueStatus, updateDot, UPDATE_WORDS } from "../community/status";
+import { submitToCommunity } from "../community/submit";
 
 type Nav = { open: (id: string | null) => void };
 
@@ -293,7 +294,6 @@ export function skillEditorSection(id: string, nav: Nav & { back: () => void }):
     const form = h(
       "form",
       { class: "skills-form", novalidate: true },
-      was && !owned ? catalogueStatus("skill", was.id) : null,
       d?.from === "chat" ? h("p", { class: "skills-draft-note" }, icons.sparkle(), h("span", {}, "Ask drafted this from your conversation. Nothing is saved until you tap Save, and it stays off until you switch it on.")) : null,
       d?.from === "import" ? h("p", { class: "skills-draft-note" }, icons.link(), h("span", {}, `${sourceWords({ ...(d.source as SkillSource), at: "" })}. Nothing is saved until you tap Save.`)) : null,
       h("label", { class: "skills-form__label" }, h("span", {}, "Name"), name),
@@ -358,8 +358,12 @@ export function skillEditorSection(id: string, nav: Nav & { back: () => void }):
         h("p", { class: "skill-editor__meta" }, `${sourceWords(was.source)} · added ${shortDate(was.created_at)} · ${was.uses ? `used ${was.uses === 1 ? "once" : `${was.uses} times`}, last ${relativeTime(was.last_used_at!)}` : "not used yet"}`),
         h("div", { class: "skill-editor__downloads" }, h("span", { class: "row__meta" }, "Download"), md, zip, h("span", { class: "skills__spacer" }), del)
       );
+      // Ask's skills: one an assistant keeps goes with that assistant (its share sheet).
+      if (!owned) extras.push(submitToCommunity("skill"));
     }
-    el.replaceChildren(h("div", { class: "src-head" }, h("h2", { class: "settings__heading", id: "skill-editor-title" }, icons.book(), was ? was.title : d ? skillTitle(d.name || "new-skill") : "New skill")), ...extras, form);
+    // The catalogue's word on a shared skill (an update, or taken down) sits under its name.
+    const status = was && !owned ? catalogueStatus("skill", was.id) : null;
+    el.replaceChildren(h("div", { class: "src-head" }, h("h2", { class: "settings__heading", id: "skill-editor-title" }, icons.book(), was ? was.title : d ? skillTitle(d.name || "new-skill") : "New skill")), ...(status ? [status] : []), ...extras, form);
     if (!was && !d) name.focus();
   }
 

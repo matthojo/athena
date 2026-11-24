@@ -900,17 +900,66 @@ button.flow-chip {
   font-size: var(--text-small);
 }
 
-.flow-foot {
+/*
+ * Sticky foot: the bar at the bottom of the content column that holds a page's main action (a flow's Try, the Add
+ * screen's Add). Solid, so nothing reads through it; a short fade above it lets the page slide under. On a phone it
+ * sits just above the floating dock and its backing runs down behind the dock; with no dock (a wide screen) it sits
+ * on the bottom edge.
+ */
+.flow-foot,
+.add-foot {
   position: sticky;
-  bottom: calc(var(--dock-height, 0px) + var(--safe-bottom, 0px));
+  bottom: calc(var(--safe-bottom, 0px) + var(--dock-height, 0px) + 16px);
   z-index: var(--z-sticky);
+  padding: var(--space-xs) 0 var(--space-sm);
+  background: var(--canvas);
+}
+
+.flow-foot::before,
+.add-foot::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--space-lg);
+  background: linear-gradient(to bottom, transparent, var(--canvas));
+  pointer-events: none;
+}
+
+.flow-foot::after,
+.add-foot::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: calc(var(--safe-bottom, 0px) + var(--dock-height, 0px) + 16px);
+  background: var(--canvas);
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  /* The main pane scrolls here, and a sticky bar stops short of its bottom padding: reach past it to the edge. */
+  .flow-foot,
+  .add-foot {
+    bottom: calc(-1 * var(--space-2xl));
+    padding-bottom: calc(var(--space-2xl) + var(--space-md));
+    margin-bottom: calc(-1 * var(--space-2xl));
+  }
+
+  .flow-foot::after,
+  .add-foot::after {
+    display: none;
+  }
+}
+
+.flow-foot {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 4px;
   margin-top: var(--space-lg);
-  padding: var(--space-md) 0 var(--space-sm);
-  background: linear-gradient(to bottom, transparent, var(--canvas) 30%);
 }
 
 .flow-foot[hidden] {

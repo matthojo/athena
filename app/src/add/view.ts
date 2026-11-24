@@ -10,6 +10,8 @@
  * of it, readable. Nothing is kept until Add, and what's added starts switched off.
  */
 import "./add.css";
+// The sticky foot is shared with the flow page (styles/flows.css, "Sticky foot").
+import "../styles/flows.css";
 import "../styles/skills.css";
 import "../styles/team-share.css";
 import { h } from "../lib/dom";
@@ -22,6 +24,8 @@ import { isSampleMode } from "../db/api";
 import { addItem, addHash, isNewerFormat, parseAddHash, previewAdd, type AddChoices, type AddPreview, type AddSource } from "../db/community";
 import { itemAccounts, type AccountRow } from "../db/item-accounts";
 import { listTeam } from "../db/team";
+import { loadCatalog } from "../db/flows";
+import type { CatalogEntry } from "../../../lib/flow-types";
 import { liveContexts, loadContexts } from "../db/todo-contexts";
 import { renderAvatarTile, avatarFromSeed } from "../team/avatar";
 import { questionsForm, type AnswerMap } from "../team/setup-questions";
@@ -199,7 +203,12 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
 
   async function previewScreen(p: AddPreview) {
     const needs = p.reach.needs;
-    const [accounts, team] = await Promise.all([p.kind === "flow" && !needs.length ? Promise.resolve([] as AccountRow[]) : itemAccounts(needs).catch(() => null), p.kind === "assistant" ? listTeam().catch(() => null) : Promise.resolve(null)]);
+    const [accounts, team, catalog] = await Promise.all([
+      p.kind === "flow" && !needs.length ? Promise.resolve([] as AccountRow[]) : itemAccounts(needs).catch(() => null),
+      p.kind === "assistant" ? listTeam().catch(() => null) : Promise.resolve(null),
+      // A flow's steps are named as the flow editor names them.
+      p.kind === "flow" ? loadCatalog().catch(() => [] as CatalogEntry[]) : Promise.resolve([] as CatalogEntry[]),
+    ]);
     if (!alive) return;
     const room = p.kind !== "assistant" || !team || team.length < MAX_ASSISTANTS;
     const item = p.item;
@@ -432,7 +441,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       const pre = (text: string, cls = "") => h("pre", { class: `skill-pre add-pre${cls}` }, text);
       const fileDetails = (files: Array<{ path: string; text: string }>) => files.map((f) => h("details", { class: "skill-file" }, h("summary", {}, icons.note(), h("span", { class: "skill-file__name" }, f.path), h("span", { class: "skill-file__size" }, size(f.text))), pre(f.text)));
       const skipped = p.skipped.length ? h("div", { class: "add-skipped" }, h("p", { class: "add-sub" }, "Not used"), h("ul", { class: "skill-skipped", "aria-label": "Files not used" }, ...p.skipped.map((s) => h("li", {}, h("span", { class: "skill-file__name" }, s.path), h("span", { class: "skill-skipped__why" }, s.reason))))) : null;
-      if (item.kind === "flow") return section("content", "Its steps", sharedFlowSteps(item.flow), skipped);
+      if (item.kind === "flow") return section("content", "Its steps", sharedFlowSteps(item.flow, catalog), skipped);
       if (item.kind === "skill") {
         const s = item.skill;
         return section("content", "All of it", h("p", { class: "add-sub" }, "Use when"), h("p", { class: "add-usewhen" }, s.description), h("p", { class: "add-sub" }, "Instructions"), pre(s.body, " skill-pre--body"), s.files.length ? h("p", { class: "add-sub" }, s.files.length === 1 ? "1 file" : `${s.files.length} files`) : null, ...fileDetails(s.files), skipped);

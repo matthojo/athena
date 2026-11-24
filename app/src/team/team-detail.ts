@@ -103,7 +103,9 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
   const back = h("button", { class: "td-back", type: "button" }, icons.back(), h("span", {}, "Team"));
   back.addEventListener("click", ctx.back);
   const body = h("div", { class: "td-body", "aria-busy": "true" });
-  const el = h("div", { class: "view team-detail" }, h("div", { class: "td-top" }, back), catalogueStatus("assistant", ctx.id), body);
+  const el = h("div", { class: "view team-detail" }, h("div", { class: "td-top" }, back), body);
+  // The catalogue's word on this assistant (an update, or taken down): under its name and Pause, drawn once.
+  const catalogueNote = catalogueStatus("assistant", ctx.id);
   let alive = true;
   let a: TeamAssistant;
   let runs: TeamRun[] = [];
@@ -437,6 +439,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     models ??= modelsSection(() => a);
     body.replaceChildren(
       hero(),
+      catalogueNote,
       pausedNote,
       h("div", { class: "td-layout" }, h("div", { class: "td-main" }, work.el, flows.el, tracking.el), h("div", { class: "td-aside" }, brief.el, accounts.el, models.el, skill.el, memory.el, personality.el, spendCapSection(a.id), share.el, end.el))
     );

@@ -357,6 +357,8 @@ test("the routes answer GET /api/community, /updates and PUT /settings", async (
   assert.equal(((await view!.json()) as { items: unknown[] }).items.length, 1);
   const updates = await handleCommunityRoutes(req("GET"), ["api", "community", "updates"], async () => null, json, store);
   assert.deepEqual(await updates!.json(), { updates: [] });
+  const settings = await handleCommunityRoutes(req("GET"), ["api", "community", "settings"], async () => null, json, store);
+  assert.deepEqual(await settings!.json(), { on: true, configured: true, submit: "https://catalogue.example.com/submit/" });
   const put = await handleCommunityRoutes(req("PUT"), ["api", "community", "settings"], async () => ({ on: false }), json, store);
   assert.deepEqual(await put!.json(), { on: false });
   assert.deepEqual(state.saves, [false]);

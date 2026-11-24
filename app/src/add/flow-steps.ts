@@ -1,8 +1,9 @@
 /**
  * A shared flow's trigger and every step, drawn as the flow editor draws them (flows/editor.ts, styles/flows.css)
- * but read-only: the same tiles, colours, value chips and branch lanes. A blank (`{ "blank": key }`) shows as a
- * gap named by its question, so the owner can see where their answer goes. Every step that changes something says
- * it waits for the owner's Go.
+ * but read-only: the same tiles, titles, colours, value chips and branch lanes. A tool step shows its first field
+ * as its body, as the editor does, and since the owner can't open it here, its other fields under it by name ("Day",
+ * "Time"). A blank (`{ "blank": key }`) shows as a gap named by its question, so the owner can see where their
+ * answer goes. Every step that changes something says it waits for the owner's Go.
  */
 import "../styles/flows.css";
 import { h } from "../lib/dom";
@@ -11,7 +12,9 @@ import { BRANCH_WORDS, conditionWords, stepTitle, triggerTitle } from "../flows/
 import { triggerGives } from "../../../lib/flow-trigger-gives";
 import type { FlowStep, FlowValue, ValueRef } from "../../../lib/flow-types";
 import type { SharedFlow, SharedFlowStep, SharedText } from "../../../lib/flow-share";
-import { changesSomething, goWords } from "./words";
+import { changesSomething, goWords, toolStepFields } from "./words";
+import { clockWords } from "../team/trigger-editor-words";
+import type { CatalogEntry } from "../../../lib/flow-types";
 
 /** Words, value chips and blanks, in order. */
 function sharedText(t: SharedText, label: (r: ValueRef) => FlowValue, askOf: (key: string) => string): HTMLElement {
@@ -29,7 +32,11 @@ function sharedText(t: SharedText, label: (r: ValueRef) => FlowValue, askOf: (ke
 /** A step's tile and title as the editor would give them: the step's file shape is close enough to read. */
 const asStep = (s: SharedFlowStep) => s as unknown as FlowStep;
 
-export function sharedFlowSteps(flow: SharedFlow): HTMLElement {
+/** A time on its own ("20:00") reads as the owner's clock does: "20:00", or "8:00 pm". */
+const clockOnly = (t: SharedText): SharedText => (t.length === 1 && typeof t[0] === "string" && /^\d{1,2}:\d{2}$/.test(t[0].trim()) ? [clockWords(t[0].trim())] : t);
+
+/** `catalog` is the flows' step catalogue (loadCatalog): titles and field names as the editor gives them. */
+export function sharedFlowSteps(flow: SharedFlow, catalog: readonly CatalogEntry[] = []): HTMLElement {
   const gives = new Map<string, FlowValue[]>();
   const walk = (steps: SharedFlowStep[]) => {
     for (const s of steps) {
@@ -48,8 +55,9 @@ export function sharedFlowSteps(flow: SharedFlow): HTMLElement {
   function body(s: SharedFlowStep): Node | null {
     switch (s.kind) {
       case "tool": {
-        const filled = Object.values(s.input).filter((t) => t.length);
-        return filled.length ? h("span", { class: "add-step__inputs" }, ...filled.map(text)) : null;
+        const entry = catalog.find((e) => e.kind === "tool" && e.tool === s.tool);
+        const { first } = toolStepFields(s.input, entry?.fields);
+        return first ? text(clockOnly(s.input[first])) : null;
       }
       case "check": {
         const right = s.condition.right;
@@ -78,6 +86,15 @@ export function sharedFlowSteps(flow: SharedFlow): HTMLElement {
     }
   }
 
+  /** A tool step's other fields, each under its name: the step's sheet, read-only. */
+  function fields(s: SharedFlowStep): HTMLElement | null {
+    if (s.kind !== "tool") return null;
+    const entry = catalog.find((e) => e.kind === "tool" && e.tool === s.tool);
+    const { rest } = toolStepFields(s.input, entry?.fields);
+    if (!rest.length) return null;
+    return h("dl", { class: "add-step__fields" }, ...rest.map((f) => h("div", { class: "add-step__field" }, h("dt", {}, f.label), h("dd", {}, text(clockOnly(s.input[f.key]))))));
+  }
+
   function card(s: SharedFlowStep): HTMLElement {
     const metas: Node[] = [];
     if (s.kind === "think") metas.push(h("span", { class: "flow-card__meta" }, flowIcon("sparkle"), `${s.web ? "Asks to search the web · " : ""}A thinking step: it needs an assistant to run`));
@@ -87,11 +104,12 @@ export function sharedFlowSteps(flow: SharedFlow): HTMLElement {
     const go = goWords(s);
     if (go) metas.push(h("span", { class: "flow-card__meta" }, go));
     const tag = changesSomething(s) ? badge({ tone: "you", words: "Waits for your Go" }) : null;
-    const title = stepTitle(asStep(s));
+    const title = stepTitle(asStep(s), catalog);
+    const said = body(s);
     const el = h(
       "div",
       { class: `flow-card flow-card--${s.kind === "think" ? "think" : "step"} add-step` },
-      h("span", { class: "flow-card__node" }, stepTile(asStep(s)), h("span", { class: "flow-card__main" }, h("span", { class: "flow-card__title" }, title), body(s) ? h("span", { class: "flow-card__body" }, body(s)) : null, ...metas, tag))
+      h("span", { class: "flow-card__node" }, stepTile(asStep(s)), h("span", { class: "flow-card__main" }, h("span", { class: "flow-card__title" }, title), said ? h("span", { class: "flow-card__body" }, said) : null, fields(s), ...metas, tag))
     );
     const g = s.kind === "tool" || s.kind === "think" ? givesRow(s.gives) : null;
     return g ? h("div", { class: "flow-card-wrap add-step-wrap" }, el, g) : el;
