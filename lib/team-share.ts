@@ -693,7 +693,7 @@ export interface ImportNeed {
   connected: boolean;
 }
 
-/** POST /api/team/import/preview: everything an import would add, before anything is kept. */
+/** Everything an import would add, before anything is kept: sample mode's Add (app/src/db/team-share.ts addImported). */
 export interface ImportPreview extends SharedBundle {
   needs: ImportNeed[];
   /** What it asked to do alone that an import can't grant: these always wait for the owner's Go. `shared.would_like` holds only the rest. */
@@ -706,7 +706,7 @@ export interface ImportPreview extends SharedBundle {
   room: boolean;
 }
 
-/** POST /api/team/import: add it. Everything but the owner's choices comes from the preview. */
+/** What importAssistant takes, from the Add screen's POST /api/community/add: the file's words and the owner's choices. */
 export interface ImportInput {
   shared: SharedAssistant;
   skill: { body: string; files: SkillFile[]; skipped?: SkillSkipped[] } | null;

@@ -1734,7 +1734,7 @@ contracts between slices, is `docs/team.md`.
     organisations, projects, the owner's profile, connector labels). The
     setup questions kept with its skill become `asks`; the owner's answers
     don't go. `download: true` gives the zip, or 409 with the findings.
-  - **Import** ("Or import one someone shared" in New assistant, the empty
+  - **Import** ("Or add one someone shared" in New assistant, the empty
     Team page, a drop on the page, or the share target, all opening `#/add`):
     `POST /api/community/preview` reads a zip, a folder's files, an
     `assistant.json` or a GitHub link (`parseShareLink`, `fetchGithubFolder`
@@ -1951,94 +1951,105 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
 
 People share assistants, skills and flows as folders of plain files: data,
 never code. A curated catalogue (a separate repository, served as static
-files) lists reviewed items. Every way in (a listing, a link, files) ends at
-one preview, `#/add`; what's added starts switched off, and nothing in a file
-is a permission. These files are the contract the screens and routes build on:
+files) lists reviewed items. Every way in, a listing, a link or files, ends
+at one preview, `#/add`. What's added starts switched off, and nothing in a
+file is a permission.
+
+**The files.**
 
 - **`lib/share-kinds.ts`.** The kinds (`assistant`, `skill`, `flow`), the file
   that names each (assistant.json, SKILL.md, flow.json), the optional header
   (`version`, `author`, `based_on`) and `detectKind(paths)`.
-- **`lib/flow-share.ts`.** flow.json, format 1, and `readSharedFlow`, as
-  strict as `readShared`: FLOW_LIMITS, unknown keys dropped, tools checked
-  against the flows catalogue, no record ids. A step field that pointed at
-  the owner's record is a blank (`{ "blank": key }`) that a question in
-  `asks` fills.
-- **Sharing a flow** (`exportFlow`, `lib/flow-share-store.ts`
-  `exportFlowFor`, `POST /api/flows/:id/export`, `flows/share-sheet.ts`).
-  Steps are numbered afresh; a record id in a step field becomes a blank
-  with a question (one per record), which the owner words on the sheet;
-  links into the site go; findings wait for an edit or "It's fine". A step
-  that leans on the owner's own types, fields or list names is named in
-  `blocked` and nothing downloads. The sheet shows the reach tier
-  (`reachOfFlow`). The download is a zip with `<slug>/flow.json`; sample
-  mode saves flow.json alone. "Share" is in a flow's More menu.
-- **Adding a shared flow** (`importSharedFlow`, `addSharedFlow(shared,
-  answers, catalogue?)`). New step ids, every tool step waiting for Go,
-  thinking steps off the web, money off, paused, origin `shared`, the
-  catalogue listing in 0088's columns. Unanswered blanks are kept in the
-  sealed payload (`Words.unfilled`) and shown as `Flow.unfilled` until each
-  field changes; `updateFlow` refuses to switch the flow on while any are
-  left, or while a shared flow's thinking steps have no assistant. Sample
-  mode's Add is `db/flows.ts` `sampleAddSharedFlow`.
+- **`lib/flow-share.ts`.** flow.json, format 1. `readSharedFlow` is as strict
+  as `readShared`: FLOW_LIMITS, unknown keys dropped, tools checked against
+  the flows catalogue, no record ids. A step field that named one of the
+  owner's records, lists or to-do contexts is a blank (`{ "blank": key }`)
+  that a question in `asks` fills; a list or context question carries
+  `pick` (`list`, `area`, `where`) so the Add screen can offer the owner's
+  own. `checkSharedFlowSteps` makes the checks `checkSteps` makes on save
+  (each tool's own fields, the values it gives, values only from the trigger
+  or an earlier step) without the database, from `FLOW_TOOL_SHAPES`, which a
+  test keeps in step with `lib/flow-catalog.ts`. Reach, the preview, import,
+  export and the catalogue's own CI all run it.
 - **`lib/reach.ts`.** `reachOf(files)`: tier 1 stays inside Athena, tier 2
-  uses a model or an outside lookup (each named), tier 3 asks for the web.
-  Worked out from the files, never declared.
+  uses AI or an outside lookup (each named), tier 3 asks for the web. Worked
+  out from the files, never declared. Every screen names a tier the same way
+  (`app/src/community/words.ts` `tierWords`, `tierIcon`).
 - **`lib/catalogue-types.ts`.** index.json, a bundle and listing.json, with
   zod validators and caps, and `bundleHash`: SHA-256 over the files in a
   canonical encoding both repositories compute, pinned by test vectors.
-- **`lib/community-config.ts`.** `catalogueUrl()` (`ATHENA_CATALOGUE_URL`,
-  empty by default) and the owner's "Check the Community catalogue" switch
-  (settings `community`, off by default).
-- **`lib/community-api.ts`** and **`app/src/db/community.ts`.** The shapes
-  between server and app, the planned routes, and the app's calls
-  (`fetchCatalogue`, `previewAdd`, `addItem`, `checkUpdates`), not built yet.
-  `#/add?catalogue=<id>`, `#/add?link=<url>` and `#/add` (files) are the
-  preview; `#/community` is the catalogue.
 - **Migration 0088.** Nullable `catalogue_id`, `catalogue_hash` and
   `catalogue_version` on `team_assistants`, `ask_skills` and `flows`: which
-  listing an item came from, for update checks.
-- **Reading the catalogue** (`netlify/lib/community-catalogue.ts`). The
-  index is fetched through `publicFetch` and kept a day in the `community`
-  blob store; `loadBundle(id)` fetches one bundle and uses it only when
-  `verifyBundle` matches it to its files and the index (re-reading a stale
-  index once). `compareInstalled` and `toPause` work out updates and
-  withdrawals against what was added. Tested with a fake fetch.
-- **Routes** (`netlify/lib/community-routes.ts`). `GET /api/community`
-  (opening it the first time turns the check on), `GET
-  /api/community/updates` (pauses a withdrawn item once) and `PUT
-  /api/community/settings`. `netlify/functions/community-check.ts` runs the
-  same check daily.
+  listing an item came from, for "You already have this" and update checks.
+
+**The catalogue.**
+
+- **`lib/community-config.ts`.** `catalogueUrl()` (`ATHENA_CATALOGUE_URL`,
+  empty by default) and the owner's "Check the Community catalogue" switch
+  (settings `community`).
+- **`netlify/lib/community-catalogue.ts`.** The index is fetched through
+  `publicFetch` and kept a day in the `community` blob store; `loadBundle(id)`
+  uses a bundle only when `verifyBundle` matches it to its files and the
+  index. `compareInstalled` and `toPause` work out updates and withdrawals.
+- **`netlify/lib/community-routes.ts`.** `GET /api/community` (opening it the
+  first time switches the check on), `GET /api/community/updates` (pauses a
+  withdrawn item once) and `GET`/`PUT /api/community/settings`. It answers
+  null for any other path, and `netlify/functions/api.ts` then tries the Add
+  routes. `netlify/functions/community-check.ts` runs the check daily.
 - **`#/community`** (`app/src/community/page.ts`). Filter by kind, search,
-  featured then newest; each row links to `#/add?catalogue=<id>`. "Browse
-  Community" sits in Team setup, the new-flow sheet and Settings → Skills'
-  Add sheet. `app/src/community/status.ts` (`catalogueStatus(kind, id)`) is
-  the "Update available" / "Taken down" banner on the assistant, skill and
-  flow pages. Sample mode reads `app/src/db/sample-community.ts`;
-  localStorage `athena.sample.catalogue` (`none`, `down`, `offline`,
-  `slow`) shows each state.
+  featured then newest; each row opens `#/add?catalogue=<id>`. Team setup,
+  the new-flow sheet and Skills' Add sheet each offer "Or add one someone
+  shared" (`#/add`) and "Browse Community". `app/src/community/status.ts`
+  draws "Update available" and "Taken down from Community" on the assistant,
+  skill and flow pages, and `updateDot` puts a small dot beside an item with
+  an update on the Team, Flows and Skills lists (one check serves a list).
 
-#### The Add screen (`#/add`)
+**Adding: `#/add`.**
 
-One screen for every shared item, whichever way it came: a listing
-(`#/add?catalogue=<id>`), a link (`#/add?link=<url>`), or files picked,
-dropped, held by another page (`app/src/add/hold.ts`) or shared to the
-installed app. Team's "import" and Skills' upload and link options open it.
+- **`lib/community-add.ts`** (pure, shared with sample mode). `itemFiles`
+  cuts a folder, zip or link down to the item's own text files; a lone
+  `.json` or `.md` renamed on the way is read by what it holds. `buildPreview`
+  reads them by kind and works out reach and hash; a file made for a newer
+  Athena throws `NewerFormatError` (HTTP 426).
+- **`netlify/lib/community-add-routes.ts`.** `POST /api/community/preview`
+  (a listing, a link, or multipart files) and `POST /api/community/add`. Add
+  reads the files again and hands each kind to its own import
+  (`importAssistant`, `createSkill`, `addSharedFlow`), switched off,
+  recording the listing for a catalogue item. The preview's `existing` names
+  an item already added from the same listing, with `newer` when the files
+  differ. `choices.replace` updates that one instead of adding a copy
+  (`updateImportedAssistant`, `updateSkill`, `replaceSharedFlow`): its name
+  and history stay, its content becomes the new version's, and it goes off.
+  The server only replaces the item it finds came from that listing. The old
+  `/api/team/import*` and `/api/skills/preview` routes are gone.
+- **`app/src/add/`.** The screen (`view.ts`) and its words (`words.ts`). One
+  layout for all three kinds: who made it and where from, "You already have
+  this" with Open and Update (a second copy is a separate tap), its reach,
+  what it needs, its questions, account ticks, what it may do alone, then
+  all of it.
+- **A flow, added** (`importSharedFlow`). New step ids; steps that change
+  something wait for Go and steps that only look run; thinking steps off the
+  web; money off; paused, origin `shared`. Unanswered blanks are kept in the
+  sealed payload (`Words.unfilled`) and shown as `Flow.unfilled`; until each
+  is set, the switch, Run now and a try are refused (`unansweredWords`), and
+  a shared flow's thinking steps need an assistant before it can go on.
 
-- **`lib/community-add.ts`** (pure, shared with sample mode):
-  `itemFiles` cuts a folder, zip or link down to the item's own text files,
-  `buildPreview` reads them by kind and works out reach and hash, and a file
-  made for a newer Athena throws `NewerFormatError` (HTTP 426).
-- **`netlify/lib/community-add-routes.ts`**: `POST /api/community/preview`
-  and `POST /api/community/add`. Add reads the files again and hands each
-  kind to its own import (`importAssistant`, `createSkill`,
-  `addSharedFlow`), switched off, recording the listing for catalogue items.
-  Its outside calls are a `CommunityAddDeps` object, so the tests use fakes.
-- **`app/src/add/`**: the screen (`view.ts`), its words (`words.ts`), a
-  flow's steps drawn read-only with the flow editor's pieces
-  (`flow-steps.ts`), and sample mode's made-up items (`sample-items.ts`).
-  One layout for all three kinds: who made it and where from, its reach in
-  plain words, what it needs, its questions, account ticks, what it may do
-  alone, then all of it.
+**Sharing a flow** (`exportFlow`, `lib/flow-share-store.ts` `exportFlowFor`,
+`POST /api/flows/:id/export`, `app/src/flows/share-sheet.ts`, in a flow's More
+menu). Steps are numbered afresh; a record id becomes "Which person…?", a
+list "Which list?" and a to-do context "Which context?", each worded by the
+owner; links into the site go; findings wait for an edit or "It's fine". The
+summary starts as a draft from the trigger and steps in Athena's own words
+(`draftSummary`, no model). A step that leans on the owner's own types or
+fields is named in `blocked` and nothing downloads. The download is a zip
+with `<slug>/flow.json`; sample mode saves flow.json alone.
+
+**Sample mode.** `app/src/db/sample-community.ts` is a dozen made-up listings
+across the kinds and tiers, real files whose hashes and reach the tests
+check; `app/src/add/sample-items.ts` answers `#/add?link=` for its made-up
+links. Gift price watch is added at an older version and Dot was taken down.
+localStorage `athena.sample.catalogue` (`none`, `down`, `offline`, `slow`)
+shows each state of the Community screen.
 
 ### Files
 

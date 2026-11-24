@@ -2090,114 +2090,117 @@ words. They reach only what the owner ticked for them, enforced in code.
   mode's Dot keeps its extra asks.
 - **Tested** (`lib/shared-limits.test.ts`, `lib/ask-plans.test.ts`, `lib/shared-items.db.test.ts`).
 
-### The Community catalogue (migration `0088`, `lib/catalogue-types.ts`, `lib/community-config.ts`)
+### Community (migration `0088`, `lib/community-*.ts`, `lib/flow-share*.ts`, `netlify/lib/community-*.ts`)
 
-What leaves the site, and the off switch:
+Shared assistants, skills and flows are someone else's words. They reach
+Athena through one screen (`#/add`) and two routes, behind the bearer token,
+and start switched off. Nothing in a file is a permission.
+
+**Reading the catalogue: what leaves the site.**
 
 - **Only the server, only the catalogue's files.** Athena's server reads
   `index.json` and an item's bundle from under `ATHENA_CATALOGUE_URL`
-  (`netlify/lib/community-catalogue.ts`), through `publicFetch` (https
-  only, every address checked as it connects). Each request is a plain GET
-  with `Accept: application/json` and nothing else: no site address,
-  account, API key, cookie or token, and no body. A redirect is followed
-  only while it stays under the catalogue's root. The browser never
-  contacts the catalogue.
-- **How often.** The index at most once a day (kept in the `community`
-  blob store, plain: it's the catalogue's public list), and a bundle only
-  when the owner opens an item. The daily check
-  (`netlify/functions/community-check.ts`) and the update check fetch
-  nothing while nothing from the catalogue is added.
-- **The switch.** Opening Community the first time turns "Check the
-  Community catalogue" on (the owner's decision); the page says what is
-  read and from where, beside the switch, and Settings → Ask has it too.
-  Off means no request at all: no browsing, no update or withdrawn checks.
-  Adding from a file or a link still works. With no catalogue address set,
-  nothing is ever fetched and the switch is left alone.
+  (`netlify/lib/community-catalogue.ts`), through `publicFetch` (https only,
+  every address checked as it connects). Each request is a plain GET with
+  `Accept: application/json` and nothing else: no site address, account,
+  API key, cookie or token, and no body. A redirect is followed only while
+  it stays under the catalogue's root, and `catalogueFileUrl` refuses a path
+  that leaves it. The browser never contacts the catalogue.
+- **How often.** The index at most once a day (kept in the `community` blob
+  store, plain: it's the catalogue's public list), and a bundle only when the
+  owner opens an item. The daily check (`netlify/functions/community-check.ts`)
+  and the update check fetch nothing while nothing from the catalogue is
+  added.
+- **The switch.** `ATHENA_CATALOGUE_URL` is empty by default, and then
+  nothing is ever fetched. Opening Community the first time switches "Check
+  the Community catalogue" on (the owner's decision); the page says what is
+  read and from where beside the switch, and Settings → Ask has it too. Off
+  means no request at all: no browsing, no update or withdrawn checks.
+  Adding from a file or a link still works.
 - **A withdrawn item is paused once** (assistant or flow paused, skill
-  switched off), and remembered in the plain settings row
-  `community_paused`, so switching it back on sticks. Nothing is deleted or
-  updated by itself.
+  switched off) and remembered in the plain settings row `community_paused`,
+  so switching it back on sticks. Nothing is deleted or updated by itself.
+- **Plain columns.** `catalogue_id`, `catalogue_hash` and `catalogue_version`
+  on `team_assistants`, `ask_skills` and `flows` hold the catalogue's public
+  id, a SHA-256 of the item's files as added and the author's version:
+  nothing the owner wrote.
 
-- **Nothing leaves while it's empty or off.** `ATHENA_CATALOGUE_URL` is
-  empty by default, and the owner's "Check the Community catalogue" switch
-  (settings `community`, plain) is off until turned on. Only Athena's own
-  server is to read the catalogue, never the browser, and only its static
-  files under that address (`catalogueFileUrl` refuses a path that leaves it).
-- **Plain columns.** `catalogue_id`, `catalogue_hash` and
-  `catalogue_version` on `team_assistants`, `ask_skills` and `flows` hold the
-  catalogue's public id, a SHA-256 of the item's files as added and the
-  author's version: nothing the owner wrote.
-- **Files are someone else's words.** A shared flow (`lib/flow-share.ts`)
-  is read like a shared assistant: limits checked, unknown keys dropped, a
-  tool a flow can't use refused, record ids refused. Its reach
-  (`lib/reach.ts`) is worked out from its files, never taken from the
-  catalogue or the author. A bundle whose hash doesn't match its files, or
-  the index, is not used (`verifyBundle`).
-
-### Sharing and adding flows (`lib/flow-share*.ts`)
-
-- **What a shared flow carries.** Its name, a summary the owner writes, its
-  trigger and steps, the questions it asks whoever adds it, the accounts its
-  trigger needs, and whether it would like to read spending or search the
-  web. Never its id, runs, values, the assistant it was handed to, or a
-  record id: steps are numbered afresh, and a step field that held one of
-  the owner's records becomes a blank with a question the owner words.
-- **Checked before it leaves.** `POST /api/flows/<id>/export` takes links
-  into the site and `athena://` links out (`scrubText`) and flags anything
-  that looks like the owner's own people, places, addresses, email
-  addresses, phone numbers or private links (`findPersonal`, the same terms
-  as sharing an assistant). Nothing downloads until each finding is edited
-  out or marked fine, and the server checks again on download (409 with
-  what's left). A step that leans on the owner's own types, fields or list
-  names can't be exported, and the sheet names it. The edits change the
-  file, never the flow. The terms are compared in memory, never kept or sent.
-- **Adding one grants nothing.** `addSharedFlow` reads the file again
-  (`readSharedFlow`), whatever the caller sends, then: step ids made here;
-  every tool step waits for Go, whatever the file asked; thinking steps off
-  the web; spending off; the flow off, origin `shared`. The owner's answers
-  fill the blanks; an answer for a record must be one of their own ids. A
-  blank left unanswered stays as an unfilled field, sealed with the flow
-  (`flows.payload`), and the flow can't be switched on until the owner sets
-  it. A shared flow with thinking steps can't be switched on until the owner
-  hands it to one of their assistants. The result passes the same
-  `checkSteps` as a flow made here.
-
-### Adding something someone shared (`#/add`, `lib/community-add.ts`, `netlify/lib/community-add-routes.ts`)
-
-Every shared assistant, skill and flow comes in through one screen and two
-routes, behind the bearer token. Team's import sheet and the Skills upload
-and link previews now open it; `/api/team/import`, `/api/team/import/preview`
-and `/api/skills/preview` are gone.
+**Adding something someone shared.**
 
 - **One preview, nothing kept.** `POST /api/community/preview` takes a
   listing id, a link, or files (multipart, 2 MB in all; one zip goes through
   the skill zip reader). Its files are cut down to the item's own folder,
   text only, within the catalogue's caps (32 files, 100 KB each, 500 KB in
   all), and read by its kind's own reader (`readShared`, `intakeEntries`,
-  `readSharedFlow`). Kind, reach and hash are worked out here from the
-  files; the catalogue's or author's word for them is never used.
-- **Links.** GitHub only, as before (`parseShareLink`, a `flow.json` read
-  as its folder), fetched once through the same guard as skill links. Any
-  other host is refused.
-- **Catalogue listings.** A bundle is checked with `verifyBundle` against
-  its own hash and the index's before it is read.
+  `readSharedFlow`, then `checkSharedFlowSteps`). Kind, reach and hash are
+  worked out here from the files; the catalogue's or author's word for them
+  is never used. A lone file renamed on the way is read by what it holds.
+- **Links** are GitHub only (`parseShareLink`, a `flow.json` read as its
+  folder), fetched once through the same guard as skill links. Any other
+  host is refused, so a shared item can't point Athena at someone's own site.
+- **Catalogue listings.** A bundle is checked with `verifyBundle` against its
+  own hash and the index's before it is read.
 - **The server never trusts the preview it sent.** `POST /api/community/add`
   reads the files the app sends back again and refuses them if their hash
   differs from the preview's. For a listing it fetches the bundle again and
   refuses it if it changed since the preview. A preview relabelled as
   another kind is added as what its files are.
 - **Switched off, with only the owner's choices.** An assistant goes to
-  `importAssistant` (paused; tools ticked that it asked for and an import
-  may grant; the web only when asked for and ticked; ticked accounts only;
-  "Always asks first" for the rest). A skill goes to `createSkill`, always
-  off, with ticked accounts only. A flow goes to `addSharedFlow`, paused,
-  every question answered first. Account ticks start empty; the accounts it
-  needs are listed first, and an unticked one is named as one it can't work
-  without. Add never overwrites an earlier copy from the same listing.
+  `importAssistant`: paused; tools ticked that it asked for and an import may
+  grant (`grantedTools`, `SHARED_TOOLS` in `lib/shared-limits.ts`); the web
+  only when asked for and ticked; ticked accounts only; "Always asks first"
+  for the rest. A skill goes to `createSkill`, always off, ticked accounts
+  only. A flow goes to `addSharedFlow`, paused, every question answered
+  first. Account ticks start empty; the accounts it needs are listed first,
+  and an unticked one is named as one it can't work without.
+- **Already added** (owner, 24 Nov 2026). The preview says "You already have
+  this" for an item added from the same listing. Update (`choices.replace`)
+  replaces only the item the server itself finds came from that listing,
+  never another id the app names, and only for a catalogue item. It goes
+  through the same reading and the same choices as an add, keeps the item's
+  name and history, and switches it off. A second copy is a separate,
+  deliberate tap.
 - **A file for a newer Athena** is refused with 426 and nothing is read
-  further.
-- **Tested** (`netlify/lib/community-add-routes.test.ts`), with fakes for the
-  stores, the catalogue and GitHub.
+  further. Team's old `/api/team/import`, `/api/team/import/preview` and
+  `/api/skills/preview` are gone (owner, 24 Nov 2026).
+
+**Shared flows** (`lib/flow-share.ts`, `lib/flow-share-store.ts`).
+
+- **What a shared flow carries.** Its name, a summary, its trigger and steps,
+  the questions it asks whoever adds it, the accounts its trigger needs, and
+  whether it would like to read spending or search the web. Never its id,
+  runs, values, the assistant it was handed to, or a record id: steps are
+  numbered afresh, and a step field that held one of the owner's records,
+  list names or to-do contexts becomes a blank with a question ("Which
+  list?", "Which context?"; owner, 24 Nov 2026). The owner's own list and
+  context names never go in the file.
+- **Checked before it leaves.** `POST /api/flows/<id>/export` takes links
+  into the site and `athena://` links out (`scrubText`) and flags anything
+  that looks like the owner's own people, places, addresses, email
+  addresses, phone numbers or private links (`findPersonal`, the same terms
+  as sharing an assistant). Nothing downloads until each finding is edited
+  out or marked fine, and the server checks again on download (409 with
+  what's left). A step that leans on the owner's own types or fields can't
+  be exported, and the sheet names it. The drafted summary uses only
+  Athena's words for the trigger and steps (`draftSummary`, no model): what
+  a trigger matches and step titles are left out. The edits change the
+  file, never the flow. The terms are compared in memory, never kept or
+  sent.
+- **Adding one grants nothing.** `addSharedFlow` reads the file again
+  (`readSharedFlow`, `checkSharedFlowSteps`), whatever the caller sends,
+  then: step ids made here; every step that changes something waits for
+  Go, whatever the file asked (steps that only look run, as in any flow;
+  owner, 24 Nov 2026); thinking steps off the web; spending off; the flow
+  off, origin `shared`. The owner's answers fill the blanks; an answer for a
+  record must be one of their own ids. A blank left unanswered stays as an
+  unfilled field, sealed with the flow (`flows.payload`), and until it is set
+  the flow can't be switched on, run with Run now or tried (owner, 24 Nov
+  2026). A shared flow with thinking steps can't be switched on until the
+  owner hands it to one of their assistants. The result passes the same
+  `checkSteps` as a flow made here.
+- **Tested** (`lib/flow-share*.test.ts`, `lib/flow-share-store.db.test.ts`,
+  `netlify/lib/community-*.test.ts`, `app/src/db/sample-community.test.ts`),
+  with fakes for the stores, the catalogue and GitHub.
 
 ### Ask's read tools, today's context and memory
 
