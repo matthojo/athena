@@ -639,3 +639,25 @@ test("a saved item's trackers go with it", { skip }, async () => {
   await deleteSaved(item.id);
   assert.equal((await qRaw(`SELECT 1 FROM trackers WHERE saved_id = $1`, [item.id])).length, 0);
 });
+
+test("migration 0087: a tracker link from before 0085 is approved once as the owner's; one a model chose since is not", { skip }, async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { createTracker, getTracker } = await import("./trackers-store");
+  const { qRaw } = await import("./db");
+  const OLD = "https://shop.example.com/garden-hose";
+  const NEW = "https://shop.example.com/desk-lamp";
+  const old = (await createTracker({ name: "Garden hose", url: OLD, label: "price", kind: "number", direction: "lower" }, { by: "owner" })).tracker.id;
+  const fresh = (await createTracker({ name: "Desk lamp", url: NEW, label: "price", kind: "number", direction: "lower" }, { by: "owner" })).tracker.id;
+  // As a copy from before 0085 kept it: no record of who set the link, so no run opens it.
+  await qRaw(`UPDATE trackers SET url_set_by = NULL WHERE id = $1::uuid`, [old]);
+  // And one since 0085 whose link a model chose, not yet approved.
+  await qRaw(`UPDATE trackers SET url_set_by = 'ask' WHERE id = $1::uuid`, [fresh]);
+  assert.equal((await getTracker(old))!.run_url, null);
+  assert.equal((await getTracker(fresh))!.run_url, null);
+
+  const sql = await readFile(new URL("../netlify/database/migrations/0087_tracker-links-approved/migration.sql", import.meta.url), "utf8");
+  await qRaw(sql);
+  await qRaw(sql); // safe to run twice
+  assert.deepEqual([(await getTracker(old))!.url_set_by, (await getTracker(old))!.run_url], ["owner", OLD], "the old link keeps working");
+  assert.deepEqual([(await getTracker(fresh))!.url_set_by, (await getTracker(fresh))!.run_url], ["ask", null], "a model's link set since still waits for Go");
+});

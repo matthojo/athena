@@ -201,3 +201,28 @@ test("a model's edit to the owner's note links plainly, keeping only modes the o
   );
   assert.equal(plainNewWebLinks("[Ref](athena://note/11111111-1111-4111-8111-111111111111)", ""), "[Ref](athena://note/11111111-1111-4111-8111-111111111111)");
 });
+
+// ---------- needed accounts ----------
+
+test("an account the file needs, left unticked, is said plainly; connected or not", async () => {
+  const { unmetNeeds, cantWorkWords, andList } = await import("./shared-limits");
+  const rows = [
+    { id: "5a3e0000-0000-4000-8000-0000000ac001", provider: "linear" },
+    { id: "5a3e0000-0000-4000-8000-0000000ac002", provider: "gmail" },
+  ];
+  const names: Record<string, string> = { linear: "Linear", gmail: "Gmail", slack: "Slack" };
+  const nameOf = (p: string) => names[p] ?? p;
+  assert.deepEqual(unmetNeeds(["linear", "slack"], rows, []), [
+    { provider: "linear", connected: true },
+    { provider: "slack", connected: false },
+  ]);
+  assert.deepEqual(unmetNeeds(["linear"], rows, ["5A3E0000-0000-4000-8000-0000000AC001"]), [], "ticked: met");
+  assert.deepEqual(unmetNeeds(["linear"], rows, [rows[1].id]), [{ provider: "linear", connected: true }], "another account ticked isn't it");
+  assert.deepEqual(cantWorkWords("Dot", unmetNeeds(["linear"], rows, []), nameOf), { text: "Dot can't work without Linear.", hint: "Tick Linear below to let Dot use it." });
+  assert.deepEqual(cantWorkWords("Dot", unmetNeeds(["linear", "slack"], rows, []), nameOf), {
+    text: "Dot can't work without Linear and Slack.",
+    hint: "Tick Linear below to let Dot use it. Connect Slack in Settings → Sources first.",
+  });
+  assert.equal(cantWorkWords("Dot", [], nameOf), null);
+  assert.equal(andList(["Linear", "Gmail", "Slack"]), "Linear, Gmail and Slack");
+});

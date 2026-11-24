@@ -416,6 +416,27 @@ test("send-back by the owner at an approval, with a note; a stopped assignment r
   assert.equal(queue.length, 0);
 });
 
+test("who wrote a send-back note is kept: the owner's link reaches the stage as written, a stage's can't be opened", { skip }, async () => {
+  const { startAssignment, sendBack } = await import("./assignment-run");
+  // The owner's own send-back, with a link.
+  play = () => null;
+  const a0 = await startAssignment(lineup({}, LINEUP.stages.map((s, i) => ({ ...s, checkpoint: i === 1 ? "approve" : "auto" }))));
+  await drain();
+  await sendBack(a0.id, 1, "Follow https://style.example.com/guide");
+  await drain();
+  assert.match(said.get("1.2")!, /<sent_back by="[^"]+">\nFollow https:\/\/style\.example\.com\/guide/);
+  // A stage's send-back, with a link: a model's words.
+  said = new Map();
+  visits.clear();
+  play = (c) => (c.stage === 3 && c.visit === 1 && c.step === 1 ? [use("hand_off", { did: "Read it", open: "Match https://rival.example.com/page", next: "", send_back_to: 1 })] : null);
+  const b0 = await startAssignment(lineup({}, LINEUP.stages.map((s) => ({ ...s, checkpoint: "auto" }))));
+  await drain();
+  const back = said.get("1.2")!.split("<sent_back")[1];
+  assert.match(back, /Match https\[:\/\/\]rival\[\.\]example\[\.\]com\/page/);
+  assert.doesNotMatch(back, /https:\/\/rival/);
+  assert.ok(b0.id);
+});
+
 test("changing a suggestion that was taken re-runs from that stage, and later stages' work is replaced", { skip }, async () => {
   const { startAssignment, readAssignment, changeAnswers } = await import("./assignment-run");
   const { getNote } = await import("./db");

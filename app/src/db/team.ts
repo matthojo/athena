@@ -102,7 +102,7 @@ export async function getAssistant(id: string): Promise<TeamAssistant | null> {
 }
 
 /** Add an assistant. `answers` (setup's questions) go to the server, which writes its skill after it's added. */
-export async function createAssistant(input: TeamAssistantInput & { answers?: TeamAnswer[] }, opts: { sampleSkill?: boolean; imported?: boolean } = {}): Promise<TeamAssistant> {
+export async function createAssistant(input: TeamAssistantInput & { answers?: TeamAnswer[] }, opts: { sampleSkill?: boolean; imported?: boolean; needs?: string[] } = {}): Promise<TeamAssistant> {
   let made: TeamAssistant;
   if (isSampleMode()) {
     const list = sampleList();
@@ -126,7 +126,7 @@ export async function createAssistant(input: TeamAssistantInput & { answers?: Te
       created_at: now,
       updated_at: now,
       ...{ web: false },
-      ...(opts.imported ? { imported: true, accounts: [] } : {}),
+      ...(opts.imported ? { imported: true, accounts: [], needs: [...(opts.needs ?? [])] } : {}),
     };
     const { answers, ...rest } = input;
     made = sampleApply(base, rest);

@@ -74,6 +74,7 @@ import {
   weeklyReview,
 } from "../../lib/memory";
 import { NOTE_STYLE, NOTE_STYLE_SHORT, styleProblems } from "../../lib/writing-style";
+import { modelWroteInto } from "../../lib/links";
 import { getPurchase, getTrip, listPurchases, listTrips, ownerToday, type Trip } from "../../lib/trips";
 import { bookingLine, deliveryState, purchaseName, tripLabel } from "../../lib/trip-text";
 import { PROGRESS_UNITS, READING_KINDS } from "../../lib/watch-read";
@@ -209,7 +210,10 @@ function buildServer(): McpServer {
       tags: z.array(z.string()).optional().describe("Replaces the note's full tag list"),
     },
     safe(async ({ id, ...patch }) => {
-      const note = await updateNote(id, patch, { by: "mcp" });
+      // An agent is a model: in a note the owner wrote, links it adds are plain (lib/links.ts modelWroteInto).
+      const was = patch.body !== undefined ? await getNote(id) : null;
+      const body = was && patch.body !== undefined ? modelWroteInto(was, patch.body) : patch.body;
+      const note = await updateNote(id, { ...patch, ...(body !== undefined ? { body } : {}) }, { by: "mcp" });
       return note ? okNote(note, patch) : fail(`Note ${id} not found`);
     }),
   );

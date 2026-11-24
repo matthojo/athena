@@ -43,6 +43,11 @@ export interface StoredWords extends StageWords {
   held?: boolean;
   /** Its own send-back, asked for while a plan of its waits for Go: done once the plan has had it. */
   back?: { to: number; note: string };
+  /**
+   * Who wrote `note`: "owner" (sent back from an approval) or "stage" (a stage's own send-back, a model's words).
+   * Missing on a note kept before this was recorded: read as a stage's, so its links stay unopenable.
+   */
+  note_by?: "owner" | "stage";
 }
 
 /** A stage as the runner works with it. */
@@ -123,7 +128,7 @@ export function cleanWords(w: Partial<StoredWords>): StoredWords {
     handoff: w.handoff && typeof w.handoff === "object" ? { did: String(w.handoff.did ?? ""), open: String(w.handoff.open ?? ""), next: String(w.handoff.next ?? "") } : null,
     questions: Array.isArray(w.questions) ? w.questions : [],
     answers: Array.isArray(w.answers) ? w.answers : [],
-    ...(typeof w.note === "string" && w.note ? { note: w.note } : {}),
+    ...(typeof w.note === "string" && w.note ? { note: w.note, ...(w.note_by === "owner" || w.note_by === "stage" ? { note_by: w.note_by } : {}) } : {}),
     ...(w.held ? { held: true } : {}),
     ...(w.back && typeof w.back === "object" && Number.isInteger(w.back.to) ? { back: { to: w.back.to, note: String(w.back.note ?? "") } } : {}),
   };
@@ -189,7 +194,7 @@ async function present(head: AssignmentHead, documentsFor?: (noteId: string) => 
   const stages: AssignmentStage[] = [];
   for (const s of recs) {
     const run = s.run_id ? await getTeamRun(s.run_id) : null;
-    const { held: _held, back: _back, ...words } = s.words;
+    const { held: _held, back: _back, note_by: _noteBy, ...words } = s.words;
     stages.push({
       ...words,
       id: s.id,

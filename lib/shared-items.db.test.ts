@@ -1,10 +1,10 @@
-// Items someone else shared, on the real path: Postgres with every migration (0085 included), the store, the API's
+// Items someone else shared, on the real path: Postgres with every migration (0086 included), the store, the API's
 // skill routes, Ask's one loop with the model stubbed at fetch, and fake connected accounts.
 //  1. Importing an assistant grants only changes that keep an Undo (and track); the rest always ask first.
 //  2. An imported assistant's turns, and an imported skill in use, open only the accounts ticked for them.
 //  3. The one-time notice lists imported skills that lost their accounts, until it's read.
 //  4. An imported skill starts off, whatever was sent.
-//  5. A model's edit to the owner's note links plainly.
+//  5. A model's edit to the owner's note links plainly, through every tool that writes into one.
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/shared-items.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL. Empties skills, assistants, connectors and plans first. Made-up data only.
 import { test, before, after } from "node:test";
@@ -126,7 +126,7 @@ test("the one-time notice names imported skills that lost their accounts, until 
   const { qRaw } = await import("./db");
   const { sealText } = await import("./data-box");
   await accounts();
-  // Two skills from before 0085: one from a link, one the owner wrote.
+  // Two skills from before 0086: one from a link, one the owner wrote.
   const payload = (name: string, kind: string) => sealText(JSON.stringify({ name, description: "x", body: "y", extra: "", files: [], skipped: [], source: { kind, at: "2026-11-01T00:00:00Z" } }));
   await qRaw(`INSERT INTO ask_skills (payload, enabled) VALUES ($1, true), ($2, true)`, [payload("deal-notes", "link"), payload("my-notes", "written")]);
   const notice = await api("GET", "skills/notice");
@@ -161,6 +161,25 @@ test("importing an assistant: only changes with an Undo and track can be granted
   assert.equal(own.imported, false);
   // The owner ticks another account on its page.
   assert.deepEqual((await updateAssistant(assistant.id, { accounts: [issues, mail] })).accounts, [issues, mail]);
+});
+
+test("an imported assistant keeps the accounts its file needs, sealed with its words, through later changes", { skip }, async () => {
+  await reset();
+  const { issues } = await accounts();
+  const { importAssistant } = await import("./team-share-store");
+  const { getAssistant, updateAssistant, createAssistant } = await import("./team");
+  const { qRaw } = await import("./db");
+  const { assistant } = await importAssistant({ shared: SHARED, skill: { body: "Read each issue, then add a to-do with its title and link.", files: [] }, source: { kind: "upload" }, answers: [], allow: [], web: false, accounts: [] });
+  assert.deepEqual(assistant.needs, ["linear"]);
+  assert.deepEqual((await getAssistant(assistant.id))!.needs, ["linear"]);
+  // Kept through the owner's changes on its page.
+  assert.deepEqual((await updateAssistant(assistant.id, { job: "Turns issues into to-dos", accounts: [issues] })).needs, ["linear"]);
+  // Not readable at rest: it's in the sealed payload, with its name and job.
+  const [row] = await qRaw<{ payload: string }>(`SELECT payload FROM team_assistants WHERE id = $1::uuid`, [assistant.id]);
+  assert.doesNotMatch(row.payload, /linear/);
+  // One made here has none, whatever it's sent.
+  const own = await createAssistant({ job: "Keeps my reading list" }, { needs: ["linear"] });
+  assert.equal(own.needs, undefined);
 });
 
 test("an imported assistant's chat opens only its ticked accounts; one made here opens them all", { skip }, async () => {
@@ -252,6 +271,23 @@ test("a model's edit to a note the owner wrote links plainly; links the owner ch
   const s = new Session(NOW, TZ, { client: {} as never, capture: false });
   await s.run("save_note", { note_id: note.id, body: 'A [scarf](https://shop.example.com/scarf "card") and [a hat](https://shop.example.com/hat "embed")' });
   assert.equal((await getNote(note.id))!.body, 'A [scarf](https://shop.example.com/scarf "card") and [a hat](https://shop.example.com/hat)');
+});
+
+test("a line a model adds to the owner's list links plainly; a list Athena wrote is left as written", { skip }, async () => {
+  await reset();
+  const { createNote, getNote } = await import("./db");
+  const { Session } = await import("./assistant");
+  const list = await createNote({ title: "Packing", body: '- [ ] [Tent](https://shop.example.com/tent "card")', type: "note", source: "app", tags: [] });
+  const s = new Session(NOW, TZ, { client: {} as never, capture: false });
+  await s.run("add_to_list", { note_id: list.id, item: '[Stove](https://shop.example.com/stove "embed")' });
+  const body = (await getNote(list.id))!.body;
+  assert.match(body, /\[Tent\]\(https:\/\/shop\.example\.com\/tent "card"\)/, "the owner's own choice stays");
+  assert.match(body, /\[Stove\]\(https:\/\/shop\.example\.com\/stove\)/, "the model's line links plainly");
+  assert.doesNotMatch(body, /"embed"/);
+  // A list Athena wrote (not the owner's) is left as the model wrote it.
+  const athenas = await createNote({ title: "Ideas", body: "", type: "note", source: "assistant", tags: [] });
+  await s.run("add_to_list", { note_id: athenas.id, item: '[Lamp](https://shop.example.com/lamp "card")' });
+  assert.match((await getNote(athenas.id))!.body, /"card"/);
 });
 
 test("an imported assistant's run: the calendar it wasn't given isn't read; the owner's own assistant reads it", { skip }, async () => {

@@ -228,7 +228,7 @@ export async function addImported(p: ImportPreview, choices: { answers: TeamAnsw
         answers: choices.answers,
         accounts: choices.accounts,
       },
-      { sampleSkill: !p.skill, imported: true },
+      { sampleSkill: !p.skill, imported: true, needs: w.needs },
     );
     if (p.skill) sampleKeepImportedSkill(made, withAnswers(p.skill.body, choices.answers), choices.answers, w.summary);
     return made;

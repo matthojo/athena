@@ -54,7 +54,7 @@ import { contextByName, contextsOf, filterByContext } from "./todo-context";
 import { getReadingItem, listReading, upsertReadingItem, type ReadingItem } from "./memory";
 import { KIND_WORDS, PROGRESS_UNITS, progressWords, READING_KINDS, READING_STATUSES, WATCH_READ, type ProgressUnit } from "./watch-read";
 import { isEncryptedPlaceholder } from "./encrypted";
-import { formatAthenaLink, linkKindOf, ownerWroteNote, plainNewWebLinks } from "./links";
+import { formatAthenaLink, linkKindOf, modelWroteInto } from "./links";
 import { zonedParts, zonedToInstant, zonedToday } from "./dates";
 import { guardText } from "./jev";
 import { CHANNEL_LABEL, DRAFT_CHANNELS, draftMessage, draftProviderName, type DraftChannel, type EmailDraft, type GmailPort, type SlackPort } from "./drafts";
@@ -1494,7 +1494,8 @@ export class Session {
           });
         const before = { title: note.title, body: note.body, tags: note.tags };
         const updated = (await updateNote(note.id, {
-          body: appendItem(note.body, input.item),
+          // A list the owner wrote: the new line's links are plain (lib/links.ts modelWroteInto).
+          body: modelWroteInto(note, appendItem(note.body, input.item)),
         }))!;
         return this.record({
           kind: "note",
@@ -1519,7 +1520,7 @@ export class Session {
           };
           // A note the owner wrote: the model's text links plainly, so nothing it adds makes Athena fetch a page for a card,
           // mention or embed (links the owner already chose a mode for keep it). lib/links.ts plainNewWebLinks.
-          const written = input.body !== undefined && ownerWroteNote(note.source) ? plainNewWebLinks(input.body, note.body) : input.body;
+          const written = input.body !== undefined ? modelWroteInto(note, input.body) : undefined;
           const updated = (await updateNote(note.id, {
             title: input.title,
             // A Life log day keeps its Health line and Places section: Ask never sees them, so can't write them back (lib/health.ts, lib/places-line.ts).

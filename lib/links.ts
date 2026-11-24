@@ -273,6 +273,15 @@ export function ownerWroteNote(source: string | null | undefined): boolean {
   return source === "manual" || source === "app";
 }
 
+/**
+ * A note's body after a model wrote into it (save_note, add_to_list, an assignment's work, an agent's update_note):
+ * in a note the owner wrote, links the model added are plain (plainNewWebLinks); anywhere else, as written. Every
+ * tool through which a model writes into an existing note goes through this. Pure.
+ */
+export function modelWroteInto(note: { source?: string | null; body: string }, after: string): string {
+  return ownerWroteNote(note.source) ? plainNewWebLinks(after, note.body) : after;
+}
+
 // ---------- The owner's choices in a note Athena wrote (migration 0059, lib/note-link-choices.ts) ----------
 
 /** The modes that load a preview, and so need the owner's say in a note Athena wrote. */

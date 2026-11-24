@@ -27,10 +27,10 @@ import { MAX_ASSISTANTS } from "../../../lib/team-types";
 import { shareSeed } from "../../../lib/team-share";
 import { avatarFromSeed, renderAvatarTile } from "./avatar";
 import { SHARED_TOOLS, toolWords } from "../../../lib/shared-limits";
-import { accountTicks } from "../components/account-ticks";
+import { accountTicks, cantWorkNote } from "../components/account-ticks";
 import { answersFor, questionsForm, type AnswerMap } from "./setup-questions";
 import { triggerSentence } from "./trigger-editor-words";
-import { creditWords, fromWords, needWords } from "./share-words";
+import { accountName, creditWords, fromWords, needWords } from "./share-words";
 
 const errorText = (error: unknown) => (error instanceof Error && error.message && !/fetch|network|Failed/i.test(error.message) ? error.message : "That didn't work. Check you're online.");
 
@@ -137,7 +137,10 @@ export function openImportAssistant(opts: ImportOptions): void {
     });
     const web = w.web ? (h("input", { type: "checkbox", class: "wf-tick__box" }) as HTMLInputElement) : null;
     // The connected accounts it may open: none until ticked, the ones it needs first.
-    const accounts = accountTicks({ accounts: p.accounts ?? [], ticked: [], needs: w.needs, idPrefix: "wf-acct", label: `Accounts ${name} can open` });
+    // Said plainly while an account it needs is left unticked: it can't do its job without it.
+    const cantWork = cantWorkNote({ name, needs: w.needs, accounts: p.accounts ?? [], nameOf: accountName });
+    const accounts = accountTicks({ accounts: p.accounts ?? [], ticked: [], needs: w.needs, idPrefix: "wf-acct", label: `Accounts ${name} can open`, onTick: cantWork.update });
+    cantWork.update([]);
     const asksFirst = p.asks_first ?? [];
 
     const add = h("button", { class: "btn btn--primary btn--block", type: "button", disabled: !p.room }, icons.plus(), `Import ${name}`) as HTMLButtonElement;
@@ -175,7 +178,7 @@ export function openImportAssistant(opts: ImportOptions): void {
       section(
         "Accounts it can open",
         h("p", { class: "form__hint" }, `${name} opens only the accounts you tick, in its runs and in chat. You can change this on its page.`),
-        accounts.el
+        h("div", { class: "acct-rows" }, cantWork.el, accounts.el)
       ),
       ticks.length || web
         ? section(

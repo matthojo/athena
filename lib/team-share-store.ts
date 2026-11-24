@@ -330,7 +330,7 @@ export async function importAssistant(body: Record<string, unknown>, now = new D
     triggers: triggerInputs(w).map((t) => (asFlows ? { ...t, paused: true } : t)),
     // The connected accounts the owner ticked for it; none ticked, it opens none (lib/shared-limits.ts).
     accounts: cleanAccountIds(body.accounts),
-  }, { origin: "shared" });
+  }, { origin: "shared", needs: w.needs });
   const source = sourceOf(body.source, now);
   const fitted = skillBody ? fitTeamSkill({ body: withAnswers(skillBody, answers).slice(0, SKILL_LIMITS.body), summary: w.summary }, a) : null;
   if (!fitted) return { assistant: a, writing: attachSkill(a.id, answers) };

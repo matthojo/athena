@@ -1724,7 +1724,7 @@ contracts between slices, is `docs/team.md`.
   folder (zipped for download) with `assistant.json` (format 1: name, job,
   instructions, summary, personality, avatar, triggers without ids, `asks`,
   `needs`, `would_like`, `web`, and optional `version`, `author`,
-  `based_on`), its `SKILL.md` and the skill's files. Migration 0085 records
+  `based_on`), its `SKILL.md` and the skill's files. Migration 0086 records
   an import (`team_assistants.origin = 'shared'`) and the accounts ticked for
   it (`team_assistants.accounts`).
   - **Share** (the assistant's page): `POST /api/team/<id>/export` with
@@ -1888,10 +1888,10 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
   one from a file or a link is saved off whatever the request says
   (`createSkill`). Three starters (weekly-review, plan-meals, meeting-prep)
   are added once, off.
-- **Imported skills' accounts** (migration 0085, `ask_skills.accounts`).
+- **Imported skills' accounts** (migration 0086, `ask_skills.accounts`).
   While Ask uses a skill from a file or a link it opens only the accounts
   ticked on the skill's page (see Team, "What an imported item reaches").
-  The first read after 0085 notes the imported skills there were then
+  The first read after 0086 notes the imported skills there were then
   (settings `skills.accounts_notice`, ids only); `GET /api/skills/notice`
   lists those still with none ticked until `DELETE` marks it read.
 - **Assistants' own skills** (0069, `assistant_id`) are listed in Settings

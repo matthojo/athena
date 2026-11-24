@@ -75,3 +75,43 @@
 .skills-form__accounts-sec .form__hint {
   margin: 0;
 }
+
+/* "Dot can't work without Linear." (components/account-ticks.ts cantWorkNote): above the ticks, like the import
+   sheet's other warnings, and gone once every account it needs is ticked. */
+.acct-need-wrap:has(.acct-need[hidden]) {
+  display: none;
+}
+
+.acct-need {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--warn-wash);
+  color: var(--ink);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.acct-need[hidden] {
+  display: none;
+}
+
+.acct-need svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.acct-need__text {
+  font-weight: var(--weight-medium);
+}
+
+/* The warning, then the rows (team/detail-accounts.ts, the import sheet). */
+.acct-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

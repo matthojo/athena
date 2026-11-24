@@ -110,3 +110,18 @@ test("an assignment stage gets the work and handoffs with their links unopenable
   assert.doesNotMatch(rest, OPENABLE, rest);
   assert.match(rest, /https\[:\/\/\]shop\[\.\]example\[\.\]com\/best/);
 });
+
+test("a send-back note keeps who wrote it: the owner's links can be opened by the stage; a stage's, or an unrecorded one, can't", () => {
+  const sent = (words: Record<string, unknown>) =>
+    stageMessage({ title: "Kettle guide", brief: "Write it" }, { position: 1, words: { task: "Write it", questions: [], answers: [], handoff: null, ...words }, sent_back_from: 2 } as never, [], {
+      total: 2,
+      label: "Writer",
+      work: "",
+      canSendBack: false,
+      canAsk: false,
+      from: "Editor",
+    }).data.split("<sent_back")[1];
+  assert.ok(sent({ note: "Compare with https://notes.example.net/x", note_by: "owner" }).includes("https://notes.example.net/x"), "the owner's note as written");
+  assert.doesNotMatch(sent({ note: "Compare with https://notes.example.net/x", note_by: "stage" }), OPENABLE);
+  assert.doesNotMatch(sent({ note: "Compare with https://notes.example.net/x" }), OPENABLE, "kept before who wrote it was recorded: a stage's");
+});

@@ -1959,7 +1959,7 @@ is kept.
 
 An assistant can be downloaded as a file (a zip of `assistant.json`,
 `SKILL.md` and the skill's files) and imported into another copy. Migration
-`0085` records that an assistant was imported and the accounts ticked for it
+`0086` records that an assistant was imported and the accounts ticked for it
 (ids only).
 
 - **Nothing leaves unless the owner downloads it.** `POST
@@ -2018,7 +2018,7 @@ An assistant can be downloaded as a file (a zip of `assistant.json`,
   Cache Storage until Team's import sheet reads it, and that sheet shows all
   of it before anything is imported.
 
-### Items someone else shared (migration `0085`, `lib/shared-limits.ts`, `lib/shared-scope.ts`)
+### Items someone else shared (migration `0086`, `lib/shared-limits.ts`, `lib/shared-scope.ts`)
 
 An imported assistant, and a skill from a file or a link, are someone else's
 words. They reach only what the owner ticked for them, enforced in code.
@@ -2028,7 +2028,7 @@ words. They reach only what the owner ticked for them, enforced in code.
   migration marks those whose triggers became flows with origin `shared`)
   or its own skill came from a file or a link (once, in code, since that is
   sealed). A skill is imported when its sealed source is `upload` or `link`,
-  so skills imported before `0085` are held too.
+  so skills imported before `0086` are held too.
 - **Accounts only when ticked, per account.** `team_assistants.accounts` and
   `ask_skills.accounts` are connector ids, plain, empty to start, kept only
   for accounts that exist. An imported assistant's chats, runs, checks and
@@ -2047,7 +2047,7 @@ words. They reach only what the owner ticked for them, enforced in code.
   `lib/team-chat.ts` and `lib/skills-ask.ts`.
 - **Seen and changed by the owner.** One tick per account on the import
   sheet (the accounts the file needs first), an imported assistant's page and
-  an imported skill's page. After `0085`, Home names each imported skill that
+  an imported skill's page. After `0086`, Home names each imported skill that
   had none ticked, once (`GET`/`DELETE /api/skills/notice`; settings
   `skills.accounts_notice` holds ids only).
 - **Tested** (`lib/shared-limits.test.ts`, `lib/shared-items.db.test.ts`).

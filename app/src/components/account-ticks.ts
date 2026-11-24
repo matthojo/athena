@@ -6,7 +6,9 @@
 import "../styles/account-ticks.css";
 import { h } from "../lib/dom";
 import { brandLogo } from "./brand-logo";
+import { icons } from "./icons";
 import type { AccountRow } from "../db/item-accounts";
+import { cantWorkWords, unmetNeeds } from "../../../lib/shared-limits";
 
 export interface AccountTicksOptions {
   accounts: readonly AccountRow[];
@@ -19,6 +21,8 @@ export interface AccountTicksOptions {
   label: string;
   /** Told after each tick, with every ticked id. Resolve false to put the tick back. */
   onChange?: (ids: string[]) => Promise<boolean> | void;
+  /** Told at once, on every tick and untick (before onChange settles), with every ticked id. */
+  onTick?: (ids: string[]) => void;
 }
 
 export function accountTicks(opts: AccountTicksOptions): { el: HTMLElement; value: () => string[] } {
@@ -39,14 +43,36 @@ export function accountTicks(opts: AccountTicksOptions): { el: HTMLElement; valu
   const value = () => boxes.filter((b) => b.box.checked).map((b) => b.box.value);
   for (const b of boxes)
     b.box.addEventListener("change", async () => {
+      opts.onTick?.(value());
       if (!opts.onChange) return;
       b.box.disabled = true;
       const ok = await Promise.resolve(opts.onChange(value())).catch(() => false);
       b.box.disabled = false;
-      if (ok === false) b.box.checked = !b.box.checked;
+      if (ok === false) {
+        b.box.checked = !b.box.checked;
+        opts.onTick?.(value());
+      }
     });
   const el = boxes.length
     ? h("div", { class: "acct-ticks", role: "group", "aria-label": opts.label }, ...boxes.map((b) => b.row))
     : h("p", { class: "form__hint acct-ticks__none" }, "You haven't connected any accounts. Any you connect later stay closed to it until you tick them here.");
   return { el, value };
+}
+
+/**
+ * "Dot can't work without Linear.": shown above the ticks while an account the file says it needs isn't ticked, and
+ * updated as the owner ticks (a polite live region, so a screen reader hears it). Athena's words, never the file's.
+ */
+export function cantWorkNote(opts: { name: string; needs: readonly string[]; accounts: readonly AccountRow[]; nameOf: (provider: string) => string }): { el: HTMLElement; update: (ticked: readonly string[]) => void } {
+  const text = h("span", { class: "acct-need__text" });
+  const hint = h("span", { class: "acct-need__hint" });
+  const box = h("p", { class: "acct-need", hidden: true }, icons.flag(), h("span", {}, text, " ", hint));
+  const el = h("div", { class: "acct-need-wrap", role: "status", "aria-live": "polite" }, box);
+  const update = (ticked: readonly string[]) => {
+    const words = cantWorkWords(opts.name, unmetNeeds(opts.needs, opts.accounts, ticked), (p) => opts.accounts.find((a) => a.provider === p)?.name ?? opts.nameOf(p));
+    box.hidden = !words;
+    text.textContent = words?.text ?? "";
+    hint.textContent = words?.hint ?? "";
+  };
+  return { el, update };
 }

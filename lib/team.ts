@@ -24,7 +24,7 @@ import { sealText } from "./data-box";
 import { parseDays, parseTime } from "./routines";
 import { avatarFromSeed, nameFromSeed, newSeed, personalityFromSeed } from "./team-seed";
 import { checkAssistantModels, cleanAssistantModels, loadModelSettings } from "./models";
-import { cleanAccountIds, MAX_ITEM_ACCOUNTS, skillImported } from "./shared-limits";
+import { cleanAccountIds, MAX_ITEM_ACCOUNTS, MAX_ITEM_NEEDS, skillImported } from "./shared-limits";
 import {
   ACCENT_KEYS,
   ACCESSORY_IDS,
@@ -180,9 +180,9 @@ interface AssistantRow {
   web?: boolean | null;
   /** Its own models (0076). */
   models?: unknown;
-  /** 'shared' for an imported one (0085). */
+  /** 'shared' for an imported one (0086). */
   origin?: string | null;
-  /** Connected accounts ticked for an imported one (0085). */
+  /** Connected accounts ticked for an imported one (0086). */
   accounts?: string[] | null;
   paused: boolean;
   routine_id: string | null;
@@ -215,6 +215,8 @@ interface Words {
   instructions: string;
   personality: Personality;
   avatar: AvatarSpec;
+  /** An imported one: the accounts its file says it needs, by provider ("linear"), kept from the import. Sealed with its words. */
+  needs?: string[];
 }
 
 const sealWords = (w: Words) => sealText(JSON.stringify(w));
@@ -269,6 +271,7 @@ function present(r: AssistantRow, triggers: TeamTrigger[], consent: Consent = {}
     instructions: w.instructions ?? "",
     personality: w.personality ?? personalityFromSeed(seed),
     avatar: w.avatar ?? avatarFromSeed(seed),
+    ...(r.origin === "shared" ? { needs: cleanNeeds(w.needs) } : {}),
     allow: r.allow ?? [],
     web: r.web === true,
     models: cleanAssistantModels(r.models, consent),
@@ -313,7 +316,7 @@ async function knownAccounts(ids: string[]): Promise<string[]> {
 
 let marking: Promise<void> | null = null;
 /**
- * Once: an assistant imported before migration 0085 whose own skill came from a file or a link (only an import
+ * Once: an assistant imported before migration 0086 whose own skill came from a file or a link (only an import
  * writes one so) is marked imported. Its words are sealed, so this is code, not SQL. Never throws.
  */
 function markImported(): Promise<void> {
@@ -353,7 +356,17 @@ function words(input: z.infer<typeof inputSchema>, was?: Words): Words {
     instructions: input.instructions !== undefined ? input.instructions.trim() : (was?.instructions ?? ""),
     personality: input.personality ?? was?.personality ?? personalityFromSeed(seed),
     avatar: (input.avatar as AvatarSpec | undefined) ?? was?.avatar ?? avatarFromSeed(seed),
+    // Set only by an import; kept through every change after.
+    ...(was?.needs?.length ? { needs: cleanNeeds(was.needs) } : {}),
   };
+}
+
+/** Providers an imported file says it needs: slugs only, each once, at most MAX_ITEM_NEEDS. Pure. */
+export function cleanNeeds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const v of raw) if (typeof v === "string" && /^[a-z0-9][a-z0-9-]{0,39}$/.test(v) && !out.includes(v) && out.length < MAX_ITEM_NEEDS) out.push(v);
+  return out;
 }
 
 type Run = <T>(text: string, params?: unknown[]) => Promise<T[]>;
@@ -374,10 +387,11 @@ async function insertJob(run: Run, assistantId: string, t: CleanTrigger, origin:
  * A new assistant, with its triggers. `routineId` marks one made from a routine (one assistant per routine). Once
  * triggers are flows, each trigger is kept as a job flow; `origin: "shared"` marks an imported one's.
  */
-export async function createAssistant(raw: unknown, opts: { routineId?: string; now?: Date; origin?: "trigger" | "shared" } = {}): Promise<TeamAssistant> {
+export async function createAssistant(raw: unknown, opts: { routineId?: string; now?: Date; origin?: "trigger" | "shared"; needs?: readonly string[] } = {}): Promise<TeamAssistant> {
   const input = parse(inputSchema, raw ?? {});
   const accounts = input.accounts ? await knownAccounts(input.accounts) : [];
-  const w = words(input);
+  const needs = opts.origin === "shared" ? cleanNeeds(opts.needs) : [];
+  const w: Words = { ...words(input), ...(needs.length ? { needs } : {}) };
   const triggers = (input.triggers ?? []).map(cleanTrigger);
   const models = input.models ? await checkAssistantModels(input.models) : {};
   const now = (opts.now ?? new Date()).toISOString();

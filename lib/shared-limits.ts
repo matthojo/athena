@@ -71,12 +71,14 @@ export const skillImported = (source: { kind?: string } | null | undefined): boo
 
 /**
  * Is this assistant someone else's? Recorded, never guessed: its row says it was imported (`origin`, migration
- * 0085), or its own skill came from a file or a link (only an import writes one so). Pure.
+ * 0086), or its own skill came from a file or a link (only an import writes one so). Pure.
  */
 export const assistantImported = (origin: string | null | undefined, ownSkillSource?: { kind?: string } | null): boolean => origin === "shared" || skillImported(ownSkillSource);
 
 /** Most accounts an item can have ticked. */
 export const MAX_ITEM_ACCOUNTS = 50;
+/** Most accounts a file can say it needs (lib/team-share.ts MAX_NEEDS). */
+export const MAX_ITEM_NEEDS = 10;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -110,4 +112,33 @@ export function orderAccounts<T extends Pick<AccountRow, "provider" | "name">>(a
     return i === -1 ? needs.length : i;
   };
   return [...accounts].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+}
+
+/**
+ * The accounts a file says it needs that the owner hasn't ticked for it, in the file's order: for each, whether this
+ * Athena has one connected. Empty: it has what it says it needs. Pure.
+ */
+export function unmetNeeds(needs: readonly string[], accounts: ReadonlyArray<Pick<AccountRow, "id" | "provider">>, ticked: readonly string[]): Array<{ provider: string; connected: boolean }> {
+  const on = new Set(ticked.map((id) => id.toLowerCase()));
+  return needs
+    .filter((p) => !accounts.some((a) => a.provider === p && on.has(a.id.toLowerCase())))
+    .map((provider) => ({ provider, connected: accounts.some((a) => a.provider === provider) }));
+}
+
+/** "Linear", "Linear and Gmail", "Linear, Gmail and Slack". Pure. */
+export function andList(words: readonly string[]): string {
+  return words.length <= 1 ? (words[0] ?? "") : `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`;
+}
+
+/**
+ * What the import preview and an imported assistant's page say when it can't do its job: Athena's words, from the
+ * providers' names. "Dot can't work without Linear." Null when nothing it needs is missing. Pure.
+ */
+export function cantWorkWords(name: string, unmet: ReadonlyArray<{ provider: string; connected: boolean }>, nameOf: (provider: string) => string): { text: string; hint: string } | null {
+  if (!unmet.length) return null;
+  const names = unmet.map((u) => nameOf(u.provider));
+  const notConnected = unmet.filter((u) => !u.connected).map((u) => nameOf(u.provider));
+  const toTick = unmet.filter((u) => u.connected).map((u) => nameOf(u.provider));
+  const hint = [toTick.length ? `Tick ${andList(toTick)} below to let ${name} use ${toTick.length === 1 ? "it" : "them"}.` : "", notConnected.length ? `Connect ${andList(notConnected)} in Settings → Sources first.` : ""].filter(Boolean).join(" ");
+  return { text: `${name} can't work without ${andList(names)}.`, hint };
 }

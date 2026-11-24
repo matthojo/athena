@@ -8,7 +8,7 @@
  *   DELETE /api/skills/<id>                → { ok }
  *   POST   /api/skills/preview             { zip } | { entries: [{ path, data }] } | { skill_md, file? } | { url } → what would be saved; nothing is
  *   GET    /api/skills/<id>/download?format=md|zip → SKILL.md, or a zip of it and its files
- *   GET    /api/skills/notice              → { skills: [{ id, name, title }] }: imported skills that lost their accounts (0085), once
+ *   GET    /api/skills/notice              → { skills: [{ id, name, title }] }: imported skills that lost their accounts (0086), once
  *   DELETE /api/skills/notice              → { ok }: the notice is read and doesn't come back
  *
  * A zip and a folder's files come base64, at most 2 MB of them. A link is
