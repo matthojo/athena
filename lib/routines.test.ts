@@ -85,7 +85,7 @@ test("proposal only: a run's conversation keeps the plan and never a change", ()
   assert.equal(n.rule, "routine");
   assert.equal(n.key, "routine:r1:2026-11-13T16:00:00.000Z");
   assert.equal(n.thread_id, "t1");
-  assert.match(n.body, /2 changes are waiting for you to Go/);
+  assert.match(n.body, /2 changes are waiting for your approval/);
   assert.match(n.why.join(" "), /only suggests changes/);
 });
 

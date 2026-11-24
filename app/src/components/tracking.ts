@@ -37,6 +37,7 @@ import { webOn, webPatch } from "../team/web-access";
 import { ASK_WEB_SETTING } from "../team/web-words";
 import { openCheckerSheet } from "./track-sheet";
 import "../styles/tracking.css";
+import { clockTime } from "../lib/clock";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -47,7 +48,7 @@ function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string,
 }
 
 const safeHref = (raw: string | null | undefined) => (raw && /^https?:\/\//i.test(raw) ? raw : null);
-const time = (iso: string) => new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(Date.parse(iso));
+const time = (iso: string) => clockTime(iso);
 const isPrice = (t: TrackerView) => t.preset === "price";
 let uid = 0;
 

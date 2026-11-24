@@ -1,6 +1,6 @@
 /**
- * One open loop: a check circle, the title, and a line saying who it's with
- * and when it's due. Ticking it plays the check, rests a moment, folds the
+ * One open loop: a check circle, the title, and a line saying who it's with,
+ * when it's due and how many of its steps are done. Ticking it plays the check, rests a moment, folds the
  * row away, then saves and offers Undo; the list it lives in repaints without
  * it. The same row (and motion) is used on To do, Home and a person's sheet. Decisions have no check — they're
  * a record, not something to close.
@@ -11,15 +11,12 @@ import { icons } from "./icons";
 import { showToast } from "./toast";
 import { setCommitmentStatus } from "../db/memory";
 import { COMMITMENT_META } from "../lib/memory-meta";
-import { describeSource } from "../lib/sources";
-import { contextTags } from "./todo-context-ui";
 import { calendarDate, relativeTime } from "../lib/format";
 import { daysBetween } from "../../../lib/dates";
 import { localToday } from "../lib/time";
 import { collapse, dur, expand, finishPlan, finishQueue, motionWait } from "../lib/finish-motion";
 import { prefersReducedMotion } from "../lib/motion";
-import { priorityMark } from "./todo-props";
-import { PRIORITY_LABEL, stepProgress } from "../../../lib/todo-details";
+import { stepProgress } from "../../../lib/todo-details";
 import "../styles/todo-detail.css";
 import type { Commitment } from "../types";
 
@@ -81,22 +78,16 @@ export function loopRelation(c: Commitment, showPerson = true): string {
   }
 }
 
-/** "2/5" with a filling ring, a link count, and a mark when there's a description. Null when there's nothing. */
-function detailMarks(c: Commitment): HTMLElement | null {
-  const items: HTMLElement[] = [];
+/** "2/5" with a ring that fills as steps are ticked. Null when it has no steps. */
+function stepMark(c: Commitment): HTMLElement | null {
   const p = stepProgress(c.steps);
-  if (p.total) {
-    const ring = h("span", { class: "loop__progress", "aria-hidden": "true" });
-    ring.style.setProperty("--p", String(p.done / p.total));
-    items.push(h("span", { class: "loop__mark-item", "data-complete": String(p.done === p.total), title: `${p.done} of ${p.total} steps done`, "aria-label": `${p.done} of ${p.total} steps done` }, ring, `${p.done}/${p.total}`));
-  }
-  const n = c.links?.length ?? 0;
-  if (n) items.push(h("span", { class: "loop__mark-item", title: `${n} ${n === 1 ? "link" : "links"}`, "aria-label": `${n} ${n === 1 ? "link" : "links"}` }, icons.link(), n > 1 ? String(n) : null));
-  if (c.notes?.trim()) items.push(h("span", { class: "loop__mark-item", title: "Has a description", "aria-label": "Has a description" }, icons.lines()));
-  return items.length ? h("span", { class: "loop__marks" }, ...items) : null;
+  if (!p.total) return null;
+  const ring = h("span", { class: "loop__progress", "aria-hidden": "true" });
+  ring.style.setProperty("--p", String(p.done / p.total));
+  return h("span", { class: "loop__marks" }, h("span", { class: "loop__mark-item", "data-complete": String(p.done === p.total), title: `${p.done} of ${p.total} steps done`, "aria-label": `${p.done} of ${p.total} steps done` }, ring, `${p.done}/${p.total}`));
 }
 
-export function loopRow(c: Commitment, opts: { onOpen: (c: Commitment) => void; showPerson?: boolean; today?: string; hideContext?: "area" | "where" }): HTMLElement {
+export function loopRow(c: Commitment, opts: { onOpen: (c: Commitment) => void; showPerson?: boolean; today?: string }): HTMLElement {
   const done = c.status === "done";
   const decision = c.kind === "decision";
   const relation = loopRelation(c, opts.showPerson ?? true);
@@ -108,27 +99,17 @@ export function loopRow(c: Commitment, opts: { onOpen: (c: Commitment) => void; 
     const due = dueLabel(c.due_on, opts.today);
     meta.push(h("span", { class: "loop__due", "data-tone": due.tone || undefined }, due.tone === "late" ? icons.clock() : null, due.text));
   }
-  // What it carries: its steps (with a ring that fills as they're ticked), links and a description.
+  // Three things and no more: who it's for, when it's due, how far along. Its priority, links,
+  // description, area and where are on its own page, and To do's filters and groups sort by them.
   if (!decision && !done) {
-    const marks = detailMarks(c);
-    if (marks) meta.push(marks);
-  }
-  // Its area and where/how: quiet, after the date. Hidden on a decision.
-  if (!decision) meta.push(...contextTags(c).filter((t) => t.dataset.kind !== opts.hideContext));
-  if (c.source && c.source !== "manual") {
-    const src = describeSource(c.source);
-    const sparkle = h("span", { class: "loop__source", title: `Added by ${src.name}`, "aria-label": `Added by ${src.name}` }, icons.sparkle());
-    // The sparkle travels with whatever is before it, so a narrow row never wraps it onto a line of its own.
-    const last = meta.pop();
-    meta.push(last ? h("span", { class: "loop__tail" }, last, sparkle) : sparkle);
+    const steps = stepMark(c);
+    if (steps) meta.push(steps);
   }
 
-  // A priority leads the title, so the urgent ones stand out in the list.
-  const prio = !decision && !done && c.priority ? h("span", { class: "loop__prio", "data-priority": String(c.priority), title: `${PRIORITY_LABEL[c.priority]} priority`, role: "img", "aria-label": `${PRIORITY_LABEL[c.priority]} priority` }, priorityMark(c.priority)) : null;
   const body = h(
     "button",
     { class: "loop__body", type: "button" },
-    h("span", { class: "loop__title" }, prio, c.title),
+    h("span", { class: "loop__title" }, c.title),
     meta.length ? h("span", { class: "loop__meta" }, ...meta) : null
   );
   body.addEventListener("click", () => opts.onOpen(c));

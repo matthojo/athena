@@ -32,6 +32,7 @@ import { exactMoney } from "../../../lib/recurring";
 import { pence, unitPrice } from "../../../lib/tariff";
 import type { Asset } from "../types";
 import type { ViewId } from "../components/nav";
+import { clockOfDay, clockTime } from "../lib/clock";
 
 const noon = (d: string) => new Date(`${d}T12:00:00Z`);
 const dayShort = (d: string) => noon(d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
@@ -39,7 +40,7 @@ const dayLong = (d: string) => noon(d).toLocaleDateString("en-GB", { weekday: "l
 const shortDate = (d: string) => noon(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 const monthShort = (m: string) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
 const monthLong = (m: string, year = false) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString("en-GB", { month: "long", ...(year ? { year: "numeric" } : {}), timeZone: "UTC" });
-const hhmm = (slot: number) => `${String(Math.floor(slot / 2)).padStart(2, "0")}:${slot % 2 ? "30" : "00"}`;
+const hhmm = (slot: number) => clockOfDay(`${String(Math.floor(slot / 2)).padStart(2, "0")}:${slot % 2 ? "30" : "00"}`);
 const kwh = (v: number, places = 1) => `${v.toFixed(places)} kWh`;
 
 const SERIES = { electricity: { name: "Electricity", cls: "is-electric" }, gas: { name: "Gas", cls: "is-gas" } };
@@ -371,7 +372,7 @@ function billsSection(data: House, go: (v: ViewId) => void): HTMLElement {
 function whenEnded(iso: string, today: string): string {
   const d = new Date(iso);
   const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const time = clockTime(d);
   const gap = daysBetween(day, today);
   return gap === 0 ? `today at ${time}` : gap === 1 ? `yesterday at ${time}` : d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }

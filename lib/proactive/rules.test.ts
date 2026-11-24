@@ -92,13 +92,13 @@ test("meeting prep: 15 minutes before, with what was agreed, the mail and open t
     ],
   });
   const [n] = meetingPrep(i);
-  assert.equal(n.title, "2pm with Priya");
+  assert.equal(n.title, "14:00 with Priya");
   assert.equal(n.body, "1 open to-do, 1 you're waiting on, 1 recent email. Tap for the notes from last time.");
   assert.ok(n.why.some((w) => w.includes("Agreed Athena sends the Q3 deck")));
   assert.ok(n.why.some((w) => w.startsWith("Email with Priya")));
   assert.ok(n.why.some((w) => w === "Open to-do: Send Priya the Q3 deck."));
   assert.ok(!n.why.some((w) => w.includes("Unrelated")));
-  assert.equal(n.prompt, "What should I know before my 2pm with Priya?");
+  assert.equal(n.prompt, "What should I know before my 14:00 with Priya?");
   // The push never carries what was said.
   assert.ok(!`${n.title} ${n.body}`.includes("Q3 deck"));
   sharedChecks(n, "2026-11-09T13:46:00Z", "2026-11-09T13:46:00Z", { working: { ...WORK, days: [2, 3, 4, 5] } }); // Monday off: outside working hours
@@ -172,7 +172,7 @@ const travel = { "e-lunch": { minutes: 25, mode: "transit" as const, from: "wher
 test("leave by: ten minutes before leaving time, with the estimate", () => {
   // Leave at 12:30 (25 minutes + 5 spare): at 12:20 it's 10 minutes.
   const [n] = leaveBy(input("2026-11-09T12:20:00Z", { events: [lunch], travel }));
-  assert.equal(n.title, "Leave in 10 minutes for the 1pm");
+  assert.equal(n.title, "Leave in 10 minutes for the 13:00");
   assert.equal(n.body, "Lunch with Priya at Dishoom. About 25 minutes by public transport.");
   assert.ok(n.why.some((w) => w.includes("distance between the two places")));
   sharedChecks(n, "2026-11-09T12:20:00Z", "2026-11-09T12:20:00Z", { quiet: { from: "12:00", to: "14:00" } });
@@ -185,18 +185,18 @@ test("leave by: disruption on the usual lines means leaving ten minutes earlier"
   const slow = { "e-lunch": { ...travel["e-lunch"], disruption: "Elizabeth line: part suspended" } };
   // Leave at 12:20 now (25 + 5 + 10): at 12:10 it's 10 minutes.
   const [n] = leaveBy(input("2026-11-09T12:10:00Z", { events: [lunch], travel: slow }));
-  assert.equal(n.title, "Leave in 10 minutes for the 1pm");
+  assert.equal(n.title, "Leave in 10 minutes for the 13:00");
   assert.equal(n.body, "Lunch with Priya at Dishoom. About 25 minutes by public transport, plus 10 for delays on your usual lines.");
   assert.ok(n.why.some((w) => w.includes("Elizabeth line: part suspended")));
   // On foot, a tube delay doesn't matter.
   const walk = { "e-lunch": { minutes: 15, mode: "walk" as const, from: "here", disruption: "Elizabeth line: part suspended" } };
-  assert.equal(leaveBy(input("2026-11-09T12:30:00Z", { events: [lunch], travel: walk }))[0].title, "Leave in 10 minutes for the 1pm");
+  assert.equal(leaveBy(input("2026-11-09T12:30:00Z", { events: [lunch], travel: walk }))[0].title, "Leave in 10 minutes for the 13:00");
 });
 
 test("leave by: a live planner's time, and \"Why am I seeing this?\" names it", () => {
   const tfl = { "e-lunch": { minutes: 25, mode: "transit" as const, from: "around Islington, where you've been today", source: "tfl" as const, disruption: "Elizabeth line: part suspended" } };
   const [n] = leaveBy(input("2026-11-09T12:20:00Z", { events: [lunch], travel: tfl }));
-  assert.equal(n.title, "Leave in 10 minutes for the 1pm", "the planner allows for delays: no extra 10");
+  assert.equal(n.title, "Leave in 10 minutes for the 13:00", "the planner allows for delays: no extra 10");
   assert.ok(n.why.some((w) => w.startsWith("TfL's Journey Planner gives 25 minutes by public transport")));
   assert.ok(!n.why.some((w) => w.includes("estimate")));
   const g = { "e-lunch": { ...tfl["e-lunch"], source: "google" as const } };
@@ -211,7 +211,7 @@ test("leave by: not without a place or an estimate, not too early, not long afte
   assert.equal(leaveBy(input("2026-11-09T12:00:00Z", { events: [lunch], travel })).length, 0);
   assert.equal(leaveBy(input("2026-11-09T12:40:00Z", { events: [lunch], travel })).length, 0);
   assert.equal(leaveBy(input("2026-11-09T12:20:00Z", { events: [{ ...lunch, backfilled: true }], travel })).length, 0);
-  assert.equal(leaveBy(input("2026-11-09T12:30:00Z", { events: [lunch], travel }))[0].title, "Time to leave for the 1pm");
+  assert.equal(leaveBy(input("2026-11-09T12:30:00Z", { events: [lunch], travel }))[0].title, "Time to leave for the 13:00");
 });
 
 // ---------- day plan by energy ----------

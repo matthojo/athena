@@ -126,7 +126,7 @@ test("reminders: meeting prep, then how it went, from seeded data; deduped, mute
   assert.deepEqual(prep.proactive, { made: [{ rule: "meeting_prep", pushed: true }], held: {} });
   assert.equal(received.length, 1);
   const push = decrypt(received[0].body) as { title: string; body: string; url: string; tag: string };
-  assert.equal(push.title, "2pm with Priya");
+  assert.equal(push.title, "14:00 with Priya");
   assert.equal(push.body, "1 open to-do, 1 recent email. Tap for the notes from last time.");
   const [row] = await qRaw<{ id: string; payload: string }>(`SELECT id, payload FROM nudges WHERE rule = 'meeting_prep'`);
   assert.equal(push.url, `/#/ask/nudge/${row.id}`);
@@ -134,7 +134,7 @@ test("reminders: meeting prep, then how it went, from seeded data; deduped, mute
   assert.ok(isSealed(row.payload));
   assert.ok(!row.payload.includes("Priya"));
   const opened = await openNudge(row.id);
-  assert.equal(opened?.prompt, "What should I know before my 2pm with Priya?");
+  assert.equal(opened?.prompt, "What should I know before my 14:00 with Priya?");
   assert.ok(opened?.why.some((w) => w.includes("Agreed to send the Q3 deck by Friday")));
   assert.ok(opened?.why.some((w) => w === "Open to-do: Send Priya the Q3 deck."));
   assert.ok(opened?.opened_at);

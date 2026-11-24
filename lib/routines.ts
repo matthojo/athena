@@ -334,7 +334,7 @@ export const ROUTINE_TOOLS: Anthropic.Tool[] = [
     name: "save_routine",
     description:
       "Set up something done again on a schedule, for “every Friday at 4pm, tell me what slipped this week” or “do this every Monday morning” (this = the owner's question just before). " +
-      "It becomes a Team assistant with that schedule: each run answers from the owner's data and sends it to their phone; any changes it would make wait as a plan for them to Go. " +
+      "It becomes a Team assistant with that schedule: each run answers from the owner's data and sends it to their phone; any changes it would make wait as a plan for them to approve. " +
       `prompt is the question or request in the owner's words, complete on its own. days are weekday names (or "weekdays", "every day"), time is HH:MM in their zone. Give routine_id (the assistant's id) to change one.`,
     input_schema: {
       type: "object",

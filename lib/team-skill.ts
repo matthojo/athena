@@ -152,7 +152,7 @@ export function templateSkill(a: { name: string; job: string; instructions: stri
     "",
     "1. Start from what arrived, or what the owner asked.",
     `2. Look in Athena for what the job needs before you change anything.${answers.length ? " Keep to the owner's answers above." : ""}`,
-    "3. Make only the changes the job needs. Anything you can't do alone waits for the owner's Go.",
+    "3. Make only the changes the job needs. Anything you can't do alone waits for the owner's approval.",
     "4. Reply in one or two plain sentences: what you did, and what's waiting.",
   );
   const summary = clip(`${a.name} ${lowerFirst(job)}${answers.length ? ", keeping to what you told it at setup" : ""}.`, MAX_SUMMARY);

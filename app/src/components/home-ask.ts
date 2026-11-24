@@ -71,13 +71,11 @@ export function homeAsk(): { el: HTMLElement; destroy: () => void } {
   // The Team button keeps the sidebar's pulse (team/page-pulse.ts): a soft dot while someone works, and the count of what waits for you.
   // The whole team's, so it stays the accent; an assistant's own dot takes its colour.
   const teamDot = h("span", { class: "team-dot home-ask__team-dot", "aria-hidden": "true", hidden: true });
-  const teamCount = h("span", { class: "home-ask__team-count", "aria-hidden": "true", hidden: true });
-  const team = h("a", { class: "home-ask__team", href: "#/team", "aria-label": "Team" }, icons.team(), h("span", {}, "Team"), teamDot, teamCount, icons.chevronRight());
+  // What waits is said once, in "Waiting for you" below (components/home-waiting.ts): this pill keeps only the working dot.
+  const team = h("a", { class: "home-ask__team", href: "#/team", "aria-label": "Team" }, icons.team(), h("span", {}, "Team"), teamDot, icons.chevronRight());
   const paintPulse = (p: TeamPulse) => {
     const n = p.working.length;
     teamDot.hidden = !n;
-    teamCount.hidden = !p.waiting;
-    teamCount.textContent = p.waiting ? String(p.waiting) : "";
     team.classList.toggle("is-working", !!n);
     // The sidebar's words, for a long press and for screen readers.
     team.title = n ? `${p.working.join(", ")} ${n === 1 ? "is" : "are"} working` : "";
@@ -97,7 +95,7 @@ export function homeAsk(): { el: HTMLElement; destroy: () => void } {
   watchPulse();
   const box = h("div", { class: "home-ask__box" }, markSlot, field, send);
   // Flows, beside Team: a pill of the same make (owner, 20 Nov 2026).
-  const flows = h("a", { class: "home-ask__team home-ask__flows", href: "#/flows", "aria-label": "Flows" }, icons.loop(), h("span", {}, "Flows"), icons.chevronRight());
+  const flows = h("a", { class: "home-ask__team home-ask__flows", href: "#/flows", "aria-label": "Flows" }, icons.flow(), h("span", {}, "Flows"), icons.chevronRight());
   const el = h("form", { class: "home-ask", role: "search", "aria-label": "Ask" }, h("div", { class: "home-ask__head" }, flows, team), box, chipsWrap, about);
 
   /** The line under the chips: what the chosen one is doing, else what they're for. Athena's says nothing; the box does. */

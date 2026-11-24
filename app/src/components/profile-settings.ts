@@ -40,7 +40,7 @@ export function aboutYouSection(): { el: HTMLElement; destroy: () => void } {
     "section",
     { class: "settings__section", "aria-labelledby": "settings-about" },
     h("h2", { class: "settings__heading", id: "settings-about" }, icons.person(), "About you"),
-    h("p", { class: "settings__lede" }, "What Athena knows about you, so it can fit its help to you. Only you change it here. Anything Athena works out about you goes to your Review inbox first."),
+    h("p", { class: "settings__lede" }, "What Athena knows about you, so it can fit its help to you. Only you change it here. Anything Athena works out about you goes to your Inbox first."),
     h("div", { class: "settings__actions" }, again),
     list
   );

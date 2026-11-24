@@ -11,6 +11,7 @@ import { dayLabel } from "./format";
 import { deviceZone, localToday } from "./time";
 import { BOOKING_ICON, PURCHASE_ICON } from "./trips-meta";
 import { bookingName, bookingStart, deliveriesComingUp, travelComingUp } from "../../../lib/trip-text";
+import { clockOfDay } from "./clock";
 
 export { onLogisticsChange };
 
@@ -36,7 +37,7 @@ export async function loadComingUpLogistics(): Promise<ComingUpLogistics> {
       // A journey: its next booking, in the local time of where it happens.
       ...travel.map((t) => {
         const s = bookingStart(t.booking);
-        const clock = s.time ? `${s.time}${s.tz && s.tz !== deviceZone() && s.city ? ` ${s.city} time` : ""}` : "";
+        const clock = s.time ? `${clockOfDay(s.time)}${s.tz && s.tz !== deviceZone() && s.city ? ` ${s.city} time` : ""}` : "";
         const sub = [dayLabel(t.days_until, t.date), clock, s.place].filter(Boolean).join(" · ");
         return item(tile(icons[BOOKING_ICON[t.booking.kind]]()), bookingName(t.booking), sub, () => open.trip(t.trip.id));
       }),

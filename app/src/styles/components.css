@@ -1609,20 +1609,101 @@ dialog.sheet.is-closing::backdrop {
   color: var(--ink);
 }
 
-/* Phone: what's coming up and what's to do lead at full width; the metrics pair underneath. */
-.bento {
+/*
+ * Home, now: what waits, today, what to prepare, the briefing and the
+ * to-dos, in that order on a phone. On a wide screen "For you" (Athena's
+ * nudges and the team's line) sits beside them; the last row takes up the
+ * slack so a tall For you never opens gaps between the cards on the left.
+ */
+.home-now {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-areas:
-    "catch catch"
-    "todo todo"
-    "latest latest"
-    "meet done";
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-sm);
 }
 
-.bento > [data-area="todo"] {
-  grid-area: todo;
+.home-now > :empty,
+.home-now > :has(> [hidden]:only-child) {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .home-now {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-rows: repeat(5, min-content) 1fr;
+    gap: var(--space-md);
+    align-items: start;
+  }
+
+  .home-now > * {
+    grid-column: 1;
+  }
+
+  .home-now > .home-nudges-slot {
+    grid-column: 2;
+    grid-row: 1 / -1;
+  }
+
+  /* Nothing for you: the day takes a reading width rather than leaving a hole beside it. */
+  .home-now:not(:has(.nudge-cards:not([hidden]))) {
+    grid-template-columns: minmax(0, 760px);
+  }
+}
+
+/* The foot of Home: what isn't about now, a tap away. */
+.home-more__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-more__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.home-more__icon {
+  display: inline-flex;
+  color: var(--ink-3);
+}
+
+.home-more__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (hover: hover) {
+  .home-more__link:hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+}
+
+.home-more__link:active {
+  background: var(--sunken);
+}
+
+/* This week, opened from the foot of Home as a sheet. */
+.catchup--sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-md);
 }
 
 .todo-card {
@@ -1645,19 +1726,8 @@ dialog.sheet.is-closing::backdrop {
 .todo-card__foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
+  justify-content: flex-end;
   margin-top: 2px;
-}
-
-.todo-card__tally {
-  font-size: var(--text-meta);
-  color: var(--ink-3);
-}
-
-.todo-card__tally[data-tone="late"] {
-  color: var(--warn);
-  font-weight: var(--weight-medium);
 }
 
 .home-today__wait {
@@ -1673,8 +1743,8 @@ dialog.sheet.is-closing::backdrop {
 }
 
 .home--settling .home-banners,
-.home--settling .bento,
-.home--settling .home-lower {
+.home--settling .todo-card,
+.home--settling .home-more {
   visibility: hidden;
 }
 
@@ -1705,56 +1775,6 @@ dialog.sheet.is-closing::backdrop {
   color: var(--warn);
 }
 
-.bento > [data-area="latest"] {
-  grid-area: latest;
-}
-.bento > [data-area="meet"] {
-  grid-area: meet;
-}
-.bento > [data-area="done"] {
-  grid-area: done;
-}
-.bento > [data-area="catch"] {
-  grid-area: catch;
-}
-
-.latest {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
-}
-
-.latest__eyebrow {
-  font-size: var(--text-meta);
-  color: var(--ink-3);
-}
-
-.latest__title {
-  margin-top: 2px;
-  font-family: var(--font-display);
-  font-size: var(--text-title);
-  font-weight: var(--weight-medium);
-  letter-spacing: -0.012em;
-  line-height: var(--leading-snug);
-}
-
-.latest__snippet {
-  margin-top: 4px;
-  font-size: var(--text-small);
-  color: var(--ink-2);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.latest__foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
 
 .metric {
   display: flex;
@@ -1866,11 +1886,6 @@ dialog.sheet.is-closing::backdrop {
   color: var(--ink-3);
 }
 
-.home-lower {
-  display: grid;
-  gap: var(--space-lg);
-}
-
 .source-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1948,28 +1963,6 @@ dialog.sheet.is-closing::backdrop {
   .headline {
     font-size: var(--text-hero);
     max-width: 24ch;
-  }
-
-  .bento {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-areas:
-      "todo todo catch"
-      "latest latest catch"
-      "meet done catch";
-    gap: var(--space-md);
-  }
-
-  .latest {
-    padding: var(--space-lg);
-  }
-
-  .latest__snippet {
-    -webkit-line-clamp: 3;
-  }
-
-  .home-lower {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    align-items: start;
   }
 
   .source-grid {
@@ -2939,6 +2932,50 @@ dialog.sheet.is-closing::backdrop {
   font-size: var(--text-meta);
   color: var(--ink-3);
   text-align: center;
+}
+
+/* Where the token comes from, under its field. */
+.connect__help {
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.connect__help code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.95em;
+  overflow-wrap: anywhere;
+}
+
+/* The link is a 44px target without moving the line it sits in. */
+.connect__help .text-link {
+  position: relative;
+  white-space: nowrap;
+  /* link-text.css isn't loaded before sign-in, so the link's look is set here too. */
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--accent) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.connect__help .text-link::after {
+  content: "";
+  position: absolute;
+  inset: -13px -6px;
+}
+
+/* The other way in: the same size of button as Connect, set apart by a hairline. */
+.connect__sample {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--line);
+}
+
+.connect__or {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
 }
 
 /* ---------- Note editor (sheet + desktop pane) ---------- */
@@ -5095,16 +5132,6 @@ dialog.confirm::backdrop {
 .loop__due[data-tone="soon"] {
   color: var(--ink-2);
   font-weight: var(--weight-medium);
-}
-
-.loop__source {
-  display: inline-flex;
-  color: var(--ink-3);
-}
-
-.loop__source svg {
-  width: 13px;
-  height: 13px;
 }
 
 @media (hover: hover) {
@@ -7541,11 +7568,6 @@ dialog.confirm::backdrop {
   from {
     transform: scale(0.96);
   }
-}
-
-/* Your own latest note has no source badge, so its foot can be empty (views/home.ts). */
-.latest__foot:empty {
-  display: none;
 }
 
 /* A mention chip in a note's body (the briefing's "Marcus Webb: last spoke …"): no trailing margin, so a colon or comma sits against the pill. */

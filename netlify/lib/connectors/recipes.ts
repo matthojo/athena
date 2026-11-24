@@ -31,7 +31,7 @@ Rules:
 9. Finish with a short plain-text summary for the run log: what you reviewed, what you saved, what you skipped, and the metric you wrote. Counts and titles only, no private content, nothing about health and nothing about where the owner went.
 10. The owner is the person whose accounts these are. Work out who that is first (an account's own profile or account info, or the calendar's owner) and never create, link, tag or log the owner as one of their own contacts.
 11. People are links, not tags. Tags are for topics and projects; a tag that is a linked person's name is dropped anyway.
-12. Beyond notes, Athena keeps what's in motion: athena_catch_up (who the owner met), athena_todo (what the owner promised, what they're waiting on, decisions) and athena_remember (durable details about people). Use them only for what the source clearly says. Give an honest confidence: below 0.8 it goes to the owner's Review inbox for a yes or no, which is better than a wrong to-do. When a note save comes back with already_recorded, don't record those again, even reworded.
+12. Beyond notes, Athena keeps what's in motion: athena_catch_up (who the owner met), athena_todo (what the owner promised, what they're waiting on, decisions) and athena_remember (durable details about people). Use them only for what the source clearly says. Give an honest confidence: below 0.8 it goes to the owner's Inbox for a yes or no, which is better than a wrong to-do. When a note save comes back with already_recorded, don't record those again, even reworded.
 13. Follow the writing style below. A save that breaks it comes back once asking for a rewrite.
 
 ${NOTE_STYLE}`;

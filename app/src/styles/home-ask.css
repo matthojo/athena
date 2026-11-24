@@ -107,33 +107,13 @@
   }
 }
 
-/* The team's pulse, as the sidebar keeps it: a soft dot while someone works, then what waits for you. */
+/* The team's pulse: a soft dot while someone works. */
 .home-ask__team-dot {
   margin-left: -1px;
 }
 
-.home-ask__team-count {
-  min-width: 18px;
-  padding: 1px 6px;
-  border-radius: var(--radius-xs);
-  background: var(--sunken);
-  color: var(--ink-2);
-  font-size: var(--text-meta);
-  line-height: 1.35;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  animation: fade-in var(--dur-base) var(--ease-out-expo);
-}
-
-.home-ask__team-dot[hidden],
-.home-ask__team-count[hidden] {
+.home-ask__team-dot[hidden] {
   display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home-ask__team-count {
-    animation: none;
-  }
 }
 
 @media (min-width: 1024px) {
@@ -561,23 +541,6 @@
   vertical-align: 1px;
 }
 
-/* A wide screen: the team's word beside Athena's, each at a reading width. */
-@media (min-width: 900px) {
-  .nudge-cards:has(.team-report:not([hidden])):has(.nudge-cards__list:not([hidden])) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-  }
-
-  .nudge-cards:has(.team-report:not([hidden])):has(.nudge-cards__list:not([hidden])) > .section-head {
-    grid-column: 1 / -1;
-  }
-
-  .nudge-cards:has(.team-report:not([hidden])) .nudge-cards__list {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .team-report__face.is-working::after {
     animation: none;
@@ -651,4 +614,66 @@
   .team-report__row.is-new {
     animation: none;
   }
+}
+
+/* ---------- The team in one line (Home, after the day): a sentence that opens to the reports ---------- */
+
+.team-report__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-xs) var(--space-md);
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.team-report__summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+.team-report__faces {
+  display: flex;
+  flex: none;
+}
+
+.team-report__faces > * + * {
+  margin-left: -8px;
+}
+
+.team-report__line-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-ui);
+  line-height: var(--leading-snug);
+}
+
+.team-report__summary .row__chevron {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.team-report__summary[aria-expanded="true"] .row__chevron {
+  transform: rotate(180deg);
+}
+
+.team-report__body {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+
+.team-report__body[hidden] {
+  display: none;
+}
+
+.team-report__body > :first-child {
+  border-top: 0;
 }

@@ -14,7 +14,8 @@ import { syncMoodStyle } from "./components/day-mood";
 import { h, mount } from "./lib/dom";
 import { askKeyAction, isJumpKey } from "./lib/ask-keys";
 import { openAsk } from "./lib/open-ask";
-import { dock, sidebar, type ViewId } from "./components/nav";
+import { dock, sidebar, viewLabel, type ViewId } from "./components/nav";
+import { setPageSection } from "./lib/page-title";
 import { isKindView, kindIdOf, kindView, parseCheckin, parseRoute, RECORD_VIEWS, routeHash, VIEW_FOR_KIND, type Route } from "./lib/routes";
 import { noteSourcesAsk } from "./lib/sources-ask";
 import { findCustomRecord, onKindsChange, primeKinds } from "./db/custom-kinds";
@@ -278,6 +279,8 @@ function mountShell() {
     main.dataset.view = route.view;
     nav.setActive(route.view);
     side.setActive(route.view);
+    // The tab's title follows the page (lib/page-title.ts); an open note or record adds its own name.
+    setPageSection(route.view, viewLabel(route.view));
 
     if (route.view === "library") {
       current = lazyView(chunks.library, ({ renderLibrary }) => renderLibrary({ go: (view, opts) => go(view, { noteId: opts?.noteId ?? null }) }));
@@ -521,11 +524,12 @@ function mountShell() {
     else openCustomRecordSheet(rec.kind_id, rec, { openLink });
   }
 
-  /** ⌘K: search notes for what was typed, ask about it, or go to a place. */
+  /** ⌘K: open something by name, search notes for what was typed, ask about it, or go to a place. */
   function jump() {
     withChunk(chunks.jump, (m) =>
       m.openJump({
         go: (view, opts) => go(view, { noteId: opts?.noteId ?? null }),
+        open: (kind, id) => void openLink(kind as EntityKind, id),
         searchNotes(q) {
           go("notes", { focusSearch: true });
           // The Notes search box takes the words as if typed there.
@@ -613,8 +617,8 @@ function mountShell() {
   const refreshCounts = async () => {
     const [{ items }, { items: pending }] = await Promise.all([loadCommitments(), loadSuggestions()]);
     const g = groupLoops(openLoops(items));
-    side.setCount("loops", g.overdue.length + g.today.length);
-    side.setCount("review", pending.length);
+    side.setCount("loops", g.overdue.length + g.today.length, "due today or overdue");
+    side.setCount("review", pending.length, "in your inbox");
   };
   void refreshCounts();
   let countsTimer: ReturnType<typeof setTimeout> | undefined;

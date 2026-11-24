@@ -200,7 +200,7 @@ Netlify documents a second, explicit pattern meant for exactly this situation:
 ### Encryption at rest
 
 Your content — note titles, bodies and tags, people's details, events,
-reminders, to-dos, catch-ups, facts, the review inbox, life admin, reading
+reminders, to-dos, catch-ups, facts, the Inbox, life admin, reading
 and goals — is stored encrypted (AES-256-GCM under `ATHENA_DATA_KEY`, a
 production-only secret). The data layer does it: writes seal text through
 `sealer()` in `lib/db.ts`, and `q()` opens every sealed value in a result,
@@ -348,8 +348,12 @@ native app, scaffolded under `app/`) provides:
   background sync is a bonus if the current iOS Safari turns out to support
   it, not something relied upon.
 - The app has three views and one always-available action, in one codebase:
-  **Home** (a sentence summary of the day, the latest note, weekly metric
-  charts, people to catch up with, recent notes, and sources), **Notes**
+  **Home** (what the next few hours need: a sentence summary of the day,
+  the Ask box, one "Waiting for you" card for what the team, the Inbox and
+  To do are owed, today's card, a meeting to prepare for, the briefing and
+  the to-dos, then Athena's nudges and the team's word in one line; the
+  week's dates, your people, notes and goals are a link away at its foot),
+  **Notes**
   (search plus a filter by `source` — e.g. one tap to see only
   `email-digest-personal` — grouped by day; a reading pane beside the list on
   desktop, a bottom sheet on mobile), and **Ask** (a chat-style surface: a
@@ -628,9 +632,11 @@ in `nudge_mutes`, switches in the `settings` row `proactive`.
 A push links to `#/ask/nudge/<id>`. The app loads the nudge and calls
 the app-wide `openAsk({ context, prompt })` (`app/src/lib/open-ask.ts`) through `app/src/lib/ask-nudge.ts`, with the nudge's meeting or person as the context chip: Ask starts a new
 conversation with the nudge's context above it and the suggested first reply
-in the box. Home shows live nudges under "For you"
-(`components/nudge-card.ts`), each with "Why am I seeing this?" (the
-evidence) and "Fewer like this". `/api/nudges` serves the cards, a nudge,
+in the box. Home shows live nudges under "For you", after the day
+(`components/nudge-card.ts`): a row each that opens in place, with "Why am
+I seeing this?" (the evidence) and "Fewer like this". The team's reports
+follow as one line that opens to them, and opens by itself only while a
+report needs approval (`components/team-report.ts`, `quiet`). `/api/nudges` serves the cards, a nudge,
 dismiss, applied parts, mutes and prefs.
 
 ### What's in motion (layer 2)
@@ -702,7 +708,7 @@ delete tool.
   or "@priya" to one person. `mergePeople` folds a duplicate into the keeper
   in one transaction (links, note bodies' athena:// links, interactions,
   commitments, facts, identities, dates) and archives the duplicate.
-- **Suggestions** (`suggestions`), the **Review inbox**: what an agent found at
+- **Suggestions** (`suggestions`), the **Inbox**: what an agent found at
   confidence below 0.8. Accepting applies the payload through the same db
   function the matching MCP tool uses; rejecting keeps the row so it's never
   re-filed.
@@ -1035,8 +1041,10 @@ delete tool.
   pins (`pinned_at`) inside the reply's own message in `ask_threads`, so no
   schema change. `openAsk({ context, prompt })` is the one way in from
   elsewhere: the context shows as a chip and goes as an @ mention. ⌘J opens
-  Ask and Esc goes back; ⌘K stays "Search or jump to…", which now offers
-  "Ask about “…”" for what was typed.
+  Ask and Esc goes back; ⌘K stays "Search or jump to…", which opens a
+  person, to-do, place, organisation, event or note by name
+  (`app/src/lib/jump-things.ts`) and offers "Ask about “…”" for what was
+  typed.
 - **What both back ends share** (`lib/ask-tools.ts`, `lib/ask-context.ts`,
   `lib/ask-threads.ts`). The assistant and the written answer used to see
   different data. Now three things are the same for both:
@@ -1116,7 +1124,7 @@ Everything an agent writes carries provenance (`source`, `source_ref`,
 to-do's sheet and each review card quote the words it came from.
 
 In the app (`app/src/db/memory.ts`, same degrade chain as records): **To
-do** (grouped by due date, quick add, decisions), the **Review inbox**
+do** (grouped by due date, quick add, decisions), the **Inbox**
 (buttons, swipe, or A/R), **This week** (one-sentence summary, done,
 decisions, people seen, still open, catch-ups, next week, goals), **Life
 admin**, **Watch & read** and **Goals**. Home gains a To do card, review and
@@ -1126,7 +1134,7 @@ remember, a timeline merging catch-ups with mentions, also-known-as and
 Merge a duplicate.
 
 The reminders function adds: to-dos due, renewals, quiet waiting-ons (5+
-days) and the review inbox to the morning briefing; who a meeting is with,
+days) and the Inbox to the morning briefing; who a meeting is with,
 when you last spoke and what's open between you to the 30-minute push; and a
 Sunday 18:00 weekly-review push. The collection-agent specs say how to
 extract all of this (see `.claude/agents/`).
@@ -1167,7 +1175,7 @@ which the server and the PWA share.
   `athena_trip_booking` and `athena_purchase` (and, since 15 Nov 2026,
   `athena_email_date` for appointments and deadlines, `athena_renewal` for
   Life admin and `athena_alert` for account alerts, below); below 0.8 confidence they file
-  `booking` / `purchase` suggestions for the Review inbox. Precheck keeps
+  `booking` / `purchase` suggestions for the Inbox. Precheck keeps
   transactional email (orders, bookings, delivery updates) as receipts even
   when Jev calls it noise, and tells Claude which tools they're for. Run
   stats count bookings and orders, new and updated.
@@ -1564,7 +1572,7 @@ switches, renames and archives. Archived ones wait on the Archived page.
 
 ### Plans, routines and What Ask did
 
-- **Plan, then Go** (`lib/ask-plans.ts`). While the assistant works, every tool
+- **Plan, then Approve** (`lib/ask-plans.ts`). While the assistant works, every tool
   that could change something goes to a `PlanDraft`, which keeps the call and
   tells the model it's queued, with a stand-in id later steps can use. Looking
   tools, `find_times` and `create_event` (which wait for their own tap) run as
@@ -1573,7 +1581,7 @@ switches, renames and archives. Archived ones wait on the Archived page.
   reply carries a plan card. One change is also kept as a plan when the guard
   holds it (`plan.why`: the turn had read other people's words and the owner's
   message didn't ask for it, or something read was flagged), and the card says
-  why. Each step can be ticked off; Go
+  why. Each step can be ticked off; Approve
   (`POST /api/assistant/plan`) runs the ticked ones in order through
   `runPlanTool` (the same tool code, plus the move a reply would leave to the
   confirm sheet), swaps stand-ins for what earlier steps made, skips a step
@@ -1596,7 +1604,7 @@ switches, renames and archives. Archived ones wait on the Archived page.
   `routine`) goes through the shared gate; in quiet hours it waits in
   `pending`. The card and push open the conversation.
 - **What Ask did** (`lib/ask-activity.ts`, `ask_activity`). `runAsk`,
-  Go and a nudge card's parts log every change with its receipt, Undo op,
+  Approve and a nudge card's parts log every change with its receipt, Undo op,
   source (ask, plan, routine, nudge) and conversation. Settings → Ask → What
   Ask did lists them newest first with Open and Undo, and shows done, undone
   or couldn't undo. A reply's Undo sends the change's `activity_id`, so the
@@ -1646,7 +1654,7 @@ contracts between slices, is `docs/team.md`.
   `lib/team-draft.ts`). A turn as an assistant is Ask's own back end with a
   persona block (name, job, instructions, tone as voice only, its memory, its
   allowlist), no main-Ask past chats, and its allowlist letting those changes
-  run while the rest wait for Go. Memory (a summary and 30 facts) is
+  run while the rest wait for approval. Memory (a summary and 30 facts) is
   rewritten by one small model call when a chat goes quiet (debounced per
   thread) and after each run. Main Ask can `check_with_assistant`: a
   read-only, time-capped turn whose answer becomes a source of kind
@@ -1676,7 +1684,7 @@ contracts between slices, is `docs/team.md`.
     `POST /api/team/:id/keep` clears `assignment_id` (409 at 12).
   - **Lineup** (`lib/assignment-lineup.ts`, `lib/team-roles.ts`). One
     structured call checked with zod, with a plain fallback; nine roles in
-    code. Nothing runs before Go.
+    code. Nothing runs before Approve.
   - **The runner** (`lib/assignment-run.ts`). Each stage is a `team_runs` row
     with `stage_id`, run by the team-run background function through
     `runAssistantTurn` mode `run`. The stage's message quotes the brief, the
@@ -1684,8 +1692,8 @@ contracts between slices, is `docs/team.md`.
     `work`) and the stage's `ask_owner` are offered only inside a stage's
     turn (`lib/assignment-tools.ts`) and are never plan steps. The runner,
     never an assistant, moves the work on: next stage, a question, an
-    approval, a plan waiting for Go, done, or failed. `sweepAssignments`
-    runs after a plan's Go and on each reminders pass.
+    approval at a checkpoint, a plan waiting for approval, done, or failed. `sweepAssignments`
+    runs after a plan is approved and on each reminders pass.
   - **Ports.** The runner imports nothing of Team chat or documents:
     `netlify/lib/assignment-wiring.ts` calls `configureAssignments` with
     `postToTeam`, `settlePosts`, `documentsForNote` and `makeDocument`, and
@@ -1709,7 +1717,7 @@ contracts between slices, is `docs/team.md`.
     stage, `files.stage_id`. A finished assignment's two files are made by
     the runner.
   - **Ask.** `start_assignment` keeps a draft and puts the lineup on the
-    reply (`AskActed.lineup`), drawn as a card with Go;
+    reply (`AskActed.lineup`), drawn as a card with Approve;
     `continue_assignment` approves a checkpoint or takes suggestions.
   - **App.** `app/src/db/assignments.ts`, `db/team-chat.ts`,
     `team/chat.ts`, `team/chat-posts.ts`, `team/lineup-card.ts`,
@@ -1766,9 +1774,9 @@ suggestions and the app is `lib/flow-types.ts`.
   (`chain`), and a `version` for compare-and-set plain. Checking a flow
   against `FLOW_LIMITS` (choices from `minChoices` to `choices`) and its chips
   (each must point at the trigger or a step before it) is `checkSteps`; a
-  change with no Go setting gets `defaultGo` (`fillGo`): only `add_reminder`,
+  change with no approval setting gets `defaultGo` (`fillGo`): only `add_reminder`,
   `add_todo` and `add_to_list` run alone, and a draft is refused unless it
-  waits for Go. Every run read carries `values`: the trigger's and each step's,
+  waits for approval. Every run read carries `values`: the trigger's and each step's,
   as words (`shownValues`, from the sealed state). `createFlowSource()` and `createFlowStarter()` are the
   ports triggers uses; what a trigger gives is triggers' own (`triggerGives` in
   `lib/flow-triggers.ts`, kept pure in `lib/flow-trigger-gives.ts`), which
@@ -1783,21 +1791,21 @@ suggestions and the app is `lib/flow-types.ts`.
 - **Catalogue** (`lib/flow-catalog.ts`, `GET /api/flows/catalog`). Ask's own
   tools, as an allowlist of looks, changes inside Athena (filing a saved
   item, `file_saved_item`, among them) and drafts
-  (`draft_email`, `draft_message`, group `tell`, always waiting for Go), plus
-  Check, Ask me, Wait, Tell me, Think and Start an assignment. Go on a draft
+  (`draft_email`, `draft_message`, group `tell`, always waiting for approval), plus
+  Check, Ask me, Wait, Tell me, Think and Start an assignment. Approve on a draft
   writes it with `runAssistantTool` and Ask's mail and Slack ports, and keeps
   it as a `draft` change to read and save (`draftChanges`); nothing is sent.
 - **Runner** (`lib/flow-steps.ts` pure, `lib/flow-run.ts`, real effects in
   `lib/flow-effects.ts`). A run is queued, then claimed once by the
   background function `netlify/functions/flow-run.ts` (`/api/flow-run`). It
   walks until it ends or waits: tools through `runAssistantTool`, a change
-  set to ask becomes an Ask plan and the run waits for Go; Ask me waits for
-  an answer; Wait for a time; Start an assignment for its lineup's Go and then
+  set to ask becomes an Ask plan and the run waits for approval; Ask me waits for
+  an answer; Wait for a time; Start an assignment for its lineup's approval and then
   its end; Think is `runAssistantTurn` as the flow's assistant. Each step
   leaves one line from what happened (lib/steps.ts's words), no model. A
   plain flow's changes are What Ask did's source `flow` ("Flow: <name>",
   opening `/#/flows/runs/<id>`); an assistant's stay `team`.
-  The owner's Go, Skip and answers settle the wait and queue the run again.
+  The owner's Approve, Skip and answers settle the wait and queue the run again.
   A dry run uses the last `team_events` row that matched and changes nothing.
 - **The reminders job** (`sweepFlowRuns`, `deliverFlowNotices`) carries Waits
   on, moves runs on when an assignment ends or a plan ran from Ask, stops runs
@@ -1814,7 +1822,7 @@ suggestions and the app is `lib/flow-types.ts`.
 - **An assistant's run is one record** (`FlowEffects.teamRun`, migration
   0083). A run of an assistant's flow starts a `team_runs` row linked by
   `flow_run_id` (one per flow run), so Team, Home, Recent runs, the quiet-run
-  rule, memory and the waits-for-Go count read it as any run; it finishes
+  rule, memory and the waits-for-approval count read it as any run; it finishes
   when the walk ends or waits, posts in Team chat once, and its "From <Name>"
   card is Team's (`deliverTeamNudges`). The flow then keeps no end or waits
   card of its own when a think step kept a conversation.
@@ -1840,8 +1848,8 @@ suggestions and the app is `lib/flow-types.ts`.
   Job flows count toward an assistant's 8 triggers, not the 40 flows.
 - **Think steps** give values as structured fields of the answer
   (`AnswerOptions.values` → `AskReply.values`); `web: false` runs the turn with
-  the assistant's web switch off (`TurnOptions.web`). Go from Ask's plan card
-  on a plan a run waits on is the run's own Go (`goWaitingFlowPlan`).
+  the assistant's web switch off (`TurnOptions.web`). Approve from Ask's plan card
+  on a plan a run waits on is the run's own approval (`goWaitingFlowPlan`).
 - **Routes** (`netlify/lib/flow-routes.ts`): every `/api/flows` route in the
   contract except draft and suggestions, which are drafting's and
   suggestions' own.

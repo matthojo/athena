@@ -28,7 +28,7 @@ export const DRAFT_FIELDS: CatalogEntry["fields"] = [
   { key: "body", label: "Message", kind: "text", required: true },
 ];
 
-/** A new tool step's Go: "Just add it" only for the three that may run alone, else "Wait for my Go". A look has nothing to wait for. */
+/** A new tool step's Go: "Just add it" only for the three that may run alone, else "Wait for my approval". A look has nothing to wait for. */
 export function defaultGo(e: Pick<CatalogEntry, "tool" | "changes">): GoMode {
   const tool = e.tool ?? "";
   if (isDraftTool(tool)) return "ask";

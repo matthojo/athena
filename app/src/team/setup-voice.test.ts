@@ -29,9 +29,9 @@ test("next run reads as a day and a time", () => {
   const wed = new Date(2026, 10, 18, 10, 0); // Wednesday 18 Nov 2026, 10:00
   assert.equal(nextRun([friday], wed, false), "Friday at 17:00");
   assert.equal(nextRun([{ kind: "schedule", days: [3], time: "17:00" }], wed, false), "today at 17:00");
-  assert.equal(nextRun([{ kind: "schedule", days: [4], time: "09:00" }], wed, false), "tomorrow at 9:00");
-  assert.equal(nextRun([{ kind: "schedule", days: [3], time: "09:00" }], wed, false), "Wednesday at 9:00", "a week on when today's slot has passed");
-  assert.equal(nextRun([{ kind: "schedule", days: [1, 2, 3, 4, 5], time: "08:00" }, friday], wed, false), "tomorrow at 8:00", "the soonest of several");
+  assert.equal(nextRun([{ kind: "schedule", days: [4], time: "09:00" }], wed, false), "tomorrow at 09:00");
+  assert.equal(nextRun([{ kind: "schedule", days: [3], time: "09:00" }], wed, false), "Wednesday at 09:00", "a week on when today's slot has passed");
+  assert.equal(nextRun([{ kind: "schedule", days: [1, 2, 3, 4, 5], time: "08:00" }, friday], wed, false), "tomorrow at 08:00", "the soonest of several");
   assert.equal(nextRun([gift], wed), null);
   assert.equal(startsLine([gift], wed), "Starts when you save a gift idea");
   assert.equal(startsLine([friday], wed, false), "First run Friday at 17:00");

@@ -37,6 +37,7 @@ import { isDone } from "../../../lib/habit-rules";
 import { eveningLine, keptLead, type SeenToday } from "../../../lib/nudges";
 
 import { phaseAt } from "./day-words";
+import { clockTime } from "../lib/clock";
 
 export const blankDay = (date: string): Day => ({ date, photos: [], places: [], entries: [], notes: [], events: [], counts: { entries: 0, by_kind: {}, minutes: {}, photos: 0, notes: 0, events: 0, heat: 0 } });
 
@@ -122,7 +123,7 @@ function latestArt(day: Day): DayEntry[] {
 }
 
 /** "10:00" for an event today, in this zone. */
-const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const timeOf = (iso: string) => clockTime(iso);
 
 export interface TodayOptions {
   /** Open a day; with write, its journal is focused. */

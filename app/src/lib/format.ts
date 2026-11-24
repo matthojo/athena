@@ -1,3 +1,4 @@
+import { clockTime } from "./clock";
 const LOCALE = "en-GB";
 const RTF = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" });
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -48,9 +49,7 @@ export function dayBucket(iso: string, now = new Date()): DayBucket {
 }
 
 export function longDateTime(iso: string): string {
-  return new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(
-    Date.parse(iso)
-  );
+  return `${new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "short", year: "numeric" }).format(Date.parse(iso))}, ${clockTime(iso)}`;
 }
 
 export function shortDate(iso: string): string {

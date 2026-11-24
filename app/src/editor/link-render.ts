@@ -24,6 +24,7 @@ import { openMapUrl as mapAppFor } from "../lib/map-app";
 import type { LinkKind } from "../../../lib/links";
 import { MODE_LABEL, bareUrl, hostOf, type LinkMode, type LinkTarget } from "./link-model";
 import type { LinkPreview, LiveCard } from "./link-data";
+import { clockTime } from "../lib/clock";
 
 export type LinkState = "loading" | "loaded" | "failed" | "offline";
 export type ThingKind = LinkKind | "web";
@@ -138,7 +139,7 @@ const dueLine = (iso: string | null) => (iso ? `Due ${shortDate(iso)}` : "No dat
 const whenLine = (iso: string) =>
   iso.length === 10
     ? new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(Date.parse(`${iso}T00:00`))
-    : new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(Date.parse(iso));
+    : `${new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(Date.parse(iso))}, ${clockTime(iso)}`;
 
 /** The one-line detail a peek or the @ menu shows for a live card. */
 export function liveDetail(live: LiveCard | null | undefined): string {

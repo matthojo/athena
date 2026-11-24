@@ -64,7 +64,7 @@ test("a post is kept sealed and read back as the channel draws it; a plan post p
   const moss = await createAssistant({ name: "Moss", job: "Finds good prices" });
   const run = await finishedRun(moss.id, { plan: true });
 
-  const plan = await postToTeam({ kind: "plan", text: "I'd email Sam the quote. One change waits for you to tap Go.", assistant_id: moss.id, run_id: run.id, waits_for: "go" });
+  const plan = await postToTeam({ kind: "plan", text: "I'd email Sam the quote. One change waits for you to tap Approve.", assistant_id: moss.id, run_id: run.id, waits_for: "go" });
   assert.equal(plan.kind, "plan");
   assert.equal(plan.from, "assistant");
   assert.deepEqual(plan.who, { id: moss.id, name: "Moss", avatar: moss.avatar, job: "Finds good prices", role: null, guest: false });

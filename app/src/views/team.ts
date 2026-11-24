@@ -112,7 +112,7 @@ function openRun(go: Go, r: TeamRun) {
 const BADGE: Partial<Record<Desk["state"], string>> = {
   working: "Working",
   queued: "Up next",
-  waiting: "Needs your Go",
+  waiting: "Needs your approval",
   failed: "Didn't finish",
   paused: "Paused",
 };
@@ -234,7 +234,7 @@ function waitingRow(a: TeamAssistant, d: Desk, go: Go): HTMLElement {
     h(
       "span",
       { class: "wait__text" },
-      h("span", { class: "wait__title" }, failed ? `${a.name} didn't finish` : `${a.name} needs your Go`),
+      h("span", { class: "wait__title" }, failed ? `${a.name} didn't finish` : `${a.name} needs your approval`),
       h("span", { class: "wait__sub" }, failed ? (r.error?.trim() ? `${r.error.trim().replace(/\.$/, "")}. ${when}.` : `${cap(pronouns(a.personality).their)} last run stopped partway. ${when}.`) : splitReport(resultWords(r)).said),
       failed ? null : h("span", { class: "wait__count" }, h("span", { class: "wait__pip", "aria-hidden": "true" }), waitsWords(d.waits))
     ),

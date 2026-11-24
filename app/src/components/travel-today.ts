@@ -27,6 +27,7 @@ import { loadDayLegs, loadTravelLive, type DayLeg } from "../db/travel-day";
 import { legView, liveLegs, liveWindow, nextRefresh, REFRESH_MS, stripPhase, stripWindow, travelledLine, tubeLine, type LegLive, type StripPhase } from "../../../lib/travel-day";
 import type { LineStatus } from "../../../lib/live-travel-text";
 import { zonedParts } from "../../../lib/dates";
+import { clockInText, clockOfDay, clockTime } from "../lib/clock";
 
 export interface TravelTodayOptions {
   date: string;
@@ -81,22 +82,22 @@ export function travelToday(opts: TravelTodayOptions): { el: HTMLElement; destro
     const clock = h(
       "span",
       { class: "tleg__time" },
-      h("span", { class: "tleg__clock" }, v.time ?? "Today"),
-      v.expected ? h("span", { class: "tleg__expected", title: `Expected ${v.expected}` }, h("span", { class: "visually-hidden" }, "Expected "), v.expected) : null
+      h("span", { class: "tleg__clock" }, v.time ? clockOfDay(v.time) : "Today"),
+      v.expected ? h("span", { class: "tleg__expected", title: `Expected ${clockOfDay(v.expected)}` }, h("span", { class: "visually-hidden" }, "Expected "), clockOfDay(v.expected)) : null
     );
     const status = v.chip
       ? h(
           "span",
           { class: "tleg__status" },
-          h("span", { class: "tchip", "data-tone": v.chip.tone, title: v.chip.title }, h("span", { class: "tchip__dot", "aria-hidden": "true" }), v.chip.label),
-          v.where ? h("span", { class: "tleg__where" }, v.where) : null
+          h("span", { class: "tchip", "data-tone": v.chip.tone, title: clockInText(v.chip.title) }, h("span", { class: "tchip__dot", "aria-hidden": "true" }), v.chip.label),
+          v.where ? h("span", { class: "tleg__where" }, clockInText(v.where)) : null
         )
       : v.note
-        ? h("span", { class: "tleg__status" }, h("span", { class: `tleg__note${v.note === "Live times unavailable" ? " tleg__note--none" : ""}` }, v.note))
+        ? h("span", { class: "tleg__status" }, h("span", { class: `tleg__note${v.note === "Live times unavailable" ? " tleg__note--none" : ""}` }, clockInText(v.note)))
         : null;
     const open = h(
       "button",
-      { class: "tleg__open", type: "button", "aria-label": `${v.line}. Open the trip` },
+      { class: "tleg__open", type: "button", "aria-label": `${clockInText(v.line)}. Open the trip` },
       clock,
       h(
         "span",
@@ -141,7 +142,7 @@ export function travelToday(opts: TravelTodayOptions): { el: HTMLElement; destro
       return;
     }
     const tube = today ? tubeLine(lines) : null;
-    const fresh = checkedAt && today ? `Updated ${zonedParts(new Date(checkedAt), tz).time}` : null;
+    const fresh = checkedAt && today ? `Updated ${clockTime(checkedAt, { timeZone: tz })}` : null;
     const next = [
       h(
         "header",

@@ -12,6 +12,7 @@
  */
 
 import "../styles/charts.css";
+import { clockOfDay } from "../lib/clock";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -265,7 +266,7 @@ export interface HeatOptions {
 }
 
 const STEPS = 6;
-const hh = (slot: number) => `${String(Math.floor(slot / 2)).padStart(2, "0")}:${slot % 2 ? "30" : "00"}`;
+const hh = (slot: number) => clockOfDay(`${String(Math.floor(slot / 2)).padStart(2, "0")}:${slot % 2 ? "30" : "00"}`);
 
 /** Day × half hour, darker for more. A step scale, so the legend can say what each shade means. */
 export function heatmap(o: HeatOptions): HTMLElement {
@@ -278,7 +279,7 @@ export function heatmap(o: HeatOptions): HTMLElement {
   const at48 = (c: number) => hh(c * per);
   root.setAttribute("aria-label", `${o.label}. Use the arrow keys to read each ${n === 48 ? "half hour" : "hour"}.`);
   // The table by hour: 48 columns is too many to listen to.
-  const table = hiddenTable(o.label, ["", ...Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, "0")}:00`)], o.rows.map((r, i) => [r, ...Array.from({ length: 24 }, (_, h) => o.format(n === 48 ? o.cells[i][h * 2] + o.cells[i][h * 2 + 1] : o.cells[i][h]))]));
+  const table = hiddenTable(o.label, ["", ...Array.from({ length: 24 }, (_, h) => hh(h * 2))], o.rows.map((r, i) => [r, ...Array.from({ length: 24 }, (_, h) => o.format(n === 48 ? o.cells[i][h * 2] + o.cells[i][h * 2 + 1] : o.cells[i][h]))]));
   const tip = document.createElement("div");
   tip.className = "hc__tip";
   const live = document.createElement("span");

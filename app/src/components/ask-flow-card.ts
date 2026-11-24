@@ -17,6 +17,7 @@ import type { AskFlowCard, FlowStep, FlowTrigger } from "../../../lib/flow-types
 import type { AssistantChange } from "../types";
 import { stepParts, triggerWords, valueLabels, type WordPart } from "../../../lib/flow-draft-words";
 import { sampleFlow } from "../../../lib/flow-draft-sample";
+import { clockOfDay } from "../lib/clock";
 
 export { FLOW_WORDS } from "../../../lib/flow-draft-words";
 
@@ -77,7 +78,7 @@ function tile(icon: IconName, tone: "trigger" | "step" | "think"): HTMLElement {
 function stepList(steps: FlowStep[], labels: Map<string, string>): HTMLElement {
   const list = h("ol", { class: "flowcard__list" });
   for (const s of steps) {
-    const row = h("li", { class: "flowcard__row" }, tile(stepIcon(s), s.kind === "think" ? "think" : "step"), h("span", { class: "flowcard__line" }, words(stepParts(s, labels)), s.kind === "tool" && s.go === "ask" ? h("span", { class: "flowcard__go" }, "Waits for your Go") : null));
+    const row = h("li", { class: "flowcard__row" }, tile(stepIcon(s), s.kind === "think" ? "think" : "step"), h("span", { class: "flowcard__line" }, words(stepParts(s, labels)), s.kind === "tool" && s.go === "ask" ? h("span", { class: "flowcard__go" }, "Waits for your approval") : null));
     list.append(row);
     const branches: Array<[string, FlowStep[]]> = s.kind === "check" ? [["Yes", s.yes], ["No", s.no]] : s.kind === "ask" ? s.choices.map((c) => [c.label, c.steps]) : [];
     for (const [label, inner] of branches) {
@@ -153,8 +154,8 @@ export function sampleFlowReply(sentence: string): { text: string; card: KeptFlo
   thursday.setDate(thursday.getDate() + ((4 - thursday.getDay() + 7) % 7 || 7));
   const day = thursday.toLocaleDateString("en-GB", { weekday: "long" });
   return {
-    text: `${made.text}\n\nI've also added one for the parcel already on its way: ${day} at 08:00.`,
+    text: `${made.text}\n\nI've also added one for the parcel already on its way: ${day} at ${clockOfDay("08:00")}.`,
     card: made.card,
-    changes: [{ kind: "reminder", id: "5a3e0000-0000-4000-8000-000000f10002", action: "created", title: "Parcel from Hartley & Co", detail: `Reminder · ${day}, 08:00`, label: `Parcel from Hartley & Co: Reminder, ${day}, 08:00`, open: null, undo: { op: "sample" } }],
+    changes: [{ kind: "reminder", id: "5a3e0000-0000-4000-8000-000000f10002", action: "created", title: "Parcel from Hartley & Co", detail: `Reminder · ${day}, ${clockOfDay("08:00")}`, label: `Parcel from Hartley & Co: Reminder, ${day}, ${clockOfDay("08:00")}`, open: null, undo: { op: "sample" } }],
   };
 }

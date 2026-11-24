@@ -60,7 +60,7 @@ const OFFER: Record<RecipeId, string> = {
   custom: "Start collecting?",
 };
 
-/** "Every morning at 7:15 AM", "Every 6 hours", "When you run it" (collection-words.ts says it the same way everywhere). */
+/** "Every morning at 07:15" ("7:15 am" on a 12-hour device), "Every 6 hours", "When you run it" (collection-words.ts says it the same way everywhere). */
 function whenText(col: Pick<Collection, "schedule" | "run_at" | "every_hours">): string {
   return col.schedule === "manual" ? "When you run it" : whenPhrase(col);
 }

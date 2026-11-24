@@ -251,7 +251,7 @@ test("Think: skipped in a plain flow; with an assistant it gives values, and its
   const out = await walk(s3, ctxOf(flowOf([think], { assistant_id: "a-1" }), { assistant: moss }), planned.fx);
   assert.deepEqual(out, { status: "waiting", waits_for: "go", plan_id: "plan-7" });
   assert.equal(s3.lines[0].pending?.text, "Add a to-do: switch to Lumen Fibre");
-  assert.equal(summaryOf(s3, out, { dry: false, voice: { name: "Moss", personality: moss.personality } }), "One change is ready for you. Tap Go when you're happy.");
+  assert.equal(summaryOf(s3, out, { dry: false, voice: { name: "Moss", personality: moss.personality } }), "One change is ready for you. Tap Approve when you're happy.");
 });
 
 test("Start an assignment: its lineup waits for Go; when it's done, its work is the step's value", async () => {
@@ -259,7 +259,7 @@ test("Start an assignment: its lineup waits for Go; when it's done, its work is 
   const flow = flowOf([{ id: "asg", title: null, kind: "assignment", brief: ["Compare broadband deals for ", { from: "trigger", key: "title" }] }, { id: "tell", title: null, kind: "notify", text: ["Read ", { from: "asg", key: "note" }] }]);
   const state = emptyState({ trigger: { title: "Northwind" } });
   assert.deepEqual(await walk(state, ctxOf(flow), fx), { status: "waiting", waits_for: "assignment", assignment_id: "asg-1" });
-  assert.equal(state.lines[0].line, "Its lineup waits for your Go in Team chat: Researcher → Writer");
+  assert.equal(state.lines[0].line, "Its lineup waits for your approval in Team chat: Researcher → Writer");
   await settle(state, flow, { kind: "assignment", status: "done", title: "Broadband deals", note_id: "note-9" }, fx, { runId: "run-1", assistant: false });
   assert.deepEqual(await walk(state, ctxOf(flow), fx), { status: "done" });
   assert.equal(state.lines[1].line, "Told you: Read Broadband deals");

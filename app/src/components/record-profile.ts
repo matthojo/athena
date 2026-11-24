@@ -24,6 +24,7 @@ import { placeMenuAcross } from "../lib/menu-place";
 import { openAsk } from "../lib/open-ask";
 import { openLinked } from "../lib/open-linked";
 import { h } from "../lib/dom";
+import { setPageName } from "../lib/page-title";
 import { icons, type IconName } from "./icons";
 import { openSheet } from "./sheet";
 import { showToast } from "./toast";
@@ -49,6 +50,7 @@ import { deviceZone, localToday, whenLocal } from "../lib/time";
 import { formatAthenaLink } from "../../../lib/links";
 import type { AnyRecord, AthenaEvent, Connection, EntityKind, EventKind, LinkedKind, Organisation, Person, Place, RecordKind } from "../types";
 import "../styles/record.css";
+import { clockOfDay } from "../lib/clock";
 
 export const RECORD_ICON: Record<RecordKind, IconName> = {
   person: "person",
@@ -183,6 +185,8 @@ export function recordProfile<K extends RecordKind>(kind: K, initial: AnyRecord 
     maxlength: 200,
   }) as HTMLTextAreaElement;
   nameInput.value = rec ? recordTitle(rec) : "";
+  // The tab is called who or what this is (lib/page-title.ts).
+  let unnameTab = setPageName(rec ? recordTitle(rec) : null);
   const grow = () => {
     nameInput.style.height = "auto";
     nameInput.style.height = `${nameInput.scrollHeight}px`;
@@ -246,6 +250,7 @@ export function recordProfile<K extends RecordKind>(kind: K, initial: AnyRecord 
         const saved = await saveRecord(kind, input, rec?.id);
         const created = !rec;
         rec = saved;
+        if (!dead) unnameTab = setPageName(recordTitle(saved));
         if (created) ctx.onCreated?.(kind, saved);
         paint();
       } catch (error) {
@@ -828,7 +833,7 @@ export function recordProfile<K extends RecordKind>(kind: K, initial: AnyRecord 
         [field("Repeats", h("label", { class: "prop__inline" }, yearly, "Every year"), yearKnownWrap), ev?.recurrence === "yearly"],
         [field("Remind me", ev ? remindFold.el : remindRow), true],
       ],
-      [EVENT_KINDS.find((k) => k.value === kindSel.value)?.label ?? "", when?.date ? longDate(when.date, localToday()) : "", when?.time ?? ""]
+      [EVENT_KINDS.find((k) => k.value === kindSel.value)?.label ?? "", when?.date ? longDate(when.date, localToday()) : "", clockOfDay(when?.time)]
     );
 
     if (!ev) return;
@@ -850,7 +855,7 @@ export function recordProfile<K extends RecordKind>(kind: K, initial: AnyRecord 
 
     const next = nextOccurrence(at.date, ev.recurrence, today);
     if (!next) {
-      facts.replaceChildren(fact("calendar", `Was on ${calendarDate(at.date, true)}`, at.time ? `at ${at.time}` : ""));
+      facts.replaceChildren(fact("calendar", `Was on ${calendarDate(at.date, true)}`, at.time ? `at ${clockOfDay(at.time)}` : ""));
       return;
     }
     const n = daysBetween(today, next);
@@ -861,7 +866,7 @@ export function recordProfile<K extends RecordKind>(kind: K, initial: AnyRecord 
       if (yrs > 0) extra.push(ev.kind === "birthday" ? `turns ${yrs}` : `${yrs} ${yrs === 1 ? "year" : "years"}`);
     }
     const declined = ev.rsvp === "declined";
-    facts.replaceChildren(fact(ev.kind === "birthday" ? "gift" : "calendar", `${day}${at.time ? ` at ${at.time}` : ""}`, extra.join(" · "), n <= 7 && !declined ? "accent" : undefined));
+    facts.replaceChildren(fact(ev.kind === "birthday" ? "gift" : "calendar", `${day}${at.time ? ` at ${clockOfDay(at.time)}` : ""}`, extra.join(" · "), n <= 7 && !declined ? "accent" : undefined));
     // Going, Maybe or Declined (components/rsvp-control.ts). It repaints itself; `rec` just keeps up.
     if (canAnswer(ev)) facts.append(rsvpControl(ev, (saved) => (rec = saved)));
   }
@@ -1043,6 +1048,7 @@ export function recordProfile<K extends RecordKind>(kind: K, initial: AnyRecord 
     recordId: () => rec?.id ?? null,
     destroy() {
       dead = true;
+      unnameTab();
       clearTimeout(linksTimer);
       watchFields.disconnect();
       unsubscribeNotes();

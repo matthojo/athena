@@ -219,7 +219,7 @@ test("books saved and moved to Watch & read straight away: a flow that files the
   assert.deepEqual(tool(found).input, { saved_id: [{ from: "trigger", key: "item" }], action: ["watch_read"] });
   assert.equal(tool(found).go, "ask", "filing a saved item waits for Go");
   assert.deepEqual(suggestionProblems(found), []);
-  assert.match(suggestionProblems({ ...found, flow: { ...found.flow, steps: [{ ...tool(found), go: "auto" }] } }).join(), /file_saved_item must wait for Go/);
+  assert.match(suggestionProblems({ ...found, flow: { ...found.flow, steps: [{ ...tool(found), go: "auto" }] } }).join(), /file_saved_item must wait for approval/);
 });
 
 test("saved: filed days later, or by an action that needs a person, isn't offered", () => {

@@ -25,6 +25,7 @@ import { placeMenuAcross } from "../lib/menu-place";
 import { openAsk } from "../lib/open-ask";
 import { openLinked } from "../lib/open-linked";
 import { h } from "../lib/dom";
+import { setPageName } from "../lib/page-title";
 import { icons, type IconName } from "./icons";
 import { openSheet } from "./sheet";
 import { showToast } from "./toast";
@@ -208,9 +209,12 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
     titleInput.style.height = "auto";
     titleInput.style.height = `${titleInput.scrollHeight}px`;
   };
+  // The tab is called what the note is (lib/page-title.ts); never a placeholder for text that can't be read here.
+  let unnameTab = setPageName(parts && !locked ? parts.title : null);
   titleInput.addEventListener("input", () => {
     growTitle();
     scheduleSave();
+    unnameTab = setPageName(titleInput.value.trim() || titleInput.placeholder.replace(/^Title$/, "") || null);
   });
   titleInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
@@ -675,6 +679,7 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
         dead = true;
       });
       clearTimeout(linksTimer);
+      unnameTab();
       unresolved();
       window.removeEventListener("pagehide", onHide);
       localGraph?.destroy();

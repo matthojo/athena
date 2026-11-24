@@ -197,7 +197,7 @@ export function sampleRuns(assistantId: string): TeamRun[] {
     ];
   if (assistantId === dot)
     return [
-      { n: 4, at: today(76), label: "3 new issues", summary: "Added 2 to-dos: Fix the sync banner on iPad, and Review the export spec. One change waits for you to tap Go.", waiting: 1 },
+      { n: 4, at: today(76), label: "3 new issues", summary: "Added 2 to-dos: Fix the sync banner on iPad, and Review the export spec. One change waits for you to tap Approve.", waiting: 1 },
       { n: 5, at: today(330), label: "New issue: “Calendar invites show the wrong time zone”", summary: "Added a to-do: Calendar invites show the wrong time zone." },
       { n: 6, at: daysBack(1, 16, 5), label: "New issue: “Export fails on large notes”", summary: "Added a to-do: Export fails on large notes." },
       { n: 121, at: daysBack(2, 10, 20), label: "New issue: “Search misses archived notes”", summary: "Added a to-do: Search misses archived notes." },

@@ -292,7 +292,7 @@ test("a routine: what it would change is proposed as a plan, and nothing is made
   assert.equal(kept.plan.source, "routine");
   assert.equal(kept.plan.steps.length, 1);
   assert.equal(kept.changes, undefined);
-  assert.match(ran.nudge.body, /One change is waiting for you to Go/);
+  assert.match(ran.nudge.body, /One change is waiting for your approval/);
 });
 
 test("a plan: two changes wait for Go, and Go makes them", { skip }, async () => {
@@ -305,7 +305,7 @@ test("a plan: two changes wait for Go, and Go makes them", { skip }, async () =>
     [call("t1", "add_todo", { title: "Book the venue", kind: "todo", step: "Add a to-do: book the venue" }), call("t2", "add_todo", { title: "Send the invites", kind: "todo", step: "Add a to-do: send the invites" })],
     (_p, done) => {
       assert.ok(done.every((r) => typeof r.queued === "string"), "queued, not made");
-      return [answer({ text: "Two to-dos are ready. Nothing changes until you tap Go." })];
+      return [answer({ text: "Two to-dos are ready. Nothing changes until you tap Approve." })];
     },
   ]);
   const steps: Step[] = [];
@@ -313,7 +313,7 @@ test("a plan: two changes wait for Go, and Go makes them", { skip }, async () =>
   assert.deepEqual(reply.plan?.steps.map((s) => s.label), ["Add a to-do: book the venue", "Add a to-do: send the invites"]);
   assert.equal(reply.plan?.why, undefined, "an ordinary plan: nothing was held by the guard");
   assert.equal(reply.changes, undefined);
-  assert.equal(reply.text, "Two to-dos are ready. Nothing changes until you tap Go.");
+  assert.equal(reply.text, "Two to-dos are ready. Nothing changes until you tap Approve.");
   assert.deepEqual(steps.filter((s) => s.done && /^Planned: /.test(s.text)).map((s) => s.text), ["Planned: Add a to-do: book the venue", "Planned: Add a to-do: send the invites"]);
   assert.ok(steps.every((s) => !s.acts), "nothing that acts had started");
   assert.equal((await counts()).todos, was.todos, "nothing written before Go");

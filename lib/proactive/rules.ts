@@ -189,7 +189,7 @@ export function leaveBy(input: ProactiveInput): Nudge[] {
     {
       rule: "leave_by",
       key: `leave:${next.id}:${next.starts_at}`,
-      // A drive says where and by when, like the drive with no time; the rest keep "for the 1pm".
+      // A drive says where and by when, like the drive with no time; the rest keep "for the 13:00".
       title:
         trip.mode === "drive"
           ? `${mins ? `Leave in ${mins} minutes` : "Time to leave"}: drive to ${clip(next.place!.name, 40)} by ${time}`

@@ -1273,28 +1273,6 @@
   background: var(--good);
 }
 
-.loop__prio {
-  display: inline-flex;
-  align-items: center;
-}
-
-.loop__prio .prio-mark {
-  width: 13px;
-  height: 13px;
-}
-
-.loop__prio[data-priority="3"] {
-  color: var(--bad);
-}
-
-.loop__prio[data-priority="2"] {
-  color: var(--warn);
-}
-
-.loop__prio[data-priority="1"] {
-  color: var(--ink-3);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .todo-sheet__check.is-ticked .todo-sheet__ring,
   .tstep.is-ticked .tstep__ring,
@@ -1303,11 +1281,6 @@
   .todo-sheet__nudge {
     animation: none;
   }
-}
-
-.loop__title .loop__prio {
-  margin-right: 6px;
-  vertical-align: -1px;
 }
 
 /* ---------- To do's quick-add: what the line reads as a date or priority ---------- */

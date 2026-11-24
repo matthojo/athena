@@ -2,15 +2,6 @@
    a sentence with their name as a chip, and one line on a goal. Phone: one
    column. Desktop: people and the goal side by side, Recent below. */
 
-/* Home's bento without the old metric pair (components.css still names
-   "meet" and "done"): coming up, to do and the latest note. */
-.home .bento {
-  grid-template-areas:
-    "catch catch"
-    "todo todo"
-    "latest latest";
-}
-
 .home-personal {
   display: grid;
   gap: var(--space-lg);
@@ -213,17 +204,6 @@
 }
 
 @media (min-width: 1024px) {
-  .home .bento {
-    grid-template-areas:
-      "todo todo catch"
-      "latest latest catch";
-  }
-
-  /* One column now: the personal pair, then Recent, each full width. */
-  .home .home-lower {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .home-personal {
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     align-items: start;

@@ -224,7 +224,7 @@ export type FlowBadge = { tone: "you" | "on" | "off" | "bad" | "quiet"; words: s
 /** The badge on a flow's card: what waits for you first, then on or off. */
 export function flowBadge(flow: Pick<Flow, "paused">, latest?: Pick<FlowRun, "status" | "waits_for" | "dry"> | null): FlowBadge {
   if (latest && latest.status === "waiting" && !latest.dry) {
-    if (latest.waits_for === "go") return { tone: "you", words: "Needs your Go" };
+    if (latest.waits_for === "go") return { tone: "you", words: "Needs your approval" };
     if (latest.waits_for === "answer") return { tone: "you", words: "Needs your answer" };
     if (latest.waits_for === "time") return { tone: "quiet", words: "Waiting" };
     if (latest.waits_for === "assignment") return { tone: "quiet", words: "On an assignment" };
@@ -273,7 +273,7 @@ export function pausedWords(assistant: { name: string; paused?: boolean } | null
 
 // ---------- runs ----------
 
-/** What a run waits on, for its page: "1 change waits for your Go". */
+/** What a run waits on, for its page: "1 change waits for your approval". */
 export function runStateWords(run: Pick<FlowRun, "status" | "waits_for" | "dry" | "steps">, hour12 = prefers12h(), now = new Date()): string {
   const prefix = run.dry ? "Test run: nothing changed. " : "";
   switch (run.status) {
@@ -290,7 +290,7 @@ export function runStateWords(run: Pick<FlowRun, "status" | "waits_for" | "dry" 
     case "waiting": {
       if (run.waits_for === "go") {
         const n = run.steps.filter((s) => s.status === "waiting" && s.pending).length || 1;
-        return `${prefix}${n === 1 ? "1 change waits" : `${n} changes wait`} for your Go`;
+        return `${prefix}${n === 1 ? "1 change waits" : `${n} changes wait`} for your approval`;
       }
       if (run.waits_for === "answer") return `${prefix}Waits for your answer`;
       if (run.waits_for === "assignment") return `${prefix}Waits for its assignment to finish`;

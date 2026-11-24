@@ -17,6 +17,7 @@
  * at the tracker's own number of decimal places.
  */
 import { TRACKER_LIMITS, type Tracker, type TrackerChecker, type TrackerDirection, type TrackerKind, type TrackerPoint, type TrackerSummary, type TrackerTarget, type TrackerView } from "../../../lib/tracker-types";
+import { clockTime, uses12Hour } from "./clock";
 
 const DAY_MS = 86_400_000;
 
@@ -107,9 +108,9 @@ export function shortDay(iso: string, now = new Date()): string {
 }
 
 /** "today", "yesterday", "Tuesday", "3 Nov": for "since …". */
-export function sinceWords(iso: string, now = new Date()): string {
+export function sinceWords(iso: string, now = new Date(), hour12 = uses12Hour()): string {
   const days = daysBetween(iso, now);
-  if (days <= 0) return new Intl.DateTimeFormat("en-GB", { hour: "numeric", minute: "2-digit" }).format(Date.parse(iso));
+  if (days <= 0) return clockTime(iso, { hour12 });
   if (days === 1) return "yesterday";
   if (days < 7) return new Intl.DateTimeFormat("en-GB", { weekday: "long" }).format(Date.parse(iso));
   return shortDay(iso, now);

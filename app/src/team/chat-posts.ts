@@ -1,7 +1,7 @@
 /**
  * The cards a post or a stage draws, shared by Team chat (team/chat.ts) and
  * the assignment's page (team/assignment-page.ts): a question with its
- * choices, an approval with Go and Send back, a plan (Ask's own plan card),
+ * choices, an approval with Approve and Send back, a plan (Ask's own plan card),
  * a handoff, and the document. Each acts on the one record behind it, so a
  * Go or an answer anywhere settles it everywhere.
  */
@@ -115,10 +115,10 @@ export function handoffEl(hd: Handoff, opts: { did?: boolean } = {}): HTMLElemen
   return h("dl", { class: "handoff" }, ...rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)]));
 }
 
-/** A stage that stopped for approval: Go carries on; Send back returns it to a stage with a note. */
+/** A stage that stopped for approval: Approve carries on; Send back returns it to a stage with a note. */
 export function approvalCard(a: Assignment, s: AssignmentStage): HTMLElement {
   const next = a.stages[s.position + 1];
-  const goBtn = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Go") as HTMLButtonElement;
+  const goBtn = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Approve") as HTMLButtonElement;
   const back = h("button", { class: "btn btn--soft btn--sm", type: "button", "aria-expanded": "false" }, "Send back") as HTMLButtonElement;
   const note = h("textarea", { class: "approve__note", rows: 2, placeholder: "What should change?", "aria-label": "A note to send back with it", maxlength: 1000 }) as HTMLTextAreaElement;
   note.value = s.note ?? "";
@@ -147,14 +147,14 @@ export function approvalCard(a: Assignment, s: AssignmentStage): HTMLElement {
       b.removeAttribute("aria-busy");
     }
   };
-  goBtn.addEventListener("click", () => void run(goBtn, () => go(a.id), "Go didn't go through. Try again in a moment."));
+  goBtn.addEventListener("click", () => void run(goBtn, () => go(a.id), "Your approval didn't go through. Try again in a moment."));
   confirm.addEventListener("click", () => void run(confirm, () => sendBack(a.id, { to: Number(to.value), note: note.value.trim() }), "That didn't send. Try again in a moment."));
   const hd = s.handoff ? handoffEl(s.handoff) : null;
   return h(
     "section",
-    { class: "card approve", "aria-label": `${s.who.name} needs your Go` },
+    { class: "card approve", "aria-label": `${s.who.name} needs your approval` },
     hd,
-    h("p", { class: "approve__note-line" }, next ? `Go lets ${next.who.name} start. Nothing after this stage has run.` : "Go finishes the assignment."),
+    h("p", { class: "approve__note-line" }, next ? `Approving lets ${next.who.name} start. Nothing after this stage has run.` : "Approving finishes the assignment."),
     acts,
     form
   );

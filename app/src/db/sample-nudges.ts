@@ -8,15 +8,12 @@ import { SAMPLE_IDS } from "./sample-data";
 import { SAMPLE_EVENT_ID } from "./scheduling";
 import { samplePicks } from "./sample-ask-plans";
 import { NO_DRIVE_TIME } from "../../../lib/proactive/types";
+import { clockTime } from "../lib/clock";
 
 const at = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
-const clock = (iso: string) => {
-  const d = new Date(iso);
-  const h = d.getHours();
-  const m = d.getMinutes();
-  return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""}${h < 12 ? "am" : "pm"}`;
-};
-const hhmm = (iso: string) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
+// Sample mode writes its own cards on the device, so their times follow the device's clock (lib/clock.ts).
+const clock = (iso: string) => clockTime(iso);
+const hhmm = clock;
 const weekday = (daysAgo: number) => new Intl.DateTimeFormat("en-GB", { weekday: "long" }).format(new Date(Date.now() - daysAgo * 86_400_000));
 
 /** `drive`: the sample owner set "How you usually travel" to drive (Settings → Notifications), and sample mode has no Google Maps key. */

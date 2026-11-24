@@ -39,6 +39,7 @@ import { loadManualVisits, removeManualVisit, type ManualVisit } from "../db/pla
 import type { Place } from "../types";
 import "../styles/places.css";
 import "../styles/manual-entry.css";
+import { clockTime } from "../lib/clock";
 
 interface Visits {
   count: number;
@@ -153,7 +154,7 @@ export function addVisitButton(done: () => void, opts: { date?: string; place?: 
   return b;
 }
 
-const arrival = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const arrival = (iso: string) => clockTime(iso);
 
 /** Visits added by hand, each with when and how long, and a remove. `dates` adds the day (the Places page lists several). */
 export function manualVisitList(visits: ManualVisit[], removed: () => void, opts: { dates?: boolean } = {}): HTMLElement {

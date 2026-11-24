@@ -13,6 +13,7 @@ import { slimStageBar } from "./sleep-stages";
 import { stagesLine } from "../../../lib/health-line";
 import { addDays, healthSentences, smoothPath, hoursMinutes, km, workoutPhrase, type HealthFigures, type HealthSentence } from "./day-words";
 import type { DayHealth } from "../db/days-app";
+import { clockOfDay } from "../lib/clock";
 
 const NS = "http://www.w3.org/2000/svg";
 const sv = (tag: string, attrs: Record<string, string | number>) => {
@@ -114,7 +115,7 @@ export function healthSection(health: DayHealth, before: (HealthFigures & { date
   const workouts = (health.workouts ?? []).map((w) => {
     const route = (w as { route?: string }).route;
     const sketch = route ? routeSketch(route, 40) : null;
-    const meta = [w.start, hoursMinutes(w.minutes), w.distance_m && w.minutes ? pace(w.minutes, w.distance_m) : null].filter(Boolean).join(" · ");
+    const meta = [clockOfDay(w.start), hoursMinutes(w.minutes), w.distance_m && w.minutes ? pace(w.minutes, w.distance_m) : null].filter(Boolean).join(" · ");
     return h(
       "li",
       { class: "day-health__row day-health__row--workout" },

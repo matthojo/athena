@@ -154,7 +154,7 @@ test("a run: the turn's thread, reply and plan make the record; nothing is logge
   assert.match(asked[0].prompt, /run now/);
   assert.equal(done!.status, "done");
   assert.equal(done!.thread_id, THREAD, "the turn's thread_id");
-  assert.equal(done!.summary, "Lego is £40 at John Lewis. 2 changes wait for Go.");
+  assert.equal(done!.summary, "Lego is £40 at John Lewis. 2 changes wait for your approval.");
   assert.equal(done!.label, "Run now");
   assert.equal(done!.step, null, "nothing to say once it's done");
   assert.equal(done!.quiet, false);
@@ -485,7 +485,7 @@ test("a run says how many changes wait for Go, from its plan, until Go runs it",
   const run = await runTeamRun(queued.id, {
     turn: async (id) => {
       await savePlan([step("Chase Priya"), step("Book the review")], { source: "routine", thread_id: THREAD });
-      return result(id, { text: "Two to-dos wait for your Go.", plan: { id: "p", steps: [step("Chase Priya"), step("Book the review")] } as never });
+      return result(id, { text: "Two to-dos wait for your approval.", plan: { id: "p", steps: [step("Chase Priya"), step("Book the review")] } as never });
     },
   });
   assert.equal(run!.waiting, 2);

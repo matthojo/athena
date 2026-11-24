@@ -33,6 +33,7 @@ import { openPurchaseForm } from "./trip-forms";
 import type { Purchase } from "../types";
 import type { ViewId } from "../components/nav";
 import { pageHead } from "../components/page-head";
+import { clockOfDay } from "../lib/clock";
 
 /** The item(s), without the shop: "Kindle Paperwhite", "KALLAX shelf unit and 1 more". */
 function itemsTitle(p: Purchase): string {
@@ -46,14 +47,14 @@ function when(iso: string, today: string): string {
   const p = zonedParts(new Date(iso), deviceZone());
   const n = daysBetween(p.date, today);
   const day = n === 0 ? "Today" : n === 1 ? "Yesterday" : shortWeekday(p.date);
-  return `${day}${n > 1 ? "," : ""} ${p.time}`;
+  return `${day}${n > 1 ? "," : ""} ${clockOfDay(p.time)}`;
 }
 
 /** A tracker step's time, kept short: "Today 07:05", "Yesterday 16:40", "Tue 3 Nov". */
 function stepWhen(iso: string, today: string): string {
   const p = zonedParts(new Date(iso), deviceZone());
   const n = daysBetween(p.date, today);
-  return n === 0 ? `Today ${p.time}` : n === 1 ? `Yesterday ${p.time}` : shortWeekday(p.date);
+  return n === 0 ? `Today ${clockOfDay(p.time)}` : n === 1 ? `Yesterday ${clockOfDay(p.time)}` : shortWeekday(p.date);
 }
 
 /** "Due today", "Due tomorrow", "Due Monday", "Due 14 Nov", "Was due Tuesday". */

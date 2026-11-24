@@ -17,6 +17,7 @@ import { dismissSuggested, linkSuggested, personSuggestion } from "../components
 import { loadTodoPeople, type TodoPeople } from "../db/todo-people";
 import { groupLoops, loadCommitments, loadSuggestions, onMemoryChange, openLoops, saveCommitment } from "../db/memory";
 import { plural } from "../lib/format";
+import { dueLine } from "../lib/waiting-words";
 import { readTodoView, writeTodoView, type GroupBy, type TodoView } from "../lib/todo-view";
 import { contextFilterChip, menuChip } from "../components/todo-context-ui";
 import { contextById, onContextsChange, contextsSnapshot } from "../db/todo-contexts";
@@ -197,8 +198,9 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
   const inboxLink = h("button", { class: "link-btn loops__link", type: "button", hidden: true });
   inboxLink.addEventListener("click", () => ctx.go("review"));
 
+  const lede = h("p", { class: "page-lede", hidden: true });
   // Only the tabs, title and filters stick; the rest scrolls with the list.
-  const head = pageHead({ segments: librarySegments("loops", ctx.go), title: "To do", count, actions: [add], below: [filters.el, ctxBar] });
+  const head = pageHead({ segments: librarySegments("loops", ctx.go), title: "To do", count, lede, actions: [add], below: [filters.el, ctxBar] });
   const list = h("div", { class: "loops__list" });
   const el = h("div", { class: "view loops" }, head, h("div", { class: "loops__top" }, quickForm, found, h("div", { class: "loops__links" }, weekLink, inboxLink)), list);
   const onScroll = () => head.classList.toggle("is-scrolled", window.scrollY > 4);
@@ -207,19 +209,19 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
   const open = (c: Commitment) => openCommitmentSheet(c);
 
   /** A to-do's row; one that names someone it isn't linked to gets "Link to …" under it. */
-  function row(c: Commitment, hideContext?: "area" | "where") {
-    const el = loopRow(c, { onOpen: open, hideContext });
+  function row(c: Commitment) {
+    const el = loopRow(c, { onOpen: open });
     const who = named[c.id];
     if (who?.length && c.status === "open" && !c.person_id) el.append(personSuggestion(who, { link: (p) => void linkSuggested(c, p), dismiss: () => dismissSuggested(c.id) }));
     return el;
   }
 
-  function group(label: string | Node, rows: Commitment[], tone?: "late", hideContext?: "area" | "where") {
+  function group(label: string | Node, rows: Commitment[], tone?: "late") {
     return h(
       "section",
       { class: "group", "data-tone": tone, "data-flip": `group:${typeof label === "string" ? label : label.textContent}` },
       h("h2", { class: "group__label" }, label, h("span", { class: "group__count" }, String(rows.length))),
-      h("div", { class: "card card--flush list" }, ...rows.map((c) => row(c, hideContext)))
+      h("div", { class: "card card--flush list" }, ...rows.map((c) => row(c)))
     );
   }
 
@@ -240,7 +242,12 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
     const where = contextual ? liveFilter(view.where) : null;
     const inFilter = filterByContext(byKind, { area, where }, contextsSnapshot());
     const openOnes = filter === "decision" ? [] : openLoops(inFilter);
-    count.textContent = String(openLoops(items).length);
+    const allOpen = openLoops(items);
+    count.textContent = String(allOpen.length);
+    // The sidebar's badge counts what's due; the page says so in words, beside how many are open.
+    const dueNow = groupLoops(allOpen, today);
+    lede.textContent = dueLine(dueNow.overdue.length, dueNow.today.length);
+    lede.hidden = !lede.textContent;
 
     if (filter === "decision") {
       const decisions = inFilter.sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -253,7 +260,7 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
       // Grouped by area or where/how, each group soonest due first.
       const ordered = [...g.overdue, ...g.today, ...g.week, ...g.later, ...g.someday];
       const sections = groupByContext(ordered, view.group, contextsSnapshot()).map(({ context, items: rows }) =>
-        group(context ? h("span", { class: "ctx-group" }, context.kind === "area" ? h("span", { class: "ctx-dot", "data-colour": context.colour, "aria-hidden": "true" }) : icons[(context.icon in icons ? context.icon : "tag") as keyof typeof icons](), context.name) : view.group === "area" ? "No area" : "Where not set", rows, undefined, view.group === "due" ? undefined : view.group)
+        group(context ? h("span", { class: "ctx-group" }, context.kind === "area" ? h("span", { class: "ctx-dot", "data-colour": context.colour, "aria-hidden": "true" }) : icons[(context.icon in icons ? context.icon : "tag") as keyof typeof icons](), context.name) : view.group === "area" ? "No area" : "Where not set", rows)
       );
       show(...sections, ...doneSection(inFilter));
       return;
@@ -303,8 +310,8 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
     animateNext = loaded;
     loaded = true;
     inboxLink.hidden = !pending.length;
-    inboxLink.replaceChildren(icons.inbox(), `${pending.length} to review`);
-    inboxLink.setAttribute("aria-label", `${pending.length} ${plural(pending.length, "suggestion", "suggestions")} to review`);
+    inboxLink.replaceChildren(icons.inbox(), `${pending.length} in your inbox`);
+    inboxLink.setAttribute("aria-label", `${pending.length} ${plural(pending.length, "suggestion", "suggestions")} in your Inbox`);
     paint();
   }
 

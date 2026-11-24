@@ -123,7 +123,7 @@ export function briefSection(ctx: BriefContext): { el: HTMLElement; paint: () =>
     editSheet({
       label: "What it can do alone",
       title: `What ${a.name} can do alone`,
-      lede: `${a.name} does the things switched on here without asking. Anything off becomes a plan that waits for your Go. You can undo any change in What Ask did.`,
+      lede: `${a.name} does the things switched on here without asking. Anything off becomes a plan that waits for your approval. You can undo any change in What Ask did.`,
       body: h("div", {}, list, more),
       save: () => ctx.save({ allow }).then((ok) => (ok && paint(), ok)),
     });
@@ -164,7 +164,7 @@ export function briefSection(ctx: BriefContext): { el: HTMLElement; paint: () =>
     const instructions = a.instructions.trim() ? a.instructions.trim() : `None yet. ${cap(p.they)} ${p.plural ? "work" : "works"} from ${p.their} job.`;
     rows.replaceChildren(
       row({ key: "when", label: "When it runs", value: when, ...(flows ? { note: `Each is one of ${a.name}'s flows, below: open one to add steps around the job.` } : {}), edit: "Change when it runs", open: editWhen }),
-      row({ key: "alone", label: "What it can do alone", value: alone, note: a.allow.length ? "Anything else waits for your Go." : "Every change waits for your Go.", edit: "Change what it can do alone", open: editAlone }),
+      row({ key: "alone", label: "What it can do alone", value: alone, note: a.allow.length ? "Anything else waits for your approval." : "Every change waits for your approval.", edit: "Change what it can do alone", open: editAlone }),
       webRow({ get: ctx.get, save: ctx.save, setting: () => webSetting, repaint: paint }),
       row({ key: "instructions", label: "Instructions", value: instructions, edit: "Change the instructions", open: editInstructions, clamp: !!a.instructions.trim() })
     );

@@ -158,13 +158,13 @@ export class PlanDraft {
 }
 
 /** What a queued change's result says when it must wait for Go whatever else happens (lib/ask-guard.ts). */
-export const WAITS_NOTE = "This one waits for the owner: it is not made until they tap Go. In your reply say it's ready for them to confirm, never that it's done.";
+export const WAITS_NOTE = "This one waits for the owner: it is not made until they tap Approve. In your reply say it's ready for them to confirm, never that it's done.";
 
 /** Added to Ask's instructions: how changes are queued, made and planned. */
-export const PLAN_RULE = `Changes wait for the owner: every tool that would change something answers "queued" and makes nothing yet. When you finish, a single change is made straight away; two or more go to the owner as a plan to tick and run with Go, and nothing changes until they tap it. So find what you need, queue every change the request needs, and give each its step line. A queued change's id stands for what it will make: use it in later changes (add_person's id as a to-do's person_id). With one change, reply as usual. With two or more, say in one short sentence what the plan does and that nothing changes until they tap Go. Don't list the steps: the app shows them. A queued change whose result says waits_for_go is never made until the owner taps Go, even when it's the only one: say it's ready for them to confirm, not that it's done.`;
+export const PLAN_RULE = `Changes wait for the owner: every tool that would change something answers "queued" and makes nothing yet. When you finish, a single change is made straight away; two or more go to the owner as a plan to tick and approve, and nothing changes until they tap Approve. So find what you need, queue every change the request needs, and give each its step line. A queued change's id stands for what it will make: use it in later changes (add_person's id as a to-do's person_id). With one change, reply as usual. With two or more, say in one short sentence what the plan does and that nothing changes until they tap Approve. Don't list the steps: the app shows them. A queued change whose result says waits_for_go is never made until the owner taps Approve, even when it's the only one: say it's ready for them to confirm, not that it's done.`;
 
 /** Instead, for a routine's run: nobody is watching, so nothing is made. */
-export const PROPOSE_RULE = `This runs on a schedule the owner set, with nobody watching, so nothing you queue is made: every change goes to the owner as a plan to tick and run with Go later. Find what you need, queue the changes the request asks for, give each its step line, and say in one short sentence what the plan would do. Don't list the steps: the app shows them.`;
+export const PROPOSE_RULE = `This runs on a schedule the owner set, with nobody watching, so nothing you queue is made: every change goes to the owner as a plan to tick and approve later. Find what you need, queue the changes the request asks for, give each its step line, and say in one short sentence what the plan would do. Don't list the steps: the app shows them.`;
 
 // ---------- running a plan (Go) ----------
 
