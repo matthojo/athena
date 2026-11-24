@@ -27,6 +27,8 @@ import { openAddStep } from "./add-step";
 import { openStepSheet } from "./step-sheet";
 import { openTriggerSheet } from "./trigger-sheet";
 import { openHandSheet } from "./hand-sheet";
+import { openShareFlow } from "./share-sheet";
+import { needsAssistant } from "../../../lib/flow-share";
 import { refKey } from "./text";
 import { triggerWords } from "./words";
 
@@ -328,8 +330,24 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
       "div",
       { class: "flow-hero" },
       h("h1", { class: "page-title flow-hero__name" }, flow.name),
-      h("div", { class: "flow-hero__row flow-hero__row--between" }, h("span", { class: "flow-hero__kind" }, flowKindWords(flow)), onRow)
+      h("div", { class: "flow-hero__row flow-hero__row--between" }, h("span", { class: "flow-hero__kind" }, flowKindWords(flow)), onRow),
+      sharedNote()
     );
+  }
+
+  /** A flow added from a file that isn't ready to switch on: questions nobody answered, or thinking with no assistant. */
+  function sharedNote(): HTMLElement | "" {
+    const left = flow.unfilled ?? [];
+    if (left.length) {
+      const asks = [...new Set(left.map((u) => u.question))];
+      return h("p", { class: "flow-note", role: "status" }, icons.flag(), h("span", {}, left.length === 1 ? `Before it can go on, set the step that asks “${asks[0]}”` : `Before it can go on, set the ${left.length} steps that still have questions: ${asks.map((q) => `“${q}”`).join(", ")}`));
+    }
+    if (flow.origin === "shared" && !flow.assistant_id && flow.paused && needsAssistant(flow.steps)) {
+      const pick = h("button", { class: "flow-link", type: "button" }, "Pick an assistant");
+      pick.addEventListener("click", () => openHandSheet({ flow, onHanded: handed }));
+      return h("p", { class: "flow-note", role: "status" }, icons.flag(), h("span", {}, "Its thinking steps need one of your assistants before it can go on. ", pick));
+    }
+    return "";
   }
 
   function triggerCard(): HTMLElement {
@@ -453,9 +471,15 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     if (!flow) return;
     const runNow = h("button", { class: "flow-menu__item", type: "button" }, icons.play(), "Run now");
     const rename = h("button", { class: "flow-menu__item", type: "button" }, icons.pen(), "Rename");
+    const share = h("button", { class: "flow-menu__item", type: "button" }, icons.send(), "Share");
     const giveBackBtn = assistant ? h("button", { class: "flow-menu__item", type: "button" }, icons.restore(), `Run it without ${assistant.name}`) : null;
     const del = h("button", { class: "flow-menu__item flow-menu__item--danger", type: "button" }, icons.trash(), "Delete");
-    const sheet = openSheet({ label: flow.name, title: flow.name, body: h("div", { class: "flow-menu" }, runNow, rename, giveBackBtn, del) });
+    const sheet = openSheet({ label: flow.name, title: flow.name, body: h("div", { class: "flow-menu" }, runNow, rename, share, giveBackBtn, del) });
+    share.addEventListener("click", async () => {
+      sheet.close();
+      await afterSheet();
+      openShareFlow(flow);
+    });
     runNow.addEventListener("click", async () => {
       sheet.close();
       await afterSheet();

@@ -2096,6 +2096,34 @@ Groundwork only: nothing fetches from a catalogue yet.
   catalogue or the author. A bundle whose hash doesn't match its files, or
   the index, is not used (`verifyBundle`).
 
+### Sharing and adding flows (`lib/flow-share*.ts`)
+
+- **What a shared flow carries.** Its name, a summary the owner writes, its
+  trigger and steps, the questions it asks whoever adds it, the accounts its
+  trigger needs, and whether it would like to read spending or search the
+  web. Never its id, runs, values, the assistant it was handed to, or a
+  record id: steps are numbered afresh, and a step field that held one of
+  the owner's records becomes a blank with a question the owner words.
+- **Checked before it leaves.** `POST /api/flows/<id>/export` takes links
+  into the site and `athena://` links out (`scrubText`) and flags anything
+  that looks like the owner's own people, places, addresses, email
+  addresses, phone numbers or private links (`findPersonal`, the same terms
+  as sharing an assistant). Nothing downloads until each finding is edited
+  out or marked fine, and the server checks again on download (409 with
+  what's left). A step that leans on the owner's own types, fields or list
+  names can't be exported, and the sheet names it. The edits change the
+  file, never the flow. The terms are compared in memory, never kept or sent.
+- **Adding one grants nothing.** `addSharedFlow` reads the file again
+  (`readSharedFlow`), whatever the caller sends, then: step ids made here;
+  every tool step waits for Go, whatever the file asked; thinking steps off
+  the web; spending off; the flow off, origin `shared`. The owner's answers
+  fill the blanks; an answer for a record must be one of their own ids. A
+  blank left unanswered stays as an unfilled field, sealed with the flow
+  (`flows.payload`), and the flow can't be switched on until the owner sets
+  it. A shared flow with thinking steps can't be switched on until the owner
+  hands it to one of their assistants. The result passes the same
+  `checkSteps` as a flow made here.
+
 ### Ask's read tools, today's context and memory
 
 `work` reads `work_items` and Work activity's notes: the owner's own work only, cited as the Work page for a period (`work:month`).

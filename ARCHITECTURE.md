@@ -1951,7 +1951,24 @@ is a permission. These files are the contract the screens and routes build on:
   strict as `readShared`: FLOW_LIMITS, unknown keys dropped, tools checked
   against the flows catalogue, no record ids. A step field that pointed at
   the owner's record is a blank (`{ "blank": key }`) that a question in
-  `asks` fills. `exportFlow` and `importSharedFlow` are stubs.
+  `asks` fills.
+- **Sharing a flow** (`exportFlow`, `lib/flow-share-store.ts`
+  `exportFlowFor`, `POST /api/flows/:id/export`, `flows/share-sheet.ts`).
+  Steps are numbered afresh; a record id in a step field becomes a blank
+  with a question (one per record), which the owner words on the sheet;
+  links into the site go; findings wait for an edit or "It's fine". A step
+  that leans on the owner's own types, fields or list names is named in
+  `blocked` and nothing downloads. The sheet shows the reach tier
+  (`reachOfFlow`). The download is a zip with `<slug>/flow.json`; sample
+  mode saves flow.json alone. "Share" is in a flow's More menu.
+- **Adding a shared flow** (`importSharedFlow`, `addSharedFlow(shared,
+  answers, catalogue?)`). New step ids, every tool step waiting for Go,
+  thinking steps off the web, money off, paused, origin `shared`, the
+  catalogue listing in 0088's columns. Unanswered blanks are kept in the
+  sealed payload (`Words.unfilled`) and shown as `Flow.unfilled` until each
+  field changes; `updateFlow` refuses to switch the flow on while any are
+  left, or while a shared flow's thinking steps have no assistant. Sample
+  mode's Add is `db/flows.ts` `sampleAddSharedFlow`.
 - **`lib/reach.ts`.** `reachOf(files)`: tier 1 stays inside Athena, tier 2
   uses a model or an outside lookup (each named), tier 3 asks for the web.
   Worked out from the files, never declared.
