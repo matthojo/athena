@@ -766,7 +766,16 @@ most powerful secrets it stores — a Gmail refresh token reads your email — s
   is told only that some mail is filtered. Rules that can't be opened
   (no data key) make every mail tool refuse rather than read without
   them. The settings preview counts ids (Gmail) or reads sender, subject
-  and folder (Outlook), never a body.
+  and folder (Outlook), never a body. The Inbox's "Ignore emails like this"
+  (`lib/suggestion-ignore.ts`, `POST /api/suggestions/:id/ignore`, owner
+  only) adds a skipped sender, domain or subject phrase to the account the
+  find's email came from. It only ever narrows what's read, and the owner
+  picks the rule; nothing the model wrote can add one.
+- **An Inbox find remembers the email it came from.** A collection notes
+  the sender and subject of each email its mail tools return, for that run
+  only, and a find it files from that email keeps them with the account's
+  id (`suggestions.email`, migration `0086`, sealed). Nothing new is read
+  to do it, and it's shown only to the owner.
 - **Only the calendars the owner switched on are read.** Google Calendar
   and Outlook keep the chosen ids in `connectors.calendars` (ids only, apart
   from the OAuth scopes); until the owner chooses, only the main calendar is
@@ -2450,7 +2459,7 @@ the status counts and the tests all read it from there.
 | `commitments` (to-dos) | `title`, `notes` (the description), `source_quote`, and from `0084` `steps` (the checklist) and `links` (web addresses and athena:// links, with their titles), each list one sealed JSON value. `priority` (0 to 3) stays readable |
 | `interactions` (catch-ups) | `summary` |
 | `facts` | `value`, `source_quote` |
-| `suggestions` (Inbox) | `summary`, `payload`, `source_quote` |
+| `suggestions` (Inbox) | `summary`, `payload`, `source_quote`, and from `0086` `email` (the sender, subject and account id of the email a find came from, one sealed JSON value) |
 | `assets` (life admin) | `name`, `provider`, `notes` |
 | `reading_items` | `title`, `url`, `author`, `notes`, `sync` (match keys and what a source last wrote, migration `0029`), `meta` (year, running time, genres, playlists, your tags and the seasons it suits, migration `0063`) |
 | `goals` | `title`, `target`, `notes` |

@@ -7,10 +7,17 @@
  * about the owner (fact suggestions about "me") is grouped under About you,
  * after the rest. A card that's answered lifts away and the next one rises
  * into its place (lib/finish-motion.ts).
+ *
+ * The same thing found more than once (a booking email, then its reminder)
+ * is one card, "Found 3 times", and its answer covers them all: Add it adds
+ * it once (lib/suggestion-similar.ts sameKey). Another date is another card. A card from an
+ * email can ignore emails like it in future syncs (components/ignore-sheet.ts),
+ * and one put on the calendar with Add to calendar is done, so it leaves.
  */
 
 import { h } from "../lib/dom";
 import "../styles/profile.css";
+import "../styles/review.css";
 import { icons } from "../components/icons";
 import { showToast } from "../components/toast";
 import { confidenceLabel } from "../components/commitment-sheet";
@@ -29,6 +36,8 @@ import { bookingAsk } from "../lib/create-event";
 import { prepareCreate } from "../db/scheduling";
 import { localToday } from "../lib/time";
 import { clockOfDay } from "../lib/clock";
+import { groupSame } from "../../../lib/suggestion-similar";
+import { openIgnoreSheet, senderName } from "../components/ignore-sheet";
 
 /** An email or event asking to meet, talk or move something: Check in offers "Suggest times". */
 const ASKS_TO_MEET = /\b(meet(ing)?|catch[ -]?up|call|chat|sync|1:1|coffee|reschedul\w*|find a time|another time|new time|move (it|the|our)|push (it|back)|when (are|is) you free|free (on|next|this))\b|\b(grab|find|book|set up|get)\s+(a |an |some )?(\d+\s*min\w*|half an hour|hour|time)\b/i;
@@ -129,10 +138,11 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
   // follows. The save runs alongside; the list repaints once the motion is
   // over, so nothing jumps.
   let leaving: Promise<unknown> = Promise.resolve();
-  async function act(s: Suggestion, action: "accept" | "reject", card: HTMLElement, how: "tap" | "swipe" = "tap") {
-    if (card.dataset.leaving !== undefined) return;
+  /** A card lifting away; `restore` puts it back when the save fails. */
+  function depart(card: HTMLElement, cls: "is-accepted" | "is-rejected" | "is-lifted"): { motion: Promise<unknown>; restore: () => Promise<void> } | null {
+    if (card.dataset.leaving !== undefined) return null;
     card.dataset.leaving = "";
-    card.classList.add(how === "swipe" ? (action === "accept" ? "is-accepted" : "is-rejected") : "is-lifted");
+    card.classList.add(cls);
     card.querySelectorAll("button").forEach((b) => ((b as HTMLButtonElement).disabled = true));
     const heading = emptiedHeading(card);
     const motion = (async () => {
@@ -140,10 +150,7 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
       await Promise.all([collapse(card), heading ? collapse(heading) : null]);
     })();
     leaving = Promise.all([leaving, motion]);
-    try {
-      await resolveSuggestion(s, action);
-      showToast(action === "accept" ? ADDED[s.op] : "Dismissed", { icon: action === "accept" ? "check" : "close" });
-    } catch (error) {
+    const restore = async () => {
       await motion;
       delete card.dataset.leaving;
       card.classList.remove("is-accepted", "is-rejected", "is-lifted");
@@ -152,8 +159,49 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
       card.querySelectorAll("button").forEach((b) => ((b as HTMLButtonElement).disabled = false));
       if (heading) void expand(heading);
       void expand(card);
-      showToast(error instanceof Error ? error.message : "Couldn't save that", { icon: "wifiOff", timeoutMs: 4000 });
+    };
+    return { motion, restore };
+  }
+
+  const failed = (error: unknown) => showToast(error instanceof Error ? error.message : "Couldn't save that", { icon: "wifiOff", timeoutMs: 4000 });
+
+  /**
+   * Answer a card: every find it holds is the same thing, so one answer covers
+   * them all. Add it applies the first and marks the rest done (nothing added
+   * twice); Not right dismisses them all; Add to calendar marks them all done.
+   */
+  async function act(group: Suggestion[], action: "accept" | "reject" | "done", card: HTMLElement, how: "tap" | "swipe" = "tap") {
+    const going = depart(card, how === "swipe" ? (action === "accept" ? "is-accepted" : "is-rejected") : "is-lifted");
+    if (!going) return;
+    const [lead, ...repeats] = group;
+    try {
+      await resolveSuggestion(lead, action);
+    } catch (error) {
+      await going.restore();
+      failed(error);
+      return;
     }
+    // One at a time: the sample's store is read, changed and written per answer.
+    for (const r of repeats) {
+      try {
+        await resolveSuggestion(r, action === "reject" ? "reject" : "done");
+      } catch (error) {
+        return failed(error);
+      }
+    }
+    const cleared = group.length > 1 ? `. All ${group.length} cleared from your Inbox` : "";
+    if (action === "done") showToast(`Added to your calendar${cleared}`, { icon: "check" });
+    else if (action === "accept") showToast(`${ADDED[lead.op]}${cleared}`, { icon: "check" });
+    else showToast(group.length > 1 ? `Dismissed all ${group.length}` : "Dismissed", { icon: "close" });
+  }
+
+  async function ignore(s: Suggestion, group: Suggestion[], card: HTMLElement) {
+    const out = await openIgnoreSheet(s, group.length - 1);
+    if (!out) return;
+    depart(card, "is-lifted");
+    const n = out.dismissed.length;
+    const where = out.accounts.length === 1 ? `${out.accounts[0]}'s email rules` : `the email rules on ${out.accounts.length} accounts`;
+    showToast(`Added to ${where}. ${n} cleared from your Inbox`, { icon: "check" });
   }
 
   /** A group heading whose cards are all leaving once this one goes. */
@@ -172,7 +220,22 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
     return head;
   }
 
-  function card(s: Suggestion): HTMLElement {
+  /** The finds each card stands for: the keyboard answers the top one. */
+  const cardFor = new WeakMap<Element, Suggestion[]>();
+
+  /** Where one of a card's finds came from, for its "Found 3 times" list. */
+  function foundRow(r: Suggestion): HTMLElement {
+    const where = describeSource(r.source ?? null);
+    const from = [`${where.name}${where.label ? ` · ${where.label}` : ""}`, r.email ? senderName(r.email.from) : ""].filter(Boolean).join(" · ");
+    return h(
+      "li",
+      { class: "suggestion__found" },
+      h("span", { class: "suggestion__found-text" }, h("span", { class: "suggestion__found-what" }, r.email?.subject || from), r.email?.subject ? h("span", { class: "suggestion__found-from" }, from) : null),
+      h("span", { class: "suggestion__found-when" }, relativeTime(r.created_at))
+    );
+  }
+
+  function card(s: Suggestion, others: Suggestion[] = []): HTMLElement {
     const meta = SUGGESTION_META[s.op];
     const src = describeSource(s.source ?? null);
     const accept = h("button", { class: "btn btn--primary", type: "button" }, icons.check(), "Add it");
@@ -183,10 +246,28 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
     // A booking or an appointment (a table, the dentist, a class): add it, prefilled, with no one invited.
     const booking = meet ? null : bookingAsk(s, localToday(), (date, time) => zonedInstant(date, time, Intl.DateTimeFormat().resolvedOptions().timeZone));
     const addCal = booking ? h("button", { class: "btn btn--soft suggestion__times", type: "button" }, icons.calendar(), "Add to calendar") : null;
-    addCal?.addEventListener("click", () => {
+    // On the calendar is done: the card leaves once the sheet closes (unless Undo took the event back off).
+    addCal?.addEventListener("click", async () => {
       const { known: _known, ...input } = booking!;
-      void openCreateSheet(prepareCreate(input), { receiptInSheet: true, label: `Add to calendar: ${s.summary}` });
+      const added = await openCreateSheet(prepareCreate(input), { receiptInSheet: true, label: `Add to calendar: ${s.summary}` });
+      if (added) void act(group, "done", c);
     });
+    const group = [s, ...others];
+    const fromEmail = !!s.email || src.name === "Email digest";
+    const ignoreBtn = fromEmail ? h("button", { class: "suggestion__tool", type: "button" }, icons.mail(), "Ignore emails like this") : null;
+    ignoreBtn?.addEventListener("click", () => void ignore(s, group, c));
+    // The same thing, found more than once (a booking email, then its reminder): one card, one answer.
+    const found = others.length ? h("ul", { class: "suggestion__founds", id: `found-${s.id}`, hidden: true }, ...group.map(foundRow)) : null;
+    const similar = others.length
+      ? h("button", { class: "suggestion__tool suggestion__similar", type: "button", "aria-expanded": "false", "aria-controls": `found-${s.id}` }, icons.copy(), `Found ${group.length} times`, icons.chevronDown())
+      : null;
+    similar?.addEventListener("click", () => {
+      const open = similar.getAttribute("aria-expanded") !== "true";
+      similar.setAttribute("aria-expanded", String(open));
+      found!.hidden = !open;
+    });
+    const covers = others.length ? h("p", { class: "suggestion__covers" }, `Your answer covers all ${group.length}`) : null;
+    const tools = similar || ignoreBtn ? h("div", { class: "suggestion__tools" }, similar, ignoreBtn) : null;
     const c = h(
       "article",
       { class: "card suggestion", "data-op": s.op, "data-flip": `s:${s.id}`, tabindex: -1, "aria-label": s.summary },
@@ -206,15 +287,20 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
         { class: "suggestion__source" },
         icons.sparkle(),
         h("span", {}, `From ${src.name}${src.label ? ` · ${src.label}` : ""}`),
+        s.email ? h("span", { class: "suggestion__sender", title: s.email.subject || undefined }, senderName(s.email.from)) : null,
         typeof s.confidence === "number" ? h("span", { class: "provenance__confidence", title: confidenceLabel(s.confidence) }, sureness(s.confidence)) : null
       ),
+      tools,
+      found,
+      covers,
       h("footer", { class: "suggestion__actions" }, suggest ?? addCal, reject, accept),
       h("span", { class: "suggestion__stamp suggestion__stamp--add", "aria-hidden": "true" }, icons.check(), "Add"),
       h("span", { class: "suggestion__stamp suggestion__stamp--skip", "aria-hidden": "true" }, icons.close(), "Dismiss")
     );
-    accept.addEventListener("click", () => void act(s, "accept", c));
-    reject.addEventListener("click", () => void act(s, "reject", c));
-    swipeable(c, (dir) => void act(s, dir === "right" ? "accept" : "reject", c, "swipe"));
+    accept.addEventListener("click", () => void act(group, "accept", c));
+    reject.addEventListener("click", () => void act(group, "reject", c));
+    swipeable(c, (dir) => void act(group, dir === "right" ? "accept" : "reject", c, "swipe"));
+    cardFor.set(c, group);
     return c;
   }
 
@@ -243,9 +329,9 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
       h("div", { class: "group__head review__group", "data-flip": `head:${id}` }, h("h2", { class: "group__label", id }, title), h("span", { class: "page-count" }, String(n)));
     show(
       ...(mine.length && rest.length ? [head("review-rest", "Found in your sources", rest.length)] : []),
-      ...rest.map(card),
+      ...groupSame(rest).map(([lead, ...others]) => card(lead, others)),
       ...(mine.length ? [head("review-about", "About you", mine.length)] : []),
-      ...mine.map(card),
+      ...groupSame(mine).map(([lead, ...others]) => card(lead, others)),
       h("p", { class: "review__hint" }, "On a keyboard: A adds the top card, R dismisses it.")
     );
   }
@@ -264,10 +350,10 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
     const t = e.target as HTMLElement | null;
     if (t && (t.matches("input, textarea, select") || t.isContentEditable)) return;
     const first = stack.querySelector<HTMLElement>(".suggestion:not([data-leaving])");
-    const s = items[[...stack.querySelectorAll(".suggestion")].indexOf(first as Element)];
-    if (!first || !s) return;
-    if (e.key === "a") act(s, "accept", first);
-    else if (e.key === "r") act(s, "reject", first);
+    const group = first ? cardFor.get(first) : undefined;
+    if (!first || !group) return;
+    if (e.key === "a") act(group, "accept", first);
+    else if (e.key === "r") act(group, "reject", first);
   };
   window.addEventListener("keydown", onKey);
 

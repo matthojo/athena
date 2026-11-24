@@ -730,8 +730,13 @@ export async function fetchSuggestions(): Promise<Suggestion[]> {
   return items;
 }
 
-export async function resolveSuggestion(id: string, action: "accept" | "reject", edits?: Record<string, unknown>): Promise<{ suggestion: Suggestion; result?: unknown }> {
+export async function resolveSuggestion(id: string, action: "accept" | "reject" | "done", edits?: Record<string, unknown>): Promise<{ suggestion: Suggestion; result?: unknown }> {
   return request(`/suggestions/${encodeURIComponent(id)}/${action}`, { method: "POST", body: JSON.stringify(edits ? { edits } : {}) });
+}
+
+/** Ignore emails like this one: a mail rule on its account; returns what left the Inbox with it (lib/suggestion-ignore.ts). */
+export async function ignoreSuggestion(id: string, rule: { kind: "sender" | "subject"; value: string }): Promise<{ rule: { kind: "sender" | "subject"; value: string }; accounts: string[]; dismissed: string[] }> {
+  return request(`/suggestions/${encodeURIComponent(id)}/ignore`, { method: "POST", body: JSON.stringify(rule) });
 }
 
 export async function recall(q: string, limit = 20): Promise<RecallHit[]> {

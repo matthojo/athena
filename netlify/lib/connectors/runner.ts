@@ -76,6 +76,8 @@ import {
   type PageType,
 } from "../../../lib/db";
 import { addFact, ASSET_KINDS, findAsset, logInteraction, propose, upsertAsset, upsertCommitment, type AssetKind } from "../../../lib/memory";
+import { emailIdOf, mailFrom, type SuggestionEmail } from "../../../lib/suggestion-similar";
+import { MAIL_PROVIDERS } from "../../../lib/suggestion-ignore";
 import { saveBooking, savePurchase } from "../../../lib/trips";
 import { saveReceipt } from "../../../lib/receipts-save";
 import { RECEIPT_TOOL, receiptInput } from "./receipt-tool";
@@ -1034,6 +1036,21 @@ export class AthenaWriter {
     }
   }
 
+  /**
+   * The sender and subject of each email this run's mail tools returned, by thread and message id, and the
+   * account it came from: a find filed to the Review inbox keeps them (suggestions.email), for "Ignore
+   * emails like this". Held for the run only.
+   */
+  private readonly mail = new Map<string, SuggestionEmail>();
+
+  noteMailResult(connector: { id: string; provider: string }, text: string): void {
+    if (!MAIL_PROVIDERS.has(connector.provider)) return;
+    for (const [id, m] of mailFrom(text)) {
+      const had = this.mail.get(id);
+      if (!had || (!had.subject && m.subject)) this.mail.set(id, { ...m, connector_id: connector.id });
+    }
+  }
+
   constructor(
     private readonly collection: Collection,
     private readonly runId: string,
@@ -1232,8 +1249,11 @@ export class AthenaWriter {
     ]);
     const summary = input.summary.trim().replace(/\s+/g, " ").toLowerCase();
     const known = filed.some((f) => f.summary.toLowerCase() === summary);
-    const s = await propose(input);
-    if (!known) this.stats.suggestions++;
+    const emailId = emailIdOf(input.source_ref, this.collection.source);
+    const email = emailId ? this.mail.get(emailId) ?? null : null;
+    const s = await propose({ ...input, email });
+    // Not counted when it's this one again, or the same words still waiting from another email.
+    if (!known && (s.source_ref ?? null) === (input.source_ref ?? null)) this.stats.suggestions++;
     return JSON.stringify({ suggestion_id: s.id, action: "sent_to_review_inbox" });
   }
 
@@ -2145,6 +2165,7 @@ export async function executeRun(runId: string, now: Date = new Date()): Promise
           stats.source_calls++;
           const r = await callTool(source.open, source.mcpName, (call.input ?? {}) as Record<string, unknown>);
           if (!r.isError) writer.noteCalendarResult(source.open.connector, (call.input ?? {}) as Record<string, unknown>, r.text);
+          if (!r.isError) writer.noteMailResult(source.open.connector, r.text);
           // Someone else wrote this: Jev checks it isn't trying to instruct Claude, and flags it if so.
           const guarded = await guardText(r.text);
           if (guarded.flagged) stats.flagged++;
@@ -2344,6 +2365,7 @@ export async function collectOneItem(
           }
           const r = await callTool(open, mcpName, input);
           if (!r.isError) writer.noteCalendarResult(connector, input, r.text);
+          if (!r.isError) writer.noteMailResult(connector, r.text);
           const guarded = await guardText(r.text);
           results.push({ type: "tool_result", tool_use_id: call.id, content: guarded.text, ...(r.isError ? { is_error: true as const } : {}) });
         } catch (error) {

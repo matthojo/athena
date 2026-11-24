@@ -363,7 +363,9 @@ CREATE TABLE suggestions (
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
   result_id UUID,              -- what accepting created/updated
   resolved_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- 0086: the email it came from (sender, subject, account), one sealed JSON value; NULL when not an email.
+  email JSONB
 );
 CREATE INDEX suggestions_pending_idx ON suggestions (created_at DESC) WHERE status = 'pending';
 

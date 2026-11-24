@@ -49,8 +49,9 @@ const KIND_TITLE: Record<CreateProposal["kind"], string> = { meeting: "Add event
 /**
  * The confirm sheet. `source` may still be loading (Check in and to-dos look
  * up the calendars, or a free slot, as it opens). With `receiptInSheet`, a
- * successful Add turns the sheet into the receipt; otherwise it closes and
- * resolves with what was added, for the caller to show.
+ * successful Add turns the sheet into the receipt, and it resolves with what
+ * was added when it closes (null if the receipt's Undo took it back off);
+ * otherwise it closes and resolves with what was added, for the caller to show.
  */
 export function openCreateSheet(source: CreateProposal | Promise<CreateProposal>, opts: { receiptInSheet?: boolean; label?: string } = {}): Promise<CreateResult | null> {
   return new Promise((resolve) => {
@@ -154,7 +155,7 @@ export function openCreateSheet(source: CreateProposal | Promise<CreateProposal>
             if (titleEl) titleEl.textContent = "Added";
             const done = h("button", { class: "btn btn--soft", type: "button" }, "Done");
             done.addEventListener("click", () => sheet.close());
-            body.replaceChildren(createReceipt(result, p.attendees), h("div", { class: "create-sheet__done" }, done));
+            body.replaceChildren(createReceipt(result, p.attendees, () => (result = null)), h("div", { class: "create-sheet__done" }, done));
           } else sheet.close();
         } catch (e) {
           error.textContent = e instanceof Error && e.message ? e.message : "Couldn't add it. Try again in a minute.";
@@ -169,7 +170,7 @@ export function openCreateSheet(source: CreateProposal | Promise<CreateProposal>
 }
 
 /** The receipt: what was added and when, "Open in calendar", and Undo (which deletes it; guests get a cancellation). */
-export function createReceipt(r: CreateResult, attendees: Array<{ name: string; email: string }> = []): HTMLElement {
+export function createReceipt(r: CreateResult, attendees: Array<{ name: string; email: string }> = [], onUndone?: () => void): HTMLElement {
   const tz = r.tz;
   const names = namesList(attendees.slice(0, r.guests || attendees.length).map((a) => first(a.name || a.email)));
   const when = `${dayLabel(r.start, tz)}, ${clockTime(r.start, { timeZone: tz })}–${clockTime(r.end, { timeZone: tz })}`;
@@ -189,6 +190,7 @@ export function createReceipt(r: CreateResult, attendees: Array<{ name: string; 
     try {
       await undoCreate(r.undo);
       row.classList.add("is-undone");
+      onUndone?.();
       detail.textContent = r.guests ? `Removed. ${names || "Guests"} ${r.guests === 1 ? "gets" : "get"} a cancellation.` : `Removed from ${r.calendar}.`;
       actions.replaceWith(h("span", { class: "change__state" }, icons.restore(), "Undone"));
     } catch (e) {

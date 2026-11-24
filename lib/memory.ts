@@ -20,6 +20,7 @@
  * name) happen in TypeScript, or on a blind index for identities.
  */
 import { dayRecallHits } from "./days";
+import { sameKey, type SuggestionEmail } from "./suggestion-similar";
 import {
   AthenaInputError,
   byName,
@@ -1118,15 +1119,20 @@ export interface Suggestion {
   result_id: string | null;
   resolved_at: string | null;
   created_at: string;
+  /** The email it came from (0086, sealed): null when it wasn't one, or was filed before. */
+  email: SuggestionEmail | null;
 }
 
 /**
  * File a suggestion for the owner to accept or reject. The same suggestion
  * (op + summary + source_ref) is never filed twice — even after a rejection,
- * so a rerun agent doesn't keep asking.
+ * so a rerun agent doesn't keep asking. Nor is one that says the same as one
+ * still waiting from another source item (a reminder email repeating the
+ * first; lib/suggestion-similar.ts sameKey): the owner answers it once.
+ * Another date or number is another thing, and is filed.
  */
 export async function propose(
-  input: { op: SuggestionOp; summary: string; payload: Record<string, unknown> } & Provenance,
+  input: { op: SuggestionOp; summary: string; payload: Record<string, unknown>; email?: SuggestionEmail | null } & Provenance,
 ): Promise<Suggestion> {
   const op = oneOf(input.op, SUGGESTION_OPS, "op");
   if (!op) throw new AthenaInputError(`A suggestion needs an op (${SUGGESTION_OPS.join(", ")})`);
@@ -1144,10 +1150,15 @@ export async function propose(
   );
   const existing = filed.find((f) => f.summary.toLowerCase() === summary.toLowerCase());
   if (existing) return existing;
+  const waiting = suggestionRows(await q<Suggestion>(`SELECT * FROM suggestions WHERE op = $1 AND status = 'pending' ORDER BY created_at`, [op]));
+  const key = sameKey({ op, summary });
+  const repeat = waiting.find((f) => sameKey(f) === key);
+  if (repeat) return repeat;
+  const email = suggestionEmail(input.email);
   const s = await sealer();
   const [row] = await q<Suggestion>(
-    `INSERT INTO suggestions (op, summary, payload, source, source_ref, source_quote, confidence)
-     VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7) RETURNING *`,
+    `INSERT INTO suggestions (op, summary, payload, source, source_ref, source_quote, confidence, email)
+     VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8::jsonb) RETURNING *`,
     [
       op,
       s.text(summary),
@@ -1156,9 +1167,21 @@ export async function propose(
       input.source_ref ?? null,
       s.maybe(input.source_quote ?? null),
       confidence(input.confidence),
+      email ? s.json(email) : null,
     ],
   );
   return suggestionRows([row])[0];
+}
+
+/** An email as stored: a sender is required; anything else is dropped. */
+function suggestionEmail(raw: unknown): SuggestionEmail | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const e = raw as Record<string, unknown>;
+  const line = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "");
+  const from = line(e.from, 300);
+  if (!from) return null;
+  const connector = typeof e.connector_id === "string" && /^[0-9a-f-]{36}$/i.test(e.connector_id) ? e.connector_id : null;
+  return { from, subject: line(e.subject, 300), connector_id: connector };
 }
 
 /**
@@ -1167,6 +1190,7 @@ export async function propose(
  */
 function suggestionRows(rows: Suggestion[]): Suggestion[] {
   for (const r of rows) {
+    r.email = readEmail(r.email);
     if (typeof r.payload !== "string") continue;
     try {
       const parsed: unknown = JSON.parse(r.payload);
@@ -1176,6 +1200,16 @@ function suggestionRows(rows: Suggestion[]): Suggestion[] {
     }
   }
   return rows;
+}
+
+/** The email column as q() opens it: the sealed value's JSON text, or (unsealed) the object itself. */
+function readEmail(raw: unknown): SuggestionEmail | null {
+  if (typeof raw !== "string") return suggestionEmail(raw);
+  try {
+    return suggestionEmail(JSON.parse(raw));
+  } catch {
+    return null;
+  }
 }
 
 export async function listSuggestions(opts: { status?: SuggestionStatus; limit?: number } = {}): Promise<Suggestion[]> {
@@ -1244,6 +1278,21 @@ export async function acceptSuggestion(
     ]),
   );
   return { suggestion, result };
+}
+
+/**
+ * The owner dealt with it another way (Add to calendar put it on their
+ * calendar): it leaves the Inbox as accepted, with nothing applied here, so
+ * it's neither filed again nor counted as wrong.
+ */
+export async function finishSuggestion(id: string): Promise<Suggestion> {
+  const [s] = suggestionRows(
+    await q<Suggestion>(`UPDATE suggestions SET status = 'accepted', resolved_at = now() WHERE id = $1 AND status = 'pending' RETURNING *`, [id]),
+  );
+  if (s) return s;
+  const [existing] = suggestionRows(await q<Suggestion>(`SELECT * FROM suggestions WHERE id = $1`, [id]));
+  if (!existing) throw new AthenaInputError(`Suggestion ${id} not found`, 404);
+  return existing;
 }
 
 export async function rejectSuggestion(id: string): Promise<Suggestion> {
