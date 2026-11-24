@@ -21,10 +21,10 @@ const ITEMS: Record<string, { title: string; files: CatalogueFile[] }> = {
           summary: "Every Saturday morning, adds “Water the plants” to your to-dos and tells you it's there.",
           trigger: { kind: "schedule", days: [6], time: "09:00" },
           steps: [
-            { id: "s1", kind: "tool", tool: "add_todo", title: "Add “Water the plants”", input: { title: ["Water the plants"], context: [{ blank: "context" }] }, go: "auto", gives: [] },
+            { id: "s1", kind: "tool", tool: "add_todo", title: "Add “Water the plants”", input: { title: ["Water the plants"], area: [{ blank: "context" }] }, go: "auto", gives: [] },
             { id: "s2", kind: "notify", title: null, text: ["Watering is on your list for today."] },
           ],
-          asks: [{ key: "context", question: "Which to-do context should it go in?", choices: ["Home", "Weekend", "No context"], fills: "text" }],
+          asks: [{ key: "context", question: "Which context?", choices: [], fills: "text", pick: "area" }],
           needs: [],
         }),
       },
@@ -43,16 +43,16 @@ const ITEMS: Record<string, { title: string; files: CatalogueFile[] }> = {
           summary: "On weekday mornings, checks the forecast. If rain is likely, it drafts a note to your walking partner offering another time.",
           trigger: { kind: "schedule", days: [1, 2, 3, 4, 5], time: "07:30" },
           steps: [
-            { id: "s1", kind: "tool", tool: "weather", title: "Check the forecast", input: { when: ["today"] }, go: "auto", gives: [{ key: "rain", label: "chance of rain", kind: "number" }] },
+            { id: "s1", kind: "tool", tool: "weather", title: "Check the forecast", input: { date: [{ from: "trigger", key: "date" }] }, go: "auto", gives: [{ key: "result", label: "the forecast", kind: "text" }] },
             {
               id: "s2",
               kind: "check",
               title: null,
-              condition: { left: { from: "s1", key: "rain" }, op: "more_than", right: 60 },
+              condition: { left: { from: "s1", key: "result" }, op: "contains", right: "rain" },
               yes: [
-                { id: "s3", kind: "tool", tool: "draft_message", title: "Offer another time", input: { to: [{ blank: "walker" }], body: ["Rain's due this morning. Shall we walk at lunch instead?"] }, go: "ask", gives: [] },
+                { id: "s3", kind: "tool", tool: "draft_message", title: "Offer another time", input: { person_id: [{ blank: "walker" }], about: ["Rain's due this morning. Shall we walk at lunch instead?"] }, go: "ask", gives: [] },
               ],
-              no: [{ id: "s4", kind: "notify", title: null, text: ["Dry enough for the walk. Chance of rain: ", { from: "s1", key: "rain" }, "%"] }],
+              no: [{ id: "s4", kind: "notify", title: null, text: ["Dry enough for the walk: ", { from: "s1", key: "result" }] }],
             },
           ],
           asks: [{ key: "walker", question: "Who do you walk with?", choices: [], fills: "person" }],

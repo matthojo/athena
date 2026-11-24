@@ -12,7 +12,7 @@
  * by the file: the owner ticks accounts on the preview (lib/shared-limits.ts).
  */
 import { readShared, ShareFormatError } from "./team-share";
-import { allSharedSteps, FLOW_DRAFT_TOOLS, readSharedFlow, type SharedFlow } from "./flow-share";
+import { allSharedSteps, checkSharedFlowSteps, FLOW_DRAFT_TOOLS, readSharedFlow, type SharedFlow } from "./flow-share";
 import { detectKind, KIND_FILES, kindOfFile, type ShareKind } from "./share-kinds";
 
 export interface Reach {
@@ -96,8 +96,11 @@ export function reachOf(bundle: ReachInput): Reach {
     .filter((f) => kindOfFile(f.path) === kind)
     .sort((a, b) => a.path.split("/").length - b.path.split("/").length)[0];
   switch (kind) {
-    case "flow":
-      return reachOfFlow(readSharedFlow(parseJson(main.text, KIND_FILES.flow)));
+    case "flow": {
+      const flow = readSharedFlow(parseJson(main.text, KIND_FILES.flow));
+      checkSharedFlowSteps(flow);
+      return reachOfFlow(flow);
+    }
     case "assistant":
       return reachOfAssistant(readShared(parseJson(main.text, KIND_FILES.assistant)));
     case "skill":

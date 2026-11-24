@@ -20,8 +20,8 @@ const FLOW = {
   version: "1.0.0",
   summary: "Adds a watering to-do every Saturday.",
   trigger: { kind: "schedule", days: [6], time: "09:00" },
-  steps: [{ id: "s1", kind: "tool", tool: "add_todo", input: { title: ["Water the plants"], context: [{ blank: "context" }] }, go: "auto", gives: [] }],
-  asks: [{ key: "context", question: "Which context?", choices: ["Home", "Weekend"], fills: "text" }],
+  steps: [{ id: "s1", kind: "tool", tool: "add_todo", input: { title: ["Water the plants"], area: [{ blank: "context" }] }, go: "auto", gives: [] }],
+  asks: [{ key: "context", question: "Which context?", choices: [], fills: "text", pick: "area" }],
 };
 const ASSISTANT = {
   format: 1,

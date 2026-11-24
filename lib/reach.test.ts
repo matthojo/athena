@@ -69,7 +69,7 @@ test("assistants and skills always use a model; an assistant can ask for the web
 });
 
 test("reachOf reads the files, not what anyone says about them", () => {
-  const flow = { path: "flow.json", text: JSON.stringify(flowFile([tool("s1", "train_status", { from: ["Exampleton"] })], { reach: { tier: 1 } })) };
+  const flow = { path: "flow.json", text: JSON.stringify(flowFile([tool("s1", "train_status", {})], { reach: { tier: 1 } })) };
   assert.deepEqual(reachOf({ files: [flow] }), { tier: 2, model: false, web: false, lookups: ["train_status"], needs: [] });
   assert.equal(reachOf({ kind: "flow", files: [flow] }).tier, 2);
 

@@ -12,7 +12,7 @@
  */
 import { bundleHash, CATALOGUE_LIMITS, KIND_FORMATS, type CatalogueFile, type CatalogueItem } from "./catalogue-types";
 import type { AddPreview, AddPreviewItem } from "./community-api";
-import { readSharedFlow } from "./flow-share";
+import { checkSharedFlowSteps, readSharedFlow } from "./flow-share";
 import { reachOf } from "./reach";
 import { detectKind, KIND_FILES, kindOfFile, readHeader, type ShareHeader, type ShareKind } from "./share-kinds";
 import { cleanPath, intakeEntries, NOT_USED_BIG, NOT_USED_FULL, NOT_USED_SCRIPT, NOT_USED_UNREAD, SKILL_LIMITS, SkillFormatError, skillTitle, textOf, TEXT_EXTENSIONS, type IntakeEntry, type SkillSource } from "./skills";
@@ -138,7 +138,9 @@ export function readItem(kind: ShareKind, files: readonly CatalogueFile[], sourc
       return { kind, shared: b.shared, skill: b.skill };
     }
     if (kind === "skill") return { kind, skill: intakeEntries(entriesOf(files), source) };
-    return { kind, flow: readSharedFlow(parseJson(mainText(kind, files), KIND_FILES.flow)) };
+    const flow = readSharedFlow(parseJson(mainText(kind, files), KIND_FILES.flow));
+    checkSharedFlowSteps(flow);
+    return { kind, flow };
   } catch (error) {
     if (error instanceof SkillFormatError) throw new ShareFormatError(error.message);
     throw error;

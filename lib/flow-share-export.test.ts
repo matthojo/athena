@@ -1,6 +1,6 @@
 // Shared flows (lib/flow-share.ts): making one from a flow, adding one, and the round trip. Record ids become
 // questions, links to the site go, the owner's own details are flagged, steps that lean on the owner's own types,
-// fields or lists are named; an import makes its own ids, waits for Go everywhere, starts off and keeps unfilled
+// fields are named, and a list or context becomes a question; an import makes its own ids, waits for Go on every change, starts off and keeps unfilled
 // blanks. Everything here is made up. Nothing needs a database.
 // Run: npx tsx --test lib/flow-share-export.test.ts
 import { test } from "node:test";
@@ -144,7 +144,7 @@ test("export: a check against one of the owner's records asks for it", () => {
   assert.equal(x.shared.asks[0].fills, "person");
 });
 
-test("export: steps that lean on the owner's own types, fields or lists are named, with why", () => {
+test("export: steps that lean on the owner's own types or fields are named, with why", () => {
   const f: Exportable = {
     name: "Wine log",
     money: false,
@@ -161,12 +161,52 @@ test("export: steps that lean on the owner's own types, fields or lists are name
   assert.deepEqual(x.blocked, [
     { step_id: "s1", why: BLOCKED_WHY.types },
     { step_id: "s2", why: BLOCKED_WHY.field },
-    { step_id: "s3", why: BLOCKED_WHY.list },
     { step_id: "s4", why: BLOCKED_WHY.project },
   ]);
-  // The note it links to is still a question; nothing of the project's id is in the file.
-  assert.deepEqual(x.shared.asks.map((a) => a.fills), ["note"]);
+  // The list is a question now, and the note it links to; nothing of the project's id is in the file.
+  assert.deepEqual(x.shared.asks.map((a) => [a.fills, a.pick ?? null]), [["text", "list"], ["note", null]]);
   assert.ok(!JSON.stringify(x.shared).includes(OTHER));
+});
+
+test("export: a list or to-do context named in words becomes “Which list?” or “Which context?”, never the name", () => {
+  const f: Exportable = {
+    name: "Weekend jobs",
+    money: false,
+    trigger: { kind: "manual" },
+    steps: [
+      { id: "a", title: null, kind: "tool", tool: "add_to_list", input: { item: ["Bin bags"], list_title: ["Shopping"] }, go: "auto", gives: [] },
+      { id: "b", title: null, kind: "tool", tool: "add_todo", input: { title: ["Mow the lawn"], area: ["Home"], where: ["Errands"] }, go: "auto", gives: [] },
+      { id: "c", title: null, kind: "tool", tool: "add_to_list", input: { item: ["Milk"], list_title: ["shopping"] }, go: "auto", gives: [] },
+      { id: "d", title: null, kind: "tool", tool: "find_todos", input: { area: ["Home"] }, go: "auto", gives: [{ key: "count", label: "how many", kind: "number" }] },
+      { id: "e", title: null, kind: "tool", tool: "add_to_list", input: { item: ["Card"], list_title: ["Gifts for ", { from: "trigger", key: "date" }] }, go: "auto", gives: [] },
+    ],
+  };
+  const x = exportFlow(f, ctx());
+  assert.deepEqual(x.blocked, []);
+  assert.deepEqual(
+    x.shared.asks.map((a) => [a.key, a.question, a.fills, a.pick]),
+    [
+      ["list", "Which list?", "text", "list"],
+      ["context", "Which context?", "text", "area"],
+      ["context_2", "Which other context?", "text", "where"],
+    ],
+  );
+  const [a, b, c, d, e] = x.shared.steps;
+  assert.ok(a.kind === "tool" && b.kind === "tool" && c.kind === "tool" && d.kind === "tool" && e.kind === "tool");
+  assert.deepEqual(a.input.list_title, [{ blank: "list" }]);
+  assert.deepEqual(c.input.list_title, [{ blank: "list" }], "the same list, asked once");
+  assert.deepEqual([b.input.area, b.input.where, d.input.area], [[{ blank: "context" }], [{ blank: "context_2" }], [{ blank: "context" }]]);
+  assert.deepEqual(e.input.list_title, ["Gifts for ", { from: "trigger", key: "date" }], "made from a value, it stays");
+  const file = serialiseSharedFlow(x.shared);
+  for (const own of ["Shopping", "Home", "Errands"]) assert.ok(!file.includes(`"${own}"`), own);
+  // Read back, the questions keep what they pick from; added, the answers fill them.
+  const back = readSharedFlow(JSON.parse(file));
+  assert.deepEqual(back.asks.map((q) => q.pick), ["list", "area", "where"]);
+  const made = importSharedFlow(back, { list: "Groceries", context: "House", context_2: "Out and about" });
+  const [ma, mb] = made.steps;
+  assert.ok(ma.kind === "tool" && mb.kind === "tool");
+  assert.deepEqual(ma.input.list_title, ["Groceries"]);
+  assert.deepEqual([mb.input.area, mb.input.where], [["House"], ["Out and about"]]);
 });
 
 test("export: past the question limit, the step is named instead", () => {
@@ -186,7 +226,7 @@ test("flowSlug: plain letters and dashes, and a fallback", () => {
 
 const shared = () => readSharedFlow(JSON.parse(serialiseSharedFlow(exportFlow(renewal(), ctx()).shared)));
 
-test("import: new ids, blanks filled, every tool step waits for Go, off, origin shared, money off", () => {
+test("import: new ids, blanks filled, every change step waits for Go, look steps run, off, origin shared, money off", () => {
   const f = importSharedFlow(shared(), { person: OTHER });
   assert.equal(f.paused, true);
   assert.equal(f.origin, "shared");
@@ -198,7 +238,8 @@ test("import: new ids, blanks filled, every tool step waits for Go, off, origin 
   assert.equal(new Set(all.map((s) => s.id)).size, 5);
   for (const s of all) assert.match(s.id, /^s[0-9a-z]{6}$/);
   assert.ok(all.every((s) => !["s1", "s2", "s3", "s4", "s5"].includes(s.id)));
-  for (const s of all) if (s.kind === "tool") assert.equal(s.go, "ask", s.tool);
+  // The owner's decision (24 Nov 2026): a step that only looks runs; one that changes something waits for Go.
+  for (const s of all) if (s.kind === "tool") assert.equal(s.go, s.tool === "money" ? "auto" : "ask", s.tool);
   const todo = all.find((s) => s.kind === "tool" && s.tool === "add_todo");
   assert.ok(todo?.kind === "tool");
   assert.deepEqual(todo.input.person_id, [OTHER]);

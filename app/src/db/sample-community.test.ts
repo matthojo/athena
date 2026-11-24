@@ -34,3 +34,13 @@ test("sample updates point at a listed item with a newer hash and a withdrawn on
   assert.notEqual(newer.hash, newer.newer?.hash);
   assert.ok(index.withdrawn.some((w) => w.id === gone.catalogue_id));
 });
+
+test("every sample flow, listed or linked, passes the checks a flow gets when it's added", async () => {
+  const { checkSharedFlowSteps, readSharedFlow } = await import("../../../lib/flow-share");
+  const { SAMPLE_LINKS, sampleLinkFiles } = await import("../add/sample-items");
+  const texts: Array<[string, string]> = [];
+  for (const item of (await sampleCatalogue()).items) if (item.kind === "flow") texts.push([item.slug, (await sampleBundle(item.id))!.bundle.files.find((f) => f.path.endsWith("flow.json"))!.text]);
+  for (const l of SAMPLE_LINKS) for (const f of sampleLinkFiles(l.link) ?? []) if (f.path.endsWith("flow.json") && !/newer/i.test(l.title)) texts.push([l.title, f.text]);
+  assert.ok(texts.length >= 7);
+  for (const [name, text] of texts) assert.doesNotThrow(() => checkSharedFlowSteps(readSharedFlow(JSON.parse(text))), name);
+});

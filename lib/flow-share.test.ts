@@ -4,8 +4,9 @@
 // Run: npx tsx --test lib/flow-share.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { allSharedSteps, FLOW_DRAFT_TOOLS, FLOW_MONEY_TOOLS, FLOW_SHARE_FORMAT, FLOW_SHARE_TOOLS, MAX_FLOW_ASKS, readSharedFlow } from "./flow-share";
-import { DRAFT_TOOLS, FLOW_TOOLS } from "./flow-catalog";
+import { allSharedSteps, checkSharedFlowSteps, FLOW_DRAFT_TOOLS, FLOW_LOOK_TOOLS, FLOW_MONEY_TOOLS, FLOW_SHARE_FORMAT, FLOW_SHARE_TOOLS, FLOW_TOOL_SHAPES, importSharedFlow, MAX_FLOW_ASKS, readSharedFlow } from "./flow-share";
+import { reachOf } from "./reach";
+import { DRAFT_TOOLS, FLOW_TOOLS, flowTool, toolChanges } from "./flow-catalog";
 import { MONEY_TOOL_NAMES } from "./ask-tools";
 import { FLOW_LIMITS } from "./flow-types";
 import { ShareFormatError } from "./team-share";
@@ -149,3 +150,44 @@ test("web: a request, from the file or a thinking step that searches", () => {
   assert.equal(f.money, false);
 });
 
+
+// ---------- checkSharedFlowSteps: the checks a saved flow gets, without the database ----------
+
+test("FLOW_TOOL_SHAPES and FLOW_LOOK_TOOLS match the flows catalogue: each tool's fields, what it gives, and whether it changes anything", () => {
+  for (const name of Object.keys(FLOW_TOOLS)) {
+    const tool = flowTool(name)!;
+    const fields = Object.keys((tool.input_schema as { properties?: object }).properties ?? {}).filter((k) => k !== "step");
+    assert.deepEqual([...FLOW_TOOL_SHAPES[name].fields], fields, name);
+    assert.deepEqual({ ...FLOW_TOOL_SHAPES[name].gives }, Object.fromEntries(FLOW_TOOLS[name].gives.map((g) => [g.key, g.kind])), name);
+  }
+  assert.deepEqual(Object.keys(FLOW_TOOL_SHAPES).sort(), Object.keys(FLOW_TOOLS).sort());
+  assert.deepEqual([...FLOW_LOOK_TOOLS].sort(), Object.keys(FLOW_TOOLS).filter((t) => !toolChanges(t)).sort());
+});
+
+const stepsFlow = (steps: unknown[], trigger: unknown = { kind: "manual" }) => readSharedFlow({ format: 1, name: "Check", trigger, steps, asks: [] });
+
+test("checkSharedFlowSteps: a field the tool doesn't have, a value it doesn't give, or one of the wrong kind is refused", () => {
+  assert.throws(() => checkSharedFlowSteps(stepsFlow([{ id: "s1", kind: "tool", tool: "add_todo", input: { title: ["Call"], context: ["Home"] } }])), /“add_todo” has no field “context”/);
+  assert.throws(() => checkSharedFlowSteps(stepsFlow([{ id: "s1", kind: "tool", tool: "add_todo", input: { title: ["Call"] }, gives: [{ key: "person", label: "the person", kind: "person" }] }])), /doesn't give “person”/);
+  assert.throws(() => checkSharedFlowSteps(stepsFlow([{ id: "s1", kind: "tool", tool: "find_people", input: { query: ["Sam"] }, gives: [{ key: "person", label: "the person", kind: "note" }] }])), /is a person, not a note/);
+  assert.doesNotThrow(() => checkSharedFlowSteps(stepsFlow([{ id: "s1", kind: "tool", tool: "add_todo", input: { title: ["Call"], area: ["Home"] }, gives: [{ key: "todo", label: "the to-do", kind: "todo" }] }])));
+});
+
+test("checkSharedFlowSteps: a value must come from the trigger or a step before it on the way there", () => {
+  const find = { id: "s1", kind: "tool", tool: "find_people", input: { query: ["Sam"] }, gives: [{ key: "person", label: "the person", kind: "person" }] };
+  const use = (from: string, key: string) => ({ id: "s9", kind: "notify", text: ["Found ", { from, key }] });
+  assert.doesNotThrow(() => checkSharedFlowSteps(stepsFlow([find, use("s1", "person")])));
+  assert.doesNotThrow(() => checkSharedFlowSteps(stepsFlow([use("trigger", "date")])));
+  assert.throws(() => checkSharedFlowSteps(stepsFlow([use("trigger", "event")])), /trigger doesn't give “event”/);
+  assert.throws(() => checkSharedFlowSteps(stepsFlow([use("s1", "person"), find])), /uses “person” before any step gives it/);
+  assert.throws(() => checkSharedFlowSteps(stepsFlow([find, use("s1", "count")])), /uses “count” before any step gives it/);
+  // A value given inside one branch isn't there in the other, or after a check that only one path gives it on.
+  const branch = { id: "s2", kind: "check", condition: { left: { from: "trigger", key: "date" }, op: "exists" }, yes: [find], no: [use("s1", "person")] };
+  assert.throws(() => checkSharedFlowSteps(stepsFlow([branch])), /before any step gives it/);
+});
+
+test("checkSharedFlowSteps runs on every way a flow comes in: reach, the preview and import", () => {
+  const bad = { format: 1, name: "Bad", trigger: { kind: "manual" }, steps: [{ id: "s1", kind: "tool", tool: "add_todo", input: { title: ["Call"], context: ["Home"] } }], asks: [] };
+  assert.throws(() => reachOf({ files: [{ path: "flow.json", text: JSON.stringify(bad) }] }), /has no field “context”/);
+  assert.throws(() => importSharedFlow(readSharedFlow(bad), {}), /has no field “context”/);
+});

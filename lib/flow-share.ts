@@ -23,6 +23,7 @@ import { MAX_CHOICE, MAX_CHOICES, MAX_QUESTION, MAX_SUMMARY } from "./team-skill
 import { MAX_ITEM_NEEDS } from "./shared-limits";
 import { addRemoved, findPersonal, scrubText, ShareFormatError, type Finding, type KnownTerm, type Removed } from "./team-share";
 import { readHeader, type ShareHeader } from "./share-kinds";
+import { triggerGives } from "./flow-trigger-gives";
 import { EVENT_SOURCES, type EventFilter, type TeamWeekday } from "./team-types";
 import { FLOW_LIMITS, VALUE_KINDS, type CheckOp, type Flow, type FlowCondition, type FlowInput, type FlowStep, type FlowText, type FlowTrigger, type FlowUnfilled, type FlowValue, type GoMode, type ValueKind, type ValueRef } from "./flow-types";
 
@@ -50,6 +51,58 @@ export const FLOW_SHARE_TOOLS: readonly string[] = [
 export const FLOW_MONEY_TOOLS: readonly string[] = ["money", "regular_payments"];
 /** Drafts always wait for Go (lib/flow-catalog.ts DRAFT_TOOLS; the test checks). */
 export const FLOW_DRAFT_TOOLS: readonly string[] = ["draft_email", "draft_message"];
+/** Tools that only look (lib/flow-catalog.ts toolChanges is false; the test checks): a shared flow runs them without a Go. */
+export const FLOW_LOOK_TOOLS: readonly string[] = FLOW_SHARE_TOOLS.slice(0, FLOW_SHARE_TOOLS.indexOf("add_todo"));
+
+/**
+ * Each tool's fields and the values it gives later steps, as lib/flow-catalog.ts has them (the test checks), so a
+ * shared flow can be checked where there's no database: the catalogue's own checks, and the preview.
+ */
+export const FLOW_TOOL_SHAPES: Readonly<Record<string, { fields: readonly string[]; gives: Readonly<Record<string, ValueKind>> }>> = {
+  find_people: { fields: ["query", "limit"], gives: { person: "person", count: "number" } },
+  find_notes: { fields: ["query", "person_id"], gives: { note: "note", count: "number" } },
+  find_todos: { fields: ["query", "person_id", "area", "where", "include_done"], gives: { todo: "todo", count: "number" } },
+  find_items: { fields: ["kind", "query"], gives: { item: "text", count: "number" } },
+  find_records: { fields: ["query", "kind"], gives: { record: "text", count: "number" } },
+  find_saved: { fields: ["query"], gives: { saved: "saved", count: "number" } },
+  find_watch_read: { fields: ["query"], gives: { item: "text", count: "number" } },
+  money: { fields: ["from", "to", "merchant", "category", "min", "max", "group_by"], gives: { total: "money", latest: "money", count: "number" } },
+  regular_payments: { fields: [], gives: { result: "text", count: "number" } },
+  goals: { fields: ["query", "status"], gives: { result: "text", count: "number" } },
+  trips: { fields: ["query", "from", "to", "upcoming"], gives: { trip: "trip", count: "number" } },
+  purchases: { fields: ["query", "status", "in_progress"], gives: { result: "text", count: "number" } },
+  habits: { fields: ["from", "to"], gives: { result: "text" } },
+  days: { fields: ["date", "from", "to", "query", "kind"], gives: { result: "text" } },
+  health: { fields: ["from", "to"], gives: { result: "text" } },
+  places: { fields: ["from", "to", "query"], gives: { result: "text" } },
+  weather: { fields: ["date", "from", "to", "place"], gives: { result: "text" } },
+  work: { fields: ["period", "project"], gives: { result: "text" } },
+  energy: { fields: [], gives: { result: "text" } },
+  tracker_history: { fields: ["tracker_id", "saved_id", "query"], gives: { result: "text" } },
+  train_status: { fields: ["booking_id"], gives: { result: "text" } },
+  flight_status: { fields: ["booking_id"], gives: { result: "text" } },
+  car_details: { fields: [], gives: { result: "text" } },
+  add_todo: { fields: ["title", "kind", "person_id", "due_on", "area", "where", "notes", "steps", "links", "priority"], gives: { todo: "todo" } },
+  add_reminder: { fields: ["text", "date", "time", "repeat", "about_kind", "about_id"], gives: { reminder: "text" } },
+  save_note: { fields: ["note_id", "title", "body", "tags"], gives: { note: "note" } },
+  add_to_list: { fields: ["item", "list_title", "person_id", "note_id", "tags"], gives: { note: "note" } },
+  add_person: { fields: ["name", "relationship", "email", "phone", "birthday", "organisation", "notes", "keep_in_touch"], gives: { person: "person" } },
+  remember: { fields: ["person_id", "key", "value"], gives: { done: "text" } },
+  log_catch_up: { fields: ["person_ids", "channel", "summary", "date"], gives: { done: "text" } },
+  add_to_watch_read: { fields: ["title", "kind", "status", "author", "url", "recommended_by", "notes", "progress"], gives: { item: "text" } },
+  update_watch_read: { fields: ["id", "status", "kind", "title", "author", "progress"], gives: { item: "text" } },
+  complete_todo: { fields: ["id"], gives: { todo: "todo" } },
+  change_todo: { fields: ["id", "title", "type", "status", "due_on", "person_id", "notes", "area", "where", "priority", "add_steps", "done_steps", "open_steps", "remove_steps", "add_links", "clear"], gives: { todo: "todo" } },
+  save_item: { fields: ["kind", "id", "name", "notes", "address", "website", "date", "time", "yearly", "event_type", "person_id", "remind_days_before", "status", "progress", "period", "target", "provider", "asset_type", "clear"], gives: { item: "text" } },
+  set_field: { fields: ["kind", "record_id", "field", "value", "add"], gives: { done: "text" } },
+  save_record: { fields: ["kind", "record_id", "title", "body", "values"], gives: { record: "text" } },
+  link_records: { fields: ["link", "from_kind", "from_id", "to_kind", "to_id", "relation"], gives: { done: "text" } },
+  save_trip: { fields: ["trip_id", "title", "starts_on", "ends_on", "notes"], gives: { trip: "trip" } },
+  save_purchase: { fields: ["purchase_id", "retailer", "items", "order_number", "ordered_on", "expected_on", "status", "carrier", "tracking_number", "tracking_url"], gives: { done: "text" } },
+  file_saved_item: { fields: ["saved_id", "action", "params"], gives: { saved: "saved" } },
+  draft_email: { fields: ["person_id", "about", "todo_id"], gives: { draft: "text" } },
+  draft_message: { fields: ["person_id", "about", "channel", "todo_id"], gives: { draft: "text" } },
+};
 
 // ---------- the format ----------
 
@@ -95,7 +148,16 @@ export interface SharedFlowAsk {
   choices: string[];
   /** What fills it: `text`, or a record of theirs to pick (`person`, `note`, `todo`…). */
   fills: ValueKind;
+  /**
+   * For a `text` blank that names one of the owner's own lists or to-do contexts: what to offer as answers. `list`:
+   * their lists; `area`, `where`: their to-do contexts of that kind. Left out: words or a record, as `fills` says.
+   */
+  pick?: FlowPick;
 }
+
+/** What a blank's answers come from, when it names a list or a context of the owner's. */
+export type FlowPick = "list" | "area" | "where";
+export const FLOW_PICKS: readonly FlowPick[] = ["list", "area", "where"];
 
 export interface SharedFlow extends ShareHeader {
   format: typeof FLOW_SHARE_FORMAT;
@@ -335,7 +397,8 @@ function readAsks(raw: unknown): SharedFlowAsk[] {
     const fills = ask.fills === undefined ? "text" : ask.fills;
     if (!(VALUE_KINDS as readonly string[]).includes(fills as string)) fail(`${at}.fills: not a kind of value Athena knows`);
     const choices = [...new Set(list(ask.choices, `${at}.choices`).filter((c): c is string => typeof c === "string").map(oneLine).filter((c) => c && c.length <= MAX_CHOICE))].slice(0, MAX_CHOICES);
-    out.push({ key: ask.key as string, question: words(ask.question, `${at}.question`, MAX_QUESTION, { required: true }), choices: fills === "text" && choices.length >= 2 ? choices : [], fills: fills as ValueKind });
+    const pick = fills === "text" && FLOW_PICKS.includes(ask.pick as FlowPick) ? (ask.pick as FlowPick) : null;
+    out.push({ key: ask.key as string, question: words(ask.question, `${at}.question`, MAX_QUESTION, { required: true }), choices: fills === "text" && !pick && choices.length >= 2 ? choices : [], fills: fills as ValueKind, ...(pick ? { pick } : {}) });
   }
   if (out.length > MAX_FLOW_ASKS) fail(`asks: ${MAX_FLOW_ASKS} questions at most`);
   return out;
@@ -399,6 +462,56 @@ export function readSharedFlow(raw: unknown): SharedFlow {
   };
 }
 
+/**
+ * The checks lib/flows.ts checkSteps makes when a flow is saved, for a shared flow, without the database: each tool
+ * step uses only its tool's own fields and gives only values that tool gives, and every value a step uses comes from
+ * the trigger or from a step before it on the way there. Run on every preview and every add, and by the catalogue's
+ * own checks, so a flow that passes review can be added. Throws ShareFormatError with words for the owner. Pure.
+ */
+export function checkSharedFlowSteps(shared: Pick<SharedFlow, "trigger" | "steps">): void {
+  const fromTrigger = new Set(triggerGives(shared.trigger).map((g) => g.key));
+  const name = (s: SharedFlowStep) => (s.title ? `“${s.title}”` : `step ${s.id}`);
+  const refsIn = (t: SharedText): ValueRef[] => t.filter((p): p is ValueRef => typeof p === "object" && "from" in p);
+  const walk = (steps: readonly SharedFlowStep[], before: ReadonlyMap<string, ReadonlySet<string>>) => {
+    const seen = new Map(before);
+    for (const s of steps) {
+      const refs: ValueRef[] = [];
+      if (s.kind === "tool") {
+        const shape = FLOW_TOOL_SHAPES[s.tool];
+        if (!shape) fail(`${name(s)}: a flow can't use “${s.tool}”`);
+        for (const [k, t] of Object.entries(s.input)) {
+          if (!shape.fields.includes(k)) fail(`${name(s)}: “${s.tool}” has no field “${k}”`);
+          refs.push(...refsIn(t));
+        }
+        for (const g of s.gives) {
+          const kind = shape.gives[g.key];
+          if (!kind) fail(`${name(s)}: “${s.tool}” doesn't give “${g.key}”`);
+          if (kind !== g.kind) fail(`${name(s)}: “${g.key}” from “${s.tool}” is a ${kind}, not a ${g.kind}`);
+        }
+      } else if (s.kind === "check") {
+        const c = s.condition;
+        refs.push(c.left, ...(c.against ? [c.against] : []), ...(c.right && typeof c.right === "object" && "from" in c.right ? [c.right] : []));
+      } else if (s.kind === "ask") refs.push(...refsIn(s.question));
+      else if (s.kind === "wait" && s.before) refs.push(s.before);
+      else if (s.kind === "notify") refs.push(...refsIn(s.text));
+      else if (s.kind === "think") refs.push(...refsIn(s.task));
+      else if (s.kind === "assignment") refs.push(...refsIn(s.brief));
+      for (const r of refs) {
+        if (r.from === "trigger") {
+          if (!fromTrigger.has(r.key)) fail(`${name(s)}: its trigger doesn't give “${r.key}”`);
+        } else if (!seen.get(r.from)?.has(r.key)) fail(`${name(s)}: uses “${r.key}” before any step gives it`);
+      }
+      if (s.kind === "check") {
+        walk(s.yes, seen);
+        walk(s.no, seen);
+      } else if (s.kind === "ask") for (const c of s.choices) walk(c.steps, seen);
+      if (s.kind === "tool" || s.kind === "think") seen.set(s.id, new Set(s.gives.map((g) => g.key)));
+      if (s.kind === "assignment") seen.set(s.id, new Set(["note"]));
+    }
+  };
+  walk(shared.steps, new Map());
+}
+
 // ---------- making one ----------
 
 /** What exportFlow needs from the server: the site's own hosts to take out, and the owner's terms to flag. */
@@ -423,6 +536,8 @@ export interface FlowExportBlank {
   /** The question's key in `asks`. */
   key: string;
   fills: ValueKind;
+  /** Set when it names one of the owner's lists or contexts. */
+  pick?: FlowPick;
   /** The steps that use it, by their id in the file ("s2"), in order. */
   steps: string[];
 }
@@ -441,7 +556,7 @@ export interface FlowExport {
   findings: Finding[];
   /** Where a step pointed at one of the owner's records: each is a question in `shared.asks`. */
   blanks: FlowExportBlank[];
-  /** Steps that depend on the owner's own types, fields or lists. Nothing downloads while any are listed. */
+  /** Steps that depend on the owner's own types or fields. Nothing downloads while any are listed. */
   blocked: FlowExportBlocked[];
   /** The folder's name: "broadband-renewal-check". */
   slug: string;
@@ -455,7 +570,6 @@ const POINTABLE: readonly ValueKind[] = ["person", "organisation", "place", "eve
 export const BLOCKED_WHY = {
   types: "It uses one of your own types, which whoever adds it won't have.",
   field: "It sets one of your own fields, which whoever adds it won't have.",
-  list: "It adds to one of your lists by name. Lists can't be shared yet.",
   project: "It points at one of your projects. Projects can't be shared yet.",
   record: "It points at something of yours that can't be swapped for a question yet.",
   many: `It points at more of your records than a shared flow can ask about (${MAX_FLOW_ASKS} at most).`,
@@ -463,10 +577,20 @@ export const BLOCKED_WHY = {
 
 const NOUN: Partial<Record<ValueKind, string>> = { person: "person", organisation: "organisation", place: "place", event: "event", note: "note", todo: "to-do", saved: "saved item", trip: "trip", email: "email" };
 
-/** "Which person should it use?", and "Which other person should it use?" for the next. Pure. */
-export function blankQuestion(fills: ValueKind, nth = 1): string {
-  return `Which ${nth > 1 ? "other " : ""}${NOUN[fills] ?? "one"} should it use?`;
+/**
+ * "Which person should it use?", and "Which other person should it use?" for the next; "Which list?" and "Which
+ * context?" for a list or a to-do context. Pure.
+ */
+export function blankQuestion(fills: ValueKind, nth = 1, pick?: FlowPick): string {
+  const other = nth > 1 ? "other " : "";
+  if (pick) return `Which ${other}${pick === "list" ? "list" : "context"}?`;
+  return `Which ${other}${NOUN[fills] ?? "one"} should it use?`;
 }
+
+/** Fields that name one of the owner's lists or to-do contexts: a question on export, not their words. */
+const pickOf = (key: string): FlowPick | null => (key === "list_title" ? "list" : key === "area" ? "area" : key === "where" ? "where" : null);
+/** Lists are one group, contexts (area and where) another, for "Which other …?". */
+const pickGroup = (p: FlowPick | undefined) => (p === "list" ? "list" : p ? "context" : null);
 
 const literalOf = (t: readonly unknown[] | undefined): string => (t ?? []).filter((p): p is string => typeof p === "string").join("").trim();
 const UUID_ONLY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -494,7 +618,6 @@ function pointsAt(tool: string, key: string, input: Record<string, readonly unkn
 function toolBlocked(tool: string, input: Record<string, readonly unknown[]>): string | null {
   if (tool === "find_records" || tool === "save_record") return BLOCKED_WHY.types;
   if (tool === "set_field") return BLOCKED_WHY.field;
-  if (tool === "add_to_list" && literalOf(input.list_title)) return BLOCKED_WHY.list;
   return null;
 }
 
@@ -522,9 +645,10 @@ export function flowSlug(name: string): string {
 }
 
 /**
- * A flow as a file: record ids become blanks with questions, links to the site go, steps are numbered afresh, and
- * nothing that isn't in the format is kept (its id, runs, assistant). A step that leans on the owner's own types,
- * fields or lists is still written, and named in `blocked`: the file isn't for downloading until there are none.
+ * A flow as a file: record ids become blanks with questions, and so does a list or to-do context named by the
+ * owner ("Which list?", "Which context?"); links to the site go, steps are numbered afresh, and nothing that isn't
+ * in the format is kept (its id, runs, assistant). A step that leans on the owner's own types or fields is still
+ * written, and named in `blocked`: the file isn't for downloading until there are none.
  * Throws ShareFormatError when the result isn't a flow Athena can read. Pure.
  */
 export function exportFlow(flow: Pick<Flow, "name" | "trigger" | "steps" | "money">, ctx: FlowExportContext): FlowExport {
@@ -558,17 +682,20 @@ export function exportFlow(flow: Pick<Flow, "name" | "trigger" | "steps" | "mone
   const block = (step_id: string, why: string) => {
     if (!blocked.some((b) => b.step_id === step_id)) blocked.push({ step_id, why });
   };
-  const blankFor = (value: string, fills: ValueKind, stepId: string): FlowBlank | null => {
-    let b = blanks.find((x) => x.value === value && x.fills === fills);
+  const blankFor = (value: string, fills: ValueKind, stepId: string, pick?: FlowPick): FlowBlank | null => {
+    let b = blanks.find((x) => x.value === value && x.fills === fills && x.pick === pick);
     if (!b) {
       if (blanks.length >= MAX_FLOW_ASKS) {
         block(stepId, BLOCKED_WHY.many);
         return null;
       }
-      const nth = blanks.filter((x) => x.fills === fills).length + 1;
-      const base = fills.replace(/[^a-z]/g, "") || "answer";
+      const group = pickGroup(pick);
+      const nth = blanks.filter((x) => (group ? pickGroup(x.pick) === group : !x.pick && x.fills === fills)).length + 1;
+      const base = group ?? (fills.replace(/[^a-z]/g, "") || "answer");
       const id = UUID_ONLY.test(value) ? value : "";
-      b = { key: nth > 1 ? `${base}_${nth}` : base, fills, steps: [], value, question: ctx.recordWords?.(fills, id) || blankQuestion(fills, nth) };
+      // The owner's own list or context name never goes in the file: the question is always Athena's.
+      const question = pick ? blankQuestion(fills, nth, pick) : ctx.recordWords?.(fills, id) || blankQuestion(fills, nth);
+      b = { key: nth > 1 ? `${base}_${nth}` : base, fills, steps: [], value, question, ...(pick ? { pick } : {}) };
       blanks.push(b);
     }
     if (!b.steps.includes(stepId)) b.steps.push(stepId);
@@ -595,6 +722,16 @@ export function exportFlow(flow: Pick<Flow, "name" | "trigger" | "steps" | "mone
         if (why) block(id, why);
         const input: Record<string, SharedText> = {};
         for (const [k, t] of Object.entries(s.input)) {
+          const pick = pickOf(k);
+          if (pick) {
+            // A list or context named in words alone is the owner's: it becomes "Which list?" or "Which context?".
+            const lit = literalOf(t);
+            const words = t.every((p) => typeof p === "string");
+            const blank = lit && words ? blankFor(`${pick}:${lit.toLowerCase()}`, "text", id, pick) : null;
+            if (blank) input[k] = [blank];
+            else if (!lit || !words) input[k] = text(t, field);
+            continue;
+          }
           if (!isRecordField(k)) {
             input[k] = text(t, field);
             continue;
@@ -682,7 +819,7 @@ export function exportFlow(flow: Pick<Flow, "name" | "trigger" | "steps" | "mone
   const asks: SharedFlowAsk[] = blanks.map((b) => {
     const said = wording.get(b.key);
     const question = said && typeof said.question === "string" && oneLine(said.question) ? oneLine(said.question).slice(0, MAX_QUESTION) : b.question;
-    return { key: b.key, question: scrub(question), choices: [], fills: b.fills };
+    return { key: b.key, question: scrub(question), choices: [], fills: b.fills, ...(b.pick ? { pick: b.pick } : {}) };
   });
   for (const a of asks) note("asks", a.question);
 
@@ -703,12 +840,13 @@ export function exportFlow(flow: Pick<Flow, "name" | "trigger" | "steps" | "mone
     version: edits.version,
     author: edits.author,
   });
+  checkSharedFlowSteps(shared);
   const findings = findPersonal(
     [...fields].map(([field, texts]) => ({ field, text: texts.join("\n") })),
     ctx.known,
     ctx.fine ?? [],
   );
-  return { shared, removed, findings, blanks: blanks.map(({ key, fills, steps: at }) => ({ key, fills, steps: at })), blocked, slug: flowSlug(shared.name) };
+  return { shared, removed, findings, blanks: blanks.map(({ key, fills, pick, steps: at }) => ({ key, fills, ...(pick ? { pick } : {}), steps: at })), blocked, slug: flowSlug(shared.name) };
 }
 
 /** flow.json as it's written: two-space JSON with a line at the end. Pure. */
@@ -777,13 +915,14 @@ function freshId(taken: Set<string>): string {
 }
 
 /**
- * A shared flow as the store saves it: step ids made here, blanks filled from `answers`, every tool step waiting for
- * Go, thinking steps off the web, `money` off (the caller turns it on only when the owner ticks it), paused, origin
+ * A shared flow as the store saves it: step ids made here, blanks filled from `answers`, every step that changes
+ * something waiting for Go, thinking steps off the web, `money` off (the caller turns it on only when the owner ticks it), paused, origin
  * `shared`. A blank with no answer leaves its field without it, listed in `unfilled`: the step stays, and the flow
  * can't be switched on until the owner sets it. Throws ShareFormatError when an answer can't fill its blank (words
  * where a record was asked for, or too long). Pure.
  */
 export function importSharedFlow(shared: SharedFlow, answers: FlowAnswers): ImportedFlowInput {
+  checkSharedFlowSteps(shared);
   const asks = new Map(shared.asks.map((a) => [a.key, a]));
   const filled = new Map<string, string>();
   for (const a of shared.asks) {
@@ -827,8 +966,9 @@ export function importSharedFlow(shared: SharedFlow, answers: FlowAnswers): Impo
           // A record field with nothing in it is left out, as the editor leaves it.
           if (v.length || !RECORD_FIELD.test(k)) input[k] = v;
         }
-        // Whatever the file asked, every tool step waits for Go here until the owner says otherwise.
-        return { ...base, kind: "tool", tool: s.tool, input, go: "ask", gives: s.gives.map((g) => ({ ...g })) };
+        // Whatever the file asked, every step that changes something waits for Go here until the owner says
+        // otherwise. A step that only looks runs, as it does in any flow (the owner's decision, 24 Nov 2026).
+        return { ...base, kind: "tool", tool: s.tool, input, go: FLOW_LOOK_TOOLS.includes(s.tool) ? "auto" : "ask", gives: s.gives.map((g) => ({ ...g })) };
       }
       case "check": {
         const c = s.condition;
