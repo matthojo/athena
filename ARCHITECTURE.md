@@ -1936,6 +1936,40 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
   Instructions, files); upload, link and new. Sample mode keeps the starters
   and one skill in use on the device.
 
+### Community
+
+People share assistants, skills and flows as folders of plain files: data,
+never code. A curated catalogue (a separate repository, served as static
+files) lists reviewed items. Every way in (a listing, a link, files) ends at
+one preview, `#/add`; what's added starts switched off, and nothing in a file
+is a permission. These files are the contract the screens and routes build on:
+
+- **`lib/share-kinds.ts`.** The kinds (`assistant`, `skill`, `flow`), the file
+  that names each (assistant.json, SKILL.md, flow.json), the optional header
+  (`version`, `author`, `based_on`) and `detectKind(paths)`.
+- **`lib/flow-share.ts`.** flow.json, format 1, and `readSharedFlow`, as
+  strict as `readShared`: FLOW_LIMITS, unknown keys dropped, tools checked
+  against the flows catalogue, no record ids. A step field that pointed at
+  the owner's record is a blank (`{ "blank": key }`) that a question in
+  `asks` fills. `exportFlow` and `importSharedFlow` are stubs.
+- **`lib/reach.ts`.** `reachOf(files)`: tier 1 stays inside Athena, tier 2
+  uses a model or an outside lookup (each named), tier 3 asks for the web.
+  Worked out from the files, never declared.
+- **`lib/catalogue-types.ts`.** index.json, a bundle and listing.json, with
+  zod validators and caps, and `bundleHash`: SHA-256 over the files in a
+  canonical encoding both repositories compute, pinned by test vectors.
+- **`lib/community-config.ts`.** `catalogueUrl()` (`ATHENA_CATALOGUE_URL`,
+  empty by default) and the owner's "Check the Community catalogue" switch
+  (settings `community`, off by default).
+- **`lib/community-api.ts`** and **`app/src/db/community.ts`.** The shapes
+  between server and app, the planned routes, and the app's calls
+  (`fetchCatalogue`, `previewAdd`, `addItem`, `checkUpdates`), not built yet.
+  `#/add?catalogue=<id>`, `#/add?link=<url>` and `#/add` (files) are the
+  preview; `#/community` is the catalogue.
+- **Migration 0088.** Nullable `catalogue_id`, `catalogue_hash` and
+  `catalogue_version` on `team_assistants`, `ask_skills` and `flows`: which
+  listing an item came from, for update checks.
+
 ### Files
 
 Photos (the phone camera too), screenshots, PDFs and Markdown/text files,

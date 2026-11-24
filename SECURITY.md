@@ -2076,6 +2076,26 @@ words. They reach only what the owner ticked for them, enforced in code.
   mode's Dot keeps its extra asks.
 - **Tested** (`lib/shared-limits.test.ts`, `lib/shared-items.db.test.ts`).
 
+### The Community catalogue (migration `0088`, `lib/catalogue-types.ts`, `lib/community-config.ts`)
+
+Groundwork only: nothing fetches from a catalogue yet.
+
+- **Nothing leaves while it's empty or off.** `ATHENA_CATALOGUE_URL` is
+  empty by default, and the owner's "Check the Community catalogue" switch
+  (settings `community`, plain) is off until turned on. Only Athena's own
+  server is to read the catalogue, never the browser, and only its static
+  files under that address (`catalogueFileUrl` refuses a path that leaves it).
+- **Plain columns.** `catalogue_id`, `catalogue_hash` and
+  `catalogue_version` on `team_assistants`, `ask_skills` and `flows` hold the
+  catalogue's public id, a SHA-256 of the item's files as added and the
+  author's version: nothing the owner wrote.
+- **Files are someone else's words.** A shared flow (`lib/flow-share.ts`)
+  is read like a shared assistant: limits checked, unknown keys dropped, a
+  tool a flow can't use refused, record ids refused. Its reach
+  (`lib/reach.ts`) is worked out from its files, never taken from the
+  catalogue or the author. A bundle whose hash doesn't match its files, or
+  the index, is not used (`verifyBundle`).
+
 ### Ask's read tools, today's context and memory
 
 `work` reads `work_items` and Work activity's notes: the owner's own work only, cited as the Work page for a period (`work:month`).

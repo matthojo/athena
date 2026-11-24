@@ -1661,3 +1661,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS team_runs_flow_run_idx ON team_runs (flow_run_
 ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS origin TEXT;
 ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS accounts TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE ask_skills ADD COLUMN IF NOT EXISTS accounts TEXT[] NOT NULL DEFAULT '{}';
+
+-- Community (0088, lib/catalogue-types.ts). An assistant, skill or flow added from the Community catalogue keeps the
+-- listing's id, the SHA-256 of its files as added and the author's version, plain, for update checks; NULL for
+-- anything else. The "Check the Community catalogue" switch is the plain settings row `community` ({ on }).
+ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS catalogue_id TEXT;
+ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS catalogue_hash TEXT;
+ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS catalogue_version TEXT;
+ALTER TABLE ask_skills ADD COLUMN IF NOT EXISTS catalogue_id TEXT;
+ALTER TABLE ask_skills ADD COLUMN IF NOT EXISTS catalogue_hash TEXT;
+ALTER TABLE ask_skills ADD COLUMN IF NOT EXISTS catalogue_version TEXT;
+ALTER TABLE flows ADD COLUMN IF NOT EXISTS catalogue_id TEXT;
+ALTER TABLE flows ADD COLUMN IF NOT EXISTS catalogue_hash TEXT;
+ALTER TABLE flows ADD COLUMN IF NOT EXISTS catalogue_version TEXT;
