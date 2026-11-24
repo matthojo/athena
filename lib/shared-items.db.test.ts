@@ -67,8 +67,10 @@ before(() => {
     throw new Error(`Unexpected fetch in a test: ${u.href}`);
   }) as typeof fetch;
 });
-after(() => {
+after(async () => {
   globalThis.fetch = realFetch;
+  // Leave no account, skill or assistant behind: later suites read the owner's accounts (a "work" label is flagged).
+  if (url) await reset();
 });
 
 async function api(method: string, path: string, body?: unknown): Promise<{ status: number; data: Record<string, unknown> }> {
