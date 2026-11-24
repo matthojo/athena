@@ -157,8 +157,23 @@ export function plainlyAsked(asked: ReadonlySet<Asked>, tool: string): boolean {
   return (TOOL_ASKS[tool] ?? []).some((k) => asked.has(k));
 }
 
-/** Why a change is waiting for Go rather than made: the turn read other people's words first, or something it read was flagged. */
-export type HeldWhy = "read" | "flagged";
+/**
+ * A change that always waits for the owner's Go, whatever the owner's message asked for and whatever an assistant's
+ * allowlist says: `track` with a link the model chose (lib/run-links.ts). Once kept, a run may open that link, and
+ * a page opened that way is fetched before Athena sees the request, so only the owner may approve it. A tracker on
+ * a saved item with no link of its own takes the item's link, which is the owner's, and doesn't wait.
+ */
+export function needsOwnersGo(tool: string, input: unknown): boolean {
+  if (tool !== "track" || !input || typeof input !== "object") return false;
+  const url = (input as { url?: unknown }).url;
+  return typeof url === "string" && url.trim() !== "";
+}
+
+/**
+ * Why a change is waiting for Go rather than made: the turn read other people's words first, something it read was
+ * flagged, or it sets a link a model chose (needsOwnersGo).
+ */
+export type HeldWhy = "read" | "flagged" | "link";
 
 /** One turn's guard: what the owner asked for, what's been read, and whether anything read was flagged. */
 export class TurnGuard {
@@ -225,9 +240,10 @@ export class TurnGuard {
     this.held.set(standIn, why);
   }
 
-  /** Why the queued changes wait for Go, if any of them must: a flag outranks a read. */
+  /** Why the queued changes wait for Go, if any of them must: a flag outranks a read, and a read a model's link. */
   why(standIns: readonly string[]): HeldWhy | null {
     if (this.flagged && standIns.length) return "flagged";
-    return standIns.some((id) => this.held.has(id)) ? "read" : null;
+    const held = standIns.map((id) => this.held.get(id)).filter((w): w is HeldWhy => !!w);
+    return held.includes("read") ? "read" : held.length ? "link" : null;
   }
 }

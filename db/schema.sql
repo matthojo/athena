@@ -1050,6 +1050,8 @@ CREATE TABLE trackers (
   assistant_id UUID,
   -- Who chose the checker (0074): NULL nobody yet, so the first assistant to keep a check takes it on; 'owner' never overwritten.
   assistant_set_by TEXT CHECK (assistant_set_by IN ('owner', 'ask', 'assistant')),
+  -- Who set the link (0085): 'owner' typed or approved it, 'item' the saved item's own; only those are opened by a run.
+  url_set_by TEXT CHECK (url_set_by IN ('owner', 'item', 'ask', 'assistant')),
   removed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (kind = 'state' OR states = '{}'),

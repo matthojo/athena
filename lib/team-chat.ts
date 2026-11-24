@@ -49,6 +49,7 @@ import type { TextSink } from "./ask-stream";
 import { getAssistant, listAssistants } from "./team";
 import { getSaved } from "./saved";
 import { normalisePreviewUrl } from "./link-preview-url";
+import { unlinked } from "./run-links";
 import { trackerName, trackerPromptLine } from "./trackers";
 import { asTrackerChecker, listTrackers } from "./trackers-store";
 import { SKILL_LIMITS } from "./skills";
@@ -380,11 +381,18 @@ export function runLink(raw: string | null | undefined): string {
   return bare.length <= FETCH_LINK_MAX ? bare : "";
 }
 
-/** One tracker as a run's message gives it: its id, what it follows, its link and what's known. Data, like the rest. */
-function trackerLines(t: Awaited<ReturnType<typeof listTrackers>>[number]): string {
-  const link = runLink(t.url);
-  return [`- Tracker ${t.id}: ${clipLine(trackerName(t), 80)}`, link ? `  Link: ${link}` : "", `  ${clipLine(trackerPromptLine(t), 300)}`].filter(Boolean).join("\n");
+/**
+ * One tracker as a run's message gives it: its id, what it follows, its link and what's known. Data, like the rest.
+ * The link is one the run may open (web_fetch trusts the message), so only the owner's: one they typed or gave their
+ * Go to, or a saved item's own (runUrlOf). A link a model chose alone is left out, and the run looks it up by name.
+ * Its name and what's known (a check's shop or site) can be a model's words, so their web addresses can't be opened.
+ */
+export function trackerLines(t: Pick<Awaited<ReturnType<typeof listTrackers>>[number], "id" | "run_url">, name: string, known: string): string {
+  const link = runLink(t.run_url);
+  return [`- Tracker ${t.id}: ${unlinked(clipLine(name, 80))}`, link ? `  Link: ${link}` : "", `  ${unlinked(clipLine(known, 300))}`].filter(Boolean).join("\n");
 }
+
+const trackerLine = (t: Awaited<ReturnType<typeof listTrackers>>[number]): string => trackerLines(t, trackerName(t), trackerPromptLine(t));
 
 /**
  * The saved item a web-enabled run is about, for its message: its title and link, the one link of the owner's the
@@ -397,7 +405,7 @@ async function itemBlock(event: TurnEvent): Promise<{ lead: string; data: string
   if (!item || !link) return null;
   // What's already known (lib/trackers.ts): the last check, the best and the owner's target, so the run needn't look them up.
   const tracked = await listTrackers({ saved_id: item.id }).catch(() => []);
-  const lines = tracked.slice(0, RUN_TRACKERS).map(trackerLines).join("\n");
+  const lines = tracked.slice(0, RUN_TRACKERS).map(trackerLine).join("\n");
   return {
     // Athena's own words: kept out of Jev's injection check, like TRACKED_LEAD.
     lead: `The saved item this run is about (its title and link may go in a search, and you may open the link; its id is the saved_id for track, and each tracker's id is the tracker_id for record_value${lines ? "" : ". Nothing is tracked on it yet: record_value with this saved_id (and preset, price by default) starts tracking it, and you check it"}):`,
@@ -416,7 +424,7 @@ const TRACKED_LEAD = "What you check for the owner (each one's name and link may
 /** The trackers a run checks, as data lines: names, links and shops' names are other people's words. Empty with none. */
 async function trackedLines(assistantId: string, skip: string | null): Promise<string> {
   const mine = (await listTrackers({ assistant_id: assistantId }).catch(() => [])).filter((t) => !skip || t.saved_id !== skip).slice(0, RUN_TRACKERS);
-  return mine.map(trackerLines).join("\n");
+  return mine.map(trackerLine).join("\n");
 }
 
 /** The tracker lines in their block, behind Athena's lead-in. */

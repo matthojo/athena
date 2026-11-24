@@ -20,6 +20,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { q, qRaw, sealer } from "./db";
 import { isEncryptedPlaceholder } from "./encrypted";
+import { underOwnersGo } from "./run-links";
 import type { SavedItem } from "./saved-rules";
 import {
   byTime,
@@ -32,6 +33,7 @@ import {
   MAX_POINTS_SHOWN,
   newsFor,
   planTracker,
+  runUrlOf,
   plainLine,
   priceNowOf,
   TRACKER_LIMITS,
@@ -82,7 +84,7 @@ const assistantOf = (who: Who) => (who.by === "assistant" && isId(who.assistantI
 
 // ---------- rows ----------
 
-const TCOLS = `id, saved_id, name, url, label, kind, prefix, suffix, currency, states, direction, preset, target_op, target_value, target_set_by, target_assistant_id, target_set_at, assistant_id, assistant_set_by, created_at`;
+const TCOLS = `id, saved_id, name, url, label, kind, prefix, suffix, currency, states, direction, preset, target_op, target_value, target_set_by, target_assistant_id, target_set_at, assistant_id, assistant_set_by, url_set_by, created_at`;
 const PCOLS = `id, tracker_id, value, source, url, checked_at, checked_by, assistant_id`;
 
 interface TrackerRow {
@@ -105,6 +107,7 @@ interface TrackerRow {
   target_set_at: Date | string | null;
   assistant_id: string | null;
   assistant_set_by: Tracker["assistant_set_by"] | null;
+  url_set_by: Tracker["url_set_by"] | null;
   created_at: Date | string;
 }
 
@@ -122,8 +125,9 @@ interface PointRow {
 const sealed = (v: string | null | undefined) => typeof v === "string" && isEncryptedPlaceholder(v);
 
 /** A row as the API gives it, the item's name filled in; null when a sealed value can't be opened here. */
-function toTracker(r: TrackerRow, itemNames: Map<string, string>): Tracker | null {
+function toTracker(r: TrackerRow, items: Map<string, { name: string; url: string | null }>): Tracker | null {
   if (sealed(r.label) || sealed(r.name) || sealed(r.prefix) || sealed(r.suffix) || (r.states ?? []).some(sealed)) return null;
+  const url = r.url && !sealed(r.url) ? r.url : null;
   const target: TrackerTarget | null =
     r.target_op && r.target_value !== null && !sealed(r.target_value)
       ? { op: r.target_op, value: r.target_value ?? "", set_by: r.target_set_by ?? "owner", assistant_id: r.target_assistant_id, set_at: iso(r.target_set_at ?? r.created_at) }
@@ -131,8 +135,8 @@ function toTracker(r: TrackerRow, itemNames: Map<string, string>): Tracker | nul
   return {
     id: r.id,
     saved_id: r.saved_id,
-    name: r.saved_id ? (itemNames.get(r.saved_id) ?? "Saved item") : r.name,
-    url: r.url && !sealed(r.url) ? r.url : null,
+    name: r.saved_id ? (items.get(r.saved_id)?.name ?? "Saved item") : r.name,
+    url,
     label: r.label,
     kind: r.kind,
     prefix: r.prefix,
@@ -144,6 +148,9 @@ function toTracker(r: TrackerRow, itemNames: Map<string, string>): Tracker | nul
     target,
     assistant_id: r.assistant_id,
     assistant_set_by: r.assistant_set_by ?? null,
+    url_set_by: r.url_set_by ?? null,
+    // The link a run may open (lib/run-links.ts): the owner's or the item's own, never one a model chose alone.
+    run_url: runUrlOf({ url, url_set_by: r.url_set_by ?? null, saved_id: r.saved_id }, r.saved_id ? (items.get(r.saved_id)?.url ?? null) : null),
     created_at: iso(r.created_at),
   };
 }
@@ -175,12 +182,14 @@ async function assistantNames(ids: Array<string | null>): Promise<Map<string, st
   }
 }
 
-async function itemNamesFor(rows: Array<{ saved_id: string | null }>): Promise<Map<string, string>> {
+/** Each saved item's name, and its own link (https only), for its trackers. */
+async function itemsFor(rows: Array<{ saved_id: string | null }>): Promise<Map<string, { name: string; url: string | null }>> {
   const ids = [...new Set(rows.map((r) => r.saved_id).filter(isId))];
   if (!ids.length) return new Map();
   const [{ getSaved }, { itemName }] = await Promise.all([import("./saved"), import("./saved-action-rules")]);
   const items = await Promise.all(ids.map((id) => getSaved(id).catch(() => null)));
-  return new Map(items.filter((i): i is SavedItem => !!i).map((i) => [i.id, itemName(i)]));
+  const own = (i: SavedItem) => [i.url, i.source_url].find((u): u is string => typeof u === "string" && /^https:\/\//.test(u)) ?? null;
+  return new Map(items.filter((i): i is SavedItem => !!i).map((i) => [i.id, { name: itemName(i), url: own(i) }]));
 }
 
 /** Points for these trackers, the newest MAX_POINTS_SHOWN of each and its save point, oldest first. */
@@ -204,9 +213,9 @@ async function pointsFor(ids: string[]): Promise<Map<string, TrackerPoint[]>> {
 }
 
 async function views(rows: TrackerRow[], opts: { now?: Date } = {}): Promise<FullView[]> {
-  const [names, points] = await Promise.all([itemNamesFor(rows), pointsFor(rows.map((r) => r.id))]);
+  const [items, points] = await Promise.all([itemsFor(rows), pointsFor(rows.map((r) => r.id))]);
   return rows
-    .map((r) => toTracker(r, names))
+    .map((r) => toTracker(r, items))
     .filter((t): t is Tracker => !!t)
     .map((t) => trackerView(t, points.get(t.id) ?? [], opts));
 }
@@ -292,8 +301,8 @@ export async function createTracker(input: TrackerInput, who: Who): Promise<{ tr
   const target = input.target ? cleanTarget(shape, input.target) : null;
   const s = await sealer();
   const [row] = await q<TrackerRow>(
-    `INSERT INTO trackers (saved_id, name, url, label, kind, prefix, suffix, currency, states, direction, preset, assistant_id, target_op, target_value, target_set_by, target_assistant_id, target_set_at, assistant_set_by)
-     VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9::text[], $10, $11, $12::uuid, $13, $14, $15, $16::uuid, CASE WHEN $13::text IS NULL THEN NULL ELSE now() END, $17)
+    `INSERT INTO trackers (saved_id, name, url, label, kind, prefix, suffix, currency, states, direction, preset, assistant_id, target_op, target_value, target_set_by, target_assistant_id, target_set_at, assistant_set_by, url_set_by)
+     VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9::text[], $10, $11, $12::uuid, $13, $14, $15, $16::uuid, CASE WHEN $13::text IS NULL THEN NULL ELSE now() END, $17, $18)
      ON CONFLICT (saved_id, preset) WHERE saved_id IS NOT NULL AND preset IS NOT NULL AND removed_at IS NULL DO NOTHING
      RETURNING ${TCOLS}`,
     [
@@ -314,6 +323,7 @@ export async function createTracker(input: TrackerInput, who: Who): Promise<{ tr
       target ? targetSetter(who) : null,
       target ? assistantOf(who) : null,
       assistantSetBy,
+      !shape.url ? null : input.url === undefined && shape.saved_id ? "item" : linkSetter(who),
     ],
   );
   if (!row) {
@@ -326,6 +336,11 @@ export async function createTracker(input: TrackerInput, who: Who): Promise<{ tr
 }
 
 const targetSetter = (who: Who): TrackerTarget["set_by"] => (who.by === "save" ? "owner" : who.by);
+/**
+ * Who set a tracker's link (0085): the owner when they typed it, or when it's set under their Go on a plan
+ * (lib/run-links.ts asOwnersGo); otherwise the model that chose it, and no run opens it (runUrlOf).
+ */
+const linkSetter = (who: Who): NonNullable<Tracker["url_set_by"]> => (underOwnersGo() || who.by === "owner" || who.by === "save" ? "owner" : who.by);
 /** Who chose a checker: the owner, Ask or an assistant (the save is the owner's). */
 const setterOf = (who: Who): NonNullable<Tracker["assistant_set_by"]> => targetSetter(who);
 
@@ -360,7 +375,11 @@ export async function updateTracker(id: string, patch: TrackerPatch, who: Who): 
     if (!name) throw new TrackerInputError("name: what is being followed");
     set("name", s.text(name));
   }
-  if (patch.url !== undefined) set("url", s.maybe(cleanUrl(patch.url, "url: the link of the page to check")));
+  if (patch.url !== undefined) {
+    const url = cleanUrl(patch.url, "url: the link of the page to check");
+    set("url", s.maybe(url));
+    set("url_set_by", url ? linkSetter(who) : null);
+  }
   if (patch.label !== undefined && !was.preset) set("label", s.text(cleanLabel(patch.label)));
   if (was.kind === "number" && !was.currency) {
     if (patch.prefix !== undefined) set("prefix", s.text(cleanAffix(patch.prefix, "prefix")));

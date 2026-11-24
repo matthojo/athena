@@ -132,13 +132,13 @@ export class MissingValue extends Error {
 }
 
 /** Text with its chips filled in. Throws MissingValue when a chip has nothing behind it. Pure. */
-export function fillText(text: FlowText, values: FlowValues, tz?: string): string {
+export function fillText(text: FlowText, values: FlowValues, tz?: string, each: (words: string) => string = (w) => w): string {
   return text
     .map((piece) => {
       if (typeof piece === "string") return piece;
       const v = valueAt(values, piece);
       if (!present(v)) throw new MissingValue(piece);
-      return valueWords(v, tz);
+      return each(valueWords(v, tz));
     })
     .join("");
 }

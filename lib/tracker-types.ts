@@ -63,6 +63,17 @@ export interface Tracker {
    * "ask" / "assistant": Ask gave it to one, or an assistant started it or took it on. Missing on older servers.
    */
   assistant_set_by?: "owner" | "ask" | "assistant" | null;
+  /**
+   * Added (additive, 0085): who set `url`. "owner": the owner typed it or gave their Go to it. "item": the saved
+   * item's own link. "ask" / "assistant": a model chose it and the owner hasn't approved it. Null: from before 0085.
+   * Missing on older servers.
+   */
+  url_set_by?: "owner" | "item" | "ask" | "assistant" | null;
+  /**
+   * Added (additive, 0085): the link a run may open for it, set by the server: `url` when the owner supplied or
+   * approved it, else a saved item's own link, else null (a run then looks it up by name). Missing on older servers.
+   */
+  run_url?: string | null;
   created_at: string;
 }
 

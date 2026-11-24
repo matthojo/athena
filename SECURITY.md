@@ -1498,8 +1498,14 @@ in code, where the model's words can't change the outcome.
 
   The guard is given the allowlist when the turn starts (`TurnGuard`'s
   `standing`, set in `lib/answer.ts` for a run only). Nothing reads it from
-  a tool result, so nothing read can add to it. A run reads Athena only: it
-  opens no connected account and doesn't search the web.
+  a tool result, so nothing read can add to it. A run opens no connected
+  account. It looks things up online only when the owner turned on that
+  assistant's web switch, and then opens only links the owner supplied or
+  approved ("Links a turn may open", below).
+- **A tracker link a model chose always waits for Go**, allowlisted or not
+  (`needsOwnersGo` in `lib/ask-guard.ts`): `track` with a `url` is never
+  run alone, in a run, a chat or main Ask, even when the owner's message
+  asked to track something. It's kept as a plan step (`plan.why: "link"`).
 - **What an injection can still do.** Past all three: a wrong answer; a
   cited link the owner didn't expect; that item saved to Athena (below); a
   plan or confirm card the owner would have to tap; words Claude read going
@@ -2343,6 +2349,57 @@ saved (below).
   and stops at 45 seconds (10, 24 and 120 seconds on the Netlify Server).
   Once it calls a write tool it may make up to 14 model calls in four
   minutes (15 on the server), as an instruction always could.
+
+### Links a turn may open (`lib/run-links.ts`, migration `0085`)
+
+A web-enabled assistant's turn gets Anthropic's server web fetch tool
+(`webFetchTool` in `lib/answer.ts`). It may open any link in the turn's own
+message, a page `web_search` returned, or a link `find_saved` gave. The
+fetch runs on Anthropic's side inside the model call, so Athena's leak check
+on a page's link (`ev.leaks`) only sees the request after it has gone. So
+a link goes into a run's message as one it may open only if the owner
+supplied or approved it.
+
+- **A saved item's own link** is the owner's: it's what they saved. A run
+  about the item gets it, and a tracker on the item opens it.
+- **A tracker's link** carries who set it (`trackers.url_set_by`, 0085):
+  `owner` (typed in the app, or given the owner's Go on a plan), `item` (the
+  saved item's own) or `ask` / `assistant` (a model chose it and the owner
+  hasn't approved it). A run's message gives a tracker's link only when it's
+  the owner's or the item's (`runUrlOf`, `trackerLines` in
+  `lib/team-chat.ts`); a saved item's tracker otherwise gives the item's own
+  link, and one on its own gives none, so the run searches for it by name.
+  Trackers made before 0085 have no record of who set their link: one on a
+  saved item still opens the item's link, and any other link isn't opened
+  until the owner sets it again.
+- **`track` with a link a model chose waits for the owner's Go** (above),
+  for every assistant and for main Ask. Athena writes the Go card's line and
+  ignores the model's own step text: what's tracked, the link's host and the
+  whole link (`stepLabel` in `lib/ask-plans.ts`). The link loses its
+  fragment, which a browser never sends to the server. Its query is kept: a
+  shop's link often needs it to name the right product, and the owner sees
+  it on the card. Go runs the step
+  under `asOwnersGo`, so the link is kept as the owner's; anywhere else a
+  model's link is kept as the model's and never opened by a run.
+- **A model's words in a run's message can't open anything.** Every web
+  address in them is written with `[.]` and `[://]` (`unlinked`): a reader
+  still sees where it points, but the message holds no link to it. This
+  covers a tracker's name and its checks' shops or sites; a flow's values
+  from earlier steps, in a think step's message and task (`thinkPrompt`,
+  `lib/flow-run.ts`); an
+  assignment's work, handoffs, suggested answers and send-back notes
+  (`stageMessage`, `lib/assignment-run.ts`), where `hand_off` puts the
+  work's links back as they were before the note is written; and the shop
+  in `find_saved`'s best price now. The owner's own words (an assignment's
+  brief, an owner's answer, a flow's task text) go in as written.
+- **Tested** (`lib/run-links.test.ts`, `lib/trackers.db.test.ts`): `track`
+  with a model's link on an assistant's allowlist doesn't run alone in a
+  run, and comes back as a plan whose line shows the whole link and its
+  host; Go makes it the owner's, and a run may then open it; main Ask holds
+  it too when the owner asked to track something; a tracker an assistant
+  started with its own link appears in a run's message with no link until
+  the owner sets it; a model's addresses in tracker lines, flow values and
+  assignment stages are written so they can't be opened.
 
 ### Choosing models from other providers (`lib/models.ts`, migration `0076`)
 
