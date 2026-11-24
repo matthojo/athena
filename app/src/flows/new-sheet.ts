@@ -9,6 +9,7 @@ import { showToast } from "../components/toast";
 import { createFlow, draftFlow, type Flow } from "../db/flows";
 import { FLOW_LIMITS } from "../../../lib/flow-types";
 import { tile } from "./parts";
+import { communityHash } from "../community/words";
 
 /** Sentences to start from, each beginning with when. */
 export const STARTERS: ReadonlyArray<{ icon: "calendar" | "bookmark" | "parcel"; text: string }> = [
@@ -23,6 +24,12 @@ export function openNewFlow(o: { text?: string; onMade: (f: Flow, notes: string[
   const draw = h("button", { class: "btn btn--primary btn--block flow-new__draw", type: "button" }, "Make the steps");
   const blank = h("button", { class: "flow-link flow-new__blank", type: "button" }, "Or build it step by step");
   const status = h("p", { class: "flow-new__status", role: "status", "aria-live": "polite" });
+  // Community (app/src/community/page.ts): flows other people shared, reviewed.
+  const browse = h("button", { class: "flow-link flow-new__blank", type: "button" }, "Or browse Community");
+  browse.addEventListener("click", () => {
+    sheet.close();
+    window.setTimeout(() => (location.hash = communityHash("flow")), 450);
+  });
   const starters = h(
     "div",
     { class: "flow-new__starters" },
@@ -45,7 +52,7 @@ export function openNewFlow(o: { text?: string; onMade: (f: Flow, notes: string[
     h("span", { class: "flow-note" }, "Or start from one of these"),
     starters,
     status,
-    h("div", { class: "flow-sheet__foot" }, draw, blank)
+    h("div", { class: "flow-sheet__foot" }, draw, blank, browse)
   );
   const sheet = openSheet({ label: "New flow", body, variant: "tall" });
   setTimeout(() => ta.focus(), 80);

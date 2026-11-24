@@ -44,6 +44,7 @@ import { cap, isLive, liveWords, pronouns, startLine } from "./detail-words";
 import { openShareAssistant } from "./share-sheet";
 import { assistantFlowsSection } from "../flows/assistant-flows";
 import { flowsChanged } from "../db/flows";
+import { catalogueStatus } from "../community/status";
 
 export { triggerInput };
 
@@ -102,7 +103,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
   const back = h("button", { class: "td-back", type: "button" }, icons.back(), h("span", {}, "Team"));
   back.addEventListener("click", ctx.back);
   const body = h("div", { class: "td-body", "aria-busy": "true" });
-  const el = h("div", { class: "view team-detail" }, h("div", { class: "td-top" }, back), body);
+  const el = h("div", { class: "view team-detail" }, h("div", { class: "td-top" }, back), catalogueStatus("assistant", ctx.id), body);
   let alive = true;
   let a: TeamAssistant;
   let runs: TeamRun[] = [];

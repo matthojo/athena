@@ -1997,6 +1997,25 @@ is a permission. These files are the contract the screens and routes build on:
 - **Migration 0088.** Nullable `catalogue_id`, `catalogue_hash` and
   `catalogue_version` on `team_assistants`, `ask_skills` and `flows`: which
   listing an item came from, for update checks.
+- **Reading the catalogue** (`netlify/lib/community-catalogue.ts`). The
+  index is fetched through `publicFetch` and kept a day in the `community`
+  blob store; `loadBundle(id)` fetches one bundle and uses it only when
+  `verifyBundle` matches it to its files and the index (re-reading a stale
+  index once). `compareInstalled` and `toPause` work out updates and
+  withdrawals against what was added. Tested with a fake fetch.
+- **Routes** (`netlify/lib/community-routes.ts`). `GET /api/community`
+  (opening it the first time turns the check on), `GET
+  /api/community/updates` (pauses a withdrawn item once) and `PUT
+  /api/community/settings`. `netlify/functions/community-check.ts` runs the
+  same check daily.
+- **`#/community`** (`app/src/community/page.ts`). Filter by kind, search,
+  featured then newest; each row links to `#/add?catalogue=<id>`. "Browse
+  Community" sits in Team setup, the new-flow sheet and Settings → Skills'
+  Add sheet. `app/src/community/status.ts` (`catalogueStatus(kind, id)`) is
+  the "Update available" / "Taken down" banner on the assistant, skill and
+  flow pages. Sample mode reads `app/src/db/sample-community.ts`;
+  localStorage `athena.sample.catalogue` (`none`, `down`, `offline`,
+  `slow`) shows each state.
 
 ### Files
 

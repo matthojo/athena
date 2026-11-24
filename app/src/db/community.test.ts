@@ -29,8 +29,29 @@ test("#/add alone is files; a listing wins over a link; other addresses aren't #
 });
 
 test("the calls aren't built yet, and say so", async () => {
-  await assert.rejects(fetchCatalogue(), /fetchCatalogue: not built yet/);
   await assert.rejects(previewAdd({ catalogue: "0123456789abcdef" }), /previewAdd: not built yet/);
-  await assert.rejects(checkUpdates(), /checkUpdates: not built yet/);
   await assert.rejects(addItem({} as never, {} as never), /addItem: not built yet/);
+});
+
+test("fetchCatalogue and checkUpdates call their routes", async () => {
+  const seen: string[] = [];
+  const g = globalThis as Record<string, unknown>;
+  const was = { fetch: g.fetch, localStorage: g.localStorage };
+  g.localStorage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
+  g.fetch = async (url: string) => {
+    seen.push(String(url));
+    const body = String(url).endsWith("/updates") ? { updates: [] } : { configured: false, on: false, generated_at: null, items: [], added: [], error: null };
+    return new Response(JSON.stringify(body), { status: 200 });
+  };
+  try {
+    assert.equal((await fetchCatalogue()).configured, false);
+    assert.deepEqual(await checkUpdates(), []);
+    assert.deepEqual(
+      seen.map((u) => u.replace(/^.*\/api/, "/api")),
+      ["/api/community", "/api/community/updates"]
+    );
+  } finally {
+    g.fetch = was.fetch;
+    g.localStorage = was.localStorage;
+  }
 });

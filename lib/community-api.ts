@@ -28,6 +28,8 @@ export interface CatalogueView {
   configured: boolean;
   /** The owner's "Check the Community catalogue" switch. */
   on: boolean;
+  /** Where the list comes from, for the line that says so: the catalogue's host and path, "catalogue.example.com/v1". */
+  host?: string | null;
   /** When the index was made, as it says. Null when none was read. */
   generated_at: string | null;
   /** Items this Athena can read (formatReadable), newest first. Empty while off or not configured. */
@@ -103,8 +105,10 @@ export interface UpdateCheck {
   /** As added: its catalogue_version and catalogue_hash. */
   version: string | null;
   hash: string;
-  /** The listing now, when its hash differs from what was added. */
-  newer: Pick<CatalogueItem, "version" | "hash" | "summary"> | null;
+  /** The listing now, when its hash differs from what was added. Its reach is the catalogue's word for the new files. */
+  newer: Pick<CatalogueItem, "version" | "hash" | "summary" | "reach"> | null;
+  /** The tier of what's here now, worked out from it, when there's a newer listing: so a change of tier can lead. */
+  tier_here?: Reach["tier"] | null;
   /** Taken down, with the catalogue's reason. It stays here either way. */
   withdrawn: { at: string; reason: string } | null;
 }

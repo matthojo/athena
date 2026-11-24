@@ -31,6 +31,7 @@ import { openShareFlow } from "./share-sheet";
 import { needsAssistant } from "../../../lib/flow-share";
 import { refKey } from "./text";
 import { triggerWords } from "./words";
+import { catalogueStatus } from "../community/status";
 
 export interface EditorContext {
   id: string;
@@ -60,7 +61,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
   const more = h("button", { class: "icon-btn icon-btn--ghost flow-more", type: "button", "aria-label": "More" }, icons.more());
   const body = h("div", { class: "flow-ed", "aria-busy": "true" });
   const foot = h("div", { class: "flow-foot", hidden: true });
-  const el = h("div", { class: "view flows flows--editor" }, h("div", { class: "flow-top" }, back, more), body, foot);
+  const el = h("div", { class: "view flows flows--editor" }, h("div", { class: "flow-top" }, back, more), catalogueStatus("flow", ctx.id), body, foot);
 
   let alive = true;
   let flow: Flow;

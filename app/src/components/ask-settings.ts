@@ -10,6 +10,7 @@ import { showToast } from "./toast";
 import { openItem } from "../lib/open-item";
 import { requestOpen } from "../db/ask-threads";
 import { askWebSetting } from "./ask-web-setting";
+import { communitySetting } from "../community/setting";
 import { fetchActivity, undoActivity, type ActivityEntry } from "../db/ask-plans";
 import { flowRunHref, flowRunOf, flowSourceWords, isFlowActivity, type FlowActivityFields } from "../flows/activity";
 
@@ -43,6 +44,7 @@ export function askSettingsSection(ctx: { open: (id: "ask-activity" | "skills") 
         { class: "settings__body" },
         h("div", { class: "card card--flush list settings__sub" }, skills),
         h("div", { class: "card settings__sub ask-web-card" }, askWebSetting()),
+        h("div", { class: "card settings__sub ask-web-card" }, communitySetting()),
         h("div", { class: "card card--flush list settings__sub" }, entry)
       )
     ),

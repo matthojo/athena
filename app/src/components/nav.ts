@@ -30,6 +30,7 @@ export type ViewId =
   | "ask"
   | "team"
   | "flows"
+  | "community"
   | "people"
   | "places"
   | "organisations"
