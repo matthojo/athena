@@ -11,6 +11,7 @@
  * known before they open, their tools stop being offered, a call to one is refused, and the Session's mail, Slack and
  * calendar ports refuse any account outside it. Nothing here widens what a turn could reach without a limit.
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { OpenSources, SourcesPort } from "./answer";
 import type { MailPort, SlackPort } from "./drafts";
 import type { CalendarPort } from "./rsvp";
@@ -55,9 +56,12 @@ export class AccountScope {
   }
 }
 
-/** Refused before anything is reached. */
+/** Refused before anything is reached. `accountId`: the account (connectors.id) that was refused, when known. */
 export class AccountOff extends Error {
-  constructor(message = "That account is off for something someone else shared.") {
+  constructor(
+    message = "That account is off for something someone else shared.",
+    readonly accountId: string | null = null,
+  ) {
     super(message);
     this.name = "AccountOff";
   }
@@ -90,38 +94,74 @@ export interface AccountPorts {
 /**
  * The ports, each refusing an account outside the limit at the moment it's called (a skill can limit a turn part
  * way through). Slack's port names no account: it's refused unless one of `slackIds()` is allowed.
+ *
+ * `strict` (the owner's Go on a plan an imported assistant proposed, `limitedForGo`): a look outside the limit is
+ * refused too, rather than finding nothing, and every refusal is told to `refused` with the account's id, so Go
+ * can stop and ask the owner (lib/ask-plans.ts goPlan).
  */
-export function scopedPorts<T extends AccountPorts>(ports: T, scope: AccountScope, slackIds: () => Promise<string[]>): T {
+export function scopedPorts<T extends AccountPorts>(ports: T, scope: AccountScope, slackIds: () => Promise<string[]>, opts: { strict?: boolean; refused?: (id: string) => void } = {}): T {
+  const off = (id: string | null): never => {
+    if (id) opts.refused?.(id);
+    throw new AccountOff(undefined, id);
+  };
   const check = (id: string) => {
-    if (!scope.has(id)) throw new AccountOff();
+    if (!scope.has(id)) off(id);
   };
   const slackOk = async () => {
     if (!scope.active) return;
-    if (!(await slackIds()).some((id) => scope.has(id))) throw new AccountOff();
+    const ids = await slackIds();
+    if (!ids.some((id) => scope.has(id))) off(ids[0] ?? null);
   };
+  // A look: outside the limit it finds nothing, or under Go it's refused so the owner can be asked.
+  const look = <R>(id: string, none: R, fn: () => Promise<R>): Promise<R> => (scope.has(id) ? fn() : opts.strict ? Promise.resolve().then(() => off(id)) : Promise.resolve(none));
   const { gmail, slack, calendar, scheduling } = ports;
   return {
     ...ports,
     gmail: gmail && {
       readThread: async (id, thread) => (check(id), gmail.readThread(id, thread)),
       createDraft: async (id, draft) => (check(id), gmail.createDraft(id, draft)),
-      ...(gmail.sentSamples ? { sentSamples: async (id: string, to: string | null) => (scope.has(id) ? gmail.sentSamples!(id, to) : []) } : {}),
+      ...(gmail.sentSamples ? { sentSamples: (id: string, to: string | null) => look(id, [] as string[], () => gmail.sentSamples!(id, to)) } : {}),
     },
     slack: slack && {
       findMember: async (person) => (await slackOk(), slack.findMember(person)),
-      ownMessages: async () => (scope.active && !(await slackIds()).some((id) => scope.has(id)) ? [] : slack.ownMessages()),
+      ownMessages: async () => {
+        if (opts.strict) await slackOk();
+        return scope.active && !(await slackIds()).some((id) => scope.has(id)) ? [] : slack.ownMessages();
+      },
     },
     calendar: calendar && {
       respond: async (id, invite) => (check(id), calendar.respond(id, invite)),
     },
     scheduling: scheduling && {
       // A look at a calendar outside the limit finds nothing, so the accounts inside it still answer; a change is refused.
-      events: async (id, from, to) => (scope.has(id) ? scheduling.events(id, from, to) : []),
-      freeBusy: async (id, emails, from, to) => (scope.has(id) ? scheduling.freeBusy(id, emails, from, to) : []),
+      events: (id, from, to) => look(id, [], () => scheduling.events(id, from, to)),
+      freeBusy: (id, emails, from, to) => look(id, [], () => scheduling.freeBusy(id, emails, from, to)),
       move: async (id, req) => (check(id), scheduling.move(id, req)),
-      calendars: async (id) => (scope.has(id) ? scheduling.calendars(id) : []),
+      calendars: (id) => look(id, [], () => scheduling.calendars(id)),
       create: async (id, req) => (check(id), scheduling.create(id, req)),
       removeCreated: async (id, req) => (check(id), scheduling.removeCreated(id, req)),
     },
   };
+}
+
+// ---------- the owner's Go on a plan an imported assistant proposed ----------
+
+/** The limit a Go runs under, and the first account a step was refused (reset before each step). */
+export interface GoLimit {
+  scope: AccountScope;
+  refused: string | null;
+}
+
+const goLimit = new AsyncLocalStorage<GoLimit>();
+
+/** Run a plan's steps under an imported assistant's limit (lib/ask-plans.ts goPlan). */
+export function underGoLimit<T>(limit: GoLimit, fn: () => T): T {
+  return goLimit.run(limit, fn);
+}
+
+/** The ports a plan's step gets: under a Go limit, strict and telling the limit what was refused; otherwise as they are. */
+export function limitedForGo<T extends AccountPorts>(ports: T, slackIds: () => Promise<string[]>): T {
+  const limit = goLimit.getStore();
+  if (!limit) return ports;
+  return scopedPorts(ports, limit.scope, slackIds, { strict: true, refused: (id) => void (limit.refused ??= id) });
 }

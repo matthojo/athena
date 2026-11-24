@@ -10,6 +10,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import type { OpenSources, SourceAccount } from "./answer";
+import type { Change } from "./assistant";
+import type { CalendarPort } from "./rsvp";
 
 const url = process.env.ATHENA_TEST_DB_URL;
 if (url) {
@@ -314,4 +316,88 @@ test("an imported assistant's run: the calendar it wasn't given isn't read; the 
   const own = await createAssistant({ job: "Keeps my week tidy", instructions: "Find time for focus." });
   await runAssistantTurn(own.id, "Find half an hour", { mode: "run", scheduling, now: NOW });
   assert.deepEqual(read, [cal.id]);
+});
+
+test("an imported assistant's plan: Go stops before an account it isn't allowed, reaches nothing, and asks; once, always or skip", { skip }, async () => {
+  await reset();
+  const { qRaw } = await import("./db");
+  const [cal] = await qRaw<{ id: string }>(`INSERT INTO connectors (name, provider, account_label, url, status) VALUES ('Google Calendar', 'google-calendar', 'sam@example.com', 'https://calendar.example.com', 'connected') RETURNING id`);
+  const { importAssistant } = await import("./team-share-store");
+  const { createAssistant, getAssistant, updateAssistant } = await import("./team");
+  const { runAssistantTurn } = await import("./team-chat");
+  const { getPlan, goPlan, savePlan } = await import("./ask-plans");
+  const { limitedForGo } = await import("./shared-scope");
+  const { assistant: dot } = await importAssistant({ shared: SHARED, skill: { body: "Read each issue, then add a to-do with its title and link.", files: [] }, source: { kind: "upload" }, answers: [], allow: [], web: false, accounts: [] });
+
+  // Its run's plan records who proposed it; one from an assistant made here doesn't.
+  script = (req) => (toolResults(req).length ? [answer("Two to-dos are ready for your Go.")] : [{ type: "tool_use", id: "t1", name: "add_todo", input: { title: "Book the venue" } }, { type: "tool_use", id: "t2", name: "add_todo", input: { title: "Send the agenda" } }]);
+  const out = await runAssistantTurn(dot.id, "Do your job", { mode: "run", now: NOW });
+  assert.deepEqual((await getPlan(out.reply.plan!.id))!.limit, { assistant_id: dot.id });
+  const own = await createAssistant({ job: "Keeps my week tidy" });
+  const mine = await runAssistantTurn(own.id, "Do your job", { mode: "run", now: NOW });
+  assert.equal((await getPlan(mine.reply.plan!.id))!.limit, null);
+
+  // A plan of three steps; the middle one answers an invite on the calendar, which isn't ticked for Dot.
+  const reached: string[] = [];
+  const ran: string[] = [];
+  const calendar: CalendarPort = { respond: async (id: string) => void reached.push(id) } as CalendarPort;
+  let n = 0;
+  const run = async (tool: string): Promise<Change[]> => {
+    ran.push(tool);
+    if (tool === "answer_invite") await limitedForGo({ calendar }, async () => []).calendar!.respond(cal.id, { calendarId: "primary", eventId: "ev_1", answer: "going" } as never);
+    return [{ kind: "commitment", id: `5a3e0000-0000-4000-8000-00000000f${String(++n).padStart(3, "0")}`, action: "created", title: tool, detail: "", label: tool, open: null, undo: null } as unknown as Change];
+  };
+  const deps = { run, log: async (c: Change[]) => c };
+  const steps = (k: string) =>
+    ["add_todo", "answer_invite", "add_reminder"].map((tool, i) => ({ label: `${k} ${i}`, tool, input: {}, stands_for: `5a3e0000-0000-4000-8000-00000000e${k}${i}` }));
+  const plan = async (k: string) => (await savePlan(steps(k), { source: "routine", limit: { assistant_id: dot.id } })).id;
+
+  // Go: the first step runs, the second is refused before the calendar is reached, and Go asks.
+  const p1 = await plan("10");
+  const went = await goPlan(p1, undefined, deps);
+  assert.deepEqual(reached, [], "the calendar wasn't reached");
+  assert.equal(went.plan.ran, undefined);
+  assert.deepEqual(
+    { ...went.plan.needs_account, results: went.plan.needs_account!.results.map((r) => r.status) },
+    { step: 1, account: "Google Calendar", label: "sam@example.com", provider: "google-calendar", assistant: "Dot", results: ["done"] },
+  );
+  assert.equal(went.changes.length, 1);
+  // It still waits: Team's counts see it, and another Go runs nothing and asks again.
+  assert.equal((await qRaw<{ ran_at: Date | null }>(`SELECT ran_at FROM ask_plans WHERE id = $1`, [p1]))[0].ran_at, null);
+  ran.length = 0;
+  assert.equal((await goPlan(p1, undefined, deps)).plan.needs_account?.step, 1);
+  assert.deepEqual(ran, []);
+  await assert.rejects(goPlan(p1, undefined, deps, { account: "sometimes" }), /account: one of once, always, skip/);
+
+  // Just this once: this Go reaches it, carries on, and nothing is kept for Dot.
+  const once = await goPlan(p1, undefined, deps, { account: "once" });
+  assert.deepEqual(reached, [cal.id]);
+  assert.deepEqual(once.plan.ran!.results.map((r) => r.status), ["done", "done", "done"]);
+  assert.equal(once.plan.needs_account, undefined);
+  assert.deepEqual((await getAssistant(dot.id))!.accounts, []);
+  // Answered twice (another device): nothing runs again.
+  ran.length = 0;
+  await goPlan(p1, undefined, deps, { account: "once" });
+  assert.deepEqual(ran, []);
+
+  // Always for Dot: ticked for it, and the next plan's Go doesn't ask.
+  const p2 = await plan("20");
+  await goPlan(p2, undefined, deps);
+  await goPlan(p2, undefined, deps, { account: "always" });
+  assert.deepEqual((await getAssistant(dot.id))!.accounts, [cal.id]);
+  const p3 = await plan("30");
+  assert.deepEqual((await goPlan(p3, undefined, deps)).plan.ran!.results.map((r) => r.status), ["done", "done", "done"]);
+
+  // Skip it: that step is left out, the rest run, and the calendar isn't reached.
+  await updateAssistant(dot.id, { accounts: [] });
+  reached.length = 0;
+  const p4 = await plan("40");
+  await goPlan(p4, undefined, deps);
+  const skipped = await goPlan(p4, undefined, deps, { account: "skip" });
+  assert.deepEqual(skipped.plan.ran!.results.map((r) => [r.status, r.error ?? ""]), [["done", ""], ["skipped", "You said no to Google Calendar."], ["done", ""]]);
+  assert.deepEqual(reached, []);
+
+  // A plan from an assistant made here runs as it always did.
+  const p5 = (await savePlan(steps("50"), { source: "routine" })).id;
+  assert.deepEqual((await goPlan(p5, undefined, deps)).plan.ran!.results.map((r) => r.status), ["done", "done", "done"]);
 });

@@ -1764,6 +1764,28 @@ contracts between slices, is `docs/team.md`.
     `components/account-ticks.ts` (import sheet, `team/detail-accounts.ts`,
     the skill page), and Home's one-time `components/accounts-notice.ts`
     reads `GET /api/skills/notice`.
+  - **Needed accounts.** The file's `needs` are kept with the imported
+    assistant's sealed words (`Words.needs`, `cleanNeeds` in `lib/team.ts`;
+    `TeamAssistant.needs`). The import sheet and the assistant's page list
+    those accounts first and, while one is unticked, show
+    `cantWorkNote` ("Dot can't work without Linear.", from `unmetNeeds` and
+    `cantWorkWords` in `lib/shared-limits.ts`). The "Always asks first" rows
+    take their words from `ASKS_FIRST_TOOLS`.
+  - **Go on an imported assistant's plan.** `runAsk` saves the plan with
+    `limit: { assistant_id }` when an imported assistant proposed it.
+    `goPlan` (`lib/ask-plans.ts`) runs its steps under `underGoLimit`: the
+    step runners' ports go through `limitedForGo` (strict `scopedPorts`, where
+    a look is refused too and the refused account is recorded). A step
+    that was refused and made nothing stops Go before it: the payload keeps
+    `paused` (the step, the account, the ticks and the results so far),
+    `ran_at` goes back to NULL so it still counts as waiting, and the card
+    carries `needs_account`. `POST /api/assistant/plan` with `account`
+    (`once`, `always` or `skip`) carries on from that step (`carryOn`): once
+    adds the account to this Go's scope only, always ticks it for the
+    assistant, skip leaves the step out. Go and an answer claim the plan by
+    the sealed payload they read. The app draws the question in
+    `accountAskEl` (`views/ask.ts`); sample mode's imported Dot leaves such a
+    plan on Run now (`sampleLimits` in `db/sample-ask-plans.ts`).
   - **Sample mode** checks, previews and imports in the app against the sample
     team and people; a download there is `assistant.json` alone.
   - **The catalogue** is a separate GitHub repository; Athena only reads

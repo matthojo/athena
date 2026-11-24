@@ -41,6 +41,44 @@ export const SHARED_TOOLS: Readonly<Record<string, SharedToolLabel>> = {
   track: { label: "Track a price or a page", detail: "Checks it now and then, and tells you when it changes" },
 };
 
+/**
+ * What a shared assistant may ask for that an import can't grant, as the import preview's "Always asks first" rows
+ * show them: one plain line each, like the ticks above. Anything else it names is shown by its own name.
+ */
+export const ASKS_FIRST_TOOLS: Readonly<Record<string, SharedToolLabel>> = {
+  update_people: { label: "Change people", detail: "Edits people already in your contacts" },
+  change_reminder: { label: "Change reminders", detail: "Their words, day or time" },
+  archive_or_restore: { label: "Archive or restore", detail: "Puts things away, or brings them back" },
+  add_field: { label: "Add a field", detail: "A new field on every record of a type" },
+  change_field: { label: "Change a field", detail: "Renames it or changes its options" },
+  make_kind: { label: "Make a type", detail: "A new kind of record, with its own fields" },
+  duplicate_kind: { label: "Copy a type", detail: "Its fields, without its records" },
+  update_kind: { label: "Change a type", detail: "Its name or its icon" },
+  answer_invite: { label: "Answer invites", detail: "Going, maybe or no, on your calendar" },
+  log_spending: { label: "Log spending", detail: "Adds a payment to Money" },
+  log_health: { label: "Log health", detail: "Sleep, steps, runs and the like" },
+  log_day_entry: { label: "Add to Days", detail: "What you watched, read, heard or played" },
+  log_meter_reading: { label: "Add meter readings", detail: "Gas and electricity, for House" },
+  move_event: { label: "Move events", detail: "Changes the time on your calendar" },
+  create_event: { label: "Add events", detail: "Puts them on your calendar, with invites" },
+  fill_template: { label: "Fill in templates", detail: "Starts a note from one of your templates" },
+  send_note: { label: "Send notes", detail: "To Google Docs or Notion" },
+  make_document: { label: "Make documents", detail: "A note as a file to download" },
+  import_recipe: { label: "Keep recipes from links", detail: "Reads the page and saves the recipe" },
+  save_recipe: { label: "Keep recipes", detail: "From words, when there's no link" },
+  save_booking: { label: "Add or change bookings", detail: "Flights, trains, stays, car hire and tickets" },
+  record_value: { label: "Keep checks", detail: "A price or number it read, on something you track" },
+  set_tracker_target: { label: "Set “tell me when”", detail: "The price or number to watch for" },
+  save_routine: { label: "Set up routines", detail: "Something done again on a schedule" },
+  draft_message: { label: "Draft messages", detail: "Emails, texts and Slack messages for you to send" },
+  draft_email: { label: "Draft emails", detail: "For you to send" },
+};
+
+/** An "Always asks first" row: Athena's words for a tool it knows, else the name as written and a plain line. Pure. */
+export function asksFirstWords(name: string): SharedToolLabel {
+  return Object.prototype.hasOwnProperty.call(ASKS_FIRST_TOOLS, name) ? ASKS_FIRST_TOOLS[name] : { label: toolWords(name), detail: "Not something Athena can do, so it won't happen" };
+}
+
 /** Can an import grant this tool? Pure. */
 export const sharedToolAllowed = (name: string): boolean => Object.prototype.hasOwnProperty.call(SHARED_TOOLS, name);
 

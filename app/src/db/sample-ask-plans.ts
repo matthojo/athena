@@ -34,15 +34,78 @@ const RECEIPTS: AssistantChange[] = [
   { kind: "commitment", id: id(990012), action: "created", title: "Book the team offsite venue", detail: "To do · no date", label: "Book the team offsite venue: To do", open: null, undo: { op: "sample" } },
 ];
 
-/** Go in sample mode: every ticked step "runs", unticked ones are skipped. */
+type StepResult = NonNullable<AskPlan["ran"]>["results"][number];
+
+/** One ticked step "run" in sample mode: its receipt. */
+function sampleStep(plan: AskPlan, i: number): StepResult {
+  // A Team run's plan (no routine of its own) gets a receipt for its own step, not the sample plan's.
+  const c = plan.source === "routine" ? { ...RECEIPTS[2], id: id(990030 + i), title: plan.steps[i].label.replace(/^Add a to-do:\s*/i, ""), detail: "To do", label: plan.steps[i].label } : (RECEIPTS[i] ?? { ...RECEIPTS[2], id: id(990020 + i), title: plan.steps[i].label });
+  if (plan.steps[i].tool === "draft_message") {
+    const what = plan.steps[i].label.replace(/^Draft (?:a |an )?/i, "");
+    const title = what.charAt(0).toUpperCase() + what.slice(1);
+    Object.assign(c, { ...RECEIPTS[1], id: id(990040 + i), title, detail: "Draft", label: `${title}: Draft` });
+  }
+  return { status: "done", changes: [{ ...c, activity_id: id(991000 + i) }] };
+}
+
+/**
+ * Plans an imported sample assistant proposed (its Run now): Go keeps to the accounts ticked for it, as the server
+ * does (lib/ask-plans.ts goPlan). team.ts registers each with a way to read and tick its assistant.
+ */
+export interface SampleLimit {
+  assistant: () => { name: string; accounts: string[] } | null;
+  tick: (accountId: string) => void;
+  accounts: ReadonlyArray<{ id: string; provider: string; name: string; label?: string | null }>;
+}
+export const sampleLimits = new Map<string, SampleLimit>();
+/** An imported sample assistant's Run now leaves a plan in its run's conversation (sample-team-detail.ts sampleRunThread). */
+export const sampleRunPlans = new Map<string, AskPlan>();
+/** Where a stopped sample Go is: the ticks, the steps so far, and this Go's one-time allowance. */
+const paused = new Map<string, { ticked: number[]; results: StepResult[]; once: string[] }>();
+/** The account a sample step reaches. */
+const STEP_ACCOUNT: Record<string, string> = { draft_message: "gmail", move_event: "google-calendar" };
+
+function sampleRun(plan: AskPlan, ticked: number[], results: StepResult[], once: string[]): { plan: AskPlan; changes: AssistantChange[] } {
+  const limit = sampleLimits.get(plan.id);
+  const from = results.length;
+  for (let i = from; i < plan.steps.length; i++) {
+    if (!ticked.includes(i)) {
+      results.push({ status: "skipped", changes: [] });
+      continue;
+    }
+    const provider = STEP_ACCOUNT[plan.steps[i].tool];
+    const a = limit?.assistant();
+    const acct = provider ? limit?.accounts.find((x) => x.provider === provider) : undefined;
+    if (limit && a && acct && ![...a.accounts, ...once].includes(acct.id)) {
+      paused.set(plan.id, { ticked, results, once });
+      const { ran: _ran, ...rest } = plan;
+      return { plan: { ...rest, needs_account: { step: i, account: acct.name, label: acct.label ?? null, provider, assistant: a.name, results: [...results] } }, changes: results.slice(from).flatMap((r) => r.changes) };
+    }
+    results.push(sampleStep(plan, i));
+  }
+  paused.delete(plan.id);
+  const { needs_account: _ask, ...rest } = plan;
+  return { plan: { ...rest, ran: { at: new Date().toISOString(), results } }, changes: results.slice(from).flatMap((r) => r.changes) };
+}
+
+/** Go in sample mode: every ticked step "runs", unticked ones are skipped; an imported assistant's stops to ask. */
 export function sampleGo(plan: AskPlan, ticked: number[]): { plan: AskPlan; changes: AssistantChange[] } {
-  const results = plan.steps.map((_, i) => {
-    if (!ticked.includes(i)) return { status: "skipped" as const, changes: [] };
-    // A Team run's plan (no routine of its own) gets a receipt for its own step, not the sample plan's.
-    const c = plan.source === "routine" ? { ...RECEIPTS[2], id: id(990030 + i), title: plan.steps[i].label.replace(/^Add a to-do:\s*/i, ""), detail: "To do", label: plan.steps[i].label } : (RECEIPTS[i] ?? { ...RECEIPTS[2], id: id(990020 + i), title: plan.steps[i].label });
-    return { status: "done" as const, changes: [{ ...c, activity_id: id(991000 + i) }] };
-  });
-  return { plan: { ...plan, ran: { at: new Date().toISOString(), results } }, changes: results.flatMap((r) => r.changes) };
+  if (plan.needs_account) return { plan, changes: [] };
+  return sampleRun(plan, ticked, [], []);
+}
+
+/** The owner's answer to a stopped sample Go: as the server does it, nothing leaves the page. */
+export function sampleAnswerAccount(plan: AskPlan, answer: "once" | "always" | "skip"): { plan: AskPlan; changes: AssistantChange[] } {
+  const ask = plan.needs_account;
+  const at = paused.get(plan.id);
+  if (!ask || !at) return { plan, changes: [] };
+  const acct = sampleLimits.get(plan.id)?.accounts.find((x) => x.provider === ask.provider);
+  const results = [...at.results];
+  const once = [...at.once];
+  if (answer === "always" && acct) sampleLimits.get(plan.id)?.tick(acct.id);
+  else if (answer === "once" && acct) once.push(acct.id);
+  else if (answer === "skip") results.push({ status: "skipped", error: `You said no to ${ask.account}.`, changes: [] });
+  return sampleRun(plan, at.ticked, results, once);
 }
 
 /** "Every Friday at 4pm, tell me what slipped this week": the receipt for a new routine. */

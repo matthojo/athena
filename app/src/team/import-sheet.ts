@@ -26,7 +26,7 @@ import { MAX_ANSWER, type TeamAnswer } from "../../../lib/team-skill";
 import { MAX_ASSISTANTS } from "../../../lib/team-types";
 import { shareSeed } from "../../../lib/team-share";
 import { avatarFromSeed, renderAvatarTile } from "./avatar";
-import { SHARED_TOOLS, toolWords } from "../../../lib/shared-limits";
+import { SHARED_TOOLS, asksFirstWords } from "../../../lib/shared-limits";
 import { accountTicks, cantWorkNote } from "../components/account-ticks";
 import { answersFor, questionsForm, type AnswerMap } from "./setup-questions";
 import { triggerSentence } from "./trigger-editor-words";
@@ -192,7 +192,11 @@ export function openImportAssistant(opts: ImportOptions): void {
         ? section(
             "Always asks first",
             h("p", { class: "form__hint" }, `${name} also asked to do these alone. An assistant someone shared can't, so each waits for your Go.`),
-            h("ul", { class: "wf-list" }, ...asksFirst.map((t) => h("li", {}, icons.shield(), h("span", {}, toolWords(t)))))
+            // One line each, like the ticks above: Athena's words for the tool, never the file's.
+            h("ul", { class: "wf-asks", "aria-label": `What ${name} asks before doing` }, ...asksFirst.map((t) => {
+              const o = asksFirstWords(t);
+              return h("li", { class: "wf-tick wf-tick--fixed" }, icons.shield(), h("span", {}, h("span", { class: "wf-tick__label" }, o.label), h("span", { class: "row__meta" }, o.detail)));
+            }))
           )
         : null,
       p.links.length ? h("p", { class: "skills-error" }, icons.globe(), h("span", {}, `Its instructions link to ${p.links.join(", ")}. Athena didn't check ${p.links.length === 1 ? "that site" : "those sites"}.`)) : null,

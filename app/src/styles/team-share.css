@@ -261,3 +261,25 @@
 .wf .skills-form__actions .btn {
   min-width: 0;
 }
+
+/* "Always asks first" (team/import-sheet.ts): set like the ticks above, with a shield where the tick would be. */
+.wf-asks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wf-tick--fixed {
+  cursor: default;
+}
+
+.wf-tick--fixed > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--ink-2);
+}

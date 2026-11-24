@@ -11,6 +11,7 @@
 import type { TeamRun } from "../../../lib/team-types";
 import type { AskThread, AssistantChange } from "../types";
 import { SAMPLE_TEAM_IDS, sampleRuns, sampleRunThreadId } from "./sample-team";
+import { sampleRunPlans } from "./sample-ask-plans";
 import { getThread, saveThread } from "./ask-threads";
 
 export { sampleRunThreadId };
@@ -83,7 +84,8 @@ const REPLIES: Record<string, () => Partial<Extract<AskThread["messages"][number
 /** A sample run's conversation, as Ask would have kept it: what set it off, then the reply. */
 export function sampleRunThread(run: TeamRun): AskThread {
   const at = run.finished_at ?? run.started_at;
-  const more = REPLIES[run.id]?.() ?? {};
+  const planned = sampleRunPlans.get(run.id);
+  const more = REPLIES[run.id]?.() ?? (planned ? { reply: { text: run.summary ?? "", changes: [], choices: [], plan: planned } } : {});
   return {
     id: run.thread_id ?? sampleRunThreadId(run.id),
     title: run.label?.replace(/^New (?:gift idea|issue): “(.+)”$/, "$1") ?? "",

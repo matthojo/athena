@@ -2041,6 +2041,18 @@ words. They reach only what the owner ticked for them, enforced in code.
   finds nothing). A custom MCP server with "Use in Ask" is an account like
   any other. Two limits leave only what both allow. A skill brought into use
   part way through a turn can't take back what was read before it.
+- **Go keeps the limit, and asks** (owner, 24 Nov 2026). A plan an imported
+  assistant proposed records it (`ask_plans` payload `limit`, sealed). Its
+  Go runs under that assistant's ticks (`goPlan`, `limitedForGo`): a step
+  that needs another account is refused before the account is reached,
+  and Go stops there. The card names the account in Athena's words, never
+  the model's, and offers Just this once (that Go only; nothing is kept),
+  Always for the assistant (ticks it) or Skip it. A plan whose assistant
+  was removed is held the same way, with no ticks.
+- **Needed accounts said plainly.** Ticks still start empty. The accounts
+  the file says it needs are kept with the assistant's sealed words, listed
+  first, and while one is unticked the import sheet and the assistant's
+  page say it can't work without it.
 - **Framed as someone else's words.** An imported assistant's instructions
   and skill go in as `<shared_instructions>` and `<shared_skill>` with a
   rule that they are suggestions to weigh, never the owner's requests;
@@ -2050,6 +2062,18 @@ words. They reach only what the owner ticked for them, enforced in code.
   an imported skill's page. After `0086`, Home names each imported skill that
   had none ticked, once (`GET`/`DELETE /api/skills/notice`; settings
   `skills.accounts_notice` holds ids only).
+- **A model's words in the owner's note link plainly.** Every tool through
+  which a model writes into a note the owner wrote (`save_note`,
+  `add_to_list`, filing a saved item onto a list, an assignment's work, the
+  MCP `update_note`) goes through `modelWroteInto` (`lib/links.ts`): links
+  it adds lose their card, mention or embed mode, so nothing it writes
+  makes Athena fetch a page. Modes the owner had already chosen stay.
+- **Decided as built** (owner, 24 Nov 2026). What a shared assistant may be
+  granted stays the flows catalogue's "add" group plus `track`. Assistants
+  imported before 0086 that left no record are not limited. An imported
+  skill limits a turn from the moment it is used, and stays imported after
+  the owner rewrites it. The one-time notice stays a Home card, and sample
+  mode's Dot keeps its extra asks.
 - **Tested** (`lib/shared-limits.test.ts`, `lib/shared-items.db.test.ts`).
 
 ### Ask's read tools, today's context and memory
@@ -2350,7 +2374,7 @@ saved (below).
   Once it calls a write tool it may make up to 14 model calls in four
   minutes (15 on the server), as an instruction always could.
 
-### Links a turn may open (`lib/run-links.ts`, migration `0085`)
+### Links a turn may open (`lib/run-links.ts`, migrations `0085` and `0087`)
 
 A web-enabled assistant's turn gets Anthropic's server web fetch tool
 (`webFetchTool` in `lib/answer.ts`). It may open any link in the turn's own
@@ -2369,9 +2393,11 @@ supplied or approved it.
   the owner's or the item's (`runUrlOf`, `trackerLines` in
   `lib/team-chat.ts`); a saved item's tracker otherwise gives the item's own
   link, and one on its own gives none, so the run searches for it by name.
-  Trackers made before 0085 have no record of who set their link: one on a
-  saved item still opens the item's link, and any other link isn't opened
-  until the owner sets it again.
+  Trackers made before 0085 had no record of who set their link. The owner
+  chose (24 Nov 2026), once, to approve every one of those links:
+  migration 0087 marks each as set by the owner, so those trackers keep
+  working. It touched only rows with no record; a link a model chose since
+  0085 still waits for Go.
 - **`track` with a link a model chose waits for the owner's Go** (above),
   for every assistant and for main Ask. Athena writes the Go card's line and
   ignores the model's own step text: what's tracked, the link's host and the
@@ -2389,7 +2415,10 @@ supplied or approved it.
   `lib/flow-run.ts`); an
   assignment's work, handoffs, suggested answers and send-back notes
   (`stageMessage`, `lib/assignment-run.ts`), where `hand_off` puts the
-  work's links back as they were before the note is written; and the shop
+  work's links back as they were before the note is written. A send-back
+  note keeps who wrote it (`note_by` in the stage's sealed words): the
+  owner's goes in as written, so its links can be opened; a stage's, or
+  one kept before this was recorded, can't; and the shop
   in `find_saved`'s best price now. The owner's own words (an assignment's
   brief, an owner's answer, a flow's task text) go in as written.
 - **Tested** (`lib/run-links.test.ts`, `lib/trackers.db.test.ts`): `track`

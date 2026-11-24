@@ -233,7 +233,7 @@ export async function goWaitingFlowPlan(planId: unknown, ticked: unknown, deps: 
   const [r] = await runsWhere(`status = 'waiting' AND waits_for = 'go' AND plan_id = $1::uuid`, [planId], 1);
   const step = r?.state.waiting?.step_id;
   if (!r || !step) return null;
-  const { getPlan, parseTicked, planCard } = await import("./ask-plans");
+  const { getPlan, parseTicked, planCardFor } = await import("./ask-plans");
   const plan = await getPlan(planId);
   if (!plan) return null;
   // The same check Ask's Go makes, before anything runs.
@@ -250,7 +250,7 @@ export async function goWaitingFlowPlan(planId: unknown, ticked: unknown, deps: 
     await handOff(out.run.id).catch((e) => console.error("Athena flows: couldn't hand off a run", e instanceof Error ? e.message.slice(0, 120) : e));
   }
   const ran = (await getPlan(planId))!;
-  return { plan: planCard(ran), changes: (ran.results ?? []).flatMap((x) => x.changes) };
+  return { plan: await planCardFor(ran), changes: (ran.results ?? ran.paused?.results ?? []).flatMap((x) => x.changes) };
 }
 
 // ---------- handing off ----------

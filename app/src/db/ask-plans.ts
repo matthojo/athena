@@ -5,7 +5,7 @@
  * (db/sample-ask-plans.ts) and every change stays on this page.
  */
 import { isSampleMode, request } from "./api";
-import { sampleActivity, sampleGo, samplePicks } from "./sample-ask-plans";
+import { sampleActivity, sampleAnswerAccount, sampleGo, samplePicks } from "./sample-ask-plans";
 import type { AskPlan, AssistantChange, WatchPick } from "../types";
 
 // ---------- plans ----------
@@ -14,6 +14,15 @@ import type { AskPlan, AssistantChange, WatchPick } from "../types";
 export async function goPlan(plan: AskPlan, ticked: number[]): Promise<{ plan: AskPlan; changes: AssistantChange[] }> {
   if (isSampleMode()) return sampleGo(plan, ticked);
   return request("/assistant/plan", { method: "POST", body: JSON.stringify({ id: plan.id, ticked }) });
+}
+
+/**
+ * The owner's answer when Go stopped for an account (AskPlan.needs_account): "once" lets this Go use it, "always"
+ * ticks it for the assistant, "skip" leaves that step out. Go carries on from that step either way.
+ */
+export async function answerPlanAccount(plan: AskPlan, account: "once" | "always" | "skip"): Promise<{ plan: AskPlan; changes: AssistantChange[] }> {
+  if (isSampleMode()) return sampleAnswerAccount(plan, account);
+  return request("/assistant/plan", { method: "POST", body: JSON.stringify({ id: plan.id, account }) });
 }
 
 /** Undo all: newest first, each through What Ask did. */

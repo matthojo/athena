@@ -1959,7 +1959,9 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
         failed = `I couldn't do that: ${(error instanceof z.ZodError ? "Athena couldn't read that change." : error instanceof Error ? error.message : String(error)).slice(0, 300)}`;
       }
     } else if (outcome.kind === "plan") {
-      const saved = await savePlan(outcome.steps, { source: planMode === "propose" ? "routine" : "ask", thread_id: opts.thread_id, routine_id: opts.routine_id });
+      // An imported assistant's plan: its Go keeps to the accounts ticked for it, and asks before any other (lib/ask-plans.ts goPlan).
+      const limit = opts.persona && opts.accounts ? { assistant_id: opts.persona.id } : null;
+      const saved = await savePlan(outcome.steps, { source: planMode === "propose" ? "routine" : "ask", thread_id: opts.thread_id, routine_id: opts.routine_id, limit });
       plan = { ...planCard(saved, { proposed: planMode === "propose" }), ...(heldWhy ? { why: heldWhy } : {}) };
     }
     // What Ask did: one log for every change, whichever way it came (lib/ask-activity.ts).

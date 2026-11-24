@@ -1962,9 +1962,17 @@ export async function runAssistantTool(
   input: unknown,
   opts: { now?: Date; tz?: string; gmail?: GmailPort; slack?: SlackPort; calendar?: CalendarPort; scheduling?: SchedulingPort } = {},
 ): Promise<{ result: string; changes: Change[]; confirm: ConfirmCard[] }> {
-  const session = new Session(opts.now ?? new Date(), opts.tz ?? (await getOwnerTimeZone()), { client: null as unknown as Anthropic, capture: false, gmail: opts.gmail, slack: opts.slack, calendar: opts.calendar, scheduling: opts.scheduling });
+  // Under the owner's Go on a plan an imported assistant proposed: its limit holds, and a refusal stops Go to ask (lib/shared-scope.ts).
+  const ports = await portsForGo(opts);
+  const session = new Session(opts.now ?? new Date(), opts.tz ?? (await getOwnerTimeZone()), { client: null as unknown as Anthropic, capture: false, gmail: ports.gmail, slack: ports.slack, calendar: ports.calendar, scheduling: ports.scheduling });
   const result = await session.run(name, input);
   return { result, changes: [...session.changes], confirm: [...session.confirm] };
+}
+
+/** The ports, limited when a Go runs a plan an imported assistant proposed (lib/shared-scope.ts limitedForGo). */
+async function portsForGo<T extends { gmail?: GmailPort; slack?: SlackPort; calendar?: CalendarPort; scheduling?: SchedulingPort }>(opts: T): Promise<T> {
+  const [{ limitedForGo }, { slackAccountIds }] = await Promise.all([import("./shared-scope"), import("./shared-scope-db")]);
+  return limitedForGo(opts, slackAccountIds);
 }
 
 /**
@@ -1980,6 +1988,7 @@ export async function runPlanTool(
   const now = opts.now ?? new Date();
   const tz = opts.tz ?? (await getOwnerTimeZone());
   if (name !== "move_event") return (await runAssistantTool(name, input, { ...opts, now, tz })).changes;
+  opts = { ...opts, ...(await portsForGo(opts)) };
   if (!opts.scheduling) throw new AthenaInputError("Moving events needs a connected calendar");
   let card: SchedulingCard | undefined;
   await runSchedulingTool(name, withoutStep(input), { scheduling: opts.scheduling, tz, now, show: (c) => (card = c) });

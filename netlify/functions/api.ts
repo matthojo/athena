@@ -1501,8 +1501,10 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
     const run = (tool: string, input: unknown) => runPlanTool(tool, input, { gmail: mailPort, slack: slackPort, ...ports });
     // A plan a flow's run waits on goes through the run's own Go (owner, 21 Nov 2026), as on the run page: a draft is
     // kept as that run's change, and the run carries on now.
-    const viaFlow = await goWaitingFlowPlan(body?.id, body?.ticked, { ports: { gmail: mailPort, slack: slackPort, ...ports }, handOff: (id) => handOffFlowRun(new URL(req.url).origin, id) });
-    const went = viaFlow ?? (await goPlan(body?.id, body?.ticked, { run, log: logChanges }));
+    // The owner's answer to a plan that stopped for an account (lib/ask-plans.ts goPlan) carries on from that step.
+    const answering = body?.account !== undefined;
+    const viaFlow = answering ? null : await goWaitingFlowPlan(body?.id, body?.ticked, { ports: { gmail: mailPort, slack: slackPort, ...ports }, handOff: (id) => handOffFlowRun(new URL(req.url).origin, id) });
+    const went = viaFlow ?? (await goPlan(body?.id, body?.ticked, { run, log: logChanges }, answering ? { account: body!.account } : {}));
     // A stage of an assignment that waited on this plan moves on now, not at the next reminders pass (lib/assignment-run.ts).
     await sweepAssignments().catch((error) => console.warn("Athena assignments: sweep after a Go failed", error instanceof Error ? error.message : error));
     // A Go on a Team run's plan settles its post in Team chat (lib/team-posts.ts).

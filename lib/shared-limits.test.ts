@@ -12,6 +12,7 @@ import { grantedTools, readShared } from "./team-share";
 import { personaFor, personaPrompt } from "./team-chat";
 import { SkillTools, SHARED_SKILL_RULE } from "./skills-ask";
 import { plainNewWebLinks } from "./links";
+import type { SchedulingPort } from "./scheduling";
 import type { OpenSources, SourceAccount } from "./answer";
 import type { Skill } from "./skills-store";
 import type { TeamAssistant } from "./team-types";
@@ -225,4 +226,39 @@ test("an account the file needs, left unticked, is said plainly; connected or no
   });
   assert.equal(cantWorkWords("Dot", [], nameOf), null);
   assert.equal(andList(["Linear", "Gmail", "Slack"]), "Linear, Gmail and Slack");
+});
+
+test("under a Go limit, a look outside it is refused (not empty) and the account is named, so Go can ask", async () => {
+  const { AccountScope, limitedForGo, underGoLimit } = await import("./shared-scope");
+  const looked: string[] = [];
+  const scheduling: SchedulingPort = {
+    events: async (id) => (looked.push(id), []),
+    freeBusy: async () => [],
+    move: async () => ({}) as never,
+    calendars: async () => [],
+    create: async () => ({}) as never,
+    removeCreated: async () => undefined,
+  };
+  assert.equal(limitedForGo({ scheduling }, async () => []).scheduling, scheduling, "no limit: the port as it is");
+  const limit = { scope: new AccountScope({ ids: [A2], by: "Dot" }), refused: null as string | null };
+  await underGoLimit(limit, async () => {
+    const ports = limitedForGo({ scheduling }, async () => []);
+    await assert.rejects(ports.scheduling!.events(A1, new Date(), new Date()), { name: "AccountOff" });
+    await ports.scheduling!.events(A2, new Date(), new Date());
+  });
+  assert.deepEqual(looked, [A2]);
+  assert.equal(limit.refused, A1);
+});
+
+test("every 'Always asks first' line is one of Athena's own change tools that an import can't grant", async () => {
+  const { ASKS_FIRST_TOOLS, SHARED_TOOLS, asksFirstWords } = await import("./shared-limits");
+  const { TOOLS } = await import("./assistant");
+  const names = new Set(TOOLS.map((t) => t.name));
+  for (const [name, o] of Object.entries(ASKS_FIRST_TOOLS)) {
+    assert.ok(names.has(name), `${name} is one of Athena's tools`);
+    assert.ok(!SHARED_TOOLS[name], `${name} can't be granted`);
+    assert.ok(o.label && o.detail && !o.detail.endsWith("."), `${name}: a label and one line, like the ticks`);
+  }
+  assert.deepEqual(asksFirstWords("archive_or_restore"), { label: "Archive or restore", detail: "Puts things away, or brings them back" });
+  assert.deepEqual(asksFirstWords("wire_money"), { label: "Wire money", detail: "Not something Athena can do, so it won't happen" });
 });
