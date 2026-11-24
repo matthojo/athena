@@ -4,7 +4,7 @@
 // Run: npx tsx --test lib/flow-share.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { allSharedSteps, exportFlow, FLOW_DRAFT_TOOLS, FLOW_MONEY_TOOLS, FLOW_SHARE_FORMAT, FLOW_SHARE_TOOLS, importSharedFlow, MAX_FLOW_ASKS, readSharedFlow, type SharedFlow } from "./flow-share";
+import { allSharedSteps, FLOW_DRAFT_TOOLS, FLOW_MONEY_TOOLS, FLOW_SHARE_FORMAT, FLOW_SHARE_TOOLS, MAX_FLOW_ASKS, readSharedFlow } from "./flow-share";
 import { DRAFT_TOOLS, FLOW_TOOLS } from "./flow-catalog";
 import { MONEY_TOOL_NAMES } from "./ask-tools";
 import { FLOW_LIMITS } from "./flow-types";
@@ -149,8 +149,3 @@ test("web: a request, from the file or a thinking step that searches", () => {
   assert.equal(f.money, false);
 });
 
-test("export and import are stubs until built", () => {
-  const f: SharedFlow = readSharedFlow(renewal());
-  assert.throws(() => exportFlow({ name: "x", trigger: { kind: "manual" }, steps: [], money: false }, { ownHosts: [], known: [] }), /not built yet/);
-  assert.throws(() => importSharedFlow(f, { who: "Sam" }), /not built yet/);
-});
