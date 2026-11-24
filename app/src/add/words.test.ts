@@ -1,0 +1,49 @@
+// The Add screen's words (app/src/add/words.ts): where an item came from, what it can reach, what happens once it's
+// added. Made-up items only. Run: npx tsx --test app/src/add/words.test.ts
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { addedWords, changesSomething, FLOW_CHANGE_TOOLS, goWords, makerWords, originWords, reachWords } from "./words";
+import { FLOW_SHARE_TOOLS, type SharedFlowStep } from "../../../lib/flow-share";
+
+test("where it came from: only a catalogue item is from Community", () => {
+  assert.deepEqual(originWords({ from: { catalogue: "0123456789abcdef" }, listing: { id: "0123456789abcdef", version: null, featured: true, added_at: "" } }), { community: true, title: "From Community", detail: "Reviewed and featured in the catalogue" });
+  assert.deepEqual(originWords({ from: { link: "https://github.com/sample-author/athena-items/tree/main/tidy" }, listing: null }), { community: false, title: "Not from Community", detail: "From github.com/sample-author/athena-items" });
+  assert.equal(originWords({ from: { files: "tidy.zip" }, listing: null }).detail, "From tidy.zip");
+  assert.equal(originWords({ from: { files: "" }, listing: null }).detail, "From a file");
+});
+
+test("who made it, as the file says", () => {
+  assert.equal(makerWords({ author: "sample-author", version: "1.2.0" }), "By @sample-author · version 1.2.0");
+  assert.equal(makerWords({ version: "1.2.0" }), "Version 1.2.0");
+  assert.equal(makerWords({}), "");
+});
+
+test("reach in plain words, for each tier", () => {
+  assert.equal(reachWords({ tier: 1, model: false, web: false, lookups: [], needs: [] }, "flow").title, "Nothing leaves your site");
+  const lookup = reachWords({ tier: 2, model: false, web: false, lookups: ["weather", "train_status"], needs: [] }, "flow");
+  assert.equal(lookup.title, "Looks up the weather forecast and live train times");
+  assert.deepEqual(lookup.lines, ["The weather forecast, from Open-Meteo", "Live train times, from National Rail"]);
+  assert.equal(reachWords({ tier: 2, model: true, web: false, lookups: [], needs: [] }, "skill").title, "Uses a model");
+  assert.equal(reachWords({ tier: 2, model: true, web: false, lookups: ["weather"], needs: [] }, "flow").title, "Uses a model and a lookup");
+  const web = reachWords({ tier: 3, model: true, web: true, lookups: [], needs: [] }, "assistant");
+  assert.equal(web.title, "Can search the web");
+  assert.equal(web.lines.length, 2);
+});
+
+test("a flow's change steps: only tools that change something, drafts always wait", () => {
+  for (const t of FLOW_CHANGE_TOOLS) assert.ok(FLOW_SHARE_TOOLS.includes(t), t);
+  assert.ok(FLOW_CHANGE_TOOLS.has("add_todo") && FLOW_CHANGE_TOOLS.has("draft_email"));
+  assert.ok(!FLOW_CHANGE_TOOLS.has("weather") && !FLOW_CHANGE_TOOLS.has("find_notes"));
+  const step = (tool: string, go: "ask" | "auto"): SharedFlowStep => ({ id: "s1", title: null, kind: "tool", tool, input: {}, go, gives: [] });
+  assert.equal(changesSomething(step("weather", "auto")), false);
+  assert.equal(changesSomething(step("add_todo", "auto")), true);
+  assert.match(goWords(step("add_todo", "auto"))!, /asked to run on its own/);
+  assert.equal(goWords(step("add_todo", "ask")), null);
+  assert.match(goWords(step("draft_email", "ask"))!, /nothing is sent/);
+});
+
+test("once added: where it lives and that it's off", () => {
+  assert.equal(addedWords("assistant", "Tidy").title, "Tidy joined your team, paused");
+  assert.equal(addedWords("skill", "Packing list").title, "Packing list is in your skills, off");
+  assert.equal(addedWords("flow", "Plant care").open, "Open the flow");
+});

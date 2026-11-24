@@ -6,13 +6,12 @@
  *   POST   /api/skills                     { skill_md? | name, description, body, files?, skipped?, source?, enabled? } → the skill, saved
  *   PUT    /api/skills/<id>                { the same, any of them } → the skill
  *   DELETE /api/skills/<id>                → { ok }
- *   POST   /api/skills/preview             { zip } | { entries: [{ path, data }] } | { skill_md, file? } | { url } → what would be saved; nothing is
  *   GET    /api/skills/<id>/download?format=md|zip → SKILL.md, or a zip of it and its files
  *   GET    /api/skills/notice              → { skills: [{ id, name, title }] }: imported skills that lost their accounts (0086), once
  *   DELETE /api/skills/notice              → { ok }: the notice is read and doesn't come back
  *
- * A zip and a folder's files come base64, at most 2 MB of them. A link is
- * fetched once, here, through the guard in lib/skill-fetch.ts. Behind the
+ * A skill someone shared (a file, a zip, a folder or a link) is previewed and
+ * added through #/add and /api/community/preview (netlify/lib/community-add-routes.ts). Behind the
  * same bearer token as the rest of the API. "Make this a skill" (a model
  * call) is POST /api/assistant/skill-draft, rate-limited with the rest of Ask.
  */
@@ -34,26 +33,6 @@ export function skillView(s: Skill) {
   return { ...s, title: skillTitle(s.name), skill_md: serialiseSkillMd(s) };
 }
 
-const bytesOf = (b64: unknown): Uint8Array => {
-  if (typeof b64 !== "string" || !/^[A-Za-z0-9+/=\s]*$/.test(b64)) throw new SkillFormatError("That file didn't arrive whole. Try again.");
-  return new Uint8Array(Buffer.from(b64, "base64"));
-};
-
-/** What an upload or link would save. Throws SkillFormatError. */
-export async function previewFrom(body: Record<string, unknown>, now = new Date()): Promise<SkillPreview> {
-  const at = now.toISOString();
-  const file = typeof body.file === "string" ? body.file.slice(0, 200) : undefined;
-  if (typeof body.url === "string") return fetchSkillFromLink(body.url.slice(0, 2048), now);
-  if (body.zip !== undefined) return intakeEntries(readSkillZip(bytesOf(body.zip)), { kind: "upload", ...(file ? { file } : {}), at });
-  if (Array.isArray(body.entries)) {
-    if (body.entries.length > 500) throw new SkillFormatError("That folder has too many files for a skill.");
-    const entries: IntakeEntry[] = body.entries.map((e) => ({ path: String((e as { path?: unknown })?.path ?? ""), bytes: bytesOf((e as { data?: unknown })?.data ?? "") }));
-    return intakeEntries(entries, { kind: "upload", ...(file ? { file } : {}), at });
-  }
-  if (typeof body.skill_md === "string") return intakeEntries([{ path: "SKILL.md", bytes: new TextEncoder().encode(body.skill_md.slice(0, SKILL_LIMITS.body + 5_000)) }], { kind: "upload", ...(file ? { file } : {}), at });
-  throw new SkillFormatError("Send a SKILL.md, a zip, a folder's files or a link.");
-}
-
 export async function handleSkillRoutes(req: Request, segments: string[], body: () => Promise<Record<string, unknown> | null>, json: Json): Promise<Response | null> {
   // ["api", "skills", <id or preview>, <download>]
   const [, , second, third] = segments;
@@ -69,18 +48,6 @@ export async function handleSkillRoutes(req: Request, segments: string[], body: 
       if (method === "GET") return json({ skills: (await accountsNotice()).map((s) => ({ ...s, title: skillTitle(s.name) })) });
       if (method === "DELETE") return (await dismissAccountsNotice(), json({ ok: true }));
       return nope();
-    }
-    if (second === "preview" && segments.length === 3) {
-      if (method !== "POST") return nope();
-      const text = await textUpTo(req, MAX_PREVIEW_BODY);
-      if (text === null) return json({ error: "That's over 2 MB. A skill is mostly text: leave out large files." }, 413);
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(text || "{}");
-      } catch {
-        throw new SkillFormatError("That didn't arrive whole. Try again.");
-      }
-      return json(await previewFrom((parsed && typeof parsed === "object" ? parsed : {}) as Record<string, unknown>));
     }
     if (!UUID.test(second)) return json({ error: "Not found" }, 404);
     if (third === "download" && segments.length === 4) {

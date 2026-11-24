@@ -18,8 +18,6 @@
  *   POST   /api/team/<id>/keep      → { assistant }: a guest becomes a standing assistant; 409 { error } when the team is full
  *   POST   /api/team/<id>/export    { edits?, fine?, download? } → ShareExport (lib/team-share-store.ts); with download and
  *                                   nothing left to check, the zip; with something left, 409 { error, findings }
- *   POST   /api/team/import/preview { zip, file? } | { entries } | { assistant_json, skill_md? } | { url } → ImportPreview; nothing is kept
- *   POST   /api/team/import         ImportInput → { assistant } (201), paused; its skill is written after when the file brings none
  *   /api/team/assignments…          → netlify/lib/assignment-routes.ts
  *
  * Behind the same bearer token as the rest of the API.
@@ -33,7 +31,7 @@ import { fitAnswers, skillGist } from "../../lib/team-skill";
 import { modelChoiceResponse } from "./models-routes";
 import { handleAssignmentRoutes, handleKeep } from "./assignment-routes";
 import { enqueueTeamRun, finishTeamRun, getTeamRun, handOffTeamRun, listTeamActivity, listTeamRuns } from "../../lib/team-run";
-import { exportAssistant, importAssistant, ownHosts, previewImport, shareZip } from "../../lib/team-share-store";
+import { exportAssistant, ownHosts, shareZip } from "../../lib/team-share-store";
 import { ShareFormatError } from "../../lib/team-share";
 import { AthenaInputError } from "../../lib/db";
 import { SKILL_LIMITS } from "../../lib/skills";
@@ -97,26 +95,6 @@ async function teamRoutes(req: Request, url: URL, segments: string[], body: () =
     const d = b.draft && typeof b.draft === "object" ? (b.draft as Record<string, unknown>) : null;
     const draft = d ? { job: typeof d.job === "string" ? d.job : undefined, instructions: typeof d.instructions === "string" ? d.instructions : undefined } : null;
     return json((await askQuestions(text, draft)) satisfies TeamQuestionsResponse);
-  }
-
-  // Shared assistants (lib/team-share.ts): import one someone shared.
-  if (second === "import") {
-    if (method !== "POST") return nope();
-    if (third === "preview") {
-      const text = await textUpTo(req, MAX_IMPORT_BODY);
-      if (text === null) return json({ error: "That's over 2 MB. A shared assistant is mostly text: leave out large files." }, 413);
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(text || "{}");
-      } catch {
-        return json({ error: "That didn't arrive whole. Try again." }, 400);
-      }
-      return json(await previewImport((parsed && typeof parsed === "object" ? parsed : {}) as Record<string, unknown>));
-    }
-    if (third) return json({ error: "Not found" }, 404);
-    const { assistant, writing } = await importAssistant((await body()) ?? {});
-    if (writing && waitUntil) waitUntil(writing);
-    return json({ assistant }, 201);
   }
 
   if (second === "activity" && !third) {

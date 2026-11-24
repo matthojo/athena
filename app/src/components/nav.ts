@@ -55,6 +55,7 @@ export type ViewId =
   | "days"
   | "saved"
   | "recipes"
+  | "add"
   | KindView;
 
 export { isKindView, kindIdOf, kindView, type KindView } from "../lib/routes";

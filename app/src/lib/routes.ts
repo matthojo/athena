@@ -88,6 +88,8 @@ export function parseRoute(hash: string, today = localToday()): Route {
   if (view === "team") return { view: "team", source: null, noteId: path.split("/").slice(1).map(decodeURIComponent).join("/") || null };
   // #/flows, #/flows/new, #/flows/<id>, #/flows/runs/<run id>: Flows, a new one, one flow, or one run.
   if (view === "flows") return { view: "flows", source: null, noteId: path.split("/").slice(1).map(decodeURIComponent).join("/") || null };
+  // #/add, #/add?catalogue=<id>, #/add?link=<url>: the preview every shared item goes through (app/src/add/). Its query rides in `source`.
+  if (view === "add") return { view: "add", source: qs || null, noteId: null };
   // #/ask/nudge/<id>: a nudge's push opening Ask on it (lib/ask-nudge.ts).
   if (view === "ask" && id === "nudge") return { view: "ask", source: null, noteId: path.split("/")[2] ? decodeURIComponent(path.split("/")[2]) : null };
   if (PLAIN_VIEWS.includes(view as ViewId)) return { view: view as ViewId, source: null, noteId: null };
@@ -106,6 +108,7 @@ export function routeHash(r: Route): string {
   if (r.view === "settings") return `#/settings${r.noteId ? `/${encodeURIComponent(r.noteId)}` : ""}`;
   if (r.view === "team") return `#/team${r.noteId ? `/${r.noteId.split("/").map(encodeURIComponent).join("/")}` : ""}`;
   if (r.view === "flows") return `#/flows${r.noteId ? `/${r.noteId.split("/").map(encodeURIComponent).join("/")}` : ""}`;
+  if (r.view === "add") return `#/add${r.source ? `?${r.source}` : ""}`;
   if (PLAIN_VIEWS.includes(r.view)) return `#/${r.view}`;
   if (RECORD_VIEWS[r.view] || r.view === "graph" || r.view === "saved" || r.view === "trips" || r.view === "purchases") return `#/${r.view}${r.noteId ? `/${encodeURIComponent(r.noteId)}` : ""}`;
   const qs = r.source !== null ? `?source=${encodeURIComponent(r.source)}` : "";

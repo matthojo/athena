@@ -188,40 +188,6 @@ export async function deleteSkill(id: string): Promise<void> {
   changed();
 }
 
-// ---------- imports: a preview first ----------
-
-const b64 = async (blob: Blob): Promise<string> => {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  let s = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(s);
-};
-
-/** A SKILL.md, a .zip, or a folder's files (from a folder picker or a drop), as the server would keep them. Nothing is saved. */
-export async function previewUpload(files: File[]): Promise<SkillPreview> {
-  const one = files.length === 1 ? files[0] : null;
-  const isZip = !!one && (/\.zip$/i.test(one.name) || one.type === "application/zip" || one.type === "application/x-zip-compressed");
-  const folder = !one || !isZip ? files.map((f) => ({ path: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name, file: f })) : [];
-  if (isSampleMode()) {
-    if (isZip) throw new SkillFormatError("In sample mode Athena can read a SKILL.md or a folder, but not a zip.");
-    const entries = await Promise.all(folder.map(async (e) => ({ path: e.path, bytes: new Uint8Array(await e.file.arrayBuffer()) })));
-    return intakeEntries(entries, { kind: "upload", file: one?.name ?? folder[0]?.path.split("/")[0], at: new Date().toISOString() });
-  }
-  const body = isZip
-    ? { zip: await b64(one!), file: one!.name }
-    : { entries: await Promise.all(folder.map(async (e) => ({ path: e.path, data: await b64(e.file) }))), file: one?.name ?? folder[0]?.path.split("/")[0] };
-  return request<SkillPreview>("/skills/preview", { method: "POST", body: JSON.stringify(body) });
-}
-
-/** A GitHub folder or a raw SKILL.md, fetched once by the server. Nothing is saved. */
-export async function previewLink(url: string): Promise<SkillPreview> {
-  if (isSampleMode()) {
-    const doc = parseSkillMd(STARTER_SKILLS[2].text.replace("name: meeting-prep", "name: client-prep"));
-    return { ...doc, files: [{ path: "reference/questions.md", text: "# Questions worth asking\n\n- What would make this a yes?\n- Who else needs to agree?\n" }], skipped: [{ path: "scripts/calendar.js", reason: "Not used: Athena doesn't run scripts" }], source: { kind: "link", url, at: new Date().toISOString() } };
-  }
-  return request<SkillPreview>("/skills/preview", { method: "POST", body: JSON.stringify({ url }) });
-}
-
 /** "Make this a skill": a draft from this conversation, for the editor. Never saved by this. */
 export async function draftFromChat(messages: Array<{ role: "user" | "assistant"; text: string }>): Promise<{ name: string; description: string; body: string }> {
   if (isSampleMode()) {

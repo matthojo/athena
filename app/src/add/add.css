@@ -1,0 +1,785 @@
+/* #/add (add/view.ts): one preview for every shared assistant, skill and flow. Phone first; a wide screen keeps
+   one readable column. Built on components.css, skills.css (files, ticks) and flows.css (a flow's steps). */
+
+.view.add {
+  max-width: var(--page-narrow, 680px);
+  padding-bottom: var(--space-xl);
+}
+
+.add__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.add__body h1:focus,
+.add__body h2:focus {
+  outline: none;
+}
+
+/* A drop anywhere on the screen. */
+.view.add.is-dragging .add-drop {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+/* ---------- choosing ---------- */
+
+.add-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xl) var(--space-md);
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: center;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.add-drop__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-2xs);
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.add-drop__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.add-drop__title {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+}
+
+.add-drop__sub {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.add-drop__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.add-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.add-link__label {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.add-link__row {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.add-link__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-link .form__hint {
+  margin: 0;
+}
+
+.add-samples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.add-samples .row {
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.add-samples .row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-samples__link {
+  overflow-wrap: anywhere;
+}
+
+.add-problem {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--bad) 10%, var(--surface));
+  color: var(--ink);
+  font-size: var(--text-small);
+}
+
+.add-problem svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--bad);
+}
+
+/* ---------- reading, and what went wrong ---------- */
+
+.add-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-2xl) var(--space-md);
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.add-loading p {
+  max-width: 36ch;
+  margin: 0;
+  font-size: var(--text-small);
+}
+
+.add-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.add-state__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--space-2xs);
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--bad) 12%, var(--surface));
+  color: var(--bad);
+}
+
+.add-state__icon--accent {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.add-state__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.add-state__text {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.add-state__sub {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-small);
+}
+
+.add-state__actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+/* ---------- the preview: who and what ---------- */
+
+.add-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+}
+
+.add-hero > .avatar-tile,
+.add-hero > :first-child {
+  flex: none;
+}
+
+.add-hero__tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+}
+
+.add-hero__tile svg {
+  width: 32px;
+  height: 32px;
+}
+
+.add-hero__tile--skill {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.add-hero__tile--flow {
+  background: var(--mint-wash);
+  color: var(--flow-mint-ink, var(--good));
+}
+
+.add-hero__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.add-kind {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.add-hero__name {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.add-hero__job {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+}
+
+.add-hero__summary {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+/* Where it came from, and who made it. */
+.add-facts {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.add-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: 12px var(--space-md);
+}
+
+.add-fact + .add-fact {
+  border-top: 1px solid var(--line);
+}
+
+.add-fact__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.add-fact__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.add-fact--community .add-fact__icon {
+  background: var(--mint-wash);
+  color: var(--flow-mint-ink, var(--good));
+}
+
+.add-fact--outside .add-fact__icon {
+  background: var(--warn-wash);
+  color: color-mix(in oklch, var(--warn) 70%, var(--ink));
+}
+
+.add-fact__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 5px;
+}
+
+.add-fact__title {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.add-fact__sub {
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+/* What it can reach: green when nothing leaves, blue for a model or a lookup, amber for the web. */
+.add-reach {
+  --reach-wash: var(--accent-wash);
+  --reach-ink: var(--accent-ink);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--reach-wash);
+}
+
+.add-reach--1 {
+  --reach-wash: var(--mint-wash);
+  --reach-ink: var(--flow-mint-ink, var(--good));
+}
+
+.add-reach--3 {
+  --reach-wash: var(--warn-wash);
+  --reach-ink: color-mix(in oklch, var(--warn) 65%, var(--ink));
+}
+
+.add-reach__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--reach-ink);
+}
+
+.add-reach__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.add-reach__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.add-reach__eyebrow {
+  margin: 0;
+  color: var(--reach-ink);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.add-reach__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.add-reach__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 0;
+  padding: 0 0 0 1.1em;
+  list-style: disc;
+  color: var(--ink);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.add-reach__note {
+  margin: 4px 0 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+}
+
+/* ---------- the preview: sections ---------- */
+
+.add-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.add-sec__title {
+  margin: var(--space-xs) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.add-sec__lede,
+.add-sec .form__hint {
+  margin: 0;
+}
+
+.add-sub {
+  margin: var(--space-xs) 0 0;
+  color: var(--ink-3);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.add-usewhen {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.add-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1.1em;
+  list-style: disc;
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+/* What it needs. */
+.add-needs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.add-need {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 56px;
+  padding: 8px var(--space-md);
+}
+
+.add-need + .add-need {
+  border-top: 1px solid var(--line);
+}
+
+.add-need__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.add-need__name {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+}
+
+.add-need__state {
+  color: color-mix(in oklch, var(--warn) 70%, var(--ink));
+  font-size: var(--text-meta);
+}
+
+.add-need.is-on .add-need__state {
+  color: var(--good);
+}
+
+.add-need__tick {
+  display: inline-flex;
+  color: var(--good);
+}
+
+.add-need__tick svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Its questions. */
+.add-questions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.add-q {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.add-q .form__hint {
+  margin: 0;
+}
+
+.add-q__error {
+  margin: 0;
+  color: var(--bad);
+  font-size: var(--text-meta);
+}
+
+/* A gap in a flow's step that an answer fills. */
+.add-blank {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 2px;
+  padding: 0 8px;
+  border: 1.5px dashed color-mix(in oklch, var(--warn) 60%, var(--line-strong));
+  border-radius: var(--radius-pill);
+  background: var(--warn-wash);
+  color: var(--ink);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  line-height: 1.6;
+}
+
+/* Notes: links, an earlier copy, a full team. */
+.add-note {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.add-note svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+}
+
+.add-note--bad {
+  background: color-mix(in oklch, var(--bad) 10%, var(--surface));
+  color: var(--ink);
+}
+
+.add-note--bad svg {
+  color: var(--bad);
+}
+
+/* All of it. */
+.add-pre {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.add-skipped {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+/* A flow's steps, read-only: the editor's cards without its buttons. */
+.add-flow {
+  display: flex;
+  flex-direction: column;
+}
+
+.add-flow .flow-eyebrow {
+  margin: var(--space-2xs) 0 var(--space-xs);
+}
+
+.add-flow__steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.add-step {
+  cursor: default;
+}
+
+.add-step__inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.add-flow .flow-lanes {
+  margin-top: 0;
+}
+
+.add-flow .flow-lane > .flow-card,
+.add-flow .flow-lane > .flow-card-wrap {
+  margin-top: 2px;
+}
+
+/* ---------- adding ---------- */
+
+.add-foot {
+  position: sticky;
+  bottom: calc(var(--dock-height, 0px) + var(--safe-bottom, 0px));
+  z-index: var(--z-sticky);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-sm);
+  padding: var(--space-md) 0 var(--space-sm);
+  background: linear-gradient(to bottom, transparent, var(--canvas) 28%);
+}
+
+.add-foot__row {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.add-foot__cancel {
+  flex: none;
+  min-height: 48px;
+}
+
+.add-foot__add {
+  flex: 1;
+  min-height: 48px;
+}
+
+.add-foot__add.is-busy {
+  opacity: 0.7;
+}
+
+.add-foot__note {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--text-meta);
+  text-align: center;
+}
+
+.add-foot__problem {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--bad) 10%, var(--surface));
+  color: var(--ink);
+  font-size: var(--text-small);
+}
+
+/* ---------- added ---------- */
+
+.add-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-3xl) var(--space-md) var(--space-xl);
+  text-align: center;
+}
+
+.add-done__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-xs);
+  border-radius: 50%;
+  background: var(--mint-wash);
+  color: var(--flow-mint-ink, var(--good));
+  animation: add-pop var(--dur-spring, 420ms) var(--ease-spring, ease-out) both;
+}
+
+.add-done__mark svg {
+  width: 30px;
+  height: 30px;
+  stroke-width: 2.2;
+}
+
+.add-done__title {
+  max-width: 22ch;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.add-done__body {
+  max-width: 38ch;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.add-done__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+@keyframes add-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .add-done__mark {
+    animation: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .add-link__row {
+    flex-direction: column;
+  }
+
+  .add-hero {
+    gap: var(--space-sm);
+  }
+
+  .add-hero__tile,
+  .add-hero > .avatar-tile {
+    width: 56px;
+    height: 56px;
+  }
+}

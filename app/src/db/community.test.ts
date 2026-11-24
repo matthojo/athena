@@ -2,7 +2,7 @@
 // Run: npx tsx --test app/src/db/community.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ADD_ROUTE, addHash, addItem, checkUpdates, COMMUNITY_ROUTE, fetchCatalogue, parseAddHash, previewAdd } from "./community";
+import { ADD_ROUTE, addHash, checkUpdates, COMMUNITY_ROUTE, fetchCatalogue, isNewerFormat, parseAddHash } from "./community";
 
 test("the routes", () => {
   assert.equal(ADD_ROUTE, "#/add");
@@ -28,9 +28,15 @@ test("#/add alone is files; a listing wins over a link; other addresses aren't #
   assert.equal(parseAddHash("#/flows/add"), null);
 });
 
-test("the calls aren't built yet, and say so", async () => {
+test("the catalogue calls aren't built yet, and say so", async () => {
   await assert.rejects(fetchCatalogue(), /fetchCatalogue: not built yet/);
-  await assert.rejects(previewAdd({ catalogue: "0123456789abcdef" }), /previewAdd: not built yet/);
   await assert.rejects(checkUpdates(), /checkUpdates: not built yet/);
-  await assert.rejects(addItem({} as never, {} as never), /addItem: not built yet/);
+});
+
+test("a file made for a newer Athena is told apart from any other failure", () => {
+  assert.equal(isNewerFormat({ status: 426 }), true);
+  assert.equal(isNewerFormat({ newer: true }), true);
+  assert.equal(isNewerFormat({ status: 400 }), false);
+  assert.equal(isNewerFormat(new Error("x")), false);
+  assert.equal(isNewerFormat(null), false);
 });

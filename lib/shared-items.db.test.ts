@@ -143,12 +143,15 @@ test("the one-time notice names imported skills that lost their accounts, until 
 test("importing an assistant: only changes with an Undo and track can be granted, and nothing else is ticked", { skip }, async () => {
   await reset();
   const { mail, issues } = await accounts();
-  const { previewImport, importAssistant } = await import("./team-share-store");
-  const preview = await previewImport({ assistant_json: JSON.stringify(SHARED) });
-  assert.deepEqual(preview.shared.would_like, ["add_todo", "track"]);
-  assert.deepEqual(preview.asks_first, ["archive_or_restore", "update_people"]);
+  const { accountRows, importAssistant } = await import("./team-share-store");
+  const { listConnectors } = await import("./connectors");
+  const { splitWouldLike } = await import("./shared-limits");
+  // What the Add screen offers (app/src/add/view.ts): only changes with an Undo and track can be ticked.
+  const { offered, asksFirst } = splitWouldLike(SHARED.would_like);
+  assert.deepEqual(offered, ["add_todo", "track"]);
+  assert.deepEqual(asksFirst, ["archive_or_restore", "update_people"]);
   // Every account the turn could open, the one it needs first.
-  assert.deepEqual(preview.accounts.map((a) => a.id), [issues, mail]);
+  assert.deepEqual(accountRows(await listConnectors(), SHARED.needs).map((a) => a.id), [issues, mail]);
 
   // The app sends everything back, ticked; only what an import may grant is kept. A made-up account id is dropped.
   const { assistant } = await importAssistant({ shared: SHARED, skill: { body: "Read each issue, then add a to-do with its title and link.", files: [] }, source: { kind: "upload" }, answers: [], allow: SHARED.would_like, web: false, accounts: [issues, "99999999-9999-4999-8999-999999999999"] });

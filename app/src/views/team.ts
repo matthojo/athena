@@ -8,10 +8,10 @@
  *                last), and the day's runs in order
  *   #/team/<id>  the assistant's own page (team/team-detail.ts)
  *   #/team/new   setup (team/setup.ts), a sheet over the page
- *   #/team/import  add a shared someone shared (team/import-sheet.ts),
- *                a sheet over the page; a file shared to the installed app
- *                lands here. A shared dropped on the page opens it too, and
- *                so does setup's "Or import one someone shared".
+ *   #/team/import  an older address for #/add (app/src/add/), where every
+ *                shared item is previewed and added. A file dropped on the
+ *                page goes there too, and so does setup's "Or import one
+ *                someone shared".
  *
  * The page looks again while it's open (team/page-live.ts) and updates in
  * place, so focus, scroll and the characters' motion carry on undisturbed.
@@ -39,8 +39,7 @@ import { renderTeamChat } from "../team/chat";
 import { renderAssignment } from "../team/assignment-page";
 import { openNewAssignment } from "../team/new-assignment";
 import { watchWaiting } from "../team/waiting";
-import { openImportAssistant } from "../team/import-sheet";
-import { takeSharedAssistant } from "../db/team-share";
+import { openAddWithFiles } from "../add/hold";
 
 type Go = (view: ViewId, opts?: { noteId?: string | null }) => void;
 
@@ -89,16 +88,9 @@ function backToGrid(go: Go) {
   } else go("team");
 }
 
-/** Add a shared someone shared: a sheet over the team; once added, its page. */
-function openImport(go: Go, files?: File[], onClose?: () => void) {
-  openImportAssistant({
-    files,
-    onClose,
-    onAdded: (a) => {
-      showToast(`${a.name} joined your team, paused`);
-      window.setTimeout(() => toDetail(go, a.id), 450);
-    },
-  });
+/** Add something someone shared: #/add previews it (app/src/add/), and links to its page once it's added. */
+function openImport(_go: Go, files?: File[]) {
+  openAddWithFiles(files ?? []);
 }
 
 /** A run's conversation when it kept one, else the assistant's own page. */
@@ -535,11 +527,11 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
     more.hidden = showAll || ordered.length <= limit;
   }
 
-  /** #/team/import: a file shared to the installed app, or the import sheet on its own. */
+  /** #/team/import: an older address for #/add, which also takes a file shared to the installed app. */
   function maybeImport() {
     if (ctx.param !== "import" || setupOpen) return;
     setupOpen = true;
-    void takeSharedAssistant().then((file) => openImport(ctx.go, file ? [file] : undefined, () => backToGrid(ctx.go)));
+    location.replace("#/add");
   }
 
   function maybeSetup() {

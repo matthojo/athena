@@ -3,8 +3,8 @@
  * #/settings/skills/new): the owner's skills (lib/skills.ts), each with its
  * switch, when it was last used and where it came from; the editor (Name,
  * Use when, Instructions, files); and the ways in: upload a SKILL.md, a zip
- * or a folder, import from a link, or write one. Every import shows its whole
- * text and files before anything is saved. A draft from a chat ("Make this a
+ * or a folder, add from a link (all three through #/add, which shows its
+ * whole text and files before anything is saved), or write one. A draft from a chat ("Make this a
  * skill" in Ask) opens here and is only saved when the owner taps Save.
  *
  * A Team assistant's own skill (docs/team.md, "Skills") is listed under Team,
@@ -18,8 +18,9 @@ import { openSheet, type SheetHandle } from "./sheet";
 import { confirmDialog } from "./confirm";
 import { showToast } from "./toast";
 import { relativeTime, shortDate } from "../lib/format";
-import { deleteSkill, downloadSkill, fetchSkill, fetchSkills, holdSkillDraft, onSkillsChange, previewLink, previewUpload, saveSkill, setSkillEnabled, takeSkillDraft, type AppSkill, type SkillDraftInput } from "../db/skills";
-import { descriptionProblem, nameProblem, SKILL_LIMITS, slugName, skillTitle, type SkillPreview, type SkillSource } from "../../../lib/skills";
+import { deleteSkill, downloadSkill, fetchSkill, fetchSkills, onSkillsChange, saveSkill, setSkillEnabled, takeSkillDraft, type AppSkill, type SkillDraftInput } from "../db/skills";
+import { descriptionProblem, nameProblem, SKILL_LIMITS, slugName, skillTitle, type SkillSource } from "../../../lib/skills";
+import { openAddWithFiles } from "../add/hold";
 import { isSampleMode } from "../db/api";
 import { listTeam, type TeamAssistant } from "../db/team";
 import { renderAvatarTile } from "../team/avatar";
@@ -110,7 +111,7 @@ function skillRow(s: AppSkill, nav: Nav, refresh: () => void): HTMLElement {
 export function skillsListSection(nav: Nav): { el: HTMLElement; destroy: () => void } {
   const list = h("div", { class: "skills__list" }, h("div", { class: "card card--flush list" }, ...[0, 1, 2].map(() => h("div", { class: "row" }, h("span", { class: "tile tile--sm skeleton" }), h("span", { class: "row__body" }, h("span", { class: "skeleton", style: "height:12px;width:50%" }))))));
   const add = h("button", { class: "btn btn--primary", type: "button" }, icons.plus(), "Add a skill") as HTMLButtonElement;
-  add.addEventListener("click", () => openAddSheet(nav, () => void refresh()));
+  add.addEventListener("click", () => openAddSheet(nav));
   let max: number = SKILL_LIMITS.skills;
 
   async function refresh() {
@@ -161,13 +162,14 @@ export function skillsListSection(nav: Nav): { el: HTMLElement; destroy: () => v
   };
 }
 
-// ---------- adding: upload, link, write ----------
+// ---------- adding: write one, or add one someone shared ----------
 
-function openAddSheet(nav: Nav, done: () => void): void {
+/** Write one here, or add one someone shared: files, folders and links all go through #/add (app/src/add/). */
+function openAddSheet(nav: Nav): void {
   const fileInput = h("input", { type: "file", accept: ".md,.zip,text/markdown,application/zip", hidden: true }) as HTMLInputElement;
   const folderInput = h("input", { type: "file", hidden: true, webkitdirectory: "", multiple: true }) as HTMLInputElement;
-  const option = (icon: Parameters<typeof iconOf>[0], title: string, detail: string, run: () => void) => {
-    const b = h("button", { class: "row", type: "button" }, h("span", { class: "tile tile--sm" }, iconOf(icon)), h("span", { class: "row__body" }, h("span", { class: "row__title" }, title), h("span", { class: "row__meta" }, detail)), h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()));
+  const option = (icon: "pen" | "capture" | "folder" | "link", title: string, detail: string, run: () => void) => {
+    const b = h("button", { class: "row", type: "button" }, h("span", { class: "tile tile--sm" }, icons[icon]()), h("span", { class: "row__body" }, h("span", { class: "row__title" }, title), h("span", { class: "row__meta" }, detail)), h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()));
     b.addEventListener("click", run);
     return b;
   };
@@ -180,117 +182,24 @@ function openAddSheet(nav: Nav, done: () => void): void {
       option("pen", "Write one", "Name it, say when to use it, and write the steps", () => closeThen(sheet, () => nav.open("new"))),
       option("capture", "Upload a SKILL.md or .zip", "A zip can hold reference files too", () => fileInput.click()),
       option("folder", "Upload a folder", "A folder with SKILL.md in it", () => folderInput.click()),
-      option("link", "Import from a link", "A GitHub folder, or a link to a SKILL.md", () => linkStep())
+      option("link", "Add from a link", "A GitHub folder, or a link to a SKILL.md", () => closeThen(sheet, () => (location.hash = "#/add")))
     ),
+    h("p", { class: "form__hint" }, "You'll see all of a skill someone shared before it's added, and it starts off."),
     fileInput,
     folderInput
   );
   const sheet = openSheet({ title: "Add a skill", label: "Add a skill", body });
-  const fromFiles = async (files: File[]) => {
-    if (!files.length) return;
-    showPreview(sheet, () => previewUpload(files), nav, done);
+  const fromFiles = (files: File[]) => {
+    if (files.length) closeThen(sheet, () => openAddWithFiles(files));
   };
-  fileInput.addEventListener("change", () => void fromFiles([...(fileInput.files ?? [])]));
-  folderInput.addEventListener("change", () => void fromFiles([...(folderInput.files ?? [])]));
-
-  function linkStep() {
-    const url = h("input", { class: "field", type: "url", inputmode: "url", placeholder: "https://github.com/…/tree/main/my-skill", "aria-label": "Link to the skill", autocomplete: "off", required: true }) as HTMLInputElement;
-    const go = h("button", { class: "btn btn--primary btn--block", type: "submit" }, "Preview") as HTMLButtonElement;
-    const form = h(
-      "form",
-      { class: "skills-form" },
-      h("label", { class: "skills-form__label" }, h("span", {}, "Link"), url),
-      h("p", { class: "form__hint" }, "A public GitHub folder with a SKILL.md in it, or a link straight to a SKILL.md. Athena reads it once and shows you everything before saving."),
-      go
-    );
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      if (!url.value.trim()) return url.focus();
-      showPreview(sheet, () => previewLink(url.value.trim()), nav, done);
-    });
-    sheet.setTitle("Import from a link");
-    sheet.setBack(() => {
-      sheet.setTitle("Add a skill");
-      sheet.setBack(null);
-      setBody(sheet, body);
-    });
-    setBody(sheet, form);
-    url.focus();
-  }
+  fileInput.addEventListener("change", () => fromFiles([...(fileInput.files ?? [])]));
+  folderInput.addEventListener("change", () => fromFiles([...(folderInput.files ?? [])]));
 }
-
-const iconOf = (name: "pen" | "capture" | "folder" | "link") => icons[name]();
 
 /** Close the sheet, then go: its history entry is taken back first, so the new page isn't. */
 function closeThen(sheet: SheetHandle, go: () => void): void {
   sheet.close();
   setTimeout(go, 450);
-}
-
-function setBody(sheet: SheetHandle, el: HTMLElement): void {
-  sheet.dialog.querySelector(".sheet__scroll")?.replaceChildren(el);
-}
-
-/** The whole text and every file, before anything is saved. */
-export function previewEl(p: SkillPreview): HTMLElement {
-  const files = p.files.map((f) => {
-    const d = h("details", { class: "skill-file" }, h("summary", {}, icons.note(), h("span", { class: "skill-file__name" }, f.path), h("span", { class: "skill-file__size" }, size(f.text))), h("pre", { class: "skill-pre" }, f.text));
-    return d;
-  });
-  return h(
-    "div",
-    { class: "skill-preview" },
-    h("p", { class: "skill-preview__source" }, icons.link(), sourceWords(p.source)),
-    h("dl", { class: "skill-preview__meta" }, h("dt", {}, "Name"), h("dd", {}, p.name), h("dt", {}, "Use when"), h("dd", {}, p.description)),
-    h("p", { class: "skills-form__caption" }, "Instructions"),
-    h("pre", { class: "skill-pre skill-pre--body" }, p.body),
-    p.files.length ? h("p", { class: "skills-form__caption" }, p.files.length === 1 ? "1 file" : `${p.files.length} files`) : null,
-    ...files,
-    p.skipped.length
-      ? h("ul", { class: "skill-skipped", "aria-label": "Not used" }, ...p.skipped.map((s) => h("li", {}, h("span", { class: "skill-file__name" }, s.path), h("span", { class: "skill-skipped__why" }, s.reason))))
-      : null
-  );
-}
-
-function showPreview(sheet: SheetHandle, load: () => Promise<SkillPreview>, nav: Nav, done: () => void): void {
-  sheet.setTitle("Check it before saving");
-  setBody(sheet, h("div", { class: "skills-loading" }, h("span", { class: "orb orb--thinking", "aria-hidden": "true" }), h("p", {}, "Reading it…")));
-  void load().then(
-    (p) => {
-      const on = h("input", { type: "checkbox", role: "switch", class: "switch", id: "skill-preview-on", "aria-label": "Switch it on" }) as HTMLInputElement;
-      const save = h("button", { class: "btn btn--primary btn--block", type: "button" }, "Save skill") as HTMLButtonElement;
-      const edit = h("button", { class: "btn btn--soft btn--block", type: "button" }, "Edit first");
-      save.addEventListener("click", async () => {
-        save.disabled = true;
-        try {
-          const s = await saveSkill({ ...p, source: p.source, enabled: on.checked });
-          sheet.close();
-          showToast(on.checked ? `${s.title} is saved and on` : `${s.title} is saved. It's off until you switch it on.`, { icon: "check" });
-          done();
-        } catch (error) {
-          save.disabled = false;
-          showToast(errorText(error), { icon: "refresh" });
-        }
-      });
-      edit.addEventListener("click", () => {
-        holdSkillDraft({ ...p, from: "import" });
-        closeThen(sheet, () => nav.open("new"));
-      });
-      setBody(
-        sheet,
-        h(
-          "div",
-          { class: "skills-form" },
-          previewEl(p),
-          h("label", { class: "skill-switch", for: "skill-preview-on" }, h("span", {}, h("span", { class: "skill-switch__title" }, "Switch it on"), h("span", { class: "row__meta" }, "Ask uses it when a request matches. You can do this later.")), on),
-          h("div", { class: "skills-form__actions" }, edit, save)
-        )
-      );
-    },
-    (error) => {
-      setBody(sheet, h("div", { class: "skills-form" }, h("p", { class: "skills-error" }, icons.flag(), h("span", {}, errorText(error)))));
-    }
-  );
 }
 
 // ---------- the editor ----------
