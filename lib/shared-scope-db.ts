@@ -8,8 +8,8 @@ import { getSkill, type Skill } from "./skills-store";
 import type { AccountScope } from "./shared-scope";
 
 /** An imported skill in use: only its ticked accounts from here on. Main Ask's skills only (an assistant's own goes with its assistant). */
-export function limitForSkill(scope: AccountScope, s: Pick<Skill, "imported" | "accounts" | "name" | "assistant_id">): void {
-  if (s.imported && !s.assistant_id) scope.limit(s.accounts, skillTitle(s.name));
+export function limitForSkill(scope: AccountScope, s: Pick<Skill, "id" | "imported" | "accounts" | "name" | "assistant_id">): void {
+  if (s.imported && !s.assistant_id) scope.limit(s.accounts, skillTitle(s.name), { skill: s.id });
 }
 
 /**
@@ -21,7 +21,7 @@ export async function limitForPicked(scope: AccountScope, id: string): Promise<v
     const s = await getSkill(id);
     if (s) limitForSkill(scope, s);
   } catch {
-    scope.limit([], "the skill you picked");
+    scope.limit([], "the skill you picked", { skill: id });
   }
 }
 

@@ -21,16 +21,23 @@ import type { SchedulingPort } from "./scheduling";
 export class AccountScope {
   private allowed: Set<string> | null = null;
   private readonly by: string[] = [];
+  private readonly skillIds: string[] = [];
 
   constructor(start?: { ids: Iterable<string>; by: string } | null) {
     if (start) this.limit(start.ids, start.by);
   }
 
-  /** Allow only these from here on (and only what was allowed before). */
-  limit(ids: Iterable<string>, by: string): void {
+  /** Allow only these from here on (and only what was allowed before). `skill`: an imported skill's id, when it's one limiting the turn. */
+  limit(ids: Iterable<string>, by: string, from: { skill?: string } = {}): void {
     const next = new Set([...ids].map((id) => id.toLowerCase()));
     this.allowed = this.allowed ? new Set([...this.allowed].filter((id) => next.has(id))) : next;
     if (!this.by.includes(by)) this.by.push(by);
+    if (from.skill && !this.skillIds.includes(from.skill)) this.skillIds.push(from.skill);
+  }
+
+  /** The imported skills that limited this turn (their ids): a plan the turn makes keeps their limit on Go (lib/ask-plans.ts). */
+  get skills(): readonly string[] {
+    return this.skillIds;
   }
 
   /** Is any limit on? */

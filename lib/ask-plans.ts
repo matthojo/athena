@@ -79,9 +79,10 @@ export interface PlanCard {
   /** After Go: when, and each step's outcome in order. */
   ran?: { at: string; results: StepResult[] };
   /**
-   * Go stopped before a step that needs a connected account the imported assistant that proposed it isn't allowed
-   * (lib/shared-scope.ts): nothing reached it. The owner answers with Just this once, Always for <assistant>, or
-   * Skip it (goPlan's `account`). `results`: the steps before it, as they went.
+   * Go stopped at a step that was refused a connected account (lib/shared-scope.ts): the imported assistant that
+   * proposed the plan, or an imported skill in use when it was made, isn't allowed it. Nothing the step made is kept.
+   * The owner answers with Just this once, Always for <assistant> (never for a skill: its accounts are ticked on its
+   * page), or Skip it (goPlan's `account`). `results`: the steps before it, as they went.
    */
   needs_account?: PlanAccountAsk;
 }
@@ -94,8 +95,13 @@ export interface PlanAccountAsk {
   account: string;
   label: string | null;
   provider: string;
-  /** The imported assistant that proposed the plan. */
+  /** Who isn't allowed it: the imported skill's title when one is (then `skill` is set too), else the imported assistant's name. */
   assistant: string;
+  /**
+   * An imported skill in use when the plan was made isn't allowed the account. The card offers only Just this once
+   * and Skip it, and links to the skill's page (`id`; null when the skill has since been removed).
+   */
+  skill?: { id: string | null; title: string };
   results: StepResult[];
 }
 
@@ -232,14 +238,17 @@ export async function runSteps(steps: PlanStep[], ticked: ReadonlySet<number>, r
 
 /**
  * runSteps, able to stop and carry on. `prior`: how the steps before `prior.length` went (a Go that stopped), so
- * their stand-in ids still resolve. `halt`, asked after each step: an account a step was refused (lib/shared-scope.ts);
- * when that step made nothing, Go stops before it and `halted` names it and the account. Pure apart from `run`.
+ * their stand-in ids still resolve. `halt`, asked after each step: an account the step was refused
+ * (lib/shared-scope.ts). A refused step always stops Go, before it, and `halted` names it and the account; whatever
+ * the step made without the account goes to `discard`, never to `keep` and never into the results (owner, 24 Nov
+ * 2026). `keep`: what a step that wasn't refused made, as it should be recorded (What Ask did). Pure apart from the
+ * callbacks.
  */
 export async function runStepsFrom(
   steps: PlanStep[],
   ticked: ReadonlySet<number>,
   run: (tool: string, input: unknown) => Promise<Change[]>,
-  opts: { prior?: StepResult[]; halt?: () => string | null; before?: () => void } = {},
+  opts: { prior?: StepResult[]; halt?: () => string | null; before?: () => void; keep?: (changes: Change[]) => Promise<Change[]>; discard?: (changes: Change[]) => Promise<void> } = {},
 ): Promise<{ results: StepResult[]; halted?: { at: number; account_id: string } }> {
   const ids = new Map<string, string>();
   const missing = new Set<string>();
@@ -265,16 +274,26 @@ export async function runStepsFrom(
       continue;
     }
     opts.before?.();
+    let wrote: Change[] = [];
+    let failed: unknown = null;
+    try {
+      wrote = await run(step.tool, substitute(step.input, ids));
+    } catch (error) {
+      failed = error ?? new Error("That step didn't work.");
+    }
+    // Refused an account: stop here, before it, and ask the owner. What it made without the account isn't kept.
+    const refused = opts.halt?.() ?? null;
+    if (refused) {
+      if (wrote.length) await opts.discard?.(wrote);
+      return { results: out, halted: { at: i, account_id: refused } };
+    }
     let result: StepResult;
     try {
-      const changes = await run(step.tool, substitute(step.input, ids));
-      result = { status: "done", changes };
+      if (failed) throw failed;
+      result = { status: "done", changes: opts.keep ? await opts.keep(wrote) : wrote };
     } catch (error) {
       result = { status: "failed", error: readable(error), changes: [] };
     }
-    // Refused an account and made nothing: stop here, before it, and ask the owner.
-    const refused = opts.halt?.() ?? null;
-    if (refused && !result.changes.length) return { results: out, halted: { at: i, account_id: refused } };
     const made = result.status === "done" ? madeId(result.changes) : null;
     if (made) ids.set(step.stands_for, made);
     else missing.add(step.stands_for);
@@ -303,8 +322,11 @@ export async function undoAllChanges(results: StepResult[], undo: (change: Chang
 interface Payload {
   steps: PlanStep[];
   results?: StepResult[];
-  /** An imported assistant proposed it (lib/answer.ts): its Go opens only the accounts ticked for that assistant. */
-  limit?: { assistant_id: string };
+  /**
+   * Made by an imported assistant, or while imported skills were in use (lib/answer.ts): its Go opens only the
+   * accounts ticked for each of them.
+   */
+  limit?: PlanLimit;
   /** Go stopped for an account (PlanAccountAsk): the steps it ran, the ticks, and the account (connectors.id). */
   paused?: { at: number; account_id: string; ticked: number[]; results: StepResult[] };
 }
@@ -335,6 +357,25 @@ export interface StoredPlan {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Who a plan's Go is limited by: the imported assistant that made it, and the imported skills in use when it was made. */
+export interface PlanLimit {
+  assistant_id?: string;
+  skill_ids?: string[];
+}
+
+/** A limit as kept: ids only, each once; null when nothing limits it. Pure. */
+export function cleanLimit(raw: unknown): PlanLimit | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as { assistant_id?: unknown; skill_ids?: unknown };
+  const assistant = typeof r.assistant_id === "string" && UUID.test(r.assistant_id) ? r.assistant_id : null;
+  const skills = Array.isArray(r.skill_ids) ? [...new Set(r.skill_ids.filter((x): x is string => typeof x === "string" && UUID.test(x)))].slice(0, 20) : [];
+  if (!assistant && !skills.length) return null;
+  return { ...(assistant ? { assistant_id: assistant } : {}), ...(skills.length ? { skill_ids: skills } : {}) };
+}
+
+/** The limit a turn's plan keeps (lib/answer.ts): the imported assistant answering, and the imported skills it used. Pure. */
+export const planLimit = (assistantId: string | null | undefined, skillIds: readonly string[]): PlanLimit | null => cleanLimit({ assistant_id: assistantId ?? undefined, skill_ids: [...skillIds] });
 const iso = (v: string | Date | null) => (v == null ? null : new Date(v).toISOString());
 
 function present(r: Row): StoredPlan | null {
@@ -351,7 +392,7 @@ function present(r: Row): StoredPlan | null {
     routine_id: r.routine_id,
     steps: p.steps ?? [],
     results: p.results ?? null,
-    limit: p.limit && typeof p.limit.assistant_id === "string" && UUID.test(p.limit.assistant_id) ? { assistant_id: p.limit.assistant_id } : null,
+    limit: cleanLimit(p.limit),
     paused: p.paused && Number.isInteger(p.paused.at) && typeof p.paused.account_id === "string" ? p.paused : null,
     sealed: r.payload,
     created_at: iso(r.created_at)!,
@@ -371,11 +412,11 @@ export function planCard(p: Pick<StoredPlan, "id" | "source" | "steps" | "result
   };
 }
 
-export async function savePlan(steps: PlanStep[], ctx: { source: "ask" | "routine"; thread_id?: string | null; routine_id?: string | null; limit?: { assistant_id: string } | null }): Promise<StoredPlan> {
+export async function savePlan(steps: PlanStep[], ctx: { source: "ask" | "routine"; thread_id?: string | null; routine_id?: string | null; limit?: PlanLimit | null }): Promise<StoredPlan> {
   if (!steps.length) throw new AthenaInputError("A plan needs a step");
   const thread = ctx.thread_id && UUID.test(ctx.thread_id) ? ctx.thread_id : null;
   const routine = ctx.routine_id && UUID.test(ctx.routine_id) ? ctx.routine_id : null;
-  const limit = ctx.limit && UUID.test(ctx.limit.assistant_id) ? { assistant_id: ctx.limit.assistant_id } : undefined;
+  const limit = cleanLimit(ctx.limit) ?? undefined;
   const [row] = await q<Row>(
     `INSERT INTO ask_plans (source, thread_id, routine_id, payload) VALUES ($1, $2, $3, $4) RETURNING id, source, thread_id, routine_id, payload, created_at, ran_at`,
     [ctx.source, thread, routine, sealText(JSON.stringify({ steps, ...(limit ? { limit } : {}) } satisfies Payload))],
@@ -405,12 +446,16 @@ export interface GoDeps {
   run: (tool: string, input: unknown) => Promise<Change[]>;
   /** What Ask did (lib/ask-activity.ts logChanges). */
   log: (changes: Change[], ctx: ActivityContext) => Promise<Change[]>;
+  /** Undo one change a step made before it was refused an account (lib/assistant.ts applyUndo). */
+  undo?: (change: Change) => Promise<void>;
 }
 
-/** What a plan's Go needs to know about the imported assistant that proposed it. Null: it isn't imported (any more). */
+/** What a plan's Go needs to know about the imported assistant and skills that limit it. Null: removed. */
 export interface GoLimitSource {
   assistant(id: string): Promise<{ id: string; name: string; imported: boolean; accounts: string[] } | null>;
-  /** Tick an account for it (Always for <assistant>). */
+  /** An imported skill as it is now: its title ("Deal notes") and ticked accounts. */
+  skill(id: string): Promise<{ id: string; title: string; imported: boolean; accounts: string[] } | null>;
+  /** Tick an account for it (Always for <assistant>). Never for a skill: that's done on the skill's page. */
   tick(assistantId: string, accountId: string): Promise<void>;
   /** A connected account as the owner knows it. */
   account(id: string): Promise<{ name: string; label: string | null; provider: string } | null>;
@@ -422,6 +467,11 @@ export const goLimitStore: GoLimitSource = {
     const { getAssistant } = await import("./team");
     const a = await getAssistant(id);
     return a ? { id: a.id, name: a.name, imported: a.imported === true, accounts: a.accounts ?? [] } : null;
+  },
+  async skill(id) {
+    const [{ getSkill }, { skillTitle }] = await Promise.all([import("./skills-store"), import("./skills")]);
+    const s = await getSkill(id).catch(() => null);
+    return s ? { id: s.id, title: skillTitle(s.name), imported: s.imported, accounts: s.accounts ?? [] } : null;
   },
   async tick(assistantId, accountId) {
     const { getAssistant, updateAssistant } = await import("./team");
@@ -441,22 +491,61 @@ export async function planCardFor(plan: StoredPlan, src: GoLimitSource = goLimit
   return planCard(plan, { ask: await askFor(plan, src) });
 }
 
+/** One imported item a plan's Go is held to. `gone`: since removed, it holds with no account (nothing says it was the owner's). */
+interface Holder {
+  kind: "assistant" | "skill";
+  id: string;
+  name: string;
+  accounts: string[];
+  gone: boolean;
+}
+
+/** Who still holds a plan's Go: each item in its limit that's still imported, or has gone. Mine since (written here): none. */
+async function holders(limit: PlanLimit | null | undefined, src: GoLimitSource): Promise<Holder[]> {
+  if (!limit) return [];
+  const [a, skills] = await Promise.all([limit.assistant_id ? src.assistant(limit.assistant_id) : null, Promise.all((limit.skill_ids ?? []).map((id) => src.skill(id)))]);
+  const out: Holder[] = [];
+  if (limit.assistant_id && (!a || a.imported)) out.push({ kind: "assistant", id: limit.assistant_id, name: a?.name || "this assistant", accounts: a?.accounts ?? [], gone: !a });
+  (limit.skill_ids ?? []).forEach((id, i) => {
+    const sk = skills[i];
+    if (!sk || sk.imported) out.push({ kind: "skill", id, name: sk?.title || "that skill", accounts: sk?.accounts ?? [], gone: !sk });
+  });
+  return out;
+}
+
+/** Who refuses this account: a skill first (the owner ticks it on the skill's page), else the assistant. */
+function refuser(held: Holder[], accountId: string): { skill: Holder | null; assistant: Holder | null } {
+  const off = held.filter((x) => !x.accounts.includes(accountId));
+  return { skill: off.find((x) => x.kind === "skill") ?? null, assistant: off.find((x) => x.kind === "assistant") ?? held.find((x) => x.kind === "assistant") ?? null };
+}
+
 /** The question for a paused plan, from the store, in Athena's words' parts. */
 async function askFor(plan: StoredPlan, src: GoLimitSource): Promise<PlanAccountAsk | null> {
   const paused = plan.paused;
   if (!paused || !plan.limit) return null;
-  const [a, acct] = await Promise.all([src.assistant(plan.limit.assistant_id), src.account(paused.account_id)]);
-  return { step: paused.at, account: acct?.name ?? "An account", label: acct?.label ?? null, provider: acct?.provider ?? "", assistant: a?.name || "This assistant", results: paused.results };
+  const [held, acct] = await Promise.all([holders(plan.limit, src), src.account(paused.account_id)]);
+  const { skill, assistant } = refuser(held, paused.account_id);
+  return {
+    step: paused.at,
+    account: acct?.name ?? "An account",
+    label: acct?.label ?? null,
+    provider: acct?.provider ?? "",
+    assistant: skill?.name ?? (assistant?.name || "This assistant"),
+    ...(skill ? { skill: { id: skill.gone ? null : skill.id, title: skill.name } } : {}),
+    results: paused.results,
+  };
 }
 
 /**
  * Go: run a kept plan's ticked steps once. A second Go (another device, a
  * double tap) gets the first one's results back and runs nothing.
  *
- * A plan an imported assistant proposed runs under its limit (lib/shared-scope.ts, owner, 24 Nov 2026): a step
- * that needs a connected account not ticked for it is refused before the account is reached, and Go stops there
- * with a question for the owner (PlanAccountAsk). `account` answers it and carries on from that step: "once" lets
- * this Go use the account and keeps nothing, "always" ticks it for the assistant, "skip" leaves that step out.
+ * A plan an imported assistant proposed, or one made while an imported skill was in use, runs under their limits
+ * (lib/shared-scope.ts, owner, 24 Nov 2026): a step that needs a connected account not ticked for them is refused
+ * before the account is reached, and Go stops there with a question for the owner (PlanAccountAsk). Whatever the
+ * step made without the account is undone and dropped. `account` answers it and carries on from that step: "once"
+ * lets this Go use the account and keeps nothing, "always" ticks it for the assistant (refused when a skill is what
+ * refused it: that's ticked on the skill's page), "skip" leaves that step out.
  */
 export async function goPlan(id: unknown, tickedRaw: unknown, deps: GoDeps, opts: { account?: unknown; limits?: GoLimitSource } = {}): Promise<{ plan: PlanCard; changes: Change[] }> {
   const src = opts.limits ?? goLimitStore;
@@ -488,6 +577,9 @@ async function carryOn(plan: StoredPlan, raw: unknown, deps: GoDeps, src: GoLimi
     // Already answered (another device, a double tap): as it stands.
     return { plan: planCard(plan), changes: (plan.results ?? []).flatMap((r) => r.changes) };
   }
+  // Always is for an assistant only: a skill's accounts are ticked on its page, never from a plan.
+  const who = answer === "always" ? refuser(await holders(plan.limit, src), paused.account_id) : null;
+  if (who && (who.skill || !who.assistant)) throw new AthenaInputError(`Tick accounts for ${who.skill?.name ?? "this skill"} on its page in Settings → Ask → Skills, or pick Just this once or Skip it.`);
   const claimed = await qRaw<{ id: string }>(`UPDATE ask_plans SET payload = $3, ran_at = now() WHERE id = $1::uuid AND ran_at IS NULL AND payload = $2 RETURNING id`, [plan.id, plan.sealed, sealText(JSON.stringify({ steps: plan.steps, limit: plan.limit } satisfies Payload))]);
   if (!claimed.length) {
     const now = (await getPlan(plan.id))!;
@@ -496,7 +588,7 @@ async function carryOn(plan: StoredPlan, raw: unknown, deps: GoDeps, src: GoLimi
   const ticked = new Set(paused.ticked);
   const prior = [...paused.results];
   const once: string[] = [];
-  if (answer === "always") await src.tick(plan.limit.assistant_id, paused.account_id);
+  if (answer === "always") await src.tick(who!.assistant!.id, paused.account_id);
   else if (answer === "once") once.push(paused.account_id);
   else {
     const acct = await src.account(paused.account_id);
@@ -509,17 +601,36 @@ async function carryOn(plan: StoredPlan, raw: unknown, deps: GoDeps, src: GoLimi
 async function runFrom(plan: StoredPlan, ticked: Set<number>, prior: StepResult[], once: string[], deps: GoDeps, src: GoLimitSource): Promise<{ plan: PlanCard; changes: Change[] }> {
   // A routine plan with no routine is a Team run's (lib/team-chat.ts): What Ask did shows it as the team's, like the run's own changes.
   const ctx: ActivityContext = { source: plan.source === "routine" ? (plan.routine_id ? "routine" : "team") : "plan", thread_id: plan.thread_id, plan_id: plan.id, routine_id: plan.routine_id };
-  const a = plan.limit ? await src.assistant(plan.limit.assistant_id) : null;
+  const held = await holders(plan.limit, src);
   const { AccountScope, underGoLimit } = await import("./shared-scope");
-  // Imported (still): only its ticked accounts, and this Go's one-time allowance. Nothing is stored for "once".
-  // One since removed holds too, with only this Go's allowance: nothing says it was the owner's.
-  const limit = plan.limit && (!a || a.imported) ? { scope: new AccountScope({ ids: [...(a?.accounts ?? []), ...once], by: a?.name || "this assistant" }), refused: null as string | null } : null;
-  const run = async (tool: string, input: unknown) => deps.log(await deps.run(tool, input), ctx);
+  // Each that's still imported: only its ticked accounts, and this Go's one-time allowance. Nothing is stored for
+  // "once". One since removed holds too, with only this Go's allowance: nothing says it was the owner's.
+  let limit: { scope: InstanceType<typeof AccountScope>; refused: string | null } | null = null;
+  if (held.length) {
+    const scope = new AccountScope();
+    for (const x of held) scope.limit([...x.accounts, ...once], x.name);
+    limit = { scope, refused: null };
+  }
+  const keep = (changes: Change[]) => deps.log(changes, ctx);
+  // A step refused an account: what it made without it is undone, and not kept or shown. One that can't be undone
+  // is kept in What Ask did after all, so the owner can see it and undo it there.
+  const discard = async (changes: Change[]) => {
+    for (const c of changes) {
+      if (!c.undo) continue;
+      try {
+        if (!deps.undo) throw new Error("No way to undo it here");
+        await deps.undo(c);
+      } catch (error) {
+        console.warn("Athena plans: couldn't undo what a refused step made", error instanceof Error ? error.message.slice(0, 120) : error);
+        await keep([c]).catch(() => undefined);
+      }
+    }
+  };
   // The owner's Go: what a step sets is theirs, a tracker's link too (lib/run-links.ts).
   const went = await asOwnersGo(() =>
     limit
-      ? underGoLimit(limit, () => runStepsFrom(plan.steps, ticked, run, { prior, before: () => (limit.refused = null), halt: () => limit.refused }))
-      : runStepsFrom(plan.steps, ticked, run, { prior }),
+      ? underGoLimit(limit, () => runStepsFrom(plan.steps, ticked, deps.run, { prior, keep, discard, before: () => (limit!.refused = null), halt: () => limit!.refused }))
+      : runStepsFrom(plan.steps, ticked, deps.run, { prior, keep }),
   );
   const payload: Payload = went.halted
     ? { steps: plan.steps, limit: plan.limit!, paused: { at: went.halted.at, account_id: went.halted.account_id, ticked: [...ticked], results: went.results } }

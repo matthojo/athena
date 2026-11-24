@@ -1504,7 +1504,7 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
     // The owner's answer to a plan that stopped for an account (lib/ask-plans.ts goPlan) carries on from that step.
     const answering = body?.account !== undefined;
     const viaFlow = answering ? null : await goWaitingFlowPlan(body?.id, body?.ticked, { ports: { gmail: mailPort, slack: slackPort, ...ports }, handOff: (id) => handOffFlowRun(new URL(req.url).origin, id) });
-    const went = viaFlow ?? (await goPlan(body?.id, body?.ticked, { run, log: logChanges }, answering ? { account: body!.account } : {}));
+    const went = viaFlow ?? (await goPlan(body?.id, body?.ticked, { run, log: logChanges, undo: (c) => applyUndo(c.undo, ports) }, answering ? { account: body!.account } : {}));
     // A stage of an assignment that waited on this plan moves on now, not at the next reminders pass (lib/assignment-run.ts).
     await sweepAssignments().catch((error) => console.warn("Athena assignments: sweep after a Go failed", error instanceof Error ? error.message : error));
     // A Go on a Team run's plan settles its post in Team chat (lib/team-posts.ts).

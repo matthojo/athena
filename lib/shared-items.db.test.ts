@@ -5,6 +5,7 @@
 //  3. The one-time notice lists imported skills that lost their accounts, until it's read.
 //  4. An imported skill starts off, whatever was sent.
 //  5. A model's edit to the owner's note links plainly, through every tool that writes into one.
+//  6. Go on a plan an imported assistant or skill limits: it asks before any other account, and a refused step keeps nothing.
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/shared-items.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL. Empties skills, assistants, connectors and plans first. Made-up data only.
 import { test, before, after } from "node:test";
@@ -400,4 +401,89 @@ test("an imported assistant's plan: Go stops before an account it isn't allowed,
   // A plan from an assistant made here runs as it always did.
   const p5 = (await savePlan(steps("50"), { source: "routine" })).id;
   assert.deepEqual((await goPlan(p5, undefined, deps)).plan.ran!.results.map((r) => r.status), ["done", "done", "done"]);
+});
+
+test("a plan made while an imported skill was in use: Go keeps the skill's accounts, names the skill, and offers no Always", { skip }, async () => {
+  await reset();
+  const acc = await accounts();
+  const { runAsk } = await import("./answer");
+  const { getPlan, goPlan, savePlan } = await import("./ask-plans");
+  const { limitedForGo } = await import("./shared-scope");
+  const { importAssistant } = await import("./team-share-store");
+  const md = "---\nname: deal-notes\ndescription: Use when the owner asks about a deal.\n---\n\nAdd a to-do for each open point on the deal.\n";
+  const id = (await api("POST", "skills", { skill_md: md, source: { kind: "link", url: "https://github.com/sample/skills/tree/main/deal-notes" } })).data.id as string;
+  await api("PUT", `skills/${id}`, { enabled: true, accounts: [acc.issues] });
+  const deps = { sources: acc.sources, web: async () => false, mentions: async () => ({ found: [], missing: [] }) };
+  const queueTwo = (req: Req): Block[] =>
+    toolResults(req).length ? [answer("Two to-dos are ready for your Go.")] : [{ type: "tool_use", id: "t1", name: "add_todo", input: { title: "Send the terms" } }, { type: "tool_use", id: "t2", name: "add_todo", input: { title: "Book the call" } }];
+
+  // Picked with "/", main Ask's plan records the skill; with the owner's own skill, nothing limits it.
+  script = queueTwo;
+  const reply = await runAsk("Add to-dos for the deal", deps, { tz: TZ, now: NOW, skill: id });
+  assert.deepEqual((await getPlan(reply.plan!.id))!.limit, { skill_ids: [id] });
+  const own = (await api("POST", "skills", { skill_md: md.replace("deal-notes", "my-deals"), source: { kind: "written" }, enabled: true })).data.id as string;
+  const mine = await runAsk("Add to-dos for the deal", deps, { tz: TZ, now: NOW, skill: own });
+  assert.equal((await getPlan(mine.plan!.id))!.limit, null);
+
+  // Three steps; the middle one reads a mail thread, which isn't ticked for the skill. Like a real draft, it carries
+  // on without the thread when it's refused, and writes something anyway.
+  const reached: string[] = [];
+  const logged: string[] = [];
+  const undone: string[] = [];
+  let n = 0;
+  const gmail = { readThread: async (cid: string, _thread: string) => (reached.push(cid), null), createDraft: async () => ({}) as never } as unknown as import("./drafts").GmailPort;
+  const run = async (tool: string): Promise<Change[]> => {
+    if (tool === "draft_message") await limitedForGo({ gmail }, async () => []).gmail!.readThread(acc.mail, "thread-1").catch(() => null);
+    const cid = `5a3e0000-0000-4000-8000-00000000f${String(++n).padStart(3, "0")}`;
+    return [{ kind: "commitment", id: cid, action: "created", title: tool, detail: "", label: tool, open: null, undo: { op: "archive", kind: "commitment", id: cid } } as unknown as Change];
+  };
+  const goDeps = { run, log: async (c: Change[]) => (logged.push(...c.map((x) => x.title)), c), undo: async (c: Change) => void undone.push(c.title) };
+  const steps = (k: string) =>
+    ["add_todo", "draft_message", "add_reminder"].map((tool, i) => ({ label: `${k} ${i}`, tool, input: {}, stands_for: `5a3e0000-0000-4000-8000-00000000e${k}${i}` }));
+  const plan = async (k: string, limit: { assistant_id?: string; skill_ids?: string[] } = { skill_ids: [id] }) => (await savePlan(steps(k), { source: "ask", limit })).id;
+
+  // Go: the draft is refused the mail account; what it wrote without it is undone and not kept, and Go asks.
+  const p1 = await plan("10");
+  const went = await goPlan(p1, undefined, goDeps);
+  assert.deepEqual(reached, [], "the mail account wasn't reached");
+  assert.deepEqual(undone, ["draft_message"], "what the refused step made is undone");
+  assert.deepEqual(logged, ["add_todo"], "and never kept in What Ask did");
+  assert.equal(went.plan.ran, undefined);
+  assert.deepEqual(
+    { ...went.plan.needs_account, results: went.plan.needs_account!.results.map((r) => r.status) },
+    { step: 1, account: "Gmail", label: "sam@example.com", provider: "gmail", assistant: "Deal notes", skill: { id, title: "Deal notes" }, results: ["done"] },
+  );
+  assert.deepEqual(went.changes.map((c) => c.title), ["add_todo"], "the refused step isn't shown as done");
+
+  // No Always for a skill: refused, and the plan still waits for an answer.
+  await assert.rejects(goPlan(p1, undefined, goDeps, { account: "always" }), /on its page/);
+  assert.equal((await goPlan(p1, undefined, goDeps)).plan.needs_account?.step, 1);
+  assert.deepEqual((await api("GET", `skills/${id}`)).data.accounts, [acc.issues], "nothing ticked for the skill");
+
+  // Just this once: this Go reads the thread and carries on; nothing is kept for the skill.
+  logged.length = 0;
+  const once = await goPlan(p1, undefined, goDeps, { account: "once" });
+  assert.deepEqual(reached, [acc.mail]);
+  assert.deepEqual(once.plan.ran!.results.map((r) => r.status), ["done", "done", "done"]);
+  assert.deepEqual(logged, ["draft_message", "add_reminder"]);
+  assert.deepEqual((await api("GET", `skills/${id}`)).data.accounts, [acc.issues]);
+
+  // Skip it: that step is left out and the rest run.
+  reached.length = 0;
+  const p2 = await plan("20");
+  await goPlan(p2, undefined, goDeps);
+  const skipped = await goPlan(p2, undefined, goDeps, { account: "skip" });
+  assert.deepEqual(skipped.plan.ran!.results.map((r) => [r.status, r.error ?? ""]), [["done", ""], ["skipped", "You said no to Gmail."], ["done", ""]]);
+  assert.deepEqual(reached, []);
+
+  // An imported assistant that has Gmail ticked, using the skill that hasn't: the skill is named, and still no Always.
+  const { assistant: dot } = await importAssistant({ shared: SHARED, skill: { body: "Add a to-do for each issue.", files: [] }, source: { kind: "upload" }, answers: [], allow: [], web: false, accounts: [acc.mail, acc.issues] });
+  const p3 = await plan("30", { assistant_id: dot.id, skill_ids: [id] });
+  assert.equal((await goPlan(p3, undefined, goDeps)).plan.needs_account?.skill?.title, "Deal notes");
+  await assert.rejects(goPlan(p3, undefined, goDeps, { account: "always" }), /on its page/);
+
+  // Ticked on the skill's page: the next plan's Go doesn't ask.
+  await api("PUT", `skills/${id}`, { accounts: [acc.issues, acc.mail] });
+  const p4 = await plan("40");
+  assert.deepEqual((await goPlan(p4, undefined, goDeps)).plan.ran!.results.map((r) => r.status), ["done", "done", "done"]);
 });

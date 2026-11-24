@@ -2041,14 +2041,25 @@ words. They reach only what the owner ticked for them, enforced in code.
   finds nothing). A custom MCP server with "Use in Ask" is an account like
   any other. Two limits leave only what both allow. A skill brought into use
   part way through a turn can't take back what was read before it.
-- **Go keeps the limit, and asks** (owner, 24 Nov 2026). A plan an imported
-  assistant proposed records it (`ask_plans` payload `limit`, sealed). Its
-  Go runs under that assistant's ticks (`goPlan`, `limitedForGo`): a step
-  that needs another account is refused before the account is reached,
-  and Go stops there. The card names the account in Athena's words, never
-  the model's, and offers Just this once (that Go only; nothing is kept),
-  Always for the assistant (ticks it) or Skip it. A plan whose assistant
-  was removed is held the same way, with no ticks.
+- **Go keeps the limit, and asks** (owner, 24 Nov 2026). A plan records
+  who limits it (`ask_plans` payload `limit`, sealed, ids only): the
+  imported assistant that proposed it, and each imported skill in use when
+  main Ask (or an assistant) made it. Its Go runs under all of their ticks
+  together (`goPlan`, `limitedForGo`): a step that needs another account is
+  refused before the account is reached, and Go stops there. The card names
+  the account in Athena's words, never the model's. For an assistant it
+  offers Just this once (that Go only; nothing is kept), Always for the
+  assistant (ticks it) or Skip it. When a skill is what refused it, the card
+  names the skill and offers only Just this once and Skip it, with a link to
+  the skill's page; the server refuses Always for a skill, so a skill's
+  accounts are only ever ticked on its page. A plan whose assistant or
+  skill was removed is held the same way, with no ticks.
+- **A refused step always stops** (owner, 24 Nov 2026). Some steps carry on
+  without an account they were refused (a draft written without reading
+  the earlier thread). Any step refused an account stops Go and asks,
+  however it ended. What it made without the account is undone and never
+  kept in What Ask did or shown as done; if an undo fails, that change is
+  kept in What Ask did so the owner can see it and undo it there.
 - **Needed accounts said plainly.** Ticks still start empty. The accounts
   the file says it needs are kept with the assistant's sealed words, listed
   first, and while one is unticked the import sheet and the assistant's
@@ -2067,14 +2078,17 @@ words. They reach only what the owner ticked for them, enforced in code.
   `add_to_list`, filing a saved item onto a list, an assignment's work, the
   MCP `update_note`) goes through `modelWroteInto` (`lib/links.ts`): links
   it adds lose their card, mention or embed mode, so nothing it writes
-  makes Athena fetch a page. Modes the owner had already chosen stay.
+  makes Athena fetch a page. Modes the owner had already chosen stay. This
+  holds for agents writing over MCP too, a Claude only key included, on
+  purpose (owner, 24 Nov 2026): an agent's words are a model's words, so a
+  link it adds to the owner's note stays plain until the owner changes it.
 - **Decided as built** (owner, 24 Nov 2026). What a shared assistant may be
   granted stays the flows catalogue's "add" group plus `track`. Assistants
   imported before 0086 that left no record are not limited. An imported
   skill limits a turn from the moment it is used, and stays imported after
   the owner rewrites it. The one-time notice stays a Home card, and sample
   mode's Dot keeps its extra asks.
-- **Tested** (`lib/shared-limits.test.ts`, `lib/shared-items.db.test.ts`).
+- **Tested** (`lib/shared-limits.test.ts`, `lib/ask-plans.test.ts`, `lib/shared-items.db.test.ts`).
 
 ### Ask's read tools, today's context and memory
 

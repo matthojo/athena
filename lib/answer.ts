@@ -132,7 +132,7 @@ import type { ConfirmCard } from "./assistant-confirm";
 import type { GmailPort, SlackPort } from "./drafts";
 import type { CalendarPort } from "./rsvp";
 import type { SchedulingPort } from "./scheduling";
-import { PLAN_RULE, PROPOSE_RULE, PlanDraft, WAITS_NOTE, planCard, savePlan, withoutStep, type PlanCard, type PlanMode } from "./ask-plans";
+import { PLAN_RULE, PROPOSE_RULE, PlanDraft, WAITS_NOTE, planCard, planLimit, savePlan, withoutStep, type PlanCard, type PlanMode } from "./ask-plans";
 import { logChanges, type ActivitySource } from "./ask-activity";
 import { TurnGuard, isCollected, isWriteTool, needsOwnersGo, type ReadFrom } from "./ask-guard";
 import { BUSY_STEP_AGAIN, BUSY_STEP_FIRST, BUSY_STEP_ID } from "./ask-busy";
@@ -1959,8 +1959,9 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
         failed = `I couldn't do that: ${(error instanceof z.ZodError ? "Athena couldn't read that change." : error instanceof Error ? error.message : String(error)).slice(0, 300)}`;
       }
     } else if (outcome.kind === "plan") {
-      // An imported assistant's plan: its Go keeps to the accounts ticked for it, and asks before any other (lib/ask-plans.ts goPlan).
-      const limit = opts.persona && opts.accounts ? { assistant_id: opts.persona.id } : null;
+      // A plan from an imported assistant, or made while an imported skill was in use: its Go keeps to the accounts
+      // ticked for them, and asks before any other (lib/ask-plans.ts goPlan).
+      const limit = planLimit(opts.persona && opts.accounts ? opts.persona.id : null, scope.skills);
       const saved = await savePlan(outcome.steps, { source: planMode === "propose" ? "routine" : "ask", thread_id: opts.thread_id, routine_id: opts.routine_id, limit });
       plan = { ...planCard(saved, { proposed: planMode === "propose" }), ...(heldWhy ? { why: heldWhy } : {}) };
     }
