@@ -58,9 +58,12 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
   const el = h("div", { class: "view add" }, body);
   /** Moves focus to the new state's heading, so a screen reader hears where it is. */
   const focusHeading = () => requestAnimationFrame(() => body.querySelector<HTMLElement>("h1, h2")?.focus({ preventScroll: false }));
+  // Back to where the owner came from; on a phone there's no sidebar to do it.
+  const back = h("button", { class: "flow-back add-back", type: "button" }, icons.back(), h("span", {}, "Back"));
+  back.addEventListener("click", () => (history.length > 1 ? history.back() : ctx.go("home")));
   const show = (...kids: Array<Node | null>) => {
     if (!alive) return;
-    body.replaceChildren(...kids.filter((k): k is Node => !!k));
+    body.replaceChildren(h("div", { class: "add-top" }, back), ...kids.filter((k): k is Node => !!k));
     window.scrollTo({ top: 0 });
   };
 
@@ -248,7 +251,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
         { class: "add-reach__text" },
         h("p", { class: "add-reach__eyebrow" }, "What it can reach"),
         h("h2", { class: "add-reach__title", id: "add-reach-title" }, reach.title),
-        reach.lines.length ? h("ul", { class: "add-reach__lines" }, ...reach.lines.map((l) => h("li", {}, l))) : null,
+        reach.lines.length > 1 ? h("ul", { class: "add-reach__lines" }, ...reach.lines.map((l) => h("li", {}, l))) : reach.lines.length ? h("p", { class: "add-reach__line" }, reach.lines[0]) : null,
         h("p", { class: "add-reach__note" }, "Athena worked this out from its files, not from what its author says.")
       )
     );
@@ -405,7 +408,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       if (item.flow.steps.length && JSON.stringify(item.flow.steps).includes('"kind":"think"')) lines.push("Its thinking steps need an assistant. Choose one on the flow's page once it's added.");
       if (item.flow.money) lines.push("It asks to read your spending. That stays off until you allow it on the flow's page.");
       if (item.flow.web) lines.push("It asks to search the web. That stays off until you allow it.");
-      aloneSec = section("alone", "What it may do alone", h("ul", { class: "add-bullets" }, ...lines.map((l) => h("li", {}, l))));
+      aloneSec = section("alone", "What it may do alone", lines.length > 1 ? h("ul", { class: "add-bullets" }, ...lines.map((l) => h("li", {}, l))) : h("p", { class: "add-usewhen" }, lines[0]));
     }
 
     // Notes: sites its words link to, an earlier copy, a full team.

@@ -89,9 +89,9 @@ export function goWords(s: SharedFlowStep): string | null {
   return s.go === "auto" ? "It asked to run on its own. You can allow that once it's added" : null;
 }
 
-/** "Someone you pick", "Words you write": what a question's answer is. */
+/** The hint under a question whose answer is one of the owner's records. Empty for words. */
 export function fillsWords(fills: string): string {
   if (fills === "text") return "";
   if (fills === "person") return "Pick one of your people";
-  return `Pick one of your ${fills === "todo" ? "to-dos" : `${fills}s`} once it's added`;
+  return `Type the name of one of your ${fills === "todo" ? "to-dos" : `${fills}s`}`;
 }

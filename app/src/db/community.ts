@@ -110,7 +110,7 @@ async function samplePreview(source: AddSource): Promise<AddPreview> {
     if ("link" in source) {
       await new Promise((r) => setTimeout(r, 500));
       const files = sampleLinkFiles(source.link);
-      if (!files) throw new ShareFormatError("Sample mode has a few made-up items to try. Pick one of them below.");
+      if (!files) throw new ShareFormatError("Sample mode can only read its made-up items. Tap Try something else to see them.");
       return await buildPreview({ files: itemFiles(files.map((f) => ({ path: f.path, bytes: utf8.encode(f.text) }))), from: { link: source.link }, source: sourceFor({ link: source.link }, at) });
     }
     if (source.files.length === 1 && /\.zip$/i.test(source.files[0].path)) throw new ShareFormatError("In sample mode Athena can read a file or a folder, but not a zip.");

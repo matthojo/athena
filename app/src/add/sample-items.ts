@@ -52,7 +52,7 @@ const ITEMS: Record<string, { title: string; files: CatalogueFile[] }> = {
               yes: [
                 { id: "s3", kind: "tool", tool: "draft_message", title: "Offer another time", input: { to: [{ blank: "walker" }], body: ["Rain's due this morning. Shall we walk at lunch instead?"] }, go: "ask", gives: [] },
               ],
-              no: [{ id: "s4", kind: "notify", title: null, text: ["Dry enough for the walk: ", { from: "s1", key: "rain" }, "% chance of rain."] }],
+              no: [{ id: "s4", kind: "notify", title: null, text: ["Dry enough for the walk. Chance of rain: ", { from: "s1", key: "rain" }, "%"] }],
             },
           ],
           asks: [{ key: "walker", question: "Who do you walk with?", choices: [], fills: "person" }],
@@ -138,7 +138,7 @@ const ITEMS: Record<string, { title: string; files: CatalogueFile[] }> = {
             { question: "How long should the brief be?", choices: ["A few lines", "About a page"] },
           ],
           needs: ["slack"],
-          would_like: ["save_note", "send_email"],
+          would_like: ["save_note", "update_people"],
           web: true,
         }),
       },

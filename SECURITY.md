@@ -1998,8 +1998,8 @@ An assistant can be downloaded as a file (a zip of `assistant.json`,
   `raw.githubusercontent.com`), fetched once through the same guard as skill
   links; links to any other host are refused, so a shared assistant can't point
   Athena at someone's own site. The preview (`POST
-  /api/team/import/preview`) keeps nothing.
-  `POST /api/team/import` adds it.
+  /api/community/preview`, below) keeps nothing.
+  `POST /api/community/add` adds it.
 - **Nothing in the file is a permission.** The assistant joins paused.
   `allow` is only the tools the owner ticked that the file also asked
   for and that an import may grant at all (`grantedTools`, `SHARED_TOOLS`
@@ -2012,11 +2012,11 @@ An assistant can be downloaded as a file (a zip of `assistant.json`,
   as for any assistant (§10, "One loop"). The skill is an assistant's own
   skill: instructions only, no tools (§10, "Skills"). Sites its words link
   to are listed on the preview as unchecked.
-- **The installed app's share target** takes a shared assistant (a `.zip` or
-  `.json`, up to 2 MB) only from the OS, as for any share
+- **The installed app's share target** takes a shared item (a `.zip`,
+  `.json` or `.md`, up to 2 MB) only from the OS, as for any share
   (`shareFrom` in `sw.js`); another page's form is refused. It's kept in
-  Cache Storage until Team's import sheet reads it, and that sheet shows all
-  of it before anything is imported.
+  Cache Storage until the Add screen (`#/add`) reads it, and that screen
+  shows all of it before anything is added.
 
 ### Items someone else shared (migration `0086`, `lib/shared-limits.ts`, `lib/shared-scope.ts`)
 
@@ -2024,7 +2024,7 @@ An imported assistant, and a skill from a file or a link, are someone else's
 words. They reach only what the owner ticked for them, enforced in code.
 
 - **Recorded, not guessed.** An assistant is imported when its row says so
-  (`team_assistants.origin = 'shared'`, set by `POST /api/team/import`; the
+  (`team_assistants.origin = 'shared'`, set by `importAssistant`, now reached through `POST /api/community/add`; the
   migration marks those whose triggers became flows with origin `shared`)
   or its own skill came from a file or a link (once, in code, since that is
   sealed). A skill is imported when its sealed source is `upload` or `link`,
@@ -2051,7 +2051,7 @@ words. They reach only what the owner ticked for them, enforced in code.
   was removed is held the same way, with no ticks.
 - **Needed accounts said plainly.** Ticks still start empty. The accounts
   the file says it needs are kept with the assistant's sealed words, listed
-  first, and while one is unticked the import sheet and the assistant's
+  first, and while one is unticked the Add screen and the assistant's
   page say it can't work without it.
 - **Framed as someone else's words.** An imported assistant's instructions
   and skill go in as `<shared_instructions>` and `<shared_skill>` with a
@@ -2095,6 +2095,43 @@ Groundwork only: nothing fetches from a catalogue yet.
   (`lib/reach.ts`) is worked out from its files, never taken from the
   catalogue or the author. A bundle whose hash doesn't match its files, or
   the index, is not used (`verifyBundle`).
+
+### Adding something someone shared (`#/add`, `lib/community-add.ts`, `netlify/lib/community-add-routes.ts`)
+
+Every shared assistant, skill and flow comes in through one screen and two
+routes, behind the bearer token. Team's import sheet and the Skills upload
+and link previews now open it; `/api/team/import`, `/api/team/import/preview`
+and `/api/skills/preview` are gone.
+
+- **One preview, nothing kept.** `POST /api/community/preview` takes a
+  listing id, a link, or files (multipart, 2 MB in all; one zip goes through
+  the skill zip reader). Its files are cut down to the item's own folder,
+  text only, within the catalogue's caps (32 files, 100 KB each, 500 KB in
+  all), and read by its kind's own reader (`readShared`, `intakeEntries`,
+  `readSharedFlow`). Kind, reach and hash are worked out here from the
+  files; the catalogue's or author's word for them is never used.
+- **Links.** GitHub only, as before (`parseShareLink`, a `flow.json` read
+  as its folder), fetched once through the same guard as skill links. Any
+  other host is refused.
+- **Catalogue listings.** A bundle is checked with `verifyBundle` against
+  its own hash and the index's before it is read.
+- **The server never trusts the preview it sent.** `POST /api/community/add`
+  reads the files the app sends back again and refuses them if their hash
+  differs from the preview's. For a listing it fetches the bundle again and
+  refuses it if it changed since the preview. A preview relabelled as
+  another kind is added as what its files are.
+- **Switched off, with only the owner's choices.** An assistant goes to
+  `importAssistant` (paused; tools ticked that it asked for and an import
+  may grant; the web only when asked for and ticked; ticked accounts only;
+  "Always asks first" for the rest). A skill goes to `createSkill`, always
+  off, with ticked accounts only. A flow goes to `addSharedFlow`, paused,
+  every question answered first. Account ticks start empty; the accounts it
+  needs are listed first, and an unticked one is named as one it can't work
+  without. Add never overwrites an earlier copy from the same listing.
+- **A file for a newer Athena** is refused with 426 and nothing is read
+  further.
+- **Tested** (`netlify/lib/community-add-routes.test.ts`), with fakes for the
+  stores, the catalogue and GitHub.
 
 ### Ask's read tools, today's context and memory
 
