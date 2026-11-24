@@ -99,6 +99,7 @@ import { handleTeamChatRoutes, type ChatDesk } from "../lib/team-chat-routes";
 import { settlePlanPosts } from "../../lib/team-posts";
 import { startTeamEvent } from "../../lib/team-triggers";
 import { handleSkillRoutes } from "../lib/skills-routes";
+import { handleCommunityRoutes } from "../lib/community-routes";
 import { draftSkill } from "../../lib/skill-draft";
 import { answerEvent } from "../../lib/rsvp";
 import { calendarPort } from "../lib/connectors/calendar-rsvp";
@@ -2071,6 +2072,11 @@ export default async (req: Request, _context: Context) => {
     // Ask's skills: the list, the editor, uploads and link imports (netlify/lib/skills-routes.ts).
     if (first === "skills") {
       const handled = await handleSkillRoutes(req, segments, () => parseJsonBody(req), (d, s) => json(req, d, s));
+      if (handled) return handled;
+    }
+    // Community: the catalogue, update checks and the owner's switch (netlify/lib/community-routes.ts).
+    if (first === "community") {
+      const handled = await handleCommunityRoutes(req, segments, () => parseJsonBody(req), (d, s) => json(req, d, s));
       if (handled) return handled;
     }
     if (first === "nudges") {
