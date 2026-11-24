@@ -62,6 +62,11 @@ export function itemFiles(entries: readonly IntakeEntry[]): ItemFiles {
     return path && !hidden(path) ? [{ ...e, path }] : [];
   });
   if (clean.reduce((n, e) => n + e.bytes.byteLength, 0) > SKILL_LIMITS.uploadBytes) throw new ShareFormatError("That's over 2 MB. A shared item is mostly text: leave out large files.");
+  // One file on its own, renamed on the way ("flow (1).json", "gift-watch.json", "tea.md"): read by what it holds.
+  if (clean.length === 1 && !kindOfFile(clean[0].path)) {
+    const named = loneFileName(clean[0]);
+    if (named) clean[0] = { ...clean[0], path: clean[0].path.split("/").slice(0, -1).concat(named).join("/") };
+  }
   const kind = detectKind(clean.map((e) => e.path));
   if (!kind) {
     if (clean.some((e) => kindOfFile(e.path))) throw new ShareFormatError("That holds a flow and a skill side by side. Add them one at a time, from their own folders.");
@@ -94,6 +99,24 @@ export function itemFiles(entries: readonly IntakeEntry[]): ItemFiles {
   files.sort((a, b) => (a.path === KIND_FILES[kind] ? -1 : b.path === KIND_FILES[kind] ? 1 : a.path.localeCompare(b.path)));
   skipped.sort((a, b) => a.path.localeCompare(b.path));
   return { kind, files, skipped, folder: folder ? folder.split("/").pop()! : null };
+}
+
+/** What a lone file is, by what it holds: flow.json (a trigger and steps), assistant.json (a job), SKILL.md (front matter). */
+function loneFileName(e: IntakeEntry): string | null {
+  const ext = extOf(e.path);
+  if (e.bytes.byteLength > CATALOGUE_LIMITS.fileBytes || (ext !== ".json" && ext !== ".md")) return null;
+  const text = textOf(e.bytes);
+  if (text === null) return null;
+  if (ext === ".md") return /^\uFEFF?---\s*\n/.test(text) ? KIND_FILES.skill : null;
+  try {
+    const o = JSON.parse(text) as Record<string, unknown>;
+    if (!o || typeof o !== "object") return null;
+    if ("steps" in o && "trigger" in o) return KIND_FILES.flow;
+    if ("job" in o) return KIND_FILES.assistant;
+  } catch {
+    // not JSON: the usual words say so
+  }
+  return null;
 }
 
 /** Files the app sent back with Add, checked again as files: paths, text, caps. Throws ShareFormatError. Pure. */
@@ -163,7 +186,7 @@ export interface PreviewInput {
   /** Where a skill or assistant's skill records it came from. */
   source: SkillSource;
   /** For a catalogue item: its listing. Its kind must match the files. */
-  listing?: Pick<CatalogueItem, "id" | "kind" | "version" | "featured" | "added_at"> | null;
+  listing?: Pick<CatalogueItem, "id" | "kind" | "version" | "featured" | "added_at" | "author"> | null;
   existing?: AddPreview["existing"];
 }
 
@@ -187,7 +210,7 @@ export async function buildPreview(input: PreviewInput): Promise<AddPreview> {
     files: [...files],
     hash: await bundleHash(files),
     from: input.from,
-    listing: input.listing ? { id: input.listing.id, version: input.listing.version, featured: input.listing.featured, added_at: input.listing.added_at } : null,
+    listing: input.listing ? { id: input.listing.id, version: input.listing.version, featured: input.listing.featured, added_at: input.listing.added_at, author: input.listing.author ?? null } : null,
     existing: input.existing ?? null,
     skipped: allSkipped,
   };

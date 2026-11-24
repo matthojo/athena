@@ -5,6 +5,7 @@
  */
 import type { AddPreview } from "../../../lib/community-api";
 import { LOOKUP_TOOLS } from "../../../lib/reach";
+import { tierWords } from "../community/words";
 import type { Reach } from "../../../lib/reach";
 import type { ShareKind } from "../../../lib/share-kinds";
 import { FLOW_DRAFT_TOOLS, FLOW_LOOK_TOOLS, FLOW_SHARE_TOOLS, type FlowPick, type SharedFlowStep } from "../../../lib/flow-share";
@@ -43,19 +44,17 @@ export const basedOnWords = (header: AddPreview["header"]): string => (header.ba
 
 const list = (xs: readonly string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
-/** Its reach in plain words: the tier's headline, and a line for each thing it uses. */
+/** Its reach in plain words: the tier's name, as Community and the share sheet name it, and a line for each thing it uses. */
 export function reachWords(r: Reach, kind: ShareKind): { title: string; lines: string[] } {
   const lines: string[] = [];
-  if (r.model) lines.push(kind === "flow" ? "Some of its steps send what they work on to the AI model you've chosen" : "It sends what it works on to the AI model you've chosen");
+  if (r.tier === 1) return { title: tierWords(r), lines: ["Every step stays inside your Athena. Nothing is sent anywhere"] };
+  if (r.model) lines.push(kind === "flow" ? "Some of its steps send what they work on to the AI model you chose" : "It sends what it works on to the AI model you chose");
   for (const tool of r.lookups) {
     const l = LOOKUP_TOOLS[tool];
-    lines.push(l ? `${l.label}, from ${l.service}` : `Looks something up outside Athena`);
+    lines.push(l ? `${l.label}, from ${l.service}` : "It looks something up outside Athena");
   }
-  if (r.web) lines.push("It asks to search the web and read the pages it finds. That's off unless you allow it");
-  if (r.tier === 1) return { title: "Nothing leaves your site", lines: ["Every step stays inside your Athena"] };
-  if (r.tier === 3) return { title: "Can search the web", lines };
-  if (r.lookups.length && !r.model) return { title: `Looks up ${list(r.lookups.map((t) => (LOOKUP_TOOLS[t]?.label ?? "something").toLowerCase()))}`, lines };
-  return { title: r.lookups.length ? "Uses a model and a lookup" : "Uses a model", lines };
+  if (r.web) lines.push("It asks to search the web and read the pages it finds. That stays off unless you allow it");
+  return { title: tierWords(r), lines };
 }
 
 /** The confirmation once it's added: its headline, what to do next, and where it now lives. */
@@ -84,7 +83,7 @@ export function updatedWords(kind: ShareKind, name: string): { title: string; bo
 
 /** Under the Update button: what it changes. */
 export function updateLandsWords(kind: ShareKind): string {
-  return `Yours changes to this version and goes ${kind === "assistant" ? "paused" : "off"} until you switch it back on. Its name and history stay.`;
+  return `Yours ${kind === "assistant" ? "pauses" : "goes off"} until you switch it back on. Its name and history stay.`;
 }
 
 /** The Add button. */

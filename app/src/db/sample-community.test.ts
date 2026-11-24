@@ -44,3 +44,12 @@ test("every sample flow, listed or linked, passes the checks a flow gets when it
   assert.ok(texts.length >= 7);
   for (const [name, text] of texts) assert.doesNotThrow(() => checkSharedFlowSteps(readSharedFlow(JSON.parse(text))), name);
 });
+
+test("every sample listing is named as its files name it, so the list and the preview agree", async () => {
+  const { buildPreview } = await import("../../../lib/community-add");
+  for (const item of (await sampleCatalogue()).items) {
+    const got = (await sampleBundle(item.id))!;
+    const p = await buildPreview({ files: { kind: item.kind, files: got.bundle.files, skipped: [], folder: null }, from: { catalogue: item.id }, source: { kind: "link", at: "2026-11-24T00:00:00Z" }, listing: item, existing: null });
+    assert.equal(p.name, item.name, item.slug);
+  }
+});

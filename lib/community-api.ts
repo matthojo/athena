@@ -65,7 +65,7 @@ export interface AddPreview {
   /** Where it came from. */
   from: { catalogue: string } | { link: string } | { files: string };
   /** For a catalogue item: its listing. */
-  listing: Pick<CatalogueItem, "id" | "version" | "featured" | "added_at"> | null;
+  listing: Pick<CatalogueItem, "id" | "version" | "featured" | "added_at" | "author"> | null;
   /**
    * An item of this kind here that came from the same listing, if any: "You already have this", with a way to open
    * it, and Update when the listing's files differ from what was added (`newer`). A second copy is a deliberate tap.

@@ -37,6 +37,9 @@ export function tierWords(r: Pick<Reach, "tier" | "model" | "lookups">): string 
   return "Uses AI";
 }
 
+/** The tier's mark everywhere it's shown: inside Athena, AI, a lookup only, the web. Pure. */
+export const tierIcon = (r: Pick<Reach, "tier" | "model">): "shield" | "sparkle" | "cloud" | "globe" => (r.tier === 1 ? "shield" : r.tier === 3 ? "globe" : r.model ? "sparkle" : "cloud");
+
 /** The longer line for a tier, for a screen reader and a tooltip. Pure. */
 export function tierDetail(tier: Reach["tier"]): string {
   if (tier === 1) return "Everything it does stays inside your Athena.";

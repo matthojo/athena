@@ -8,15 +8,16 @@ import { asksHint, blockedLede, flowFindingsLede, flowWhereWords, reachWords, us
 const names: Record<string, string> = { s1: "Add a to-do", s2: "Draft an email", s3: "Tell me" };
 const name = (id: string) => names[id] ?? "a step";
 
-test("each tier in a line, with what puts it there", () => {
-  assert.deepEqual(reachWords({ tier: 1, model: false, lookups: [], web: false }), { title: "Nothing leaves your site", detail: "Every step stays inside Athena: it finds, adds, checks, asks and tells you.", icon: "shield" });
+test("each tier in a line, named and marked as Community does, with what puts it there", () => {
+  assert.deepEqual(reachWords({ tier: 1, model: false, lookups: [], web: false }), { title: "Stays in Athena", detail: "Every step stays inside Athena: it finds, adds, checks, asks and tells you. Nothing is sent anywhere.", icon: "shield" });
   const looks = reachWords({ tier: 2, model: false, lookups: ["weather", "train_status"], web: false });
-  assert.equal(looks.title, "Uses a model or a lookup");
+  assert.equal(looks.title, "Checks the weather forecast and live train times");
+  assert.equal(looks.icon, "cloud");
   assert.equal(looks.detail, "It looks up the weather forecast from Open-Meteo and live train times from National Rail.");
-  assert.equal(reachWords({ tier: 2, model: true, lookups: [], web: false }).detail, "Some of its steps use a model.");
+  assert.equal(reachWords({ tier: 2, model: true, lookups: [], web: false }).detail, "Some of its steps use the AI model whoever adds it chose.");
   const web = reachWords({ tier: 3, model: true, lookups: [], web: true });
-  assert.equal(web.title, "Can search the web");
-  assert.match(web.detail, /^Some of its steps use a model\. It asks to search the web\./);
+  assert.equal(web.title, "Searches the web");
+  assert.match(web.detail, /^Some of its steps use the AI model whoever adds it chose\. It asks to search the web\./);
   assert.equal(web.icon, "globe");
 });
 

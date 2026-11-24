@@ -3,28 +3,31 @@
  * question, and why a step can't go yet. Pure, so the tests can check the words without a DOM.
  */
 import { LOOKUP_TOOLS, type Reach } from "../../../lib/reach";
+import { tierIcon, tierWords } from "../community/words";
 
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
 export interface ReachWords {
   title: string;
   detail: string;
-  /** For the tile's icon: shield (stays here), sparkle (a model or a lookup), globe (the web). */
-  icon: "shield" | "sparkle" | "globe";
+  /** The tile's icon, as Community and the Add screen show the tier. */
+  icon: "shield" | "sparkle" | "cloud" | "globe";
 }
 
-/** The reach card on the share sheet: the tier in a line, then what puts it there. */
+/** The reach card on the share sheet: the tier by the name Community gives it, then what puts it there. */
 export function reachWords(r: Pick<Reach, "tier" | "model" | "lookups" | "web">): ReachWords {
-  if (r.tier === 1) return { title: "Nothing leaves your site", detail: "Every step stays inside Athena: it finds, adds, checks, asks and tells you.", icon: "shield" };
+  const title = tierWords(r);
+  const icon = tierIcon(r);
+  if (r.tier === 1) return { title, detail: "Every step stays inside Athena: it finds, adds, checks, asks and tells you. Nothing is sent anywhere.", icon };
   const parts: string[] = [];
-  if (r.model) parts.push("Some of its steps use a model.");
+  if (r.model) parts.push("Some of its steps use the AI model whoever adds it chose.");
   const looks = r.lookups.map((t) => {
     const l = LOOKUP_TOOLS[t];
     return l ? `${l.label.charAt(0).toLowerCase()}${l.label.slice(1)} from ${l.service}` : t.replace(/_/g, " ");
   });
   if (looks.length) parts.push(`It looks up ${list(looks)}.`);
-  if (r.tier === 3) return { title: "Can search the web", detail: [...parts, "It asks to search the web. Whoever adds it decides whether it can."].join(" "), icon: "globe" };
-  return { title: "Uses a model or a lookup", detail: parts.join(" "), icon: "sparkle" };
+  if (r.tier === 3) parts.push("It asks to search the web. Whoever adds it decides whether it can.");
+  return { title, detail: parts.join(" "), icon };
 }
 
 /** "In the name", "In the step “Add a to-do”", "In the steps “Call” and “Text”, and the name": where a finding is. */

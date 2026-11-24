@@ -34,6 +34,7 @@ import { MAX_ANSWER } from "../../../lib/team-skill";
 import type { ShareKind } from "../../../lib/share-kinds";
 import type { ViewId } from "../components/nav";
 import { sharedFlowSteps } from "./flow-steps";
+import { tierIcon } from "../community/words";
 import { entriesOf, filesFromDrop, takeHeldFiles, takeSharedFile } from "./hold";
 import { SAMPLE_LINKS } from "./sample-items";
 import { addedWords, addLabel, basedOnWords, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, originWords, reachWords, updatedWords, updateLandsWords } from "./words";
@@ -221,7 +222,8 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     );
 
     const origin = originWords(p);
-    const maker = makerWords(p.header);
+    // Who made it: the file's word, else the catalogue's (the same name the Community list shows).
+    const maker = makerWords({ ...p.header, author: p.header.author ?? p.listing?.author ?? undefined, version: p.header.version ?? p.listing?.version ?? undefined });
     const based = basedOnWords(p.header);
     const facts = h(
       "div",
@@ -236,13 +238,13 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
         "div",
         { class: "add-fact" },
         h("span", { class: "add-fact__icon", "aria-hidden": "true" }, icons.person()),
-        h("span", { class: "add-fact__text" }, h("span", { class: "add-fact__title" }, maker || "Its author didn't say who they are"), based ? h("span", { class: "add-fact__sub" }, based) : p.listing?.version && !p.header.version ? h("span", { class: "add-fact__sub" }, `Version ${p.listing.version}`) : null)
+        h("span", { class: "add-fact__text" }, h("span", { class: "add-fact__title" }, maker || "Its author didn't say who they are"), based ? h("span", { class: "add-fact__sub" }, based) : null)
       )
     );
 
     // What it can reach, worked out from its files.
     const reach = reachWords(p.reach, p.kind);
-    const reachIcon = p.reach.tier === 1 ? icons.shield() : p.reach.tier === 3 ? icons.globe() : p.reach.lookups.length && !p.reach.model ? icons.cloud() : icons.sparkle();
+    const reachIcon = icons[tierIcon(p.reach)]();
     const reachCard = h(
       "section",
       { class: `add-reach add-reach--${p.reach.tier}`, "aria-labelledby": "add-reach-title" },
@@ -455,6 +457,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     // deliberate extra tap (the owner's decision, 24 Nov 2026).
     const had = p.existing;
     const w = had ? haveWords(p.kind, had, p.listing?.version ?? null) : null;
+    let copyBtn: HTMLButtonElement | null = null;
     const haveCard =
       had && w
         ? h(
@@ -462,7 +465,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
             { class: `add-have${had.newer ? " add-have--newer" : ""}`, "aria-labelledby": "add-have-title" },
             h("span", { class: "add-have__icon", "aria-hidden": "true" }, had.newer ? icons.refresh() : icons.check()),
             h("div", { class: "add-have__text" }, h("h2", { class: "add-have__title", id: "add-have-title" }, w.title), h("p", { class: "add-have__sub" }, w.detail)),
-            h("a", { class: "btn btn--soft btn--sm add-have__open", href: had.href }, w.open)
+            h("div", { class: "add-have__acts" }, h("a", { class: "btn btn--soft btn--sm", href: had.href }, w.open), (copyBtn = h("button", { class: "add-have__copy", type: "button" }, "Add a second copy") as HTMLButtonElement))
           )
         : null;
     let copying = !had;
@@ -471,7 +474,6 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     const addBtn = h("button", { class: "btn btn--primary add-foot__add", type: "button", disabled: !room && !had?.newer }, icons.plus(), addLabel(p.kind, name)) as HTMLButtonElement;
     const cancel = h("button", { class: "btn btn--ghost add-foot__cancel", type: "button" }, "Cancel");
     const problem = h("p", { class: "add-foot__problem", role: "alert", hidden: true });
-    const copyBtn = had ? (h("button", { class: "add-foot__copy", type: "button" }, "Add a second copy instead") as HTMLButtonElement) : null;
     const label = () => (copying ? addLabel(p.kind, name) : had?.newer ? `Update ${name}` : w!.open);
     const paintFoot = () => {
       addBtn.replaceChildren(copying ? icons.plus() : had?.newer ? icons.refresh() : icons.arrowRight(), label());
@@ -481,6 +483,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     copyBtn?.addEventListener("click", () => {
       copying = true;
       paintFoot();
+      paintNote();
       addBtn.focus();
     });
     cancel.addEventListener("click", startOver);
@@ -514,10 +517,9 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     });
     const footNote = h("p", { class: "add-foot__note" });
     const paintNote = () => (footNote.textContent = copying ? landsWords(p.kind) : had?.newer ? updateLandsWords(p.kind) : "");
-    copyBtn?.addEventListener("click", paintNote);
     paintFoot();
     paintNote();
-    const foot = h("div", { class: "add-foot" }, problem, h("div", { class: "add-foot__row" }, cancel, addBtn), footNote, copyBtn);
+    const foot = h("div", { class: "add-foot" }, problem, h("div", { class: "add-foot__row" }, cancel, addBtn), footNote);
 
     show(hero, haveCard, facts, reachCard, ...notes, needsSec, questionsSec, accountsSec, aloneSec, asksFirstSec, content, foot);
     focusHeading();

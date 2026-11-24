@@ -63,7 +63,7 @@ test("export route: a flow as a file, flagged until settled, then a zip with flo
   assert.deepEqual(files.map((f) => f.path), ["renewal-call/flow.json"]);
 });
 
-test("addSharedFlow: off, origin shared, Go on every tool step, money off, catalogue kept", { skip }, async () => {
+test("addSharedFlow: off, origin shared, Go on every change step, money off, catalogue kept", { skip }, async () => {
   const { addSharedFlow } = await import("./flow-share-store");
   const { getFlow, updateFlow } = await import("./flows");
   const { readSharedFlow } = await import("./flow-share");
@@ -86,7 +86,8 @@ test("addSharedFlow: off, origin shared, Go on every tool step, money off, catal
   assert.equal(flow.origin, "shared");
   assert.equal(flow.money, false);
   assert.equal(flow.unfilled, undefined);
-  for (const s of flow.steps) assert.ok(s.kind === "tool" && s.go === "ask");
+  // A change waits for Go; a step that only looks runs (the owner's decision, 24 Nov 2026).
+  for (const s of flow.steps) assert.ok(s.kind === "tool" && s.go === (s.tool === "money" ? "auto" : "ask"), s.kind === "tool" ? s.tool : s.kind);
   const [todo] = flow.steps;
   assert.ok(todo.kind === "tool");
   assert.deepEqual(todo.input.person_id, [sam]);

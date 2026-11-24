@@ -300,3 +300,11 @@ test("Update replaces only the one added from that listing, found again here; ot
   assert.equal(calls.flow.length, 1);
   assert.equal(calls.replaced.length, 1);
 });
+
+test("a lone file renamed on the way is read by what it holds", async () => {
+  const { deps } = fakes();
+  assert.equal((await previewOf({ files: entries({ "flow (1).json": JSON.stringify(FLOW) }) }, deps)).kind, "flow");
+  assert.equal((await previewOf({ files: entries({ "tidy.json": JSON.stringify(ASSISTANT) }) }, deps)).kind, "assistant");
+  assert.equal((await previewOf({ files: entries({ "packing.md": SKILL }) }, deps)).kind, "skill");
+  await assert.rejects(previewOf({ files: entries({ "notes.md": "Just some notes" }) }, deps), /no assistant\.json, SKILL\.md or flow\.json/);
+});

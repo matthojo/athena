@@ -106,16 +106,32 @@ test("upload a zip, switch it on, ask: use_skill is called, the answer says Used
     { path: "board-prep/reference/agenda.md", text: "# The usual agenda" },
     { path: "board-prep/scripts/build.py", text: "print('hi')" },
   ]);
-  const preview = await api("POST", "skills/preview", { zip: Buffer.from(zip).toString("base64"), file: "board-prep.zip" });
-  assert.equal(preview.status, 200);
-  assert.equal(preview.data.name, "board-prep");
-  assert.deepEqual((preview.data.skipped as Array<{ path: string }>).map((s) => s.path), ["scripts/build.py"]);
-  assert.equal((await api("GET", "skills")).data.skills && ((await api("GET", "skills")).data.skills as unknown[]).length, 3, "a preview saves nothing");
+  // Every way in is the Add screen's preview and add (netlify/lib/community-add-routes.ts): files as multipart.
+  const { handleCommunityAddRoutes } = await import("../netlify/lib/community-add-routes");
+  const json = (d: unknown, status = 200) => new Response(JSON.stringify(d), { status, headers: { "Content-Type": "application/json" } });
+  const form = new FormData();
+  form.append("files", new Blob([zip as BlobPart]), "board-prep.zip");
+  form.append("path", "board-prep.zip");
+  const looked = await handleCommunityAddRoutes(new Request("https://athena.test/api/community/preview", { method: "POST", body: form }), ["api", "community", "preview"], json);
+  assert.equal(looked?.status, 200);
+  const preview = ((await looked!.json()) as { preview: { kind: string; item: { skill: { name: string } }; skipped: Array<{ path: string }> } }).preview;
+  assert.equal(preview.kind, "skill");
+  assert.equal(preview.item.skill.name, "board-prep");
+  assert.deepEqual(preview.skipped.map((s) => s.path.replace(/^board-prep\//, "")), ["scripts/build.py"]);
+  assert.equal(((await api("GET", "skills")).data.skills as unknown[]).length, 3, "a preview saves nothing");
 
-  const saved = await api("POST", "skills", preview.data);
-  assert.equal(saved.status, 201);
+  const add = async () => {
+    const res = await handleCommunityAddRoutes(
+      new Request("https://athena.test/api/community/add", { method: "POST", body: JSON.stringify({ preview, choices: { answers: {}, accounts: [], allow: [], web: false, money: false, assistant_id: null } }), headers: { "Content-Type": "application/json" } }),
+      ["api", "community", "add"],
+      json,
+    );
+    assert.equal(res?.status, 201);
+    return ((await res!.json()) as { id: string }).id;
+  };
+  const saved = await api("GET", `skills/${await add()}`);
   assert.equal(saved.data.enabled, false, "a new skill starts off");
-  assert.deepEqual(saved.data.source, { kind: "upload", file: "board-prep.zip", at: (saved.data.source as { at: string }).at });
+  assert.equal((saved.data.source as { kind: string }).kind, "upload");
   const id = saved.data.id as string;
   assert.equal((await api("PUT", `skills/${id}`, { enabled: true })).data.enabled, true);
   // Sealed at rest: nothing of the text is readable in the row.
@@ -125,8 +141,10 @@ test("upload a zip, switch it on, ask: use_skill is called, the answer says Used
   // A download goes back as it came, other keys and all.
   const dl = await api("GET", `skills/${id}/download?format=md`);
   assert.equal(dl.data.text, md);
-  // Same name twice is refused.
-  await assert.rejects(api("POST", "skills", preview.data), /already a skill called board-prep/);
+  // Added twice, the second gets a name of its own: Add never stops on a name.
+  const second = await add();
+  assert.equal((await api("GET", `skills/${second}`)).data.name, "board-prep-2");
+  assert.equal((await api("DELETE", `skills/${second}`)).status, 200);
 
   script = (req) => {
     const results = toolResults(req);

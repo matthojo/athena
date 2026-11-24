@@ -70,7 +70,7 @@ export interface SetupOptions {
   text?: string;
   onAdded: (a: TeamAssistant) => void;
   onClose: () => void;
-  /** "Or import one someone shared": setup closes, then the Add screen opens (app/src/add/). */
+  /** "Or add one someone shared": setup closes, then the Add screen opens (app/src/add/). */
   onImport?: () => void;
 }
 
@@ -214,7 +214,7 @@ export function openSetup(opts: SetupOptions): SheetHandle {
       fit();
     });
     pressChips();
-    const shared = opts.onImport ? h("button", { class: "link-btn ts-shared", type: "button" }, "Or import one someone shared") : null;
+    const shared = opts.onImport ? h("button", { class: "link-btn ts-shared", type: "button" }, "Or add one someone shared") : null;
     shared?.addEventListener("click", () => {
       sheet.close();
       window.setTimeout(() => opts.onImport?.(), 450);

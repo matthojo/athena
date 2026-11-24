@@ -30,6 +30,12 @@ export function openNewFlow(o: { text?: string; onMade: (f: Flow, notes: string[
     sheet.close();
     window.setTimeout(() => (location.hash = communityHash("flow")), 450);
   });
+  // A flow someone sent as a file or a link: the Add screen (app/src/add/), as on Team and Skills.
+  const shared = h("button", { class: "flow-link flow-new__blank", type: "button" }, "Or add one someone shared");
+  shared.addEventListener("click", () => {
+    sheet.close();
+    window.setTimeout(() => (location.hash = "#/add"), 450);
+  });
   const starters = h(
     "div",
     { class: "flow-new__starters" },
@@ -52,7 +58,7 @@ export function openNewFlow(o: { text?: string; onMade: (f: Flow, notes: string[
     h("span", { class: "flow-note" }, "Or start from one of these"),
     starters,
     status,
-    h("div", { class: "flow-sheet__foot" }, draw, blank, browse)
+    h("div", { class: "flow-sheet__foot" }, draw, blank, shared, browse)
   );
   const sheet = openSheet({ label: "New flow", body, variant: "tall" });
   setTimeout(() => ta.focus(), 80);

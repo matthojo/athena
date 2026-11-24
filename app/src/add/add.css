@@ -688,9 +688,29 @@
   line-height: var(--leading-snug);
 }
 
-.add-have__open {
-  flex: none;
+.add-have__acts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
   margin-left: auto;
+}
+
+.add-have__copy {
+  min-height: 44px;
+  padding: 0 var(--space-xs);
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-small);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.add-have__copy[hidden] {
+  display: none;
 }
 
 /* All of it. */
@@ -780,24 +800,6 @@
 }
 
 .add-foot__note:empty {
-  display: none;
-}
-
-.add-foot__copy {
-  align-self: center;
-  min-height: 44px;
-  padding: 0 var(--space-sm);
-  border: 0;
-  background: none;
-  color: var(--accent-ink);
-  font: inherit;
-  font-size: var(--text-small);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.add-foot__copy[hidden] {
   display: none;
 }
 

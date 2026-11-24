@@ -29,7 +29,8 @@
   color: var(--good);
 }
 
-.fs-reach--sparkle .fs-tile {
+.fs-reach--sparkle .fs-tile,
+.fs-reach--cloud .fs-tile {
   color: var(--accent);
 }
 

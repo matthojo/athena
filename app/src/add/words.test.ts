@@ -6,7 +6,7 @@ import { addedWords, changesSomething, FLOW_CHANGE_TOOLS, goWords, makerWords, o
 import { FLOW_SHARE_TOOLS, type SharedFlowStep } from "../../../lib/flow-share";
 
 test("where it came from: only a catalogue item is from Community", () => {
-  assert.deepEqual(originWords({ from: { catalogue: "0123456789abcdef" }, listing: { id: "0123456789abcdef", version: null, featured: true, added_at: "" } }), { community: true, title: "From Community", detail: "Reviewed and featured in the catalogue" });
+  assert.deepEqual(originWords({ from: { catalogue: "0123456789abcdef" }, listing: { id: "0123456789abcdef", version: null, featured: true, added_at: "", author: null } }), { community: true, title: "From Community", detail: "Reviewed and featured in the catalogue" });
   assert.deepEqual(originWords({ from: { link: "https://github.com/sample-author/athena-items/tree/main/tidy" }, listing: null }), { community: false, title: "Not from Community", detail: "From github.com/sample-author/athena-items" });
   assert.equal(originWords({ from: { files: "tidy.zip" }, listing: null }).detail, "From tidy.zip");
   assert.equal(originWords({ from: { files: "" }, listing: null }).detail, "From a file");
@@ -18,15 +18,15 @@ test("who made it, as the file says", () => {
   assert.equal(makerWords({}), "");
 });
 
-test("reach in plain words, for each tier", () => {
-  assert.equal(reachWords({ tier: 1, model: false, web: false, lookups: [], needs: [] }, "flow").title, "Nothing leaves your site");
+test("reach in plain words, for each tier, named as Community names it", () => {
+  assert.equal(reachWords({ tier: 1, model: false, web: false, lookups: [], needs: [] }, "flow").title, "Stays in Athena");
   const lookup = reachWords({ tier: 2, model: false, web: false, lookups: ["weather", "train_status"], needs: [] }, "flow");
-  assert.equal(lookup.title, "Looks up the weather forecast and live train times");
+  assert.equal(lookup.title, "Checks the weather forecast and live train times");
   assert.deepEqual(lookup.lines, ["The weather forecast, from Open-Meteo", "Live train times, from National Rail"]);
-  assert.equal(reachWords({ tier: 2, model: true, web: false, lookups: [], needs: [] }, "skill").title, "Uses a model");
-  assert.equal(reachWords({ tier: 2, model: true, web: false, lookups: ["weather"], needs: [] }, "flow").title, "Uses a model and a lookup");
+  assert.equal(reachWords({ tier: 2, model: true, web: false, lookups: [], needs: [] }, "skill").title, "Uses AI");
+  assert.equal(reachWords({ tier: 2, model: true, web: false, lookups: ["weather"], needs: [] }, "flow").title, "Uses AI and the weather forecast");
   const web = reachWords({ tier: 3, model: true, web: true, lookups: [], needs: [] }, "assistant");
-  assert.equal(web.title, "Can search the web");
+  assert.equal(web.title, "Searches the web");
   assert.equal(web.lines.length, 2);
 });
 

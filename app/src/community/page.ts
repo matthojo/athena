@@ -20,11 +20,9 @@ import { addHash, ADD_ROUTE, fetchCatalogue, setCommunityCheck, type CatalogueVi
 import { itemAccounts } from "../db/item-accounts";
 import type { CatalogueItem } from "../../../lib/catalogue-types";
 import type { ShareKind } from "../../../lib/share-kinds";
-import { communityHash, filtered, KIND_WORDS, readKind, tierDetail, tierWords, type KindFilter } from "./words";
+import { communityHash, filtered, KIND_WORDS, readKind, tierDetail, tierIcon, tierWords, type KindFilter } from "./words";
 
 const KIND_ICON: Record<ShareKind, IconName> = { assistant: "person", skill: "book", flow: "loop" };
-/** The tier's mark: inside Athena, AI, a lookup, the web. */
-const tierIcon = (r: CatalogueItem["reach"]): IconName => (r.tier === 1 ? "shield" : r.tier === 3 ? "globe" : r.model ? "sparkle" : "cloud");
 const FILTERS: KindFilter[] = ["all", "assistant", "skill", "flow"];
 const filterLabel = (k: KindFilter) => (k === "all" ? "All" : KIND_WORDS[k].many);
 
