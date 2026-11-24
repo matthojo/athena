@@ -168,7 +168,7 @@ test("with 'always save shares' on, another origin's POST is still refused and n
   assert.equal(store.size, 0, "off leaves nothing behind");
 });
 
-// An assistant shared to the installed app (team/import-sheet.ts): kept apart, and the Team page's import sheet opens.
+// An assistant shared to the installed app: kept apart, and the Add screen (src/add/) opens on it.
 function shareAssistantFile(site: string | null, bytes = 40) {
   const form = new FormData();
   form.set("assistant", new File([new Uint8Array(bytes)], "gift prices.zip", { type: "application/zip" }));
@@ -177,10 +177,10 @@ function shareAssistantFile(site: string | null, bytes = 40) {
   return new Request("https://athena.example/share-target", { method: "POST", body: form, headers });
 }
 
-test("a shared assistant is kept for Team's import sheet, with its name", async () => {
+test("a shared assistant is kept for the Add screen, with its name", async () => {
   const w = worker();
   const res = await w.dispatch(shareAssistantFile("none"));
-  assert.equal(res!.headers.get("Location"), "https://athena.example/#/team/import");
+  assert.equal(res!.headers.get("Location"), "https://athena.example/#/add");
   const kept = w.stores.get("athena-share")?.get("/share-target/assistant");
   assert.ok(kept);
   assert.equal(decodeURIComponent(kept!.headers.get("X-File-Name")!), "gift prices.zip");

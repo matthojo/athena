@@ -105,6 +105,8 @@ const chunks = {
   flows: chunk(() => import("./views/flows")),
   // Community (with styles/community.css): the catalogue of shared assistants, skills and flows.
   community: chunk(() => import("./community/page")),
+  // Add (app/src/add/): the preview every shared assistant, skill and flow goes through.
+  add: chunk(() => import("./add/view")),
   // Recipes (with styles/recipes.css): the grid, a recipe, cook mode, the week plan and the grocery list.
   recipes: chunk(() => import("./views/recipes")),
   goals: chunk(() => import("./views/goals")),
@@ -370,6 +372,8 @@ function mountShell() {
     } else if (route.view === "community") {
       const query = route.source;
       current = lazyView(chunks.community, ({ renderCommunity }) => renderCommunity({ query }));
+    } else if (route.view === "add") {
+      current = lazyView(chunks.add, ({ renderAdd }) => renderAdd({ go: (view, opts) => go(view, opts) }));
     } else if (route.view === "saved") {
       const itemId = route.noteId;
       current = lazyView(chunks.saved, ({ renderSaved }) => renderSaved({ go: (view, opts) => go(view, opts), itemId, isDesktop: () => desktop.matches }));

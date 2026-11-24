@@ -100,6 +100,7 @@ import { settlePlanPosts } from "../../lib/team-posts";
 import { startTeamEvent } from "../../lib/team-triggers";
 import { handleSkillRoutes } from "../lib/skills-routes";
 import { handleCommunityRoutes } from "../lib/community-routes";
+import { handleCommunityAddRoutes } from "../lib/community-add-routes";
 import { draftSkill } from "../../lib/skill-draft";
 import { answerEvent } from "../../lib/rsvp";
 import { calendarPort } from "../lib/connectors/calendar-rsvp";
@@ -2077,6 +2078,11 @@ export default async (req: Request, _context: Context) => {
     // Community: the catalogue, update checks and the owner's switch (netlify/lib/community-routes.ts).
     if (first === "community") {
       const handled = await handleCommunityRoutes(req, segments, () => parseJsonBody(req), (d, s) => json(req, d, s));
+      if (handled) return handled;
+    }
+    // Then Community's #/add: the preview every shared item goes through, and adding it (netlify/lib/community-add-routes.ts).
+    if (first === "community" && (second === "preview" || second === "add")) {
+      const handled = await handleCommunityAddRoutes(req, segments, (d, s) => json(req, d, s), { waitUntil: _context?.waitUntil?.bind(_context) });
       if (handled) return handled;
     }
     if (first === "nudges") {

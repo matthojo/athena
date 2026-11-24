@@ -70,7 +70,7 @@ export interface SetupOptions {
   text?: string;
   onAdded: (a: TeamAssistant) => void;
   onClose: () => void;
-  /** "Or import one someone shared": setup closes, then the import sheet opens (team/import-sheet.ts). */
+  /** "Or import one someone shared": setup closes, then the Add screen opens (app/src/add/). */
   onImport?: () => void;
 }
 

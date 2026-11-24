@@ -1,0 +1,273 @@
+// Community's #/add routes (netlify/lib/community-add-routes.ts, lib/community-add.ts): every way in ends at one
+// preview, and Add hands each kind to its own import with only the owner's choices. Fakes stand in for the stores,
+// the catalogue and GitHub. Made-up items only; nothing needs a database.
+// Run: npx tsx --test netlify/lib/community-add-routes.test.ts
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { addFrom, handleCommunityAddRoutes, parseAddLink, previewOf, readChoices, type CommunityAddDeps } from "./community-add-routes";
+import { bundleHash, type CatalogueBundle, type CatalogueItem } from "../../lib/catalogue-types";
+import { itemFiles, NEWER_FORMAT_STATUS } from "../../lib/community-add";
+import { ShareFormatError } from "../../lib/team-share";
+import type { AddPreview } from "../../lib/community-api";
+
+const utf8 = new TextEncoder();
+const entries = (files: Record<string, string>) => Object.entries(files).map(([path, text]) => ({ path, bytes: utf8.encode(text) }));
+
+const FLOW = {
+  format: 1,
+  name: "Plant care",
+  author: "sample-author",
+  version: "1.0.0",
+  summary: "Adds a watering to-do every Saturday.",
+  trigger: { kind: "schedule", days: [6], time: "09:00" },
+  steps: [{ id: "s1", kind: "tool", tool: "add_todo", input: { title: ["Water the plants"], context: [{ blank: "context" }] }, go: "auto", gives: [] }],
+  asks: [{ key: "context", question: "Which context?", choices: ["Home", "Weekend"], fills: "text" }],
+};
+const ASSISTANT = {
+  format: 1,
+  name: "Tidy",
+  job: "Turns issues into to-dos",
+  instructions: "Add a to-do for each issue assigned to me.",
+  triggers: [{ kind: "event", event: { source: "collected", connector: "linear", kind: "issue" } }],
+  asks: [{ question: "Which context?", choices: ["Work", "None"] }],
+  needs: ["linear"],
+  would_like: ["add_todo", "archive_or_restore"],
+  web: true,
+};
+const SKILL = "---\nname: packing-list\ndescription: Use when I ask what to pack.\n---\n\n1. Look at the trip.\n2. List what to pack.\n";
+
+interface Calls {
+  assistant: unknown[];
+  skill: unknown[];
+  flow: unknown[];
+  marked: unknown[];
+}
+
+function fakes(over: Partial<CommunityAddDeps> = {}): { deps: CommunityAddDeps; calls: Calls } {
+  const calls: Calls = { assistant: [], skill: [], flow: [], marked: [] };
+  const deps: CommunityAddDeps = {
+    loadBundle: async () => {
+      throw new Error("no catalogue in this test");
+    },
+    fetchLink: async () => entries({ "plant-care/flow.json": JSON.stringify(FLOW) }),
+    catalogueAddress: () => "https://catalogue.example.com",
+    existing: async () => null,
+    addAssistant: async (input) => (calls.assistant.push(input), { id: "11111111-1111-4111-8111-111111111111", writing: null }),
+    addSkill: async (input) => (calls.skill.push(input), { id: "22222222-2222-4222-8222-222222222222" }),
+    addFlow: async (shared, answers, catalogue) => (calls.flow.push({ shared, answers, catalogue }), { id: "33333333-3333-4333-8333-333333333333" }),
+    markCatalogue: async (kind, id, listing) => void calls.marked.push({ kind, id, listing }),
+    now: () => new Date("2026-11-24T10:00:00Z"),
+    ...over,
+  };
+  return { deps, calls };
+}
+
+async function catalogue(files: Array<{ path: string; text: string }>, kind: CatalogueItem["kind"] = "flow"): Promise<{ item: CatalogueItem; bundle: CatalogueBundle }> {
+  const hash = await bundleHash(files);
+  const id = "0123456789abcdef";
+  const item: CatalogueItem = { id, kind, slug: "plant-care", name: "Plant care", summary: "x", author: "sample-author", version: "1.0.0", reach: { tier: 1, model: false, web: false, lookups: [], needs: [] }, needs: [], hash, min_format: 1, featured: true, added_at: "2026-11-01T00:00:00Z", bundle: `bundles/${id}.json` };
+  return { item, bundle: { id, hash, kind, files } };
+}
+
+// ---------- the files ----------
+
+test("itemFiles: the item's own folder, text files only, the rest listed as not used", () => {
+  const f = itemFiles([
+    ...entries({ "repo/plant-care/flow.json": JSON.stringify(FLOW), "repo/plant-care/notes.md": "# Notes", "repo/README.md": "outside the folder", "repo/plant-care/.hidden.md": "x" }),
+    { path: "repo/plant-care/run.sh", bytes: utf8.encode("echo") },
+    { path: "repo/plant-care/photo.md", bytes: new Uint8Array([0, 1, 2]) },
+  ]);
+  assert.equal(f.kind, "flow");
+  assert.equal(f.folder, "plant-care");
+  assert.deepEqual(f.files.map((x) => x.path), ["flow.json", "notes.md"]);
+  assert.deepEqual(f.skipped.map((x) => x.path), ["photo.md", "run.sh"]);
+});
+
+test("itemFiles: nothing to read, two side by side, or a flow beside a skill are refused in words", () => {
+  assert.throws(() => itemFiles(entries({ "a.md": "x" })), /no assistant\.json, SKILL\.md or flow\.json/);
+  assert.throws(() => itemFiles(entries({ "a/flow.json": "{}", "b/flow.json": "{}" })), /more than one flow/);
+  assert.throws(() => itemFiles(entries({ "flow.json": "{}", "SKILL.md": SKILL })), /side by side/);
+});
+
+// ---------- previews, by kind ----------
+
+test("a flow from files: read, its reach worked out here, its hash over its own files", async () => {
+  const { deps } = fakes();
+  const p = await previewOf({ files: entries({ "plant-care/flow.json": JSON.stringify(FLOW) }), name: "plant-care" }, deps);
+  assert.equal(p.kind, "flow");
+  assert.equal(p.name, "Plant care");
+  assert.deepEqual(p.header, { version: "1.0.0", author: "sample-author" });
+  assert.equal(p.reach.tier, 1);
+  assert.deepEqual(p.from, { files: "plant-care" });
+  assert.equal(p.listing, null);
+  assert.equal(p.hash, await bundleHash(p.files));
+});
+
+test("an assistant from a GitHub link: its skill beside it, a model and the web in its reach", async () => {
+  const { deps } = fakes({ fetchLink: async () => entries({ "tidy/assistant.json": JSON.stringify(ASSISTANT), "tidy/SKILL.md": SKILL }) });
+  const p = await previewOf({ link: "https://github.com/sample-author/athena-items/tree/main/tidy" }, deps);
+  assert.equal(p.kind, "assistant");
+  assert.equal(p.name, "Tidy");
+  assert.equal(p.item.kind === "assistant" && p.item.skill?.body.includes("List what to pack"), true);
+  assert.deepEqual([p.reach.tier, p.reach.model, p.reach.web, p.reach.needs], [3, true, true, ["linear"]]);
+});
+
+test("a skill from files: tier 2, named by its title", async () => {
+  const { deps } = fakes();
+  const p = await previewOf({ files: entries({ "SKILL.md": SKILL, "reference/forgotten.md": "- Charger" }) }, deps);
+  assert.equal(p.kind, "skill");
+  assert.equal(p.name, "Packing list");
+  assert.equal(p.reach.tier, 2);
+  assert.deepEqual(p.files.map((f) => f.path), ["SKILL.md", "reference/forgotten.md"]);
+});
+
+test("a catalogue listing: checked against its hash, and refused when its files don't match", async () => {
+  const files = [{ path: "flow.json", text: JSON.stringify(FLOW) }];
+  const good = await catalogue(files);
+  const p = await previewOf({ catalogue: good.item.id }, fakes({ loadBundle: async () => good, existing: async () => ({ id: "x", version: "0.9.0" }) }).deps);
+  assert.deepEqual(p.from, { catalogue: good.item.id });
+  assert.equal(p.listing?.featured, true);
+  assert.deepEqual(p.existing, { id: "x", version: "0.9.0" });
+  const tampered = { item: good.item, bundle: { ...good.bundle, files: [{ path: "flow.json", text: JSON.stringify({ ...FLOW, name: "Changed" }) }] } };
+  await assert.rejects(previewOf({ catalogue: good.item.id }, fakes({ loadBundle: async () => tampered }).deps), /don't match/);
+});
+
+test("a listing whose files are another kind is refused", async () => {
+  const got = await catalogue([{ path: "flow.json", text: JSON.stringify(FLOW) }]);
+  const wrong = { item: { ...got.item, kind: "skill" as const }, bundle: { ...got.bundle, kind: "skill" as const } };
+  // verifyBundle checks the kind against the index too, so this never reaches the reader.
+  await assert.rejects(previewOf({ catalogue: got.item.id }, fakes({ loadBundle: async () => wrong }).deps));
+});
+
+test("links: GitHub only, a flow.json read as its folder", () => {
+  assert.deepEqual(parseAddLink("https://github.com/sample-author/athena-items/blob/main/plant-care/flow.json"), { kind: "github", owner: "sample-author", repo: "athena-items", ref: "main", path: "plant-care" });
+  assert.equal(parseAddLink("https://raw.githubusercontent.com/sample-author/athena-items/main/plant-care/flow.json").path, "plant-care");
+  assert.throws(() => parseAddLink("https://athena.example.com/flow.json"), /GitHub links only/);
+  assert.throws(() => parseAddLink("http://github.com/a/b"), ShareFormatError);
+  assert.throws(() => parseAddLink("not a link"), ShareFormatError);
+});
+
+// ---------- adding: each kind to its own import ----------
+
+const asSent = (p: AddPreview) => JSON.parse(JSON.stringify(p)) as AddPreview;
+
+test("adding an assistant: paused import, only the owner's choices, answers by question", async () => {
+  const { deps, calls } = fakes({ fetchLink: async () => entries({ "assistant.json": JSON.stringify(ASSISTANT) }) });
+  const p = await previewOf({ link: "https://github.com/sample-author/athena-items/tree/main/tidy" }, deps);
+  const { result } = await addFrom({ preview: asSent(p), choices: { answers: { "Which context?": "Work", "Not its question": "x" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: true } }, deps);
+  assert.deepEqual(result, { kind: "assistant", id: "11111111-1111-4111-8111-111111111111", href: "#/team/11111111-1111-4111-8111-111111111111" });
+  const input = calls.assistant[0] as { answers: unknown; allow: string[]; web: boolean; accounts: string[]; source: { kind: string } };
+  assert.deepEqual(input.answers, [{ question: "Which context?", answer: "Work" }]);
+  assert.deepEqual(input.allow, ["add_todo"]);
+  assert.equal(input.web, true);
+  assert.deepEqual(input.accounts, ["44444444-4444-4444-8444-444444444444"]);
+  assert.equal(input.source.kind, "link");
+  assert.equal(calls.marked.length, 0, "not from the catalogue: nothing to record");
+});
+
+test("adding a skill: off, whatever was sent, with the ticked accounts", async () => {
+  const { deps, calls } = fakes();
+  const p = await previewOf({ files: entries({ "SKILL.md": SKILL }), name: "packing-list" }, deps);
+  const { result } = await addFrom({ preview: asSent(p), choices: { accounts: [], enabled: true } }, deps);
+  assert.equal(result.href, "#/settings/skills/22222222-2222-4222-8222-222222222222");
+  const input = calls.skill[0] as { enabled: boolean; name: string; source: { kind: string; file?: string } };
+  assert.equal(input.enabled, false);
+  assert.equal(input.name, "packing-list");
+  assert.deepEqual([input.source.kind, input.source.file], ["upload", "packing-list"]);
+});
+
+test("adding a flow: every question answered first, then its answers by key", async () => {
+  const { deps, calls } = fakes();
+  const p = await previewOf({ files: entries({ "flow.json": JSON.stringify(FLOW) }) }, deps);
+  await assert.rejects(addFrom({ preview: asSent(p), choices: { answers: {} } }, deps), /Answer “Which context\?” first/);
+  const { result } = await addFrom({ preview: asSent(p), choices: { answers: { context: " Home " } } }, deps);
+  assert.equal(result.href, "#/flows/33333333-3333-4333-8333-333333333333");
+  const call = calls.flow[0] as { answers: Record<string, string>; catalogue?: unknown };
+  assert.deepEqual(call.answers, { context: "Home" });
+  assert.equal(call.catalogue, undefined);
+});
+
+test("adding reads the files again: a preview changed on the way back is refused", async () => {
+  const { deps, calls } = fakes();
+  const p = asSent(await previewOf({ files: entries({ "flow.json": JSON.stringify(FLOW) }) }, deps));
+  const changed = { ...p, files: [{ path: "flow.json", text: JSON.stringify({ ...FLOW, name: "Something else" }) }] };
+  await assert.rejects(addFrom({ preview: changed, choices: { answers: { context: "Home" } } }, deps), /didn't arrive whole/);
+  // A preview that says it's a skill but sends a flow's files is added as what its files are.
+  const relabelled = { ...p, kind: "skill", item: { kind: "skill" } };
+  const { result } = await addFrom({ preview: relabelled, choices: { answers: { context: "Home" } } }, deps);
+  assert.equal(result.kind, "flow");
+  assert.equal(calls.skill.length, 0);
+});
+
+test("adding from the catalogue: the bundle fetched again, refused if it changed, the listing recorded", async () => {
+  const skillFiles = [{ path: "SKILL.md", text: SKILL }];
+  const first = await catalogue(skillFiles, "skill");
+  const { deps, calls } = fakes({ loadBundle: async () => first });
+  const p = asSent(await previewOf({ catalogue: first.item.id }, deps));
+  const { result } = await addFrom({ preview: p, choices: {} }, deps);
+  assert.equal(result.kind, "skill");
+  assert.deepEqual(calls.marked, [{ kind: "skill", id: "22222222-2222-4222-8222-222222222222", listing: { id: first.item.id, hash: first.bundle.hash, version: "1.0.0" } }]);
+  const newer = await catalogue([{ path: "SKILL.md", text: `${SKILL}3. Check the weather.\n` }], "skill");
+  await assert.rejects(addFrom({ preview: p, choices: {} }, fakes({ loadBundle: async () => newer }).deps), /changed in the catalogue/);
+});
+
+test("a flow from the catalogue passes its listing to the flow's own import", async () => {
+  const got = await catalogue([{ path: "flow.json", text: JSON.stringify(FLOW) }]);
+  const { deps, calls } = fakes({ loadBundle: async () => got });
+  const p = asSent(await previewOf({ catalogue: got.item.id }, deps));
+  await addFrom({ preview: p, choices: { answers: { context: "Home" } } }, deps);
+  assert.deepEqual((calls.flow[0] as { catalogue: unknown }).catalogue, { id: got.item.id, hash: got.bundle.hash, version: "1.0.0" });
+});
+
+test("readChoices: only the shapes, nothing else", () => {
+  const c = readChoices({ answers: { a: "b", n: 3 }, accounts: ["not an id", "44444444-4444-4444-8444-444444444444"], allow: ["add_todo", 7], web: "yes", money: true, assistant_id: 9 });
+  assert.deepEqual(c, { answers: { a: "b" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: false, money: true, assistant_id: null });
+});
+
+// ---------- the routes ----------
+
+const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
+const post = (path: string, body: BodyInit, type?: string) => new Request(`https://athena.example.com${path}`, { method: "POST", body, headers: type ? { "Content-Type": type } : {} });
+const segs = (path: string) => path.split("/").filter(Boolean);
+
+test("POST /api/community/preview: a link as JSON, files as multipart", async () => {
+  const { deps } = fakes();
+  const a = await handleCommunityAddRoutes(post("/api/community/preview", JSON.stringify({ link: "https://github.com/sample-author/athena-items/tree/main/plant-care" }), "application/json"), segs("/api/community/preview"), json, { deps });
+  assert.equal(a!.status, 200);
+  assert.equal(((await a!.json()) as { preview: AddPreview }).preview.kind, "flow");
+
+  const form = new FormData();
+  form.append("files", new Blob([SKILL]), "SKILL.md");
+  form.append("path", "packing-list/SKILL.md");
+  const req = new Request("https://athena.example.com/api/community/preview", { method: "POST", body: form });
+  const b = await handleCommunityAddRoutes(req, segs("/api/community/preview"), json, { deps });
+  assert.equal(b!.status, 200);
+  const preview = ((await b!.json()) as { preview: AddPreview }).preview;
+  assert.equal(preview.kind, "skill");
+  assert.deepEqual(preview.from, { files: "packing-list" });
+});
+
+test("a file made for a newer Athena answers 426, so the screen can say so", async () => {
+  const { deps } = fakes({ fetchLink: async () => entries({ "flow.json": JSON.stringify({ ...FLOW, format: 2 }) }) });
+  const res = await handleCommunityAddRoutes(post("/api/community/preview", JSON.stringify({ link: "https://github.com/a/b/tree/main/c" }), "application/json"), segs("/api/community/preview"), json, { deps });
+  assert.equal(res!.status, NEWER_FORMAT_STATUS);
+  assert.match(((await res!.json()) as { error: string }).error, /newer Athena/);
+});
+
+test("POST /api/community/add: 201 with where it lives; bad input is a 400 in words", async () => {
+  const { deps } = fakes();
+  const p = await previewOf({ files: entries({ "flow.json": JSON.stringify(FLOW) }) }, deps);
+  const ok = await handleCommunityAddRoutes(post("/api/community/add", JSON.stringify({ preview: p, choices: { answers: { context: "Home" } } }), "application/json"), segs("/api/community/add"), json, { deps });
+  assert.equal(ok!.status, 201);
+  assert.equal(((await ok!.json()) as { href: string }).href, "#/flows/33333333-3333-4333-8333-333333333333");
+  const bad = await handleCommunityAddRoutes(post("/api/community/add", JSON.stringify({ preview: {} }), "application/json"), segs("/api/community/add"), json, { deps });
+  assert.equal(bad!.status, 400);
+});
+
+test("only POST, and only its own two paths", async () => {
+  const { deps } = fakes();
+  const get = await handleCommunityAddRoutes(new Request("https://athena.example.com/api/community/preview"), segs("/api/community/preview"), json, { deps });
+  assert.equal(get!.status, 405);
+  assert.equal(await handleCommunityAddRoutes(post("/api/community/updates", "{}"), segs("/api/community/updates"), json, { deps }), null);
+  assert.equal(await handleCommunityAddRoutes(post("/api/community", "{}"), segs("/api/community"), json, { deps }), null);
+});

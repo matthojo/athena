@@ -1719,7 +1719,7 @@ contracts between slices, is `docs/team.md`.
 
 - **Sharing and importing assistants** (`lib/team-share.ts`, pure and shared with the app;
   `lib/team-share-store.ts`; routes in `netlify/lib/team-routes.ts`; app
-  `db/team-share.ts`, `team/share-sheet.ts`, `team/import-sheet.ts`,
+  `db/team-share.ts`, `team/share-sheet.ts`, the Add screen in `app/src/add/`,
   `team/share-words.ts`). An assistant as a file someone else can import: a
   folder (zipped for download) with `assistant.json` (format 1: name, job,
   instructions, summary, personality, avatar, triggers without ids, `asks`,
@@ -1735,13 +1735,13 @@ contracts between slices, is `docs/team.md`.
     setup questions kept with its skill become `asks`; the owner's answers
     don't go. `download: true` gives the zip, or 409 with the findings.
   - **Import** ("Or import one someone shared" in New assistant, the empty
-    Team page, a drop on the page, or `#/team/import` from the share target):
-    `POST /api/team/import/preview` reads a zip, a folder's files, an
+    Team page, a drop on the page, or the share target, all opening `#/add`):
+    `POST /api/community/preview` reads a zip, a folder's files, an
     `assistant.json` or a GitHub link (`parseShareLink`, `fetchGithubFolder`
-    in `lib/skill-fetch.ts`) into an `ImportPreview` with each needed
+    in `lib/skill-fetch.ts`) into an `AddPreview`; the screen shows each needed
     account's connection, `asks_first` (what it asked to do alone that an
     import can't grant) and `accounts` (every account a turn could open, the
-    ones it needs first). `POST /api/team/import` makes
+    ones it needs first; the Add screen works these out from the preview). `POST /api/community/add` makes
     the assistant paused, with `grantedTools` (asked for, ticked, and in
     `SHARED_TOOLS`: the flows catalogue's "add" group plus `track`,
     `lib/shared-limits.ts`), the accounts ticked, and its
@@ -1916,7 +1916,7 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
   write one; import from a GitHub folder or a raw SKILL.md link
   (`lib/skill-fetch.ts`); or "Make this a skill" in Ask's menu
   (`lib/skill-draft.ts`), which drafts one from the conversation and opens
-  the editor. Every import is a preview (`POST /api/skills/preview`) before
+  the editor. Every import is a preview (`#/add`, `POST /api/community/preview`) before
   anything is saved; a draft is never saved or switched on by itself, and
   one from a file or a link is saved off whatever the request says
   (`createSkill`). Three starters (weekly-review, plan-meals, meeting-prep)
@@ -2016,6 +2016,29 @@ is a permission. These files are the contract the screens and routes build on:
   flow pages. Sample mode reads `app/src/db/sample-community.ts`;
   localStorage `athena.sample.catalogue` (`none`, `down`, `offline`,
   `slow`) shows each state.
+
+#### The Add screen (`#/add`)
+
+One screen for every shared item, whichever way it came: a listing
+(`#/add?catalogue=<id>`), a link (`#/add?link=<url>`), or files picked,
+dropped, held by another page (`app/src/add/hold.ts`) or shared to the
+installed app. Team's "import" and Skills' upload and link options open it.
+
+- **`lib/community-add.ts`** (pure, shared with sample mode):
+  `itemFiles` cuts a folder, zip or link down to the item's own text files,
+  `buildPreview` reads them by kind and works out reach and hash, and a file
+  made for a newer Athena throws `NewerFormatError` (HTTP 426).
+- **`netlify/lib/community-add-routes.ts`**: `POST /api/community/preview`
+  and `POST /api/community/add`. Add reads the files again and hands each
+  kind to its own import (`importAssistant`, `createSkill`,
+  `addSharedFlow`), switched off, recording the listing for catalogue items.
+  Its outside calls are a `CommunityAddDeps` object, so the tests use fakes.
+- **`app/src/add/`**: the screen (`view.ts`), its words (`words.ts`), a
+  flow's steps drawn read-only with the flow editor's pieces
+  (`flow-steps.ts`), and sample mode's made-up items (`sample-items.ts`).
+  One layout for all three kinds: who made it and where from, its reach in
+  plain words, what it needs, its questions, account ticks, what it may do
+  alone, then all of it.
 
 ### Files
 
