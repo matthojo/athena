@@ -80,9 +80,9 @@
   transform: rotate(180deg);
 }
 
-/* ---------- The repeats, opened ---------- */
+/* ---------- Where each was found, opened ---------- */
 
-.suggestion__repeats {
+.suggestion__founds {
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -92,65 +92,60 @@
   background: var(--sunken);
 }
 
-.suggestion__repeats[hidden] {
+.suggestion__founds[hidden] {
   display: none;
 }
 
-.suggestion__repeat {
+.suggestion__found {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   padding: var(--space-xs) var(--space-sm);
-  overflow: hidden;
-  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out-expo);
 }
 
-.suggestion__repeat + .suggestion__repeat {
+.suggestion__found + .suggestion__found {
   border-top: 1px solid var(--line);
 }
 
-.suggestion__repeat.is-lifted {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
-.suggestion__repeat-text {
+.suggestion__found-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  flex: 1 1 14rem;
 }
 
-.suggestion__repeat-summary {
+.suggestion__found-what {
   font-size: var(--text-small);
   color: var(--ink);
   overflow-wrap: anywhere;
 }
 
-.suggestion__repeat-when {
+.suggestion__found-from,
+.suggestion__found-when {
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
 
-.suggestion__repeat-actions {
-  display: flex;
-  gap: var(--space-2xs);
-  margin-left: auto;
+.suggestion__found-when {
+  flex: none;
+}
+
+/* One answer for the whole card: said where the buttons are. */
+.suggestion__covers {
+  margin-top: var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  color: var(--accent-ink);
+  text-align: right;
+}
+
+.suggestion__covers + .suggestion__actions {
+  margin-top: 0;
 }
 
 .suggestion__actions {
   flex-wrap: wrap;
-}
-
-.suggestion__dismiss-all {
-  margin-right: auto;
-}
-
-.suggestion__dismiss-all[hidden] {
-  display: none;
 }
 
 /* ---------- The ignore sheet ---------- */

@@ -27,7 +27,7 @@ import { learnedAboutOwner } from "../lib/owner-rule";
 import { markdownToText } from "../lib/markdown-text";
 import { addDays, daysBetween, upcomingOccurrences } from "../../../lib/dates";
 import { cleanLinks, cleanPriority, cleanSteps } from "../../../lib/todo-details";
-import { caughtBy, similarKey } from "../../../lib/suggestion-similar";
+import { caughtBy, sameKey } from "../../../lib/suggestion-similar";
 
 /** A mail rule from the Inbox: skip a sender (an address or a domain) or a subject phrase. */
 export type IgnoreRule = { kind: "sender" | "subject"; value: string };
@@ -676,14 +676,14 @@ export interface IgnoreOutcome {
 
 /**
  * Ignore emails like this one: a mail rule on the account it came from, so
- * the next sync skips mail like it, and the finds it catches (and this one's
- * repeats) leave the Inbox. Sample mode changes no account.
+ * the next sync skips mail like it, and the finds it catches (and this one
+ * again, from other emails) leave the Inbox. Sample mode changes no account.
  */
 export async function ignoreLikeSuggestion(s: Suggestion, rule: IgnoreRule): Promise<IgnoreOutcome> {
   if (isSampleMode()) {
     const pending = (await sampleAll<Suggestion>("suggestion")).filter((p) => p.status === "pending");
-    const key = similarKey(s);
-    const leaving = pending.filter((p) => p.id === s.id || (p.source === s.source && (caughtBy(p.email, rule) || (!!key && similarKey(p) === key))));
+    const key = sameKey(s);
+    const leaving = pending.filter((p) => p.id === s.id || (p.source === s.source && caughtBy(p.email, rule)) || (!p.email && sameKey(p) === key));
     for (const p of leaving) await sampleWrite("suggestion", { ...p, status: "rejected", resolved_at: nowIso() } as Suggestion);
     emit("suggestion");
     return { rule, accounts: ["Sample email"], dismissed: leaving.map((p) => p.id) };

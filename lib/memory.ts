@@ -20,7 +20,7 @@
  * name) happen in TypeScript, or on a blind index for identities.
  */
 import { dayRecallHits } from "./days";
-import { similarKey, type SuggestionEmail } from "./suggestion-similar";
+import { sameKey, type SuggestionEmail } from "./suggestion-similar";
 import {
   AthenaInputError,
   byName,
@@ -1126,10 +1126,10 @@ export interface Suggestion {
 /**
  * File a suggestion for the owner to accept or reject. The same suggestion
  * (op + summary + source_ref) is never filed twice — even after a rejection,
- * so a rerun agent doesn't keep asking. Nor is one word for word the same as
- * one still waiting from another source item (a reminder email repeating the
- * first): the owner answers it once. One that's only alike (another date)
- * is filed, and the Inbox shows the two together (lib/suggestion-similar.ts).
+ * so a rerun agent doesn't keep asking. Nor is one that says the same as one
+ * still waiting from another source item (a reminder email repeating the
+ * first; lib/suggestion-similar.ts sameKey): the owner answers it once.
+ * Another date or number is another thing, and is filed.
  */
 export async function propose(
   input: { op: SuggestionOp; summary: string; payload: Record<string, unknown>; email?: SuggestionEmail | null } & Provenance,
@@ -1151,7 +1151,8 @@ export async function propose(
   const existing = filed.find((f) => f.summary.toLowerCase() === summary.toLowerCase());
   if (existing) return existing;
   const waiting = suggestionRows(await q<Suggestion>(`SELECT * FROM suggestions WHERE op = $1 AND status = 'pending' ORDER BY created_at`, [op]));
-  const repeat = waiting.find((f) => f.summary.toLowerCase() === summary.toLowerCase());
+  const key = sameKey({ op, summary });
+  const repeat = waiting.find((f) => sameKey(f) === key);
   if (repeat) return repeat;
   const email = suggestionEmail(input.email);
   const s = await sealer();
@@ -1209,14 +1210,6 @@ function readEmail(raw: unknown): SuggestionEmail | null {
   } catch {
     return null;
   }
-}
-
-/** Pending suggestions like this one (lib/suggestion-similar.ts similarKey), itself left out. */
-export async function similarPending(s: Pick<Suggestion, "id" | "op" | "summary">): Promise<Suggestion[]> {
-  const key = similarKey(s);
-  if (!key) return [];
-  const pending = suggestionRows(await q<Suggestion>(`SELECT * FROM suggestions WHERE status = 'pending' AND op = $1 AND id <> $2`, [s.op, s.id]));
-  return pending.filter((p) => similarKey(p) === key);
 }
 
 export async function listSuggestions(opts: { status?: SuggestionStatus; limit?: number } = {}): Promise<Suggestion[]> {

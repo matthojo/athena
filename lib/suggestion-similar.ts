@@ -1,11 +1,11 @@
 /**
  * The review inbox's repeats and the email each find came from:
  *
- *  - similarKey / groupSimilar: finds that say the same thing apart from a
- *    date, a time, a number or a reference ("Appointment: Spin class ·
- *    2026-11-25" and "· 2026-12-02"), so the Inbox shows them as one card
- *    with "2 similar", and propose() doesn't file a word-for-word repeat
- *    while one is still waiting.
+ *  - sameKey / groupSame: finds that are the same thing (a booking email,
+ *    then its reminder), so the Inbox shows them as one card, "Found 3
+ *    times", whose answer covers all of them, and propose() doesn't file
+ *    one again while it's still waiting. Another date or number is another
+ *    thing, never grouped.
  *  - mailFrom: the sender and subject of each email a collection read,
  *    from its mail tools' JSON (Google's MCP field names, which the
  *    Gmail, Outlook and Fastmail tools all use), so a find can keep where
@@ -29,56 +29,42 @@ export interface SuggestionEmail {
 
 const MONTH = "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?";
 const WEEKDAY = "mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:rs(?:day)?)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?";
-/** What changes from one repeat to the next. */
-const CHANGES = new RegExp(
-  [
-    `\\b(?:${MONTH}|${WEEKDAY})\\b`,
-    "\\b(?:today|tonight|tomorrow|yesterday|next week|this week)\\b",
-    "\\b(?:ref(?:erence)?|order|invoice|no\\.?|number)\\s*[#:]?\\s*[a-z]*\\d[\\w-]*",
-    "[#£$€]?\\S*\\d\\S*",
-  ].join("|"),
-  "gi",
-);
-/** Words left dangling once a date is gone ("on", "at", "for"). */
+/** Words left dangling at either end of a subject phrase once a date is gone ("on", "at", "for"). */
 const DANGLING = new Set(["on", "at", "for", "from", "by", "the", "of", "in", "to", "and"]);
+/** Words that don't change what a find says. */
+const FILLER = new Set(["a", "an", "the"]);
 
 /**
- * A find's words with what changes between repeats taken out, prefixed by
- * what accepting does (its op). Null when too little is left to say two finds
- * are alike ("To do: Call 07700 900123" leaves "to do call").
+ * What a find says, for telling when two are the same thing: what accepting
+ * does (its op) and its words, ignoring case, punctuation and "a", "an",
+ * "the". Dates, times and numbers stay, so the same class on two days, or
+ * two orders, are two things.
  */
-export function similarKey(s: { op: string; summary: string }): string | null {
+export function sameKey(s: { op: string; summary: string }): string {
   const words = s.summary
+    .normalize("NFKC")
     .toLowerCase()
-    .replace(CHANGES, " ")
-    .replace(/[^\p{L}\p{N}' ]+/gu, " ")
-    .split(/\s+/)
-    .filter(Boolean);
-  while (words.length && DANGLING.has(words[words.length - 1])) words.pop();
-  const meaning = words.filter((w) => !DANGLING.has(w));
-  if (meaning.length < 3) return null;
+    .replace(/['’]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .split(" ")
+    .filter((w) => w && !FILLER.has(w));
   return `${s.op}|${words.join(" ")}`;
 }
 
 /**
- * Finds grouped with the ones like them, in the order given: each group sits
- * where its first find was, and the first is the one the card shows.
+ * Finds that are the same thing, together, in the order given: each group
+ * sits where its first find was, and the first is the one the card shows.
+ * An answer on the card is an answer for every find in it.
  */
-export function groupSimilar<T extends { op: string; summary: string }>(items: T[]): T[][] {
-  const groups: T[][] = [];
-  const byKey = new Map<string, T[]>();
+export function groupSame<T extends { op: string; summary: string }>(items: T[]): T[][] {
+  const groups = new Map<string, T[]>();
   for (const s of items) {
-    const key = similarKey(s);
-    const group = key ? byKey.get(key) : undefined;
-    if (group) {
-      group.push(s);
-      continue;
-    }
-    const fresh = [s];
-    groups.push(fresh);
-    if (key) byKey.set(key, fresh);
+    const key = sameKey(s);
+    const group = groups.get(key);
+    if (group) group.push(s);
+    else groups.set(key, [s]);
   }
-  return groups;
+  return [...groups.values()];
 }
 
 // ---------- Which email a find came from ----------

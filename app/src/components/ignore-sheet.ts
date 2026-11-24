@@ -21,7 +21,8 @@ export function senderName(from: string): string {
   return name || senderAddress(from);
 }
 
-export function openIgnoreSheet(s: Suggestion, similar: number): Promise<IgnoreOutcome | null> {
+/** `repeats`: how many more times the card found the same thing; they leave with it. */
+export function openIgnoreSheet(s: Suggestion, repeats: number): Promise<IgnoreOutcome | null> {
   return new Promise((resolve) => {
     let outcome: IgnoreOutcome | null = null;
     const choices = ignoreChoices(s.email);
@@ -72,7 +73,7 @@ export function openIgnoreSheet(s: Suggestion, similar: number): Promise<IgnoreO
         h(
           "p",
           { class: "move-sheet__sub" },
-          `Athena stops reading them on this email account, and ${similar ? `this and ${similar} like it leave` : "this leaves"} your Inbox. Change it any time in Settings, under the account's email rules.`
+          `Athena stops reading them on this email account. ${repeats ? `This card (all ${repeats + 1})` : "This card"} leaves your Inbox, with anything else the rule catches. Change it any time in Settings, under the account's email rules.`
         ),
         email,
         h("div", { class: "ignore-sheet__choices", role: "radiogroup", "aria-labelledby": "ignore-ask" }, ...rows),

@@ -11,7 +11,7 @@ import { getConnector, listCollections, saveMailRules, type Connector } from "./
 import { NO_RULES, RULE_LIMITS, readRules, readSender, readSubject } from "./mail-rules";
 import { AthenaInputError } from "./db";
 import { listSuggestions, rejectSuggestion, type Suggestion } from "./memory";
-import { caughtBy, similarKey } from "./suggestion-similar";
+import { caughtBy, sameKey } from "./suggestion-similar";
 
 /** The providers whose accounts carry mail rules (netlify/lib/connectors/routes.ts READS_MAIL). */
 export const MAIL_PROVIDERS = new Set(["gmail", "outlook-mail", "fastmail"]);
@@ -77,14 +77,14 @@ export async function ignoreLike(id: string, rule: IgnoreRule): Promise<IgnoreRe
     await saveMailRules(c.id, readRules(next));
   }
   const accountIds = new Set(accounts.map((c) => c.id));
-  const key = similarKey(s);
+  const key = sameKey(s);
   const leaving = pending.filter((p) => {
     if (p.id === s.id) return true;
     // Read from one of these accounts, and kept out from now on.
     const sameAccount = p.email?.connector_id ? accountIds.has(p.email.connector_id) : p.source === s.source;
     if (sameAccount && caughtBy(p.email, rule)) return true;
-    // A repeat of this one, from the same collection, with no email recorded to check.
-    return !p.email && p.source === s.source && !!key && similarKey(p) === key;
+    // The same find again (its card held it too), with no email recorded to check.
+    return !p.email && sameKey(p) === key;
   });
   for (const p of leaving) await rejectSuggestion(p.id);
   return { rule, accounts: accounts.map((c) => c.name), dismissed: leaving.map((p) => p.id) };

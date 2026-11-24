@@ -43,7 +43,10 @@ test("an email find: kept sealed, not repeated, done, and ignored by sender", { 
     // The same words from another email, while the first waits: answered once.
     const again = await propose({ op: "event", summary: `${tag} Appointment: Spin class · 2026-12-02`, payload: {}, source: tag, source_ref: `${tag}:t2`, email });
     assert.equal(again.id, first.id);
-    // Alike but for the date: filed, for the Inbox to show together.
+    // Worded a little differently (case, punctuation, "the"): still the same thing.
+    const reworded = await propose({ op: "event", summary: `${tag} appointment — the spin class, 2026-12-02`, payload: {}, source: tag, source_ref: `${tag}:t5`, email });
+    assert.equal(reworded.id, first.id);
+    // Another date is another thing: filed, and its own card.
     const next = await propose({ op: "event", summary: `${tag} Appointment: Spin class · 2026-12-09`, payload: {}, source: tag, source_ref: `${tag}:t3`, email });
     assert.notEqual(next.id, first.id);
     const other = await propose({ op: "commitment", summary: `${tag} To do: Reply to Sam about the rota`, payload: { title: "Reply to Sam" }, source: tag, source_ref: `${tag}:t4` });

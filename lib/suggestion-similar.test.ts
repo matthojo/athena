@@ -1,41 +1,31 @@
 // Run: npx tsx --test lib/suggestion-similar.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { caughtBy, emailIdOf, groupSimilar, ignoreChoices, mailFrom, senderDomain, similarKey, subjectPhrase } from "./suggestion-similar";
+import { caughtBy, emailIdOf, groupSame, ignoreChoices, mailFrom, sameKey, senderDomain, subjectPhrase } from "./suggestion-similar";
 
-test("repeats differ only by a date, a time, a number or a reference", () => {
-  const a = similarKey({ op: "event", summary: "Appointment: Spin class at Northfield Leisure · 2026-11-25" });
-  const b = similarKey({ op: "event", summary: "Appointment: Spin class at Northfield Leisure · 2026-12-02" });
-  assert.ok(a);
-  assert.equal(a, b);
+test("the same thing, worded the same, is one thing", () => {
   assert.equal(
-    similarKey({ op: "commitment", summary: "To do: Pay invoice INV-2041 by Friday" }),
-    similarKey({ op: "commitment", summary: "To do: Pay invoice INV-2077 by Monday" }),
+    sameKey({ op: "event", summary: "Appointment: Spin class at Northfield Leisure · 2026-11-25" }),
+    sameKey({ op: "event", summary: "appointment — spin class at Northfield Leisure, 2026-11-25." }),
   );
-  assert.equal(
-    similarKey({ op: "purchase", summary: "Out for delivery: Larkspur Home order #4417" }),
-    similarKey({ op: "purchase", summary: "Out for delivery: Larkspur Home order #4502" }),
-  );
+  assert.equal(sameKey({ op: "commitment", summary: "To do: Pay the invoice" }), sameKey({ op: "commitment", summary: "To do: pay invoice" }));
+  assert.equal(sameKey({ op: "fact", summary: "Elena’s moving to Lisbon" }), sameKey({ op: "fact", summary: "Elenas moving to Lisbon" }));
 });
 
-test("different things, or the same words for a different op, stay apart", () => {
-  assert.notEqual(similarKey({ op: "event", summary: "Appointment: Dentist check-up · 2026-11-25" }), similarKey({ op: "event", summary: "Appointment: Spin class · 2026-11-25" }));
-  assert.notEqual(similarKey({ op: "event", summary: "Renew the parking permit for the van" }), similarKey({ op: "commitment", summary: "Renew the parking permit for the van" }));
-});
-
-test("too little left to compare is never grouped", () => {
-  assert.equal(similarKey({ op: "commitment", summary: "To do: Call 07700 900123" }), null);
-  assert.equal(similarKey({ op: "event", summary: "Friday 6 December at 19:30" }), null);
+test("another date, another number or another op is another thing", () => {
+  assert.notEqual(sameKey({ op: "event", summary: "Appointment: Spin class · 2026-11-25" }), sameKey({ op: "event", summary: "Appointment: Spin class · 2026-12-02" }));
+  assert.notEqual(sameKey({ op: "purchase", summary: "Out for delivery: order #4417" }), sameKey({ op: "purchase", summary: "Out for delivery: order #4502" }));
+  assert.notEqual(sameKey({ op: "event", summary: "Renew the parking permit" }), sameKey({ op: "commitment", summary: "Renew the parking permit" }));
 });
 
 test("groups keep the order they were given, each led by its first", () => {
   const items = [
-    { id: "1", op: "event", summary: "Appointment: Spin class at Northfield Leisure · 2026-12-02" },
+    { id: "1", op: "event", summary: "Appointment: Spin class · 2026-12-02" },
     { id: "2", op: "commitment", summary: "You told Marcus you'd send him the hiring rubric" },
-    { id: "3", op: "event", summary: "Appointment: Spin class at Northfield Leisure · 2026-11-25" },
-    { id: "4", op: "event", summary: "Appointment: Spin class at Northfield Leisure · 2026-11-18" },
+    { id: "3", op: "event", summary: "Appointment: spin class · 2026-12-02" },
+    { id: "4", op: "event", summary: "Appointment: Spin class · 2026-12-09" },
   ];
-  assert.deepEqual(groupSimilar(items).map((g) => g.map((s) => s.id)), [["1", "3", "4"], ["2"]]);
+  assert.deepEqual(groupSame(items).map((g) => g.map((s) => s.id)), [["1", "3"], ["2"], ["4"]]);
 });
 
 test("mailFrom reads search, thread and message replies", () => {
