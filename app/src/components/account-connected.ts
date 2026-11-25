@@ -51,6 +51,7 @@ export function closeThen(close: () => void, open: () => void): void {
 /** The question the offer asks. */
 const OFFER: Record<RecipeId, string> = {
   "calendar-meetings": "Keep notes on your meetings?",
+  "calendar-sync": "Keep your calendar in Coming up?",
   "email-digest": "Start an email digest?",
   "work-activity": "Keep track of your work?",
   "life-log": "Start a Life log?",
@@ -161,6 +162,39 @@ export function openConnected(state: ConnectorsState, connectorId: string, ctx: 
         await runCollection(col.id).catch(() => undefined);
         void ctx.reload?.();
         box.replaceChildren(h("p", { class: "acct-offer__title" }, `${title(col)} is on`), h("p", { class: "acct-offer__sentence" }, "The first count has started. It reads back a year."), h("a", { class: "acct-link", href: "#/work" }, "Open the Work page"));
+        box.classList.add("acct-offer--on");
+      } catch (err) {
+        go.disabled = false;
+        showToast(errorText(err, "Couldn't turn it on"), { icon: "close", timeoutMs: 6000 });
+      }
+    });
+    return box;
+  };
+  /** Google, Outlook and iCloud calendars: Calendar keeps the upcoming events in step every hour, with no model (calendar-sync.ts). One for every calendar. */
+  const calendarSyncOffer = (): HTMLElement | null => {
+    if (!offered || !presetFor(offered.provider).recipes.includes("calendar-sync")) return null;
+    const mine = state.collections.filter((col) => col.recipe === "calendar-sync");
+    const reads = mine.find((col) => col.connector_ids.includes(offered.id));
+    const title = (col: Pick<Collection, "label">) => titleFor("calendar-sync", col.label);
+    if (reads) return h("section", { class: "acct-offer acct-offer--quiet" }, h("p", { class: "acct-offer__title" }, `${title(reads)} reads it`), h("p", { class: "acct-offer__sentence" }, "Your upcoming events are kept in step every hour, in Coming up."));
+    const into = mine[0] ?? null;
+    const go = h("button", { class: "btn btn--primary btn--block", type: "button" }, into ? "Add it" : "Turn it on") as HTMLButtonElement;
+    const box = h(
+      "section",
+      { class: "acct-offer", "aria-labelledby": "acct-cs-title" },
+      h("p", { class: "acct-offer__title", id: "acct-cs-title" }, into ? `Add it to ${title(into)}?` : OFFER["calendar-sync"]),
+      h("p", { class: "acct-offer__sentence" }, `Every hour, Athena reads the next ${into?.lookahead_days ?? 14} days on ${offered.name} into Coming up and your briefing. Athena reads it itself, so it doesn't use the AI.`),
+      go
+    );
+    go.addEventListener("click", async () => {
+      go.disabled = true;
+      try {
+        const col = into
+          ? await saveCollection({ connector_ids: [...into.connector_ids, offered.id] }, into.id)
+          : await saveCollection({ name: titleFor("calendar-sync", ""), recipe: "calendar-sync", connector_ids: [offered.id], label: "", schedule: "hourly", run_at: null, every_hours: 1, lookback_hours: 24, lookahead_days: 14, event_push: false, instructions: "" });
+        await runCollection(col.id).catch(() => undefined);
+        void ctx.reload?.();
+        box.replaceChildren(h("p", { class: "acct-offer__title" }, `${title(col)} is on`), h("p", { class: "acct-offer__sentence" }, "The first check has started. Your events turn up in Coming up in a minute or so."));
         box.classList.add("acct-offer--on");
       } catch (err) {
         go.disabled = false;
@@ -346,6 +380,9 @@ export function openConnected(state: ConnectorsState, connectorId: string, ctx: 
     );
   }
 
+  // A calendar: Calendar (no AI) leads; meeting notes, which use the AI, come second.
+  const calendarOffer = calendarSyncOffer();
+  if (calendarOffer && !calendarOffer.classList.contains("acct-offer--quiet")) for (const b of offer.querySelectorAll(".btn--primary")) b.classList.replace("btn--primary", "btn--soft");
   // iCloud Calendar: choose the calendars before turning anything on (iCloud has no single main one).
-  body.append(hero, history ?? "", ["google-calendar", "outlook-calendar", "icloud-calendar"].includes(c.provider) && directApi(c) ? calendarsGroup(c, { onSaved: () => (changed = true) }) : "", offer, playsWatchesOffer() ?? "", workSyncOffer() ?? "", notNow, live);
+  body.append(hero, history ?? "", ["google-calendar", "outlook-calendar", "icloud-calendar"].includes(c.provider) && directApi(c) ? calendarsGroup(c, { onSaved: () => (changed = true) }) : "", calendarOffer ?? "", offer, playsWatchesOffer() ?? "", workSyncOffer() ?? "", notNow, live);
 }

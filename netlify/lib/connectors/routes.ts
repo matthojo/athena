@@ -136,7 +136,7 @@ const CHOOSES_CALENDARS = new Set(["google-calendar", "outlook-calendar"]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const AUTH_TYPES = new Set<ConnectorAuthType>(["oauth", "token", "none"]);
-const RECIPE_IDS = new Set<RecipeId>(["calendar-meetings", "email-digest", "work-activity", "life-log", "plays-watches", "work-sync", "home", "custom"]);
+const RECIPE_IDS = new Set<RecipeId>(["calendar-meetings", "calendar-sync", "email-digest", "work-activity", "life-log", "plays-watches", "work-sync", "home", "custom"]);
 
 async function body(req: Request): Promise<Record<string, unknown>> {
   try {
@@ -732,7 +732,7 @@ export async function handleConnectorRoutes(req: Request, url: URL, segments: st
     if (segments.length === 4 && third === "run" && m === "POST") {
       const c = await getCollection(second);
       if (!c) return json({ error: "Not found" }, 404);
-      // Your activity, Your work, counted and Home need no model (media-sync.ts, work-sync.ts, home-run.ts).
+      // Your activity, Your work, counted, Home and Calendar need no model (media-sync.ts, work-sync.ts, home-run.ts, calendar-sync.ts).
       if (!NO_MODEL_RECIPES.includes(c.recipe) && !aiConfigured()) throw new AthenaInputError("Collections need the Agent: Netlify AI Gateway isn't active on this site yet (see the README)");
       if (await hasOpenRun(second)) throw new AthenaInputError("This collection is already running");
       const run = await queueRun(second, "manual");

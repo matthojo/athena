@@ -10,6 +10,8 @@ import type { Note } from "../types";
 
 const DOMAINS: { key: string; name: string; icon: IconName }[] = [
   { key: "calendar-meetings", name: "Meetings", icon: "calendar" },
+  // Events kept in step by Athena itself (netlify/lib/connectors/calendar-sync.ts).
+  { key: "calendar-sync", name: "Calendar", icon: "week" },
   { key: "work-activity", name: "Work activity", icon: "briefcase" },
   { key: "email-digest", name: "Email digest", icon: "mail" },
   { key: "life-log", name: "Life log", icon: "play" },

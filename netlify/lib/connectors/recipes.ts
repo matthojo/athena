@@ -123,6 +123,8 @@ export const RECIPE_PROMPTS: Record<RecipeId, string> = {
   "work-sync": "",
   // Nor this: Home reads the banks, the meter and the appliances without Claude (netlify/lib/home/home-run.ts).
   home: "",
+  // Nor this: Calendar keeps the upcoming events in step without Claude (calendar-sync.ts).
+  "calendar-sync": "",
 
   custom: `Collection: custom. Follow the owner's instructions below, within the rules above. If the instructions would need a write on a source account, you can't: say so in your summary. If you come across travel bookings, orders, appointments, renewals or account alerts, record them with athena_trip_booking, athena_purchase, athena_email_date, athena_renewal and athena_alert rather than notes.`,
 };

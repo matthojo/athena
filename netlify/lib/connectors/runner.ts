@@ -40,6 +40,7 @@ import {
   getConnector,
   keptApart,
   mixedCollectionError,
+  collectedByRecipe,
   linkCollectedMeetings,
   listCollections,
   listConnectors,
@@ -101,6 +102,7 @@ import { isSealedSync } from "../../../lib/presets/life";
 import { isHealthSource, readHealthDay, saveHealthDay, withoutHealth, type HealthSource } from "../../../lib/health";
 import { DAY_ENTRY_KINDS, entriesWithoutArt, getDay, readEntry, setEntryArt, setRunLine, writeEntries, type EntryInput } from "../../../lib/days";
 import { runWorkSync } from "./work-sync";
+import { runCalendarSync, withoutCoveredSync } from "./calendar-sync";
 import { activitySources, addRatings, applyTraktRatings, checkedSources, dropRepeats, hourlyAccounts, hourlyChangedSince, hourlyNote, notFromRuns, runPlaysWatches, syncRecent } from "./media-sync";
 import { artStorable, fillDayArt } from "../../../lib/art";
 import { callTool, ConnectorNeedsSignIn, listAllowedTools, openConnector, type OpenConnector } from "./mcp-client";
@@ -1163,7 +1165,10 @@ export class AthenaWriter {
    */
   private async linkMeeting(externalId: string): Promise<void> {
     const source = this.collection.source;
-    const [note, event] = await Promise.all([getCollected(source, "note", externalId), getCollected(source, "event", externalId)]);
+    const [mine, ownEvent] = await Promise.all([getCollected(source, "note", externalId), getCollected(source, "event", externalId)]);
+    // A Calendar collection (calendar-sync.ts) syncs the events; Meetings writes the notes.
+    const note = mine ?? (this.collection.recipe === "calendar-sync" ? (await collectedByRecipe("calendar-meetings", "note", externalId)).find((n) => n.state === "live") : undefined);
+    const event = ownEvent?.state === "live" ? ownEvent : this.collection.recipe === "calendar-meetings" ? (await collectedByRecipe("calendar-sync", "event", externalId)).find((e) => e.state === "live") : ownEvent;
     if (note?.state !== "live" || event?.state !== "live") return;
     await linkEntities({ sourceType: "note", sourceId: note.record_id, targetType: "event", targetId: event.record_id, relation: "notes_for" });
   }
@@ -1281,7 +1286,11 @@ export class AthenaWriter {
    * Only once per item: a second attempt is saved as sent, so a false alarm
    * (or a name from the source that trips the check) never loses the record.
    */
+  /** Off when Athena's own code writes the fields (calendar-sync.ts), not the model: there's no one to send it back to. */
+  checksStyle = true;
+
   private checkStyle(name: string, raw: unknown): void {
+    if (!this.checksStyle) return;
     const fields = STYLED_FIELDS[name];
     if (!fields || !raw || typeof raw !== "object") return;
     const input = raw as Record<string, unknown>;
@@ -1979,9 +1988,19 @@ export async function executeRun(runId: string, now: Date = new Date()): Promise
   const mailSkipped = () => opened.reduce((n, o) => n + (o.direct?.mail?.skipped() ?? 0), 0);
   const final = () => ({ ...stats, ...(mailSkipped() ? { mail_skipped: mailSkipped() } : {}), ...(blocked.length ? { blocked_by: blocked.map((b) => b.id) } : {}) });
   try {
-    const collection = await getCollection(run.collection_id);
+    const loaded = await getCollection(run.collection_id);
     const tz = await getOwnerTimeZone();
-    if (!collection) throw new Error("The collection was deleted");
+    if (!loaded) throw new Error("The collection was deleted");
+    // Calendar: the upcoming events, read and saved by Athena itself, never Claude (calendar-sync.ts).
+    if (loaded.recipe === "calendar-sync") {
+      const writer = new AthenaWriter(loaded, runId, stats, now, tz);
+      const r = await runCalendarSync(loaded, runId, writer, { now, tz });
+      // People the writer added from invites count too.
+      await finishRun(runId, { status: r.status, summary: r.summary, ...(r.error ? { error: r.error } : {}), stats: { ...r.stats, ...(stats.people ? { people: stats.people } : {}) } });
+      return;
+    }
+    // A Meetings collection whose calendars an enabled Calendar reads leaves the upcoming events to it: Claude writes notes only.
+    const collection = await withoutCoveredSync(loaded).catch(() => loaded);
     // Plays and watches: read straight into Days, never Claude (media-sync.ts).
     if (collection.recipe === "plays-watches") {
       const r = await runPlaysWatches(collection, runId, { clock: () => now.getTime() });

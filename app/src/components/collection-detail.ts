@@ -25,7 +25,7 @@ import { confirmDialog } from "./confirm";
 import { connectorLogo } from "./brand-logo";
 import { plural } from "../lib/format";
 import { deleteCollection, fetchRuns, runCollection, saveCollection } from "../db/api";
-import { errorText, RECIPE_ICON, serviceLabel } from "../lib/connectors-ui";
+import { errorText, eventsLeftToCalendar, RECIPE_ICON, serviceLabel } from "../lib/connectors-ui";
 import { openCollectionForm } from "./collection-form";
 import type { DetailContext, DetailView } from "./connector-detail";
 import {
@@ -400,7 +400,9 @@ export function collectionDetail(input: Collection, ctx: CollectionDetailContext
       box.append(link("See it on House", "#/house", "cl-link cl-items__all"), banks ? link("See it in Money", "#/money", "cl-link cl-items__all") : "");
       return box;
     }
-    const seeAll = () => link(saved > 1 ? `See all ${saved} in Notes` : "See it in Notes", notesHref, "cl-link cl-items__all");
+    // Calendar saves events, not notes: they're in Coming up on Home.
+    const seeAll = () =>
+      col.recipe === "calendar-sync" ? link("See what's coming up", "#/", "cl-link cl-items__all") : link(saved > 1 ? `See all ${saved} in Notes` : "See it in Notes", notesHref, "cl-link cl-items__all");
     if (!ctx.fetchRunItems) {
       box.append(seeAll());
       return box;
@@ -650,8 +652,10 @@ export function collectionDetail(input: Collection, ctx: CollectionDetailContext
           { class: "card card--flush fields" },
           fact("When", whenPhrase(col)),
           // Your activity reads its accounts directly (media-sync.ts): no look-back.
-          col.recipe === "work-sync" ? fact("How far back", "A year, the first time") : col.recipe === "home" ? fact("How far back", "Up to two years, a little each run") : col.recipe === "plays-watches" ? null : fact("How far back", backs[col.lookback_hours] ?? `${col.lookback_hours} hours`),
-          col.lookahead_days > 0 ? fact("Upcoming events", `Next ${col.lookahead_days} days${col.event_push ? ", with reminders" : ""}`) : null,
+          col.recipe === "work-sync" ? fact("How far back", "A year, the first time") : col.recipe === "home" ? fact("How far back", "Up to two years, a little each run") : col.recipe === "plays-watches" || col.recipe === "calendar-sync" ? null : fact("How far back", backs[col.lookback_hours] ?? `${col.lookback_hours} hours`),
+          col.lookahead_days > 0
+            ? fact("Upcoming events", eventsLeftToCalendar(col, ctx.state().collections, ctx.state().connectors) ? "Kept in step by Calendar" : `Next ${col.lookahead_days} days${col.event_push ? ", with reminders" : ""}`)
+            : null,
           col.recipe === "calendar-meetings" ? fact("Quiet days", col.skip_quiet === false ? "Runs anyway" : "Skipped") : null,
           fact("Filed under", h("span", { class: "cl-mono" }, col.source)),
           fact(
@@ -671,7 +675,9 @@ export function collectionDetail(input: Collection, ctx: CollectionDetailContext
           ? h("p", { class: "cl-details__notes" }, link("Open the Work page", "#/work"))
           : col.recipe === "home"
             ? h("p", { class: "cl-details__notes" }, link("Open House", "#/house"), " · ", link("Open Money", "#/money"))
-            : col.recipe === "plays-watches"
+            : col.recipe === "calendar-sync"
+              ? h("p", { class: "cl-details__notes" }, link("Open Coming up on Home", "#/"))
+              : col.recipe === "plays-watches"
               ? null
               : h("p", { class: "cl-details__notes" }, link("Open everything it saved in Notes", notesHref)),
       ),

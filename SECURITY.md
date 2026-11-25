@@ -1386,6 +1386,52 @@ the replies are parsed in code (`work-parse.ts`). It runs without AI Gateway.
   was decided, what's stuck). It no longer writes metrics and isn't offered
   `athena_metric`.
 
+### Calendar (`netlify/lib/connectors/calendar-sync.ts`, migration `0093`)
+
+A collection with no model, like Your work, counted. Each run (every hour
+by default, or Run now) keeps Athena's events in step with the next N days
+(1 to 60, 14 by default) of the Google Calendar, Outlook and iCloud Calendar
+accounts it's given. **Claude is never used for it**: `list_events` and
+`get_event` are called with fixed arguments through `callTool`, the replies
+are parsed in code, and the events are saved through the same writer a
+Meetings run used (`AthenaWriter`'s `athena_save_event` and
+`athena_archive_collected`). It runs without AI Gateway.
+
+- **Less goes to the AI.** Before this, a Meetings collection with
+  upcoming-event sync sent every event in the range (titles, times,
+  places, guests and their replies) to Claude on every run. While an
+  enabled Calendar reads every calendar account a Meetings collection has,
+  that collection's run gets no `athena_save_event` tool and its prompt says
+  the sync is off (`withoutCoveredSync`), so Claude sees only what it
+  reads for meeting notes. Migration 0093 makes a Calendar for each Meetings
+  collection that synced events, so this applies to existing copies at once.
+- **What is read.** Only Athena's own calendar adapters (a calendar on
+  another MCP server is skipped), only the calendars the owner chose, and
+  only while the owner allows `list_events` (and `get_event`, for
+  cancellations) under "What Athena can read". `get_event` is also called
+  for an invite listed with only some of its guests (at most 20 a run), so
+  attendee links aren't cut short.
+- **What is stored.** The same as a Meetings sync: an event per calendar
+  event (title, times, a one-line note of the place and guests' names, the
+  owner's reply and which calendar it's on), the guests linked as people,
+  and the `collected_items` mapping, all sealed as before (§11). Cancelled,
+  working-location, out-of-office and focus events, and "Hold" or
+  "Focus" blocks, aren't saved. No extra state is kept: an event is
+  compared with what Athena already holds and left alone if nothing
+  changed.
+- **What's taken off.** An event Athena holds in the range that the listing
+  didn't return is fetched by its id on the account it came from, and
+  archived only when that says cancelled or not found; a listing that
+  failed or ran past 8 pages archives nothing. The per-run caps of a
+  Meetings run apply (150 new events, 25 archives, 60 new people).
+- **Taking over from Meetings.** The first time Calendar sees an event a
+  Meetings collection synced, it maps its own source to that same record
+  (`collectedByRecipe`), so nothing is duplicated and an event the owner
+  archived or deleted stays that way. Meetings' meeting notes link to
+  Calendar's events by the calendar event's id.
+- **The run summary** is counts ("2 new, 1 changed, 1 cancelled") and, for
+  an account it couldn't read, what to fix. Never a title or a name.
+
 ### Documents Athena writes: Google Docs, Notion and templates
 
 The owner can send a note out (`lib/documents.ts`): "Send to Google Docs"

@@ -162,8 +162,8 @@ function showForm(
 
   // ----- When -----
   let runAt = existing?.run_at?.slice(0, 5) ?? recipe.defaultTime;
-  // Your activity, Your work, counted and Home are hourly unless you say otherwise (media-sync.ts, work-sync.ts, home-run.ts).
-  let when: When = existing?.schedule === "manual" ? "manual" : existing?.schedule === "hourly" ? `h${existing.every_hours ?? 6}` : !existing && (recipeId === "plays-watches" || recipeId === "work-sync" || recipeId === "home") ? "h1" : dayPart(runAt);
+  // Your activity, Your work, counted, Home and Calendar are hourly unless you say otherwise (media-sync.ts, work-sync.ts, home-run.ts, calendar-sync.ts).
+  let when: When = existing?.schedule === "manual" ? "manual" : existing?.schedule === "hourly" ? `h${existing.every_hours ?? 6}` : !existing && (recipeId === "plays-watches" || recipeId === "work-sync" || recipeId === "home" || recipeId === "calendar-sync") ? "h1" : dayPart(runAt);
   const hoursList =
     existing?.schedule === "hourly" && existing.every_hours && !HOURS.includes(existing.every_hours)
       ? [...HOURS, existing.every_hours].sort((a, b) => a - b)
@@ -440,10 +440,12 @@ function showForm(
   lookback.id = uid("cl-back");
   lookback.value = String(lookbackNow);
 
-  const syncsEvents = recipeId === "calendar-meetings" || recipeId === "custom";
-  let aheadDays = existing ? existing.lookahead_days : recipeId === "calendar-meetings" ? 14 : 0;
+  // Calendar is only the upcoming events (calendar-sync.ts): no look-back, no instructions, and never off.
+  const calendarOnly = recipeId === "calendar-sync";
+  const syncsEvents = recipeId === "calendar-meetings" || recipeId === "custom" || calendarOnly;
+  let aheadDays = existing ? existing.lookahead_days : recipeId === "calendar-meetings" || calendarOnly ? 14 : 0;
   const AHEAD: Array<[number, string]> = [
-    [0, "Off"],
+    ...(calendarOnly ? [] : ([[0, "Off"]] as Array<[number, string]>)),
     [7, "Next 7 days"],
     [14, "Next 14 days"],
     [30, "Next 30 days"],
@@ -498,19 +500,27 @@ function showForm(
     h(
       "div",
       { class: "cl-more__body" },
-      h("div", { class: "card card--flush fields" }, row("How far back", lookback)),
-      h(
-        "p",
-        { class: "form__hint" },
-        "Runs overlap a little, so nothing is missed or saved twice.",
-      ),
+      calendarOnly ? null : h("div", { class: "card card--flush fields" }, row("How far back", lookback)),
+      calendarOnly
+        ? null
+        : h(
+            "p",
+            { class: "form__hint" },
+            "Runs overlap a little, so nothing is missed or saved twice.",
+          ),
       syncsEvents ? h("div", { class: "card card--flush fields" }, row("Upcoming events", ahead), remindRow) : null,
       syncsEvents
-        ? h("p", { class: "form__hint" }, "Adds what's coming up to Coming up and your morning briefing. Moved events update and cancelled ones disappear.")
+        ? h(
+            "p",
+            { class: "form__hint" },
+            calendarOnly
+              ? "Adds what's coming up to Coming up and your morning briefing. Moved events update and cancelled ones disappear. Athena reads your calendar itself: none of it goes to the AI."
+              : "Adds what's coming up to Coming up and your morning briefing. Moved events update and cancelled ones disappear.",
+          )
         : null,
       quietFits ? h("div", { class: "card card--flush fields" }, quietRow) : null,
       quietFits ? h("p", { class: "form__hint" }, "Athena looks first and only starts when there's a meeting or a change to save.") : null,
-      recipeId === "custom"
+      recipeId === "custom" || calendarOnly
         ? null
         : h("div", { class: "cl-field" }, h("label", { class: "cl-field__label", for: instructions.id }, "Extra instructions"), instructions),
       recipeId === "custom" ? null : h("div", { class: "card card--flush fields" }, row("Name", nameInput)),
@@ -519,7 +529,9 @@ function showForm(
   function moreSummary(): string {
     return recipeId === "custom"
       ? "How far back"
-      : syncsEvents
+      : calendarOnly
+        ? "Upcoming events, name"
+        : syncsEvents
         ? `How far back, upcoming events, ${quietFits ? "quiet days, " : ""}extra instructions, name`
         : "How far back, extra instructions, name";
   }

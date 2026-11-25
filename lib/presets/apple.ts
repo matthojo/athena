@@ -58,7 +58,7 @@ export const APPLE_PRESETS: ConnectorPreset[] = [
     ownClientLabel: "Apple",
     username: APPLE_ID,
     readTools: ["list_events", "get_event", "search_events", "list_calendars"],
-    recipes: ["calendar-meetings", "custom"],
+    recipes: ["calendar-meetings", "calendar-sync", "custom"],
     help: `${HELP} Athena can read your calendar but never change it.`,
   },
   {

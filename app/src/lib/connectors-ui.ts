@@ -13,6 +13,7 @@ import type { Collection, Connector, RecipeId } from "../types";
 
 export const RECIPE_ICON: Record<RecipeId, IconName> = {
   "calendar-meetings": "calendar",
+  "calendar-sync": "week",
   "email-digest": "mail",
   "work-activity": "briefcase",
   "life-log": "play",
@@ -59,3 +60,17 @@ export function trail(...parts: Array<HTMLElement | null>): HTMLElement {
 }
 
 export const errorText = (e: unknown, fallback: string): string => (e instanceof Error ? e.message : fallback);
+
+const CALENDAR_PROVIDERS = new Set(["google-calendar", "outlook-calendar", "icloud-calendar"]);
+
+/**
+ * A Meetings collection leaves its upcoming events to Calendar while an
+ * enabled Calendar reads every one of its calendar accounts (the server's
+ * rule: netlify/lib/connectors/calendar-sync.ts, `withoutCoveredSync`).
+ */
+export function eventsLeftToCalendar(col: Pick<Collection, "recipe" | "connector_ids" | "lookahead_days">, collections: Array<Pick<Collection, "recipe" | "enabled" | "connector_ids">>, connectors: Array<Pick<Connector, "id" | "provider">>): boolean {
+  if (col.recipe !== "calendar-meetings" || col.lookahead_days <= 0) return false;
+  const covered = new Set(collections.filter((c) => c.recipe === "calendar-sync" && c.enabled).flatMap((c) => c.connector_ids));
+  const calendars = col.connector_ids.filter((id) => CALENDAR_PROVIDERS.has(connectors.find((c) => c.id === id)?.provider ?? ""));
+  return calendars.length > 0 && calendars.every((id) => covered.has(id));
+}

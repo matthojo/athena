@@ -670,6 +670,7 @@ function validateCollection(c: Omit<Collection, "id" | "created_at" | "updated_a
   if (c.connector_ids.length === 0) throw new AthenaInputError("Pick at least one account to collect from");
   if (!/^[a-z0-9][a-z0-9-]{0,60}$/.test(c.source)) throw new AthenaInputError("Invalid source label");
   if (!Number.isInteger(c.lookahead_days) || c.lookahead_days < 0 || c.lookahead_days > 60) throw new AthenaInputError("Sync 0–60 days ahead");
+  if (c.recipe === "calendar-sync" && c.lookahead_days < 1) throw new AthenaInputError("Calendar syncs 1–60 days ahead");
   if (c.recipe === "custom" && !c.instructions.trim()) throw new AthenaInputError("A custom collection needs instructions");
   if (c.schedule === "daily" && (!c.run_at || !TIME_RE.test(c.run_at.slice(0, 5)))) throw new AthenaInputError("Pick a time, e.g. 07:00");
   if (c.schedule === "hourly" && (!c.every_hours || c.every_hours < 1 || c.every_hours > 168)) {
@@ -1012,6 +1013,23 @@ export async function getCollected(source: string, kind: CollectedKind, external
 }
 
 /**
+ * What the same source item became in another collection of a recipe, newest
+ * first: a Calendar collection takes over the events a Meetings collection
+ * synced (calendar-sync.ts), and a meeting's note finds its Calendar event.
+ */
+export async function collectedByRecipe(recipe: RecipeId, kind: CollectedKind, externalId: string, notSource?: string): Promise<Array<CollectedItem & { source: string }>> {
+  return openQ<CollectedItem & { source: string }>(
+    `SELECT ci.source, ci.external_id, ci.record_id, ci.title, to_char(ci.item_date, 'YYYY-MM-DD') AS item_date, ci.archived_by_collector,
+            CASE WHEN r.id IS NULL THEN 'deleted' WHEN r.archived_at IS NOT NULL THEN 'archived' ELSE 'live' END AS state
+     FROM collected_items ci LEFT JOIN ${COLLECTED_TABLE[kind]} r ON r.id = ci.record_id
+     WHERE ci.kind = '${kind}' AND ci.external_id = $2 AND ($3::text IS NULL OR ci.source <> $3)
+       AND ci.source IN (SELECT c.source FROM collections c WHERE c.recipe = $1)
+     ORDER BY ci.collected_at DESC`,
+    [recipe, externalId, notSource ?? null],
+  );
+}
+
+/**
  * The items a collection holds for a window of item dates (inclusive), live
  * or archived by the collector — what a run compares against the source to
  * find cancellations. Things you archived or deleted aren't listed. Ordered
@@ -1030,18 +1048,21 @@ export async function listCollected(source: string, kind: CollectedKind, from: s
 /**
  * A meeting's note and its synced calendar event share the event's id: link
  * the note to the event (relation "notes_for") for every such pair this
- * collection holds, both live. Safe to run on every run; it only adds what's
+ * collection holds, both live. The event may be this collection's or a
+ * Calendar collection's (calendar-sync.ts), which syncs events for Meetings;
+ * `source` may be either side. Safe to run on every run; it only adds what's
  * missing, so notes written before events were synced catch up too.
  */
 export async function linkCollectedMeetings(source: string): Promise<number> {
   const rows = await q<{ id: string }>(
     `INSERT INTO edges (source_type, source_id, target_type, target_id, relation, origin)
-     SELECT 'note', n.record_id, 'event', e.record_id, 'notes_for', 'manual'
+     SELECT DISTINCT 'note', n.record_id, 'event', e.record_id, 'notes_for', 'manual'
      FROM collected_items n
-     JOIN collected_items e ON e.source = n.source AND e.kind = 'event' AND e.external_id = n.external_id
+     JOIN collected_items e ON e.kind = 'event' AND e.external_id = n.external_id
+       AND (e.source = n.source OR e.source IN (SELECT c.source FROM collections c WHERE c.recipe = 'calendar-sync'))
      JOIN notes nn ON nn.id = n.record_id AND nn.archived_at IS NULL
      JOIN events ee ON ee.id = e.record_id AND ee.archived_at IS NULL
-     WHERE n.source = $1 AND n.kind = 'note'
+     WHERE n.kind = 'note' AND (n.source = $1 OR e.source = $1)
      ON CONFLICT (source_type, source_id, target_type, target_id, relation) DO NOTHING
      RETURNING id`,
     [source],

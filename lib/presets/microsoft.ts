@@ -63,7 +63,7 @@ export const MICROSOFT_PRESETS: ConnectorPreset[] = [
     needsOwnClient: true,
     ownClientLabel: "Microsoft",
     readTools: ["list_events", "get_event", "search_events", "list_calendars"],
-    recipes: ["calendar-meetings", "custom"],
+    recipes: ["calendar-meetings", "calendar-sync", "custom"],
     clientIdHint: CLIENT_ID_HINT,
     help: `If you registered Athena for Outlook, paste the same ID and secret. If not, register it once, free. ${ENTRA_STEPS} Athena can read your calendar but never change it.`,
   },
