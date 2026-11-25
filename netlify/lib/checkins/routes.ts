@@ -8,12 +8,13 @@
  *  - POST /api/checkins/share ({ question_ids, edits?, fine?, download? }) → CheckinExport; with download the zip,
  *    or 409 with what's still flagged (lib/checkin-sets.ts).
  *  - GET /api/checkins?from&to → CheckinSummary[] (at most 400 days).
+ *  - GET /api/checkins/trends?from&to → CheckinTrends (scale answers and picks, at most 731 days).
  *  - GET /api/checkins/:date/:kind → Checkin (plans today or tomorrow the first time it's read; a past day nobody opened stays empty).
  *  - PUT /api/checkins/:date/:kind/answers/:question_id (CheckinValue) → Checkin. DELETE → Checkin.
  *  - POST /api/checkins/:date/:kind/done → Checkin.
  *  - POST /api/checkins/:date/:kind/deeper (DeeperRequest) → DeeperReply.
  */
-import { answerCheckin, clearAnswer, deeperFor, finishCheckin, getCheckin, listCheckins, loadSettingsView, readKind, saveCheckinSettings } from "../../../lib/checkins";
+import { answerCheckin, checkinTrends, clearAnswer, deeperFor, finishCheckin, getCheckin, listCheckins, loadSettingsView, readKind, saveCheckinSettings } from "../../../lib/checkins";
 import { AthenaInputError } from "../../../lib/db";
 
 type Json = (data: unknown, status?: number) => Response;
@@ -33,6 +34,13 @@ export async function handleCheckinRoutes(req: Request, url: URL, segments: stri
     const to = url.searchParams.get("to");
     if (!from || !to) return json({ error: "from and to: YYYY-MM-DD" }, 400);
     return json(await listCheckins(from, to));
+  }
+  if (date === "trends" && segments.length === 3) {
+    if (req.method !== "GET") return json({ error: "Method not allowed" }, 405);
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    if (!from || !to) return json({ error: "from and to: YYYY-MM-DD" }, 400);
+    return json(await checkinTrends(from, to));
   }
   if (date === "settings" && segments.length === 3) {
     if (req.method === "GET") return json(await loadSettingsView());

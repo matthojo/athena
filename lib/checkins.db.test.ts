@@ -479,6 +479,51 @@ test("done, the range, and Go deeper", { skip }, async () => {
   assert.equal((await call("PUT", `/${d(31)}/evening/answers/emotions`, { text: "x", deeper: { question: "q" } })).status, 400);
 });
 
+test("trends: scale answers and picks over a range, written answers left out, nothing planned; refused without the key", { skip }, async () => {
+  await clean();
+  const { qRaw } = await import("./db");
+  const { d } = await days();
+  await call("PUT", "/settings", ON());
+  // Morning: mood and focus pinned, then rested and intention.
+  await day(d(20), "morning");
+  await call("PUT", `/${d(20)}/morning/answers/mood`, { scale: 4 });
+  await call("PUT", `/${d(20)}/morning/answers/focus`, { picks: ["Work", "Family"] });
+  await call("PUT", `/${d(20)}/morning/answers/intention`, { text: "A long walk" });
+  await call("PUT", `/${d(20)}/morning/answers/rested`, { skipped: true });
+  await day(d(21), "evening");
+  await call("PUT", `/${d(21)}/evening/answers/mood`, { scale: 2 });
+  await call("PUT", `/${d(21)}/evening/answers/own_walk`, { scale: 5 });
+  // Planned, nothing answered: left out.
+  await day(d(22), "morning");
+  const rows = async () => (await qRaw<{ n: string }>(`SELECT count(*) AS n FROM checkins WHERE date BETWEEN $1::date AND $2::date`, [d(19), d(23)]))[0].n;
+  const before = await rows();
+
+  const r = await call("GET", `/trends?from=${d(19)}&to=${d(23)}`);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.json.days, [
+    { date: d(20), kind: "morning", status: "open", scales: { mood: 4 }, picks: { focus: ["Work", "Family"] } },
+    { date: d(21), kind: "evening", status: "open", scales: { mood: 2, own_walk: 5 }, picks: {} },
+  ]);
+  assert.deepEqual(r.json.questions.map((q: Json) => q.id).sort(), ["focus", "mood", "own_walk"]);
+  assert.ok(!JSON.stringify(r.json).includes("A long walk"), "written answers never leave through trends");
+  assert.equal(await rows(), before, "reading trends plans nothing");
+
+  // Two years at most; the edges are checked.
+  assert.equal((await call("GET", `/trends?from=${d(0)}&to=${d(730)}`)).status, 200);
+  assert.equal((await call("GET", `/trends?from=${d(0)}&to=${d(731)}`)).status, 400);
+  assert.equal((await call("GET", `/trends?from=${d(5)}&to=${d(4)}`)).status, 400);
+  assert.equal((await call("GET", "/trends")).status, 400);
+  assert.equal((await call("POST", `/trends?from=${d(19)}&to=${d(23)}`)).status, 405);
+
+  const key = process.env.ATHENA_DATA_KEY;
+  delete process.env.ATHENA_DATA_KEY;
+  try {
+    assert.equal((await call("GET", `/trends?from=${d(19)}&to=${d(23)}`)).status, 503);
+  } finally {
+    process.env.ATHENA_DATA_KEY = key;
+  }
+});
+
 test("loadCheckin and the MCP tools read without planning", { skip }, async () => {
   await clean();
   const { d } = await days();

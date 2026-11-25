@@ -384,7 +384,8 @@ function mountShell() {
       const path = route.noteId;
       current = lazyView(chunks.recipes, ({ renderRecipes }) => renderRecipes({ go: (view, opts) => go(view, opts), path, isDesktop: () => desktop.matches }));
     } else if (route.view === "health") {
-      current = lazyView(chunks.health, ({ renderHealth }) => renderHealth({ go: (view, opts) => go(view, opts) }));
+      const path = route.noteId;
+      current = lazyView(chunks.health, ({ renderHealth }) => renderHealth({ go: (view, opts) => go(view, opts), path }));
     } else if (route.view === "habits") {
       current = lazyView(chunks.habits, ({ renderHabits }) => renderHabits({ go: (view) => go(view) }));
     } else if (route.view === "money") {

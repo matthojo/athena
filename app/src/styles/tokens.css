@@ -164,6 +164,15 @@
   --stage-rem: #019d7e;
   --stage-core: #6da7ec;
   --stage-awake: #eb6834;
+  /* How a check-in answer felt, worst → best, on Health → Wellness (a diverging pair: rust for the worst, cobalt for the best,
+     a neutral grey at okay). Validator, all pairs, both modes: CVD and normal-vision pass; the
+     grey reads grey on purpose; three steps are under 3:1, so the dots carry a labelled legend,
+     a tooltip and a table. */
+  --scale-1: #c25d27;
+  --scale-2: #fc8c45;
+  --scale-3: #b2b4b8;
+  --scale-4: #729afb;
+  --scale-5: #3266e4;
   --stage-none: oklch(0.8 0.01 264);
 
   /* To-do contexts (lib/todo-context.ts CONTEXT_COLOURS): small dots, so mid-tone */
@@ -273,6 +282,11 @@
     --stage-rem: #23aa8a;
     --stage-core: #3557c0;
     --stage-awake: #d95926;
+    --scale-1: #e88d5a;
+    --scale-2: #ac5107;
+    --scale-3: #494a4e;
+    --scale-4: #2649c0;
+    --scale-5: #7ba0f6;
     --stage-none: oklch(0.42 0.012 264);
     --ctx-grey: oklch(0.6 0.012 264);
     --ctx-blue: oklch(0.7 0.14 264);

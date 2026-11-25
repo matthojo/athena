@@ -532,7 +532,10 @@ screen. The contract (types, the question library, the routes) is
   questions as they were asked, so days planned before the rule keep their
   answers out of the journal: nothing is back-filled or rewritten.
 - **Routes** (`netlify/lib/checkins/routes.ts`, from `api.ts`): settings GET
-  and PUT, a range of statuses (no key needed), a day's check-in, PUT and
+  and PUT, a range of statuses (no key needed), trends (`GET
+  /api/checkins/trends`, up to two years of scale answers and picks, opened
+  with the key, written answers left out, never plans; `lib/checkin-trends.ts`),
+  a day's check-in, PUT and
   DELETE an answer, POST done (keeps the first time), POST deeper (one
   follow-up question from `lib/checkin-deeper.ts`, a 12-second budget,
   `{ question: null }` on any failure, nothing saved). MCP
@@ -543,6 +546,16 @@ screen. The contract (types, the question library, the routes) is
   `checkin-entry.ts` on Today (a card per routine that's on, side by side,
   at any hour, with what's left or done), `checkin-day.ts` on the day page,
   `checkin-settings.ts` (Settings → Check-ins; needs a connection).
+  Health → Wellness (`#/health/wellness`, `views/health-wellness.ts`, words
+  in `components/wellness-words.ts`) shows the answers over four weeks, six
+  months or a year. Each scale question gets a card with its average in the
+  question's words, the change since the range before, mornings against
+  evenings and a chart. Mood, Energy, Rest and Stress draw a coloured dot a
+  day, week or month (`components/scale-dots.ts`, colours `--scale-1` for
+  the worst answer to `--scale-5` for the best, reversed for Stress); the
+  rest draw bars. Each word or area question gets a card with the ones
+  picked most, and the Mind card moved here from Body. Nothing is kept on
+  the device. The day page and Settings → Check-ins link to it.
   `db/checkins.ts` caches settings and each check-in in `meta`.
 - **Pushes** (`lib/checkin-push.ts`, `reminders.ts` sections 4 and 4a). The
   morning push (`morning`, `morning_at`, default 07:00) goes out once a day
@@ -2629,7 +2642,8 @@ day gets the line put back from the stored figures (`keepHealthLine`, beside
 `keepImported`). With no Life log yet, the save makes the day note itself
 under the plain `life-log` source; a Life log with its own source adopts it
 (`adoptHealthDay`), so a day stays one note. Charts read `GET
-/api/health/series?field=` and the Library's Health page reads `GET
+/api/health/series?field=` and the Library's Health page (tabs Body and
+Wellness; Wellness also reads `GET /api/checkins/trends`) reads `GET
 /api/health/days` (merged days, opened in the Function); `GET/PUT
 /api/health/sources` holds the choices and rewrites the last 30 days' lines;
 `GET /api/health/status` says which days arrived, no figures. Settings →
