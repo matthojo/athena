@@ -26,6 +26,7 @@ import { z } from "zod";
 import { SHARE_FORMAT } from "./team-share";
 import { FLOW_SHARE_FORMAT } from "./flow-share";
 import { CHECKIN_SHARE_FORMAT } from "./checkin-share";
+import { TEMPLATE_SHARE_FORMAT } from "./template-share";
 import { detectKind, KIND_FILES, SHARE_KINDS, type ShareKind } from "./share-kinds";
 import type { Reach } from "./reach";
 import { CATALOGUE_ID } from "./community-site";
@@ -66,6 +67,7 @@ export const KIND_FORMATS: Readonly<Record<ShareKind, number>> = {
   skill: 1,
   flow: FLOW_SHARE_FORMAT,
   checkin: CHECKIN_SHARE_FORMAT,
+  template: TEMPLATE_SHARE_FORMAT,
 };
 
 /** Can this Athena read an item of this kind and format? Pure. */

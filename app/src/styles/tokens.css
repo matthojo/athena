@@ -141,6 +141,9 @@
   /* Check-in questions shared through Community: a soft dusk, quieter than the other kinds. */
   --dusk-wash: oklch(0.955 0.028 40);
   --dusk-ink: oklch(0.47 0.1 40);
+  /* Note templates shared through Community: warm paper, for journaling rather than work. */
+  --paper-wash: oklch(0.962 0.024 88);
+  --paper-ink: oklch(0.47 0.075 75);
 
   /* ---------- Status (reserved; always paired with an icon or label) ---------- */
   --good: oklch(0.5 0.12 158); /* 4.5:1 on sunken panels too */
@@ -266,6 +269,8 @@
     --mint-wash: oklch(0.28 0.04 170);
     --dusk-wash: oklch(0.29 0.04 40);
     --dusk-ink: oklch(0.84 0.07 40);
+    --paper-wash: oklch(0.29 0.03 80);
+    --paper-ink: oklch(0.86 0.06 85);
 
     --good: oklch(0.72 0.14 158);
     --warn: oklch(0.78 0.12 80);

@@ -182,6 +182,9 @@ test("an item of a kind this Athena doesn't know is skipped, and the rest of the
   // Check-in questions are a kind this Athena knows.
   assert.equal(parseCatalogueIndex(index({ items: [item({ kind: "checkin" })] })).items[0].kind, "checkin");
   assert.equal(KIND_FORMATS.checkin, 1);
+  // So are note templates.
+  assert.equal(parseCatalogueIndex(index({ items: [item({ kind: "template" })] })).items[0].kind, "template");
+  assert.equal(KIND_FORMATS.template, 1);
 });
 
 test("an index from a newer site is still refused when a field this Athena knows is wrong", () => {

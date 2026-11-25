@@ -19,6 +19,7 @@
 import type { CatalogueFile, CatalogueItem } from "./catalogue-types";
 import type { SharedFlow } from "./flow-share";
 import type { SharedCheckins } from "./checkin-share";
+import type { SharedTemplate } from "./template-share";
 import type { CheckinKind } from "./checkin-types";
 import type { Reach } from "./reach";
 import type { ShareHeader, ShareKind } from "./share-kinds";
@@ -59,7 +60,8 @@ export type AddPreviewItem =
   | { kind: "assistant"; shared: SharedAssistant; skill: SharedSkill | null }
   | { kind: "skill"; skill: SkillPreview }
   | { kind: "flow"; flow: SharedFlow }
-  | { kind: "checkin"; checkins: SharedCheckins };
+  | { kind: "checkin"; checkins: SharedCheckins }
+  | { kind: "template"; template: SharedTemplate };
 
 /** Everything the `#/add` screen shows before anything is kept. */
 export interface AddPreview {
@@ -81,8 +83,10 @@ export interface AddPreview {
   /**
    * An item of this kind here that came from the same listing, if any: "You already have this", with a way to open
    * it, and Update when the listing's files differ from what was added (`newer`). A second copy is a deliberate tap.
+   * `changed`: a template the owner has changed since adding it. Update then adds the new version beside theirs and
+   * leaves theirs as it is.
    */
-  existing: { id: string; version: string | null; href: string; newer: boolean } | null;
+  existing: { id: string; version: string | null; href: string; newer: boolean; changed?: boolean } | null;
   /** Files listed but not used (scripts, binaries, over the size limit), with why. */
   skipped: Array<{ path: string; reason: string }>;
 }
@@ -114,7 +118,7 @@ export interface AddResult {
   kind: ShareKind;
   /** The new (or updated) assistant, skill or flow. */
   id: string;
-  /** Where to open it in the app: "#/team/<id>", "#/settings/skills/<id>", "#/flows/<id>", "#/settings/checkins". */
+  /** Where to open it in the app: "#/team/<id>", "#/settings/skills/<id>", "#/flows/<id>", "#/settings/checkins", "#/notes?template=<id>". */
   href: string;
   /** It was an update of one already here, not a new one. */
   updated?: boolean;
@@ -123,6 +127,11 @@ export interface AddResult {
    * the routines they joined that are switched off (they stay off).
    */
   checkins?: { added: number; skipped: string[]; off: CheckinKind[]; full: string[] };
+  /**
+   * A template only: the name it was added under (a number goes on the end when the owner has one by that name), and
+   * whether an Update went beside the owner's changed copy instead of replacing it.
+   */
+  template?: { name: string; renamed: boolean; beside: boolean };
 }
 
 /** An item added from the catalogue, against the index now. */

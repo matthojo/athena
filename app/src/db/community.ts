@@ -25,6 +25,7 @@ import { listTeam, teamChanged, updateAssistant } from "./team";
 import { fetchSkill, fetchSkills, saveSkill } from "./skills";
 import { flowsChanged, sampleAddSharedFlow, sampleReplaceSharedFlow } from "./flows";
 import { checkinsChanged } from "./checkins";
+import { templatesChanged } from "./documents";
 
 export type { AddChoices, AddPreview, AddResult, CatalogueView, CommunitySettings, UpdateCheck };
 
@@ -95,9 +96,10 @@ async function sampleView(): Promise<CatalogueView> {
   if (!configured || !on) return view;
   if (state === "down") return { ...view, error: "Athena couldn't reach the Community catalogue." };
   const { sampleCatalogue, sampleAddedIds } = await import("./sample-community");
+  const { sampleTemplateListings } = await import("./documents");
   const index = await sampleCatalogue();
   const items = [...index.items].sort((a, b) => Date.parse(b.added_at) - Date.parse(a.added_at));
-  return { ...view, generated_at: index.generated_at, items, added: sampleAddedIds() };
+  return { ...view, generated_at: index.generated_at, items, added: [...new Set([...sampleAddedIds(), ...(await sampleTemplateListings()).map((t) => t.catalogue_id)])] };
 }
 
 /** GET /api/community: the catalogue as the server last read it, and the owner's switch. */
@@ -154,6 +156,7 @@ export async function addItem(preview: AddPreview, choices: AddChoices): Promise
   if (result.kind === "assistant") teamChanged();
   else if (result.kind === "flow") flowsChanged();
   else if (result.kind === "checkin") checkinsChanged();
+  else if (result.kind === "template") templatesChanged();
   if (result.updated) forgetUpdates();
   return result;
 }
@@ -173,8 +176,11 @@ async function samplePreview(source: AddSource): Promise<AddPreview> {
     const { item, bundle } = found;
     if (!(await verifyBundle(bundle, item))) throw new ShareFormatError("That listing's files don't match what the catalogue says they are, so Athena won't use them.");
     const kind = item.kind;
-    const had = sampleAddedFrom(item.id);
-    const existing = had && had.kind === kind ? { id: had.id, version: had.version, href: HREF[kind](had.id), newer: had.hash !== item.hash } : null;
+    // A template is found among the templates here, as the catalogue_* columns would find it, and also says whether the
+    // owner changed it since adding it: an Update then goes beside it.
+    const listed = kind === "template" ? (await import("./documents").then((m) => m.sampleTemplateListings())).find((t) => t.catalogue_id === item.id) : undefined;
+    const had = kind === "template" ? (listed ? { kind, id: listed.id, hash: listed.hash, version: listed.version } : null) : sampleAddedFrom(item.id);
+    const existing = had && had.kind === kind ? { id: had.id, version: had.version, href: HREF[kind](had.id), newer: had.hash !== item.hash, ...(listed ? { changed: listed.changed } : {}) } : null;
     return await buildPreview({ files: { kind, files: bundle.files, skipped: [], folder: null }, from: { catalogue: item.id }, source: sourceFor({ catalogue: item.id }, at, COMMUNITY_SITE), listing: item, existing });
   }
   if ("link" in source) {
@@ -194,6 +200,7 @@ const HREF: Record<AddPreview["kind"], (id: string) => string> = {
   skill: (id) => `#/settings/skills/${encodeURIComponent(id)}`,
   flow: (id) => `#/flows/${encodeURIComponent(id)}`,
   checkin: () => "#/settings/checkins",
+  template: (id) => `#/notes?template=${encodeURIComponent(id)}`,
 };
 
 async function sampleAdd(p: AddPreview, choices: AddChoices): Promise<AddResult> {
@@ -219,6 +226,11 @@ async function sampleReplace(p: AddPreview, choices: AddChoices, id: string): Pr
     const got = await sampleReplaceCheckins(id, item.checkins, { id: p.listing!.id, hash: p.hash, version: p.listing?.version ?? null });
     forgetUpdates();
     return { kind: "checkin", id, href: HREF.checkin(id), updated: true, checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } };
+  } else if (item.kind === "template") {
+    const { sampleReplaceTemplate } = await import("./documents");
+    const got = await sampleReplaceTemplate(id, item.template, { id: p.listing!.id, hash: p.hash, version: p.listing?.version ?? null });
+    forgetUpdates();
+    return { kind: "template", id: got.id, href: HREF.template(got.id), updated: true, template: { name: got.name, renamed: got.renamed, beside: got.beside } };
   } else await sampleReplaceSharedFlow(id, importSharedFlow(item.flow, choices.answers));
   forgetUpdates();
   return { kind: p.kind, id, href: HREF[p.kind](id), updated: true };
@@ -249,6 +261,12 @@ async function sampleAddNew(p: AddPreview, choices: AddChoices): Promise<AddResu
     const got = await sampleAddCheckins(item.checkins, listing, { start: choices.start !== false });
     return { kind: "checkin", id: got.id, href: HREF.checkin(got.id), checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } };
   }
+  if (item.kind === "template") {
+    const { sampleAddTemplate } = await import("./documents");
+    const listing = "catalogue" in p.from && p.listing ? { id: p.listing.id, hash: p.hash, version: p.listing.version } : undefined;
+    const got = await sampleAddTemplate(item.template, listing);
+    return { kind: "template", id: got.id, href: HREF.template(got.id), template: { name: got.name, renamed: got.renamed, beside: false } };
+  }
   const made = await sampleAddSharedFlow(importSharedFlow(item.flow, choices.answers));
   return { kind: "flow", id: made.id, href: `#/flows/${encodeURIComponent(made.id)}` };
 }
@@ -263,7 +281,7 @@ export async function checkUpdates(): Promise<UpdateCheck[]> {
   const checks = isSampleMode()
     ? store.get(SAMPLE_COMMUNITY_SWITCH) === "off"
       ? Promise.resolve([])
-      : import("./sample-community").then((m) => m.sampleUpdates())
+      : Promise.all([import("./sample-community"), import("./documents")]).then(async ([m, d]) => m.sampleUpdates(await d.sampleTemplateListings()))
     : request<{ updates: UpdateCheck[] }>("/community/updates").then((r) => r.updates);
   updatesCache = { at: Date.now(), checks };
   checks.catch(() => (updatesCache = null));
