@@ -538,15 +538,19 @@ a `theme.json`:
   specificity, so order doesn't matter, and a scheme the theme leaves out
   stays Athena's. Nothing is written to the root's inline style, which the
   app rewrites (`--kb`). The stored copy is checked again on its way out:
-  only `--theme-*`, `--chart-*` and `--aurora-*` names, and values built from
-  hex, numbers, `oklch()`, `color-mix()` and `var()` of those names.
-- **The page glow.** Under Athena's own accent (per scheme) the aurora keeps
-  its blue and mint exactly: the theme's stylesheet doesn't touch it. Under
-  any other accent, both hazes are tinted from it with Athena's own recipes:
-  the first in the accent's hue, the second 35° round from it, at the
-  lightness Athena's own haze has, and the morning and evening shifts 14°
-  either side. The daypart rules from `base.css` are restated at the theme's
-  specificity, so the glow still follows the time of day.
+  only `--theme-*`, `--chart-*`, `--aurora-*` and `--accent-tint` names, and
+  values built from hex, numbers, `oklch()`, `color-mix()` and `var()` of
+  those names.
+- **The page glow and the accent's family.** Under Athena's own accent (per
+  scheme) the aurora keeps its blue and mint exactly: the theme's stylesheet
+  doesn't touch it. Some of the accent's shades in `tokens.css` (the first
+  haze, the Ask orb, Talk's orb and glows) add 15% of a fixed pigment,
+  written `var(--accent-tint, 15%)`. Under any other accent the theme sets
+  `--accent-tint: 0%`, so those shades are the accent alone (a fixed cyan in
+  a terracotta accent would turn them grey), and the second haze, the mint,
+  becomes a wash of the accent's own hue at the mint's lightness, with
+  Athena's own recipe. The morning and evening hazes still follow the time
+  of day.
 - **First paint.** The chosen theme, worked out, is kept on the device
   (`athena.theme.paint`). The first-paint script (`appearance-boot.ts`)
   writes the same stylesheet from it before any stylesheet loads, with the

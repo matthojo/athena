@@ -3544,7 +3544,8 @@ shared through Community will go through the same reader.
 - **On the page.** A theme becomes a stylesheet in `<style id="athena-theme">`,
   built by Athena from the reader's output, with fixed selectors. Before it's
   written (and again in the first-paint script, reading this device's copy),
-  every property name must be `--theme-*`, `--chart-*` or `--aurora-*`, and
+  every property name must be `--theme-*`, `--chart-*`, `--aurora-*` or
+  `--accent-tint`, and
   every value may hold only hex, numbers and `oklch()`, `color-mix()` and
   `var()` of those names, so a tampered copy in `localStorage` can't load a
   URL or break out of its rule. It's set as text content, never as HTML.
