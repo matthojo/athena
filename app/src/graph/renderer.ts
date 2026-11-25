@@ -397,15 +397,24 @@ export function createRenderer(opts: RendererOptions): GraphRenderer {
 
   function readColors() {
     const cs = getComputedStyle(el);
+    // Most graph colours are color-mix() recipes of the theme's colours (tokens.css). A probe's
+    // computed colour is the mix worked out, which a canvas can take.
+    const probe = h("span", { hidden: "" });
+    el.append(probe);
+    const resolve = (name: string) => {
+      probe.style.color = `var(${name})`;
+      return getComputedStyle(probe).color;
+    };
     const next: Record<string, string> = {};
     for (const name of Object.keys(FALLBACK)) {
-      const value = cs.getPropertyValue(name).trim();
+      const value = cs.getPropertyValue(name).trim() && resolve(name);
       // A colour the canvas can't parse leaves fillStyle unchanged: use the fallback then.
       ctx.fillStyle = FALLBACK[name];
       const before = ctx.fillStyle;
       if (value) ctx.fillStyle = value;
       next[name] = value && (ctx.fillStyle !== before || value === FALLBACK[name]) ? value : FALLBACK[name];
     }
+    probe.remove();
     colors = next;
     font = cs.getPropertyValue("--font-ui").trim() || font;
   }

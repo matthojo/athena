@@ -235,8 +235,8 @@
   font-size: var(--text-micro);
   font-weight: var(--weight-semibold);
   line-height: 1;
-  background: oklch(var(--sv-site-mark-bg) var(--hue, 264));
-  color: oklch(var(--sv-site-mark-ink) var(--hue, 264));
+  background: color-mix(in oklab, oklch(var(--sv-site-mark-bg) var(--hue, 264)) 80%, var(--surface));
+  color: color-mix(in oklab, oklch(var(--sv-site-mark-ink) var(--hue, 264)) 80%, var(--ink));
 }
 
 .sv-site__name {

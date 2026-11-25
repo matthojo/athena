@@ -484,8 +484,8 @@ mark {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: oklch(var(--avatar-bg) var(--h));
-  color: oklch(var(--avatar-ink) var(--h));
+  background: color-mix(in oklab, oklch(var(--avatar-bg) var(--h)) 80%, var(--surface));
+  color: color-mix(in oklab, oklch(var(--avatar-ink) var(--h)) 80%, var(--ink));
   font-size: var(--text-meta);
   font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;

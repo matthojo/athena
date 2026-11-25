@@ -1352,9 +1352,9 @@ button.wr-catchup:active {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: oklch(var(--wr-catchup-avatar-bg) var(--h));
-  box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px oklch(var(--wr-catchup-avatar-shadow) var(--h));
-  color: oklch(var(--wr-catchup-avatar-ink) var(--h));
+  background: color-mix(in oklab, oklch(var(--wr-catchup-avatar-bg) var(--h)) 80%, var(--surface));
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px color-mix(in oklab, oklch(var(--wr-catchup-avatar-shadow) var(--h)) 80%, var(--surface));
+  color: color-mix(in oklab, oklch(var(--wr-catchup-avatar-ink) var(--h)) 80%, var(--ink));
   font: var(--weight-semibold) var(--text-meta) / 1 var(--font-ui);
   letter-spacing: 0.02em;
 }

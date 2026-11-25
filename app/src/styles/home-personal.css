@@ -257,8 +257,8 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: oklch(var(--moment-avatar-bg) var(--h));
-  color: oklch(var(--moment-avatar-ink) var(--h));
+  background: color-mix(in oklab, oklch(var(--moment-avatar-bg) var(--h)) 80%, var(--surface));
+  color: color-mix(in oklab, oklch(var(--moment-avatar-ink) var(--h)) 80%, var(--ink));
   font-size: var(--text-body);
   font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;

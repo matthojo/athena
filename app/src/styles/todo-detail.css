@@ -996,8 +996,8 @@
 }
 
 .tlink__tile--web {
-  background: oklch(var(--tlink-tile-web-bg) var(--hue));
-  color: oklch(var(--tlink-tile-web-ink) var(--hue));
+  background: color-mix(in oklab, oklch(var(--tlink-tile-web-bg) var(--hue)) 80%, var(--surface));
+  color: color-mix(in oklab, oklch(var(--tlink-tile-web-ink) var(--hue)) 80%, var(--ink));
 }
 
 .tlink__tile:has(img) {

@@ -18,8 +18,8 @@
 .avatar--hero {
   width: 72px;
   height: 72px;
-  background: linear-gradient(150deg, oklch(var(--avatar-hero-bg-1) var(--h)), oklch(var(--avatar-hero-bg-2) var(--h)));
-  color: oklch(var(--avatar-hero-ink) var(--h));
+  background: linear-gradient(150deg, color-mix(in oklab, oklch(var(--avatar-hero-bg-1) var(--h)) 80%, var(--surface)), color-mix(in oklab, oklch(var(--avatar-hero-bg-2) var(--h)) 80%, var(--surface)));
+  color: color-mix(in oklab, oklch(var(--avatar-hero-ink) var(--h)) 80%, var(--ink));
   font-family: var(--font-display);
   font-size: var(--text-heading);
   font-weight: var(--weight-medium);
@@ -117,12 +117,12 @@
   width: 72px;
   height: 96px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(170deg, oklch(var(--record-label-bg-1) var(--h, 60)), oklch(var(--record-label-bg-2) var(--h, 60)));
+  background: linear-gradient(170deg, color-mix(in oklab, oklch(var(--record-label-bg-1) var(--h, 60)) 80%, var(--surface)), color-mix(in oklab, oklch(var(--record-label-bg-2) var(--h, 60)) 80%, var(--surface)));
   box-shadow:
-    inset 0 0 0 5px oklch(var(--record-label-shadow-1) var(--h, 60)),
+    inset 0 0 0 5px color-mix(in oklab, oklch(var(--record-label-shadow-1) var(--h, 60)) 80%, var(--surface)),
     inset 0 0 0 6px oklch(var(--record-label-shadow-2) var(--h, 60) / var(--record-label-shadow-2-a)),
     0 14px 28px -18px oklch(var(--record-label-shadow-3) var(--h, 60) / var(--record-label-shadow-3-a));
-  color: oklch(var(--record-label-ink) var(--h, 60));
+  color: color-mix(in oklab, oklch(var(--record-label-ink) var(--h, 60)) 80%, var(--ink));
 }
 
 .record-label svg {
@@ -132,7 +132,7 @@
 
 :where([data-scheme="dark"]) .record-label {
   box-shadow:
-    inset 0 0 0 5px oklch(var(--record-label-shadow-1) var(--h, 60)),
+    inset 0 0 0 5px color-mix(in oklab, oklch(var(--record-label-shadow-1) var(--h, 60)) 80%, var(--surface)),
     inset 0 0 0 6px oklch(var(--record-label-shadow-2) var(--h, 60) / var(--record-label-shadow-2-a)),
     0 14px 28px -18px var(--record-label-shadow-3-dark);
 }

@@ -458,12 +458,33 @@ geometry, the aurora's art, and an offset under a fixed-height bar.
 Hairlines (1px or less), lengths inside `calc()` beside a token (an icon's
 width, a safe-area inset) and `em` spacing in prose need no comment.
 
-The steps between the public colours (`--sunken-strong`, `--line-strong`,
-`--ink-3`, `--on-ink`, `--accent-wash`, `--accent-ink`, the status, chart and
-graph palettes, and the component tokens at the foot of `tokens.css`) keep
-their designed values for light and dark. They don't move when a public
-colour does: a theme that changes the page or the accent has to set them
-too, or the change that adds themes derives them from the public ones.
+Every other colour in `tokens.css` is worked out from the public ones, so a
+theme that sets only the `--theme-*` colours recolours the whole app. Each
+is a `color-mix()` in oklab. Every browser with the popover API, which
+Athena already needs, supports it; relative colour syntax would need newer
+ones. The recipes reproduce Athena's designed light and dark values to
+within 8 levels per sRGB channel, and most to within 2:
+
+- Neutrals (`--sunken-strong`, `--line-strong`, `--ink-3`, `--on-ink`,
+  scrims, hairlines, hover and pressed washes) mix two public colours.
+- The accent's family (`--accent-wash`, `--accent-ink`, the orb, the blue
+  haze) mixes the accent with white, black or the text.
+- Status, chart, graph, sleep-stage, mood and to-do context colours keep
+  their own hue, a fixed pigment per scheme, so they stay apart and still
+  pass the palette validator. Each leans 20% toward the theme's text, which
+  keeps it at a readable lightness on the surface. Washes lean 20% toward the
+  surface and hazes toward the page. A person's colour (an avatar, a site's
+  mark) leans the same way where it's drawn.
+- Tinted shadows are the text colour at an alpha; pure black shadows and
+  white highlights stay as they are.
+
+A few colours stay put under any theme: what's drawn over photos, video and
+maps, other companies' colours, print, the avatar kit's line work, and white
+type on a saturated fill. `lib/theme-colours.test.ts` lists them with their
+reasons, works `tokens.css` out the way a browser would, sets each public
+colour to something new in light and dark, and fails on any other token
+that doesn't move. The Graph's canvas reads each colour through a probe
+element, so it gets the mix worked out.
 
 ### The Library: people, places, organisations, events
 
