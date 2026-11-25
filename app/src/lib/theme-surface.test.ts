@@ -66,11 +66,15 @@ test("the Athena wordmark keeps its own face: not themed, not overridden", () =>
   assert.match(css, /\n\.brand-name \{\n {2}font-family: var\(--font-wordmark\);/);
 });
 
-function sheets(): [string, string][] {
+/** The app's stylesheets but tokens.css, with comments blanked (line breaks kept) unless `strip` is false. */
+function sheets(strip = true): [string, string][] {
   const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
   return walk(SRC)
     .filter((f) => f.endsWith(".css") && !f.endsWith("tokens.css"))
-    .map((f) => [relative(SRC, f), readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ""))]);
+    .map((f) => {
+      const css = readFileSync(f, "utf8");
+      return [relative(SRC, f), strip ? css.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, "")) : css];
+    });
 }
 
 const lineOf = (css: string, at: number) => css.slice(0, at).split("\n").length;
@@ -85,19 +89,76 @@ test("every font family is a token", () => {
   assert.deepEqual(raw, []);
 });
 
-const SCALE = new Set(["2", "4", "8", "12", "16", "24", "32", "48", "64"]);
+/**
+ * Lengths that stay the same at every density, and why. A declaration that
+ * keeps a raw length says which with a comment after it: `inset: -8px; /* fixed: touch *\/`.
+ * A hairline (1px or less) needs no comment, and nor does a length inside
+ * calc() or another function: there it's a fixed part of a sum (an icon's
+ * width, a safe-area inset), and the spacing beside it is a token.
+ */
+export const FIXED: Record<string, string> = {
+  touch: "An invisible hit area around a small control: a touch target keeps its size at any density.",
+  icon: "Placed or centred on a fixed-size icon, avatar, dot or mark: icons don't scale with density, so neither does what lines up with them.",
+  cell: "Inside a fixed-size cell or control (a calendar day, a switch's track, a file tile).",
+  chart: "Chart and timeline geometry, measured against the marks it draws.",
+  art: "Decorative art positioned off the page (the aurora).",
+  layout: "An offset matching a fixed-height bar it sits under.",
+};
 
-test("spacing on the 4pt scale is written as a --space-* token, so density reaches it", () => {
+/** Spacing and position properties, and custom properties named for spacing (--chip-gutter, --gap). */
+const SPACING = /(?<![\w-])((?:padding|margin|scroll-padding|scroll-margin|inset)(?:-[a-z-]+)?|gap|row-gap|column-gap|top|right|bottom|left|--(?:[\w-]+-)?(?:gutter|gap|edge|pad|inset))\s*:\s*([^;{}]+)(;?)/g;
+
+/** Raw spacing lengths in a stylesheet: px values over a hairline at the top level of a spacing or position value, without a `fixed:` reason. */
+export function rawSpacing(src: string): { line: number; text: string; why?: string }[] {
+  // Keep `fixed:` reasons as markers, blank every other comment (line breaks kept).
+  const css = src.replace(/\/\*\s*fixed:\s*([\w-]+)\s*\*\//g, (c, why: string) => `@fixed(${why})`.padEnd(c.length)).replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "));
+  const hits: { line: number; text: string; why?: string }[] = [];
+  for (const m of css.matchAll(SPACING)) {
+    let top = m[2];
+    for (let before = ""; before !== top; ) {
+      before = top;
+      top = top.replace(/[\w-]*\([^()]*\)/g, " ");
+    }
+    const raw = [...top.matchAll(/(?<![\w.-])-?(\d+(?:\.\d+)?)px\b/g)].filter((n) => Number(n[1]) > 1);
+    if (!raw.length) continue;
+    const why = /^\s*@fixed\(([\w-]+)\)/.exec(css.slice(m.index! + m[0].length))?.[1];
+    hits.push({ line: lineOf(css, m.index!), text: `${m[1]}: ${m[2].trim()}`, why });
+  }
+  return hits;
+}
+
+test("the spacing check catches raw lengths and passes tokens, hairlines and reasons", () => {
+  const raw = (s: string) => rawSpacing(s).filter((h) => !h.why).map((h) => h.text);
+  assert.deepEqual(raw(".a { padding: 6px 10px; }"), ["padding: 6px 10px"]);
+  assert.deepEqual(raw(".a { margin: 0 -8px; gap: 3px; }"), ["margin: 0 -8px", "gap: 3px"]);
+  assert.deepEqual(raw(".a { top: 10px; inset-inline: 4px; }"), ["top: 10px", "inset-inline: 4px"]);
+  assert.deepEqual(raw(".a { --chip-gutter: 14px; --gap: 6px; --size: 34px; }"), ["--chip-gutter: 14px", "--gap: 6px"]);
+  assert.deepEqual(raw(".a { padding: var(--space-xs-sm) calc(3 * var(--space-px)); margin: -1px; gap: 0.5em; }"), []);
+  assert.deepEqual(raw(".a { left: calc(var(--space-md) + 34px + var(--space-sm)); padding-bottom: calc(var(--safe-bottom) + 12px); }"), []);
+  assert.deepEqual(raw(".a::after { inset: -8px; /* fixed: touch */ }"), []);
+  assert.deepEqual(raw(".a { /* padding: 6px */ border-top: 2px solid; }"), []);
+  assert.deepEqual(rawSpacing(".a { inset: -8px; /* fixed: touch */ }")[0].why, "touch");
+});
+
+test("all spacing follows density: every padding, margin, gap and inset is a --space-* token, or says why not", () => {
   const raw: string[] = [];
-  for (const [file, css] of sheets()) {
-    for (const m of css.matchAll(/(?<![\w-])(?:padding|margin|gap|row-gap|column-gap|scroll-padding|scroll-margin)(?:-[a-z-]+)?\s*:\s*([^;{}]+)/g)) {
-      // Only whole values at the top level: a length inside calc() or another function is part of a sum.
-      let top = m[1];
-      for (let before = ""; before !== top; ) {
-        before = top;
-        top = top.replace(/[\w-]*\([^()]*\)/g, " ");
-      }
-      for (const n of top.matchAll(/(?<![\w.-])(\d+)px\b/g)) if (SCALE.has(n[1])) raw.push(`${file}:${lineOf(css, m.index!)}: ${m[1].trim()}`);
+  const unknown: string[] = [];
+  for (const [file, src] of sheets(false)) {
+    for (const h of rawSpacing(src)) {
+      if (!h.why) raw.push(`${file}:${h.line}: ${h.text}`);
+      else if (!FIXED[h.why]) unknown.push(`${file}:${h.line}: fixed: ${h.why}`);
+    }
+  }
+  assert.deepEqual(raw, [], "write these as --space-* tokens (calc(N * var(--space-px)) between steps), or give a reason from FIXED");
+  assert.deepEqual(unknown, [], `a reason is one of: ${Object.keys(FIXED).join(", ")}`);
+});
+
+test("inline styles space with tokens too", () => {
+  const raw: string[] = [];
+  const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
+  for (const f of walk(SRC).filter((p) => p.endsWith(".ts") && !p.endsWith(".test.ts"))) {
+    for (const m of readFileSync(f, "utf8").matchAll(/style: ["'`]([^"'`]*)["'`]/g)) {
+      for (const d of m[1].matchAll(/(?:padding|margin|gap)[\w-]*\s*:\s*([^;]+)/g)) if (/(?<![\w.])\d+px/.test(d[1].replace(/var\([^()]*\)/g, ""))) raw.push(`${relative(SRC, f)}: ${d[0]}`);
     }
   }
   assert.deepEqual(raw, []);

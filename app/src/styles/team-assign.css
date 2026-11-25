@@ -17,8 +17,8 @@
   align-items: center;
   gap: var(--space-2xs);
   min-height: 44px;
-  margin-left: -10px;
-  padding: 0 var(--space-sm) 0 6px;
+  margin-left: calc(-1 * var(--space-xs-sm));
+  padding: 0 var(--space-sm) 0 var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   color: var(--ink-2);
   font-size: var(--text-ui);
@@ -76,8 +76,8 @@
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
+  gap: var(--space-2xs-xs);
+  padding: calc(3 * var(--space-px)) calc(9 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink-2);
@@ -187,9 +187,9 @@
 .strip__item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   min-height: 48px;
-  padding: 6px var(--space-sm) 6px var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-sm) var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-sm);
   background: var(--sunken);
   color: var(--ink);
@@ -358,7 +358,7 @@
 
 .tpost__main {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
 }
 
@@ -413,7 +413,7 @@
 
 .tpost__bubble {
   max-width: 85%;
-  padding: 10px 14px;
+  padding: var(--space-xs-sm) var(--space-sm-md);
   border-radius: var(--radius-md);
   background: var(--ink);
   color: var(--on-ink);
@@ -428,7 +428,7 @@
   bottom: calc(var(--dock-height, 0px) + var(--safe-bottom, 0px) + var(--space-xs));
   z-index: var(--z-sticky);
   display: grid;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding: var(--space-xs);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-lg);
@@ -452,7 +452,7 @@
   flex: 1;
   min-height: 44px;
   max-height: 140px;
-  padding: 11px 10px;
+  padding: calc(11 * var(--space-px)) var(--space-xs-sm);
   border: 0;
   background: none;
   color: var(--ink);
@@ -485,7 +485,7 @@
 .tc__to {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   width: fit-content;
   max-width: 100%;
   min-height: 32px;
@@ -521,7 +521,7 @@
 
 .qcard__group {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .qcard__question {
@@ -535,9 +535,9 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   min-height: 44px;
-  padding: 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -590,7 +590,7 @@
 }
 
 .qcard__tag {
-  margin-right: 6px;
+  margin-right: var(--space-2xs-xs);
   padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--radius-pill);
   background: var(--mint-wash);
@@ -607,7 +607,7 @@
 .na__box {
   width: 100%;
   min-height: 44px;
-  padding: 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -650,7 +650,7 @@
   display: grid;
   gap: var(--space-3xs);
   margin: 0;
-  padding: 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
   font-size: var(--text-small);
@@ -742,7 +742,7 @@
 
 .doc__files {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -752,7 +752,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -840,7 +840,7 @@
     ". task task task"
     ". set set set";
   align-items: center;
-  gap: var(--space-xs) 10px;
+  gap: var(--space-xs) var(--space-xs-sm);
   padding: var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -907,7 +907,7 @@
   align-items: center;
   gap: var(--space-xs);
   min-height: 40px;
-  padding: 0 14px 0 10px;
+  padding: 0 var(--space-sm-md) 0 var(--space-xs-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--surface);
@@ -940,26 +940,26 @@
 .lineup__swap {
   width: auto;
   min-height: 40px;
-  padding: 0 10px;
+  padding: 0 var(--space-xs-sm);
   border-radius: var(--radius-pill);
   font-size: var(--text-small);
 }
 
 .lineup__choice {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .lineup__presets {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .lineup__presets .chip {
   height: auto;
   min-height: 40px;
-  padding: 6px 14px;
+  padding: var(--space-2xs-xs) var(--space-sm-md);
   white-space: normal;
   text-align: start;
   cursor: pointer;
@@ -1010,7 +1010,7 @@
 }
 
 .na__brief {
-  padding: 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
   color: var(--ink);
@@ -1028,13 +1028,13 @@
 
 .na__ideas {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .na__ideas .chip {
   height: auto;
   min-height: 44px;
-  padding: var(--space-xs) 14px;
+  padding: var(--space-xs) var(--space-sm-md);
   white-space: normal;
   text-align: start;
   cursor: pointer;
@@ -1058,7 +1058,7 @@
 
 .asg__head {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .asg__title-row {
@@ -1095,7 +1095,7 @@
   display: flex;
   gap: var(--space-md);
   margin: 0;
-  padding: 6px var(--space-3xs) var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-3xs) var(--space-xs);
   overflow-x: auto;
   list-style: none;
   scrollbar-width: none;
@@ -1113,7 +1113,7 @@
 
 .stage-tile + .stage-tile::before {
   position: absolute;
-  top: 28px;
+  top: 28px; /* fixed: icon */
   left: calc(-1 * var(--space-md) - 24px + 28px);
   width: calc(var(--space-md) + 48px - 56px + 40px);
   height: 1px;
@@ -1123,7 +1123,7 @@
 
 .stage-tile__face {
   position: relative;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2xs-xs);
 }
 
 .stage-tile__name {
@@ -1284,7 +1284,7 @@
 
 .team-entry__count {
   min-width: 20px;
-  padding: 1px 6px;
+  padding: 1px var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--team-entry-count-ink);

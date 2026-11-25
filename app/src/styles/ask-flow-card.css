@@ -63,16 +63,16 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-sm);
-  padding-bottom: 14px;
+  padding-bottom: var(--space-sm-md);
 }
 
 /* The line from each tile down to the next. */
 .flowcard__row::before {
   content: "";
   position: absolute;
-  left: 15px;
-  top: 34px;
-  bottom: 2px;
+  left: 15px; /* fixed: icon */
+  top: 34px; /* fixed: icon */
+  bottom: 2px; /* fixed: icon */
   width: 2px;
   border-radius: var(--radius-3xs);
   background: var(--line-strong);
@@ -120,7 +120,7 @@
   display: grid;
   gap: var(--space-3xs);
   min-width: 0;
-  padding-top: 5px;
+  padding-top: calc(5 * var(--space-px));
 }
 
 .flowcard__words {
@@ -132,7 +132,7 @@
 .flowcard__chip {
   display: inline-flex;
   align-items: center;
-  padding: 0 7px;
+  padding: 0 calc(7 * var(--space-px));
   border-radius: var(--radius-2xs);
   background: var(--accent-wash);
   color: var(--accent-ink);
@@ -150,16 +150,16 @@
 .flowcard__branch {
   position: relative;
   display: grid;
-  gap: 6px;
-  margin-left: 44px;
+  gap: var(--space-2xs-xs);
+  margin-left: calc(44 * var(--space-px));
   padding-bottom: var(--space-sm);
 }
 
 .flowcard__branch::before {
   content: "";
   position: absolute;
-  left: -29px;
-  top: -14px;
+  left: -29px; /* fixed: icon */
+  top: -14px; /* fixed: icon */
   bottom: 0;
   width: 2px;
   background: var(--line-strong);

@@ -13,7 +13,7 @@
 
 .suggestion__sender::before {
   content: "·";
-  margin-right: 6px;
+  margin-right: var(--space-2xs-xs);
 }
 
 /* ---------- "2 similar" and "Ignore emails like this" ---------- */
@@ -28,10 +28,10 @@
 .suggestion__tool {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 32px;
-  padding: 0 10px;
-  margin-left: -10px;
+  padding: 0 var(--space-xs-sm);
+  margin-left: calc(-1 * var(--space-xs-sm));
   border: 0;
   border-radius: var(--radius-pill);
   background: none;

@@ -6,7 +6,7 @@
 .profile-q {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .profile-q .field-label {
@@ -33,7 +33,7 @@
 .profile-q__area {
   height: auto;
   min-height: 48px;
-  padding: var(--space-sm) 14px;
+  padding: var(--space-sm) var(--space-sm-md);
   line-height: var(--leading-body);
   resize: none;
 }
@@ -47,9 +47,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 48px;
-  padding: 6px 10px;
+  padding: var(--space-2xs-xs) var(--space-xs-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -89,7 +89,7 @@
 }
 
 .profile-people__picker .picker__list {
-  left: -10px;
+  left: calc(-1 * var(--space-xs-sm));
 }
 
 .profile-goals__wrap {
@@ -124,7 +124,7 @@
 
 .profile-wiz__steps {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0 0 var(--space-xs);
   padding: 0;
   list-style: none;
@@ -289,7 +289,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin-top: var(--space-3xs);
 }
 
@@ -361,7 +361,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  margin: 6px 0 0;
+  margin: var(--space-2xs-xs) 0 0;
   padding: 0 0 0 var(--space-sm);
   border-left: 2px solid var(--line);
   list-style: none;

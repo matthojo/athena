@@ -3,7 +3,7 @@
 /* .field is a one-line box with no room above or below: a text box here gets some. */
 .wf textarea.field {
   height: auto;
-  padding: var(--space-sm) 14px;
+  padding: var(--space-sm) var(--space-sm-md);
   line-height: var(--leading-body);
 }
 
@@ -45,7 +45,7 @@
 .wf-check {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .wf-check .skills-form__caption {
@@ -156,7 +156,7 @@
 .wf-sec {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .wf-sec .skills-form__caption {
@@ -238,7 +238,7 @@
 /* A question to answer in words, set like the ones with answers to tap. */
 .wf-free {
   display: grid;
-  gap: 10px;
+  gap: var(--space-xs-sm);
 }
 
 .wf-tick__label {
@@ -266,7 +266,7 @@
 .wf-asks {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0;
   padding: 0;
   list-style: none;

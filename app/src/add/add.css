@@ -259,7 +259,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
 }
 
@@ -267,7 +267,7 @@
   display: inline-flex;
   align-items: center;
   height: 22px;
-  padding: 0 9px;
+  padding: 0 calc(9 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink-2);
@@ -346,7 +346,7 @@
   flex-direction: column;
   gap: var(--space-3xs);
   min-width: 0;
-  padding-top: 5px;
+  padding-top: calc(5 * var(--space-px));
 }
 
 .add-fact__title {
@@ -559,7 +559,7 @@
 .add-q {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .add-q .form__hint {
@@ -749,7 +749,7 @@
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   gap: var(--space-2xs) var(--space-sm);
-  margin: 6px 0 var(--space-3xs);
+  margin: var(--space-2xs-xs) 0 var(--space-3xs);
   font-size: var(--text-small);
 }
 
@@ -785,7 +785,7 @@
 .add-foot {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin-top: var(--space-sm);
 }
 
@@ -1215,7 +1215,7 @@
 }
 
 .add-tpl-field__name {
-  padding: 1px 6px;
+  padding: 1px var(--space-2xs-xs);
   border-radius: var(--radius-2xs);
   background: var(--accent-wash);
   color: var(--accent-ink);

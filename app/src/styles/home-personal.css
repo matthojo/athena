@@ -23,7 +23,7 @@
   gap: var(--space-sm);
   width: 100%;
   min-height: 60px;
-  padding: 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-sm);
   border-radius: var(--radius-sm);
   text-align: left;
   color: var(--ink);
@@ -84,7 +84,7 @@
 /* The name as a small chip on the accent wash, like a mention in a note. */
 .home-person__chip {
   display: inline-block;
-  padding: 0 7px;
+  padding: 0 calc(7 * var(--space-px));
   border-radius: var(--radius-xs);
   background: var(--accent-wash);
   color: var(--accent-ink);
@@ -147,7 +147,7 @@
 .home-goal {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
+  gap: var(--space-sm-md);
   align-items: start;
 }
 
@@ -266,8 +266,8 @@
 
 .moment__badge {
   position: absolute;
-  right: -4px;
-  bottom: -4px;
+  right: -4px; /* fixed: icon */
+  bottom: -4px; /* fixed: icon */
   display: grid;
   place-items: center;
   width: 24px;

@@ -357,7 +357,7 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
   };
   window.addEventListener("keydown", onKey);
 
-  stack.replaceChildren(h("div", { class: "card suggestion" }, h("span", { class: "skeleton", style: "height:14px;width:40%" }), h("span", { class: "skeleton", style: "height:22px;width:85%;margin-top:12px" })));
+  stack.replaceChildren(h("div", { class: "card suggestion" }, h("span", { class: "skeleton", style: "height:14px;width:40%" }), h("span", { class: "skeleton", style: "height:22px;width:85%;margin-top:var(--space-sm)" })));
   void load();
   const unsub = onMemoryChange((topic) => {
     if (topic === "suggestion" || topic === "all") void load();

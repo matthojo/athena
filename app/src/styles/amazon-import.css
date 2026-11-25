@@ -123,7 +123,7 @@
 
 .amzimp-recent__item {
   max-width: 100%;
-  padding: var(--space-2xs) 10px;
+  padding: var(--space-2xs) var(--space-xs-sm);
   border-radius: var(--radius-pill);
   font-size: var(--text-meta);
   color: var(--ink-2);

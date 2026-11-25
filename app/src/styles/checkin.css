@@ -65,7 +65,7 @@ dialog.checkin-sheet .sheet__scroll {
 
 .checkin__dots {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -216,7 +216,7 @@ dialog.checkin-sheet .sheet__scroll {
 }
 
 .scale__track {
-  padding-inline: 14px;
+  padding-inline: var(--space-sm-md);
 }
 
 .scale__input {
@@ -246,7 +246,7 @@ dialog.checkin-sheet .sheet__scroll {
   -webkit-appearance: none;
   width: 32px;
   height: 32px;
-  margin-top: -12px;
+  margin-top: -12px; /* fixed: icon */
   border: 3px solid var(--surface);
   border-radius: 50%;
   background: var(--accent);
@@ -380,7 +380,7 @@ dialog.checkin-sheet .sheet__scroll {
 .checkin-text {
   height: auto;
   min-height: 12rem;
-  padding: var(--space-sm) 14px;
+  padding: var(--space-sm) var(--space-sm-md);
   font-size: var(--text-body);
   line-height: var(--leading-body);
   resize: vertical;

@@ -14,9 +14,9 @@
 .habit-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 36px;
-  padding: 0 14px;
+  padding: 0 var(--space-sm-md);
   border-radius: var(--radius-pill);
   border: 1px solid var(--line-strong);
   background: transparent;
@@ -55,13 +55,13 @@
 }
 
 .day-sec.is-editing .habit-chip {
-  padding-right: 6px;
+  padding-right: var(--space-2xs-xs);
 }
 
 /* ---------- Money and home on a day ---------- */
 
 .day-money__row .day-health__words {
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
 }
 
 .money-split {
@@ -70,7 +70,7 @@
   width: 100%;
   max-width: 220px;
   height: 4px;
-  margin-top: 6px;
+  margin-top: var(--space-2xs-xs);
   border-radius: var(--radius-3xs);
   overflow: hidden;
 }
@@ -254,7 +254,7 @@
 .habit-week {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   max-width: 320px;
 }
 
@@ -348,7 +348,7 @@
 }
 
 .money-month__sub {
-  margin: -10px 0 0;
+  margin: calc(-1 * var(--space-xs-sm)) 0 0;
   color: var(--ink-3);
   font-size: var(--text-small);
 }
@@ -356,7 +356,7 @@
 .money-cats {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -419,7 +419,7 @@
   justify-content: space-between;
   gap: var(--space-sm);
   min-height: 32px;
-  padding: 6px 0;
+  padding: var(--space-2xs-xs) 0;
   font-size: var(--text-small);
 }
 
@@ -434,7 +434,7 @@
 }
 
 .money-merchant__times {
-  margin-left: 6px;
+  margin-left: var(--space-2xs-xs);
   color: var(--ink-3);
 }
 
@@ -554,7 +554,7 @@
 .regular__total {
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0;
 }
 
@@ -626,7 +626,7 @@
 .regular-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .regular-legend__item::before {
@@ -805,10 +805,10 @@
 .regular-row__flag {
   display: inline-flex;
   align-self: flex-start;
-  margin-top: 3px;
+  margin-top: calc(3 * var(--space-px));
   align-items: center;
   gap: var(--space-2xs);
-  padding: 1px 7px 1px 6px;
+  padding: 1px calc(7 * var(--space-px)) 1px var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
@@ -903,7 +903,7 @@
   grid-auto-flow: column;
   grid-auto-columns: minmax(26px, 1fr);
   align-items: flex-end;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   max-width: 100%;
   height: 68px;
   margin: 0;
@@ -1107,9 +1107,9 @@
 .rs-person {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin-left: var(--space-3xs);
-  padding: var(--space-3xs) 10px var(--space-3xs) var(--space-3xs);
+  padding: var(--space-3xs) var(--space-xs-sm) var(--space-3xs) var(--space-3xs);
   border-radius: var(--radius-pill);
   text-decoration: none;
   vertical-align: middle;

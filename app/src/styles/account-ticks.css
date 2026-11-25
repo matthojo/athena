@@ -4,7 +4,7 @@
 .acct-ticks {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .acct-tick {
@@ -65,7 +65,7 @@
 .skills-form__accounts-sec {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .skills-form__accounts-sec .skills-form__caption {

@@ -272,8 +272,8 @@ a.album__link:active > .art {
 /* A small round button in the corner says "this opens". */
 .daymap__expand {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: var(--space-xs-sm);
+  right: var(--space-xs-sm);
   display: grid;
   place-items: center;
   width: 32px;
@@ -488,8 +488,8 @@ a.album__link:active > .art {
 }
 
 .ma-optional {
-  margin-left: 6px;
-  padding: 1px 7px;
+  margin-left: var(--space-2xs-xs);
+  padding: 1px calc(7 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink-3);
@@ -520,9 +520,9 @@ a.album__link:active > .art {
 
 .ma-sample__tag {
   position: absolute;
-  left: 10px;
-  bottom: 10px;
-  padding: 3px 9px;
+  left: var(--space-xs-sm);
+  bottom: var(--space-xs-sm);
+  padding: calc(3 * var(--space-px)) calc(9 * var(--space-px));
   border-radius: var(--radius-pill);
   background: color-mix(in oklch, var(--surface) 90%, transparent);
   color: var(--ink-2);
@@ -534,7 +534,7 @@ a.album__link:active > .art {
 .ma-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-small);
   color: var(--ink-2);
 }
@@ -569,7 +569,7 @@ a.album__link:active > .art {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3xs);
-  padding: 3px;
+  padding: calc(3 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
 }
@@ -726,11 +726,11 @@ a.album__link:active > .art {
 .ma-sources {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .ma-sources span {
-  padding: 3px 9px;
+  padding: calc(3 * var(--space-px)) calc(9 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink-2);

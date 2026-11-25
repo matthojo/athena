@@ -49,7 +49,7 @@
 .slots__person {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-small);
   color: var(--ink-2);
 }
@@ -190,7 +190,7 @@
   flex: none;
   width: 15px;
   height: 15px;
-  margin-top: 3px;
+  margin-top: calc(3 * var(--space-px));
   color: var(--ink-3);
 }
 
@@ -431,7 +431,7 @@
 .create-sheet__invite {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .create-sheet__invite svg,
@@ -446,7 +446,7 @@
 .create-sheet__who {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: calc(var(--space-xs) * -1) 0 0;
   padding: 0;
   list-style: none;
@@ -455,9 +455,9 @@
 .create-sheet__guest {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 32px;
-  padding: 0 var(--space-sm) 0 10px;
+  padding: 0 var(--space-sm) 0 var(--space-xs-sm);
   border-radius: 999px;
   background: var(--accent-wash);
   color: var(--accent-ink);
@@ -473,7 +473,7 @@
 .create-sheet__note {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0;
   font-size: var(--text-small);
   color: var(--ink-2);
@@ -491,8 +491,8 @@
 
 .create-sheet__times > .prop + .prop::before {
   left: 0;
-  top: 12px;
-  bottom: 12px;
+  top: var(--space-sm);
+  bottom: var(--space-sm);
   width: 1px;
   height: auto;
 }
@@ -560,7 +560,7 @@
 .slots__invite {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0;
   font-size: var(--text-small);
   color: var(--ink-2);
@@ -576,7 +576,7 @@
   resize: none;
   overflow: hidden;
   line-height: var(--leading-snug, 1.35);
-  padding-block: 9px;
+  padding-block: calc(9 * var(--space-px));
 }
 
 /* The question names the title in full, wrapping long words. */

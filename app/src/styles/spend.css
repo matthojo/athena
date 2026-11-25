@@ -191,7 +191,7 @@
 .spend-split__row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .spend-split__line {
@@ -255,7 +255,7 @@ a.spend-split__name:hover {
 .spend-week__chart {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding-top: var(--space-xs);
   --plot: 120px;
 }
@@ -350,7 +350,7 @@ a.spend-split__name:hover {
 
 .spend-amount__symbol {
   position: absolute;
-  left: 14px;
+  left: var(--space-sm-md);
   top: 50%;
   transform: translateY(-50%);
   font-size: var(--text-body);
@@ -360,7 +360,7 @@ a.spend-split__name:hover {
 }
 
 .spend-amount__input {
-  padding-left: 34px;
+  padding-left: calc(34 * var(--space-px));
   font-variant-numeric: tabular-nums;
 }
 
@@ -424,7 +424,7 @@ a.spend-split__name:hover {
   display: block;
   height: 4px;
   max-width: 220px;
-  margin-top: 6px;
+  margin-top: var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   background: var(--sunken-strong);
   overflow: hidden;
@@ -498,7 +498,7 @@ a.spend-split__name:hover {
 .spend-week__amount {
   position: relative;
   z-index: 1;
-  padding: 0 3px;
+  padding: 0 calc(3 * var(--space-px));
   border-radius: var(--radius-2xs);
   background: var(--surface);
 }
@@ -514,7 +514,7 @@ a.spend-split__name:hover {
 .spend-cap__figure {
   display: flex;
   align-items: baseline;
-  gap: 0 6px;
+  gap: 0 var(--space-2xs-xs);
   flex-wrap: wrap;
   font-variant-numeric: tabular-nums;
 }
@@ -672,7 +672,7 @@ a.spend-split__name {
   align-items: center;
   min-height: 44px;
   min-width: 44px;
-  margin: -10px 0;
+  margin: calc(-1 * var(--space-xs-sm)) 0;
 }
 
 .spend-today__words:focus,

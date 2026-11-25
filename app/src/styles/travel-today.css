@@ -44,7 +44,7 @@
 .travel__fresh {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
@@ -127,8 +127,8 @@
   column-gap: var(--space-xs);
   align-items: start;
   min-height: 44px;
-  margin: -6px -8px;
-  padding: 6px var(--space-xs);
+  margin: calc(-1 * var(--space-2xs-xs)) calc(-1 * var(--space-xs));
+  padding: var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-sm);
   text-align: left;
   transition: background-color var(--dur-fast) var(--ease-out);
@@ -197,7 +197,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: var(--space-2xs-xs) var(--space-xs-sm);
   margin-top: var(--space-xs);
 }
 
@@ -205,7 +205,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2xs) 10px;
+  gap: var(--space-2xs) var(--space-xs-sm);
 }
 
 .tleg__where {
@@ -225,9 +225,9 @@
   --tone: var(--good);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 26px;
-  padding: 0 10px 0 9px;
+  padding: 0 var(--space-xs-sm) 0 calc(9 * var(--space-px));
   border: 1px solid color-mix(in oklch, var(--tone) 30%, var(--line));
   border-radius: var(--radius-pill);
   background: color-mix(in oklch, var(--tone) 9%, var(--surface));
@@ -267,7 +267,7 @@
 .tchip[data-tone="warn"] .tchip__dot::after {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: -3px; /* fixed: icon */
   border-radius: 50%;
   border: 1.5px solid var(--tone);
   opacity: 0;
@@ -278,9 +278,9 @@
 .tleg__ref {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 28px;
-  padding: 0 10px;
+  padding: 0 var(--space-xs-sm);
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink-2);
@@ -296,7 +296,7 @@
 .tleg__ref::after {
   content: "";
   position: absolute;
-  inset: -8px -4px;
+  inset: -8px -4px; /* fixed: touch */
 }
 
 .tleg__ref svg {
@@ -361,7 +361,7 @@
 }
 
 .travel__line {
-  margin-top: 6px;
+  margin-top: var(--space-2xs-xs);
   font-size: var(--text-ui);
   line-height: var(--leading-snug);
   color: var(--ink-2);

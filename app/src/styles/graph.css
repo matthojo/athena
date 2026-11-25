@@ -50,14 +50,14 @@
 }
 
 .graph__head {
-  gap: 10px;
+  gap: var(--space-xs-sm);
 }
 
 .graph__bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px var(--space-xs);
+  gap: var(--space-xs-sm) var(--space-xs);
 }
 
 .graph__bar .page-title,
@@ -98,7 +98,7 @@
   flex: none;
   display: inline-flex;
   gap: var(--space-3xs);
-  padding: 3px;
+  padding: calc(3 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
 }
@@ -106,9 +106,9 @@
 .graph__mode-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 32px;
-  padding: 0 var(--space-sm) 0 10px;
+  padding: 0 var(--space-sm) 0 var(--space-xs-sm);
   border-radius: var(--radius-pill);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -143,8 +143,8 @@
 
 .graph__chip {
   height: 34px;
-  gap: 7px;
-  padding: 0 var(--space-sm) 0 11px;
+  gap: calc(7 * var(--space-px));
+  padding: 0 var(--space-sm) 0 calc(11 * var(--space-px));
 }
 
 .graph__chip[aria-pressed="true"] {
@@ -196,7 +196,7 @@
 .graph__results {
   position: absolute;
   z-index: var(--z-popover);
-  top: calc(100% + 6px);
+  top: calc(100% + var(--space-2xs-xs));
   left: 0;
   right: 0;
   max-height: min(320px, 50dvh);
@@ -212,7 +212,7 @@
 .graph__result {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   min-height: 44px;
   padding: 0 var(--space-sm);
   border-radius: var(--radius-sm);
@@ -259,9 +259,9 @@
 
 .graph__top {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
+  top: var(--space-xs-sm);
+  left: var(--space-xs-sm);
+  right: var(--space-xs-sm);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -287,7 +287,7 @@
   align-items: center;
   gap: var(--space-xs);
   min-height: 36px;
-  padding: 0 13px 0 7px;
+  padding: 0 calc(13 * var(--space-px)) 0 calc(7 * var(--space-px));
   border-radius: var(--radius-pill);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -301,7 +301,7 @@
 .graph__toggle::after {
   content: "";
   position: absolute;
-  inset: -4px 0;
+  inset: -4px 0; /* fixed: touch */
 }
 
 .graph__toggle .switch {
@@ -310,8 +310,8 @@
 }
 
 .graph__toggle .switch::before {
-  top: 2px;
-  left: 2px;
+  top: 2px; /* fixed: cell */
+  left: 2px; /* fixed: cell */
   width: 16px;
   height: 16px;
 }
@@ -359,9 +359,9 @@
 
 .graph__stats {
   position: absolute;
-  left: 14px;
-  right: 64px;
-  bottom: 11px;
+  left: var(--space-sm-md);
+  right: var(--space-3xl);
+  bottom: calc(11 * var(--space-px));
   font-size: var(--text-meta);
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
@@ -372,13 +372,13 @@
 
 .graph__card {
   position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
+  left: var(--space-xs);
+  right: var(--space-xs);
+  bottom: var(--space-xs);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px var(--space-sm) var(--space-sm) 14px;
+  gap: var(--space-xs-sm);
+  padding: var(--space-sm-md) var(--space-sm) var(--space-sm) var(--space-sm-md);
   border-radius: var(--radius-md);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -401,7 +401,7 @@
 }
 
 .graph__card-head .icon-btn {
-  margin: -6px -4px 0 0;
+  margin: calc(-1 * var(--space-2xs-xs)) calc(-1 * var(--space-2xs)) 0 0;
 }
 
 .graph__card-text {
@@ -427,9 +427,9 @@
 }
 
 .graph__links {
-  --chip-gutter: 14px;
-  gap: 6px;
-  margin-inline: calc(-1 * var(--chip-gutter)) -12px;
+  --chip-gutter: var(--space-sm-md);
+  gap: var(--space-2xs-xs);
+  margin-inline: calc(-1 * var(--chip-gutter)) calc(-1 * var(--space-sm));
   padding: 0 var(--space-sm) 0 var(--chip-gutter);
   scroll-padding-inline: var(--chip-gutter);
 }
@@ -437,7 +437,7 @@
 .graph__link {
   flex: none;
   min-height: 32px;
-  padding: 0 11px 0 10px;
+  padding: 0 calc(11 * var(--space-px)) 0 var(--space-xs-sm);
   font-size: var(--text-small);
   white-space: nowrap;
 }
@@ -449,7 +449,7 @@
 
 .graph__open {
   gap: var(--space-2xs);
-  padding-right: 10px;
+  padding-right: var(--space-xs-sm);
 }
 
 .graph__open svg {
@@ -476,7 +476,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   padding: var(--space-lg);
   background: var(--surface);
   font-size: var(--text-small);
@@ -514,7 +514,7 @@
   flex-direction: column;
   gap: var(--space-lg);
   padding: var(--space-2xs) var(--space-3xs) var(--space-lg);
-  margin-inline: -2px;
+  margin-inline: calc(-1 * var(--space-3xs));
 }
 
 .graph__list > * {
@@ -546,15 +546,15 @@
   }
 
   .graph__card {
-    left: 14px;
+    left: var(--space-sm-md);
     right: auto;
-    bottom: 14px;
+    bottom: var(--space-sm-md);
     width: 380px;
   }
 
   .graph__stats {
-    left: 18px;
-    bottom: 14px;
+    left: calc(18 * var(--space-px));
+    bottom: var(--space-sm-md);
   }
 }
 
@@ -585,8 +585,8 @@
   }
 
   .graph__top {
-    top: 14px;
-    left: 14px;
-    right: 14px;
+    top: var(--space-sm-md);
+    left: var(--space-sm-md);
+    right: var(--space-sm-md);
   }
 }

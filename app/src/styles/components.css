@@ -54,7 +54,7 @@
 .link-btn::after {
   content: "";
   position: absolute;
-  inset: -12px -10px;
+  inset: -12px -10px; /* fixed: touch */
 }
 
 @media (hover: hover) {
@@ -68,7 +68,7 @@ kbd {
   place-items: center;
   min-width: 20px;
   height: 20px;
-  padding: 0 5px;
+  padding: 0 calc(5 * var(--space-px));
   font-family: var(--font-ui);
   font-size: var(--text-micro);
   font-weight: var(--weight-medium);
@@ -89,7 +89,7 @@ kbd {
 .heading-icon {
   display: inline-flex;
   vertical-align: -0.2em;
-  margin-right: 6px;
+  margin-right: var(--space-2xs-xs);
   color: var(--ink-3);
 }
 
@@ -169,7 +169,7 @@ mark {
 .btn--sm::after {
   content: "";
   position: absolute;
-  inset: -5px 0;
+  inset: -5px 0; /* fixed: touch */
 }
 
 .btn--block {
@@ -230,7 +230,7 @@ mark {
 .ma-switch__item::after {
   content: "";
   position: absolute;
-  inset: -5px;
+  inset: -5px; /* fixed: touch */
 }
 
 .settings__back,
@@ -241,7 +241,7 @@ mark {
 .icon-btn--sm::after {
   content: "";
   position: absolute;
-  inset: -4px;
+  inset: -4px; /* fixed: touch */
 }
 
 .icon-btn--sm svg {
@@ -335,9 +335,9 @@ mark {
   scroll-snap-align: start;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 36px;
-  padding: 0 14px;
+  padding: 0 var(--space-sm-md);
   border-radius: var(--radius-pill);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -355,7 +355,7 @@ mark {
 .chip::after {
   content: "";
   position: absolute;
-  inset: -4px -2px;
+  inset: -4px -2px; /* fixed: touch */
 }
 
 .chip:active {
@@ -550,7 +550,7 @@ mark {
 .row__title-line {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
 }
 
@@ -594,7 +594,7 @@ mark {
 .search {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   height: 48px;
   padding: 0 var(--space-xs) 0 var(--space-md);
   border-radius: var(--radius-pill);
@@ -646,7 +646,7 @@ mark {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding: var(--space-xl) var(--space-md);
   text-align: center;
 }
@@ -654,7 +654,7 @@ mark {
 .empty .tile {
   width: 48px;
   height: 48px;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2xs-xs);
 }
 
 .empty__title {
@@ -796,8 +796,8 @@ mark {
 
 .status-btn .status-dot {
   position: absolute;
-  top: 9px;
-  right: 9px;
+  top: 9px; /* fixed: icon */
+  right: 9px; /* fixed: icon */
   box-shadow: 0 0 0 2px var(--surface);
 }
 
@@ -823,14 +823,14 @@ mark {
 .menu__status {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px var(--space-sm) var(--space-3xs);
+  gap: var(--space-xs-sm);
+  padding: var(--space-xs-sm) var(--space-sm) var(--space-3xs);
   font-size: var(--text-small);
   font-weight: var(--weight-semibold);
 }
 
 .menu__sub {
-  padding: 0 var(--space-sm) 10px 30px;
+  padding: 0 var(--space-sm) var(--space-xs-sm) calc(30 * var(--space-px));
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -840,16 +840,16 @@ mark {
 .status-card__note {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
 
 /* The shield sits under the status dot, so the text lines up with the line above. */
 .menu__note {
-  gap: 7px;
-  margin-top: -4px;
-  padding: 0 var(--space-sm) 10px 9px;
+  gap: calc(7 * var(--space-px));
+  margin-top: calc(-1 * var(--space-2xs));
+  padding: 0 var(--space-sm) var(--space-xs-sm) calc(9 * var(--space-px));
 }
 
 .menu__note svg,
@@ -869,7 +869,7 @@ mark {
 .menu__item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   width: 100%;
   height: 44px;
   padding: 0 var(--space-sm);
@@ -908,7 +908,7 @@ mark {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   pointer-events: none;
   transition:
     transform var(--dur-base) var(--ease-out),
@@ -929,7 +929,7 @@ mark {
   align-items: center;
   gap: var(--space-3xs);
   height: var(--dock-height);
-  padding: 6px;
+  padding: var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   background: color-mix(in oklch, var(--surface) 94%, transparent);
   -webkit-backdrop-filter: blur(20px) saturate(1.6);
@@ -1022,7 +1022,7 @@ mark {
 .sidebar__brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   padding: var(--space-3xs) var(--space-xs) var(--space-md);
 }
 
@@ -1049,7 +1049,7 @@ mark {
 .sidebar__search {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   width: 100%;
   height: 40px;
   padding: 0 var(--space-xs) 0 var(--space-sm);
@@ -1086,7 +1086,7 @@ mark {
 }
 
 .side-label {
-  padding: var(--space-md) 10px 6px;
+  padding: var(--space-md) var(--space-xs-sm) var(--space-2xs-xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
   color: var(--ink-3);
@@ -1095,10 +1095,10 @@ mark {
 .side-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   width: 100%;
   height: 38px;
-  padding: 0 10px;
+  padding: 0 var(--space-xs-sm);
   border-radius: var(--radius-xs);
   border: 1px solid transparent;
   font-size: var(--text-small);
@@ -1130,7 +1130,7 @@ mark {
 
 .side-item__count {
   margin-left: auto;
-  padding: 1px 7px;
+  padding: 1px calc(7 * var(--space-px));
   border-radius: var(--radius-xs);
   background: var(--sunken);
   font-size: var(--text-meta);
@@ -1204,26 +1204,26 @@ mark {
 }
 
 .status-card__sub {
-  margin-top: -4px;
+  margin-top: calc(-1 * var(--space-2xs));
   padding-left: var(--space-md);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
 
 .status-card__note {
-  gap: 5px;
-  margin: 0 0 0 -3px;
+  gap: calc(5 * var(--space-px));
+  margin: 0 0 0 calc(-3 * var(--space-px));
 }
 
 .status-card__actions {
   display: flex;
   flex: none;
   gap: var(--space-3xs);
-  margin-right: -6px;
+  margin-right: calc(-1 * var(--space-2xs-xs));
 }
 
 .status-card__actions .btn--sm {
-  margin-right: 6px;
+  margin-right: var(--space-2xs-xs);
 }
 
 /* ---------- Sheet (capture + mobile note detail) ---------- */
@@ -1293,7 +1293,7 @@ dialog.sheet::backdrop {
 .sheet__grip {
   width: 40px;
   height: 5px;
-  margin: var(--space-xs) auto 6px;
+  margin: var(--space-xs) auto var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   background: var(--line-strong);
 }
@@ -1432,7 +1432,7 @@ dialog.sheet.is-closing::backdrop {
 .composer__hint {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -1466,9 +1466,9 @@ dialog.sheet.is-closing::backdrop {
   --toast-bg: var(--surface);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   max-width: calc(100vw - 32px);
-  padding: 10px 18px 10px 14px;
+  padding: var(--space-xs-sm) calc(18 * var(--space-px)) var(--space-xs-sm) var(--space-sm-md);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--toast-bg);
@@ -1539,12 +1539,12 @@ dialog.sheet.is-closing::backdrop {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   min-width: 0;
 }
 
 .brand__sub {
-  margin-top: 3px;
+  margin-top: calc(3 * var(--space-px));
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -1681,11 +1681,11 @@ dialog.sheet.is-closing::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: -6px -8px 0 0;
+  margin: calc(-1 * var(--space-2xs-xs)) calc(-1 * var(--space-xs)) 0 0;
 }
 
 .todo-card .list--plain {
-  margin-block: -2px;
+  margin-block: calc(-1 * var(--space-3xs));
 }
 
 .todo-card__foot {
@@ -1777,8 +1777,8 @@ dialog.sheet.is-closing::backdrop {
 .metric__delta {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  margin-top: 6px;
+  gap: calc(3 * var(--space-px));
+  margin-top: var(--space-2xs-xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -1815,13 +1815,13 @@ dialog.sheet.is-closing::backdrop {
 .people {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-xs-sm);
 }
 
 .person {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   min-width: 0;
 }
 
@@ -1866,7 +1866,7 @@ dialog.sheet.is-closing::backdrop {
   align-items: center;
   column-gap: var(--space-sm);
   row-gap: 0;
-  padding: 14px var(--space-sm);
+  padding: var(--space-sm-md) var(--space-sm);
 }
 
 .source-card__icon {
@@ -1901,7 +1901,7 @@ dialog.sheet.is-closing::backdrop {
 .source-card__name {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   flex-wrap: wrap;
   font-size: var(--text-ui);
   font-weight: var(--weight-semibold);
@@ -1981,7 +1981,7 @@ dialog.sheet.is-closing::backdrop {
 .notes__title-row {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--space-xs-sm);
 }
 
 .notes__list {
@@ -2128,13 +2128,13 @@ dialog.sheet.is-closing::backdrop {
 .note__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .meta-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 30px;
   padding: 0 var(--space-sm);
   border-radius: var(--radius-pill);
@@ -2182,11 +2182,11 @@ dialog.sheet.is-closing::backdrop {
 .note__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .tag {
-  padding: var(--space-2xs) 10px;
+  padding: var(--space-2xs) var(--space-xs-sm);
   border-radius: var(--radius-pill);
   background: var(--accent-wash);
   color: var(--accent-ink);
@@ -2215,7 +2215,7 @@ dialog.sheet.is-closing::backdrop {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-sm-md);
   padding: 8vh var(--space-xs) var(--space-xs);
   text-align: center;
 }
@@ -2242,20 +2242,20 @@ dialog.sheet.is-closing::backdrop {
 .thread {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: calc(18 * var(--space-px));
 }
 
 .msg {
   display: flex;
   align-items: flex-end;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   scroll-margin-bottom: calc(var(--safe-bottom) + var(--dock-height) + 112px);
   animation: rise var(--dur-base) var(--ease-out);
 }
 
 @media (min-width: 1024px) {
   .msg {
-    scroll-margin-bottom: 104px;
+    scroll-margin-bottom: calc(104 * var(--space-px));
   }
 }
 
@@ -2293,13 +2293,13 @@ dialog.sheet.is-closing::backdrop {
 .answers {
   display: flex;
   flex-direction: column;
-  margin: 10px -8px 0;
+  margin: var(--space-xs-sm) calc(-1 * var(--space-xs)) 0;
 }
 
 .answer {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
+  gap: var(--space-xs-sm);
   padding: var(--space-xs);
   border-radius: var(--radius-sm);
   text-align: left;
@@ -2320,8 +2320,8 @@ dialog.sheet.is-closing::backdrop {
 .bubble__foot {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 10px;
+  gap: var(--space-2xs-xs);
+  margin-top: var(--space-xs-sm);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -2334,7 +2334,7 @@ dialog.sheet.is-closing::backdrop {
 .typing-dots {
   display: inline-flex;
   gap: var(--space-2xs);
-  padding: 6px var(--space-3xs);
+  padding: var(--space-2xs-xs) var(--space-3xs);
 }
 
 .typing-dots span {
@@ -2372,7 +2372,7 @@ dialog.sheet.is-closing::backdrop {
   align-items: center;
   gap: var(--space-xs);
   margin-top: auto;
-  padding: 6px 6px 6px 18px;
+  padding: var(--space-2xs-xs) var(--space-2xs-xs) var(--space-2xs-xs) calc(18 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -2466,7 +2466,7 @@ dialog.sheet.is-closing::backdrop {
 .toolbar__btn.voice-btn::after {
   content: "";
   position: absolute;
-  inset: -4px;
+  inset: -4px; /* fixed: touch */
 }
 
 .toolbar__btn.voice-btn svg {
@@ -2485,7 +2485,7 @@ dialog.sheet.is-closing::backdrop {
 }
 
 .composer-bar.voice-active {
-  padding-left: 6px;
+  padding-left: var(--space-2xs-xs);
 }
 
 .ask.is-listening .ask__intro .orb {
@@ -2537,7 +2537,7 @@ dialog.sheet.is-closing::backdrop {
 .voice-bar__btn::after {
   content: "";
   position: absolute;
-  inset: -4px;
+  inset: -4px; /* fixed: touch */
 }
 
 .voice-bar__btn svg {
@@ -2589,9 +2589,9 @@ dialog.sheet.is-closing::backdrop {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   height: 36px;
-  padding: 0 6px 0 var(--space-2xs);
+  padding: 0 var(--space-2xs-xs) 0 var(--space-2xs);
 }
 
 .voice-bar__dot {
@@ -2631,7 +2631,7 @@ dialog.sheet.is-closing::backdrop {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
   overflow: hidden;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
   mask-image: linear-gradient(to right, transparent, #000 28px);
@@ -2730,7 +2730,7 @@ dialog.sheet.is-closing::backdrop {
 .voice-bar__action::after {
   content: "";
   position: absolute;
-  inset: -4px 0;
+  inset: -4px 0; /* fixed: touch */
 }
 
 .voice-bar__action:active {
@@ -2745,9 +2745,9 @@ dialog.sheet.is-closing::backdrop {
 .dictation-mark {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0 var(--space-3xs);
-  padding: 0 9px 0 var(--space-xs);
+  padding: 0 calc(9 * var(--space-px)) 0 var(--space-xs);
   border-radius: var(--radius-pill);
   background: var(--accent-wash);
   color: var(--accent-ink);
@@ -2870,7 +2870,7 @@ dialog.sheet.is-closing::backdrop {
 .field {
   width: 100%;
   height: 48px;
-  padding: 0 14px;
+  padding: 0 var(--space-sm-md);
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--sunken);
@@ -2926,7 +2926,7 @@ dialog.sheet.is-closing::backdrop {
 .connect__help .text-link::after {
   content: "";
   position: absolute;
-  inset: -13px -6px;
+  inset: -13px -6px; /* fixed: touch */
 }
 
 /* The other way in: the same size of button as Connect, set apart by a hairline. */
@@ -2953,7 +2953,7 @@ dialog.sheet.is-closing::backdrop {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .note__bar .note__chips {
@@ -2972,7 +2972,7 @@ dialog.sheet.is-closing::backdrop {
 
 .meta-select-icon {
   position: absolute;
-  left: 12px;
+  left: var(--space-sm);
   display: inline-flex;
   pointer-events: none;
   color: var(--ink-3);
@@ -2986,7 +2986,7 @@ dialog.sheet.is-closing::backdrop {
 .meta-select {
   appearance: none;
   padding-left: var(--space-xl);
-  padding-right: 28px;
+  padding-right: var(--space-lg-xl);
   cursor: pointer;
   background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
   background-position: calc(100% - 15px) 13px, calc(100% - 11px) 13px;
@@ -3054,7 +3054,7 @@ dialog.sheet.is-closing::backdrop {
 
 .sheet__panel:has(> .note__toolbar--docked) .toolbar__menu {
   top: auto;
-  bottom: calc(var(--dock-h, 64px) + 6px);
+  bottom: calc(var(--dock-h, 64px) + var(--space-2xs-xs));
 }
 
 .toolbar {
@@ -3096,7 +3096,7 @@ dialog.sheet.is-closing::backdrop {
   gap: var(--space-2xs);
   height: 36px;
   min-width: 36px;
-  padding: 0 10px;
+  padding: 0 var(--space-xs-sm);
   border-radius: var(--radius-pill);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -3161,8 +3161,8 @@ dialog.sheet.is-closing::backdrop {
 
 .toolbar__style-wrap .toolbar__menu {
   position: absolute;
-  top: calc(100% + 8px);
-  left: -4px;
+  top: calc(100% + var(--space-xs));
+  left: calc(-1 * var(--space-2xs));
 }
 
 .menu__check {
@@ -3249,7 +3249,7 @@ dialog.sheet.is-closing::backdrop {
 .editor__content ul[data-type="taskList"] li {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-xs-sm);
 }
 
 .editor__content ul[data-type="taskList"] li > label {
@@ -3282,7 +3282,7 @@ dialog.sheet.is-closing::backdrop {
 }
 
 .editor__content code {
-  padding: 1px 5px;
+  padding: 1px calc(5 * var(--space-px));
   border-radius: var(--radius-xs);
   background: var(--sunken);
   font-size: 0.9em;
@@ -3322,7 +3322,7 @@ dialog.sheet.is-closing::backdrop {
 /* Mentions: quiet, tappable chips inline with the text */
 .mention {
   display: inline;
-  padding: 1px 6px;
+  padding: 1px var(--space-2xs-xs);
   border-radius: var(--radius-xs);
   background: var(--accent-wash);
   color: var(--accent-ink);
@@ -3374,7 +3374,7 @@ dialog.sheet.is-closing::backdrop {
   gap: var(--space-sm);
   width: 100%;
   min-height: 48px;
-  padding: 6px 10px;
+  padding: var(--space-2xs-xs) var(--space-xs-sm);
   border-radius: var(--radius-sm);
   text-align: left;
 }
@@ -3476,13 +3476,13 @@ dialog.sheet.is-closing::backdrop {
 .link-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .link-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 34px;
   padding: 0 var(--space-sm);
   border: 1px solid var(--line);
@@ -3594,7 +3594,7 @@ dialog.sheet.is-closing::backdrop {
 
 .row--compact {
   align-items: center;
-  padding-block: 10px;
+  padding-block: var(--space-xs-sm);
 }
 
 .note__body--preview {
@@ -3680,7 +3680,7 @@ dialog.confirm::backdrop {
 }
 
 .toast__action {
-  margin-left: 6px;
+  margin-left: var(--space-2xs-xs);
   height: 32px;
   padding: 0 var(--space-sm);
   border-radius: var(--radius-pill);
@@ -3700,7 +3700,7 @@ dialog.confirm::backdrop {
 .segmented {
   display: flex;
   gap: var(--space-3xs);
-  padding: 3px;
+  padding: calc(3 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
   overflow-x: auto;
@@ -3725,7 +3725,7 @@ dialog.confirm::backdrop {
     color var(--dur-fast) var(--ease-out);
 }
 
-/* The segmented bar scrolls sideways, which would clip a margin: its items grow to fill 44px instead. */
+/* The segmented bar scrolls sideways, which would clip a margin: its items grow to fill calc(44 * var(--space-px)) instead. */
 @media (pointer: coarse) {
   .segmented__item {
     height: 38px;
@@ -4004,9 +4004,9 @@ dialog.confirm::backdrop {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 64px;
-  padding: 10px var(--space-2xs) 9px;
+  padding: var(--space-xs-sm) var(--space-2xs) calc(9 * var(--space-px));
   border-radius: var(--radius-md);
   background: var(--sunken);
   color: var(--ink);
@@ -4060,7 +4060,7 @@ dialog.confirm::backdrop {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-sm);
-  padding: 10px 14px 10px 10px;
+  padding: var(--space-xs-sm) var(--space-sm-md) var(--space-xs-sm) var(--space-xs-sm);
   border-radius: var(--radius-md);
   background: var(--sunken);
 }
@@ -4123,7 +4123,7 @@ dialog.confirm::backdrop {
 
 .profile__section > .prop__textarea {
   margin: 0;
-  padding: var(--space-sm) 14px;
+  padding: var(--space-sm) var(--space-sm-md);
   border-color: var(--line);
   border-radius: var(--radius-md);
   background-color: var(--surface);
@@ -4142,7 +4142,7 @@ dialog.confirm::backdrop {
   align-items: center;
   gap: var(--space-xs);
   min-height: 50px;
-  padding: 5px var(--space-sm) 5px var(--space-md);
+  padding: calc(5 * var(--space-px)) var(--space-sm) calc(5 * var(--space-px)) var(--space-md);
 }
 
 .prop + .prop::before {
@@ -4160,7 +4160,7 @@ dialog.confirm::backdrop {
 }
 
 .prop:has(textarea) .prop__label {
-  padding-top: 10px;
+  padding-top: var(--space-xs-sm);
 }
 
 .prop__label {
@@ -4181,7 +4181,7 @@ dialog.confirm::backdrop {
   flex: 1;
   min-width: 0;
   height: 40px;
-  padding: 0 10px;
+  padding: 0 var(--space-xs-sm);
   border: 1px solid transparent;
   border-radius: var(--radius-xs);
   background-color: transparent;
@@ -4194,7 +4194,7 @@ dialog.confirm::backdrop {
 }
 
 .prop__control > .prop__input:first-child {
-  margin-left: -10px;
+  margin-left: calc(-1 * var(--space-xs-sm));
 }
 
 .prop__input::-webkit-date-and-time-value {
@@ -4260,7 +4260,7 @@ dialog.confirm::backdrop {
 .prop__textarea {
   height: auto;
   min-height: 64px;
-  padding-block: 9px;
+  padding-block: calc(9 * var(--space-px));
   resize: none;
   line-height: var(--leading-body);
 }
@@ -4276,7 +4276,7 @@ dialog.confirm::backdrop {
 .prop__inline {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-small);
   color: var(--ink-2);
   white-space: nowrap;
@@ -4314,7 +4314,7 @@ dialog.confirm::backdrop {
 }
 
 .prop__toggles {
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin-inline: 0;
   padding: 0;
   -webkit-mask-image: none;
@@ -4333,7 +4333,7 @@ dialog.confirm::backdrop {
 }
 
 .group__count {
-  margin-left: 6px;
+  margin-left: var(--space-2xs-xs);
   color: var(--ink-3);
   font-weight: var(--weight-medium);
 }
@@ -4355,8 +4355,8 @@ dialog.confirm::backdrop {
 .switch::before {
   content: "";
   position: absolute;
-  top: 3px;
-  left: 3px;
+  top: 3px; /* fixed: cell */
+  left: 3px; /* fixed: cell */
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -4398,7 +4398,7 @@ dialog.confirm::backdrop {
 .briefing {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 14px;
+  gap: var(--space-sm-md);
   align-items: center;
   background: linear-gradient(135deg, var(--accent-wash), var(--surface) 65%);
 }
@@ -4444,12 +4444,12 @@ dialog.confirm::backdrop {
 .person--button {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   width: 100%;
   min-width: 0;
   min-height: 40px;
-  margin: -4px -6px;
-  padding: var(--space-2xs) 6px;
+  margin: calc(-1 * var(--space-2xs)) calc(-1 * var(--space-2xs-xs));
+  padding: var(--space-2xs) var(--space-2xs-xs);
   border-radius: var(--radius-xs);
   text-align: left;
 }
@@ -4520,7 +4520,7 @@ dialog.confirm::backdrop {
 .reminders__head {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
+  gap: var(--space-sm-md);
   align-items: start;
 }
 
@@ -4672,7 +4672,7 @@ dialog.confirm::backdrop {
 .remind-row__done::after {
   content: "";
   position: absolute;
-  inset: -8px;
+  inset: -8px; /* fixed: touch */
 }
 
 .remind-row__done svg {
@@ -4750,12 +4750,12 @@ dialog.confirm::backdrop {
 }
 
 .choice {
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .chip--sm {
   height: 30px;
-  padding: 0 11px;
+  padding: 0 calc(11 * var(--space-px));
   font-size: var(--text-meta);
 }
 
@@ -4769,20 +4769,20 @@ dialog.confirm::backdrop {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   flex: 1;
   min-width: 0;
   padding-block: var(--space-2xs);
 }
 
 .due-picker > .prop__input {
-  margin-left: -10px;
+  margin-left: calc(-1 * var(--space-xs-sm));
   flex: none;
   width: calc(100% + 10px);
 }
 
 .due-picker__chips {
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0;
   padding: 0;
   -webkit-mask-image: none;
@@ -4800,7 +4800,7 @@ dialog.confirm::backdrop {
 }
 
 .picker__input {
-  margin-left: -10px;
+  margin-left: calc(-1 * var(--space-xs-sm));
 }
 
 .picker__chip-slot:empty {
@@ -4840,7 +4840,7 @@ dialog.confirm::backdrop {
 .picker__clear::after {
   content: "";
   position: absolute;
-  inset: -9px;
+  inset: -9px; /* fixed: touch */
 }
 
 .picker__clear svg {
@@ -4858,8 +4858,8 @@ dialog.confirm::backdrop {
 .picker__list {
   position: absolute;
   z-index: var(--z-popover);
-  top: calc(100% + 6px);
-  left: -10px;
+  top: calc(100% + var(--space-2xs-xs));
+  left: calc(-1 * var(--space-xs-sm));
   right: 0;
   max-height: 260px;
   overflow-y: auto;
@@ -4877,9 +4877,9 @@ dialog.confirm::backdrop {
 .picker__option {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   min-height: 44px;
-  padding: 6px var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-xs);
   cursor: pointer;
 }
@@ -4934,14 +4934,14 @@ dialog.confirm::backdrop {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: var(--space-3xs);
-  padding: var(--space-2xs) var(--space-md) var(--space-2xs) 6px;
+  padding: var(--space-2xs) var(--space-md) var(--space-2xs) var(--space-2xs-xs);
 }
 
 .list > .loop + .loop::before {
   content: "";
   position: absolute;
   top: 0;
-  left: 50px;
+  left: 50px; /* fixed: icon */
   right: var(--space-md);
   height: 1px;
   background: var(--line);
@@ -5027,8 +5027,8 @@ dialog.confirm::backdrop {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 11px 0 10px;
+  gap: calc(3 * var(--space-px));
+  padding: calc(11 * var(--space-px)) 0 var(--space-xs-sm);
   text-align: left;
 }
 
@@ -5061,7 +5061,7 @@ dialog.confirm::backdrop {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2xs) 10px;
+  gap: var(--space-2xs) var(--space-xs-sm);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -5150,7 +5150,7 @@ dialog.confirm::backdrop {
 .loops__link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-small);
 }
 
@@ -5204,9 +5204,9 @@ dialog.confirm::backdrop {
 .quick-add {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   height: 52px;
-  padding: 0 6px 0 17px;
+  padding: 0 var(--space-2xs-xs) 0 calc(17 * var(--space-px));
   border-radius: var(--radius-md);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -5291,12 +5291,12 @@ dialog.confirm::backdrop {
 }
 
 .loop-sheet__top .choice {
-  gap: 5px;
+  gap: calc(5 * var(--space-px));
 }
 
 .loop-sheet__top .choice .chip {
   height: 32px;
-  padding: 0 10px;
+  padding: 0 var(--space-xs-sm);
 }
 
 .prop:has(.due-picker) {
@@ -5304,7 +5304,7 @@ dialog.confirm::backdrop {
 }
 
 .prop:has(.due-picker) .prop__label {
-  padding-top: 15px;
+  padding-top: calc(15 * var(--space-px));
 }
 
 /* On a phone the four kinds fit on one line without their icons. */
@@ -5338,7 +5338,7 @@ dialog.confirm::backdrop {
 .sheet-hint {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin-top: calc(-1 * var(--space-xs));
   padding-inline: var(--space-2xs);
   font-size: var(--text-meta);
@@ -5365,7 +5365,7 @@ dialog.confirm::backdrop {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   color: var(--ink-2);
 }
@@ -5435,7 +5435,7 @@ dialog.confirm::backdrop {
 .suggestion__head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
 }
 
 .suggestion__kind {
@@ -5476,7 +5476,7 @@ dialog.confirm::backdrop {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -5499,7 +5499,7 @@ dialog.confirm::backdrop {
   top: var(--space-md);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 30px;
   padding: 0 var(--space-sm);
   border-radius: var(--radius-pill);
@@ -5560,7 +5560,7 @@ dialog.confirm::backdrop {
 }
 
 .week__range {
-  margin-top: -6px;
+  margin-top: calc(-1 * var(--space-2xs-xs));
   font-size: var(--text-small);
   color: var(--ink-3);
 }
@@ -5603,7 +5603,7 @@ dialog.confirm::backdrop {
 .week__tally {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2xs) 14px;
+  gap: var(--space-2xs) var(--space-sm-md);
   font-size: var(--text-small);
   color: var(--ink-2);
 }
@@ -5627,7 +5627,7 @@ dialog.confirm::backdrop {
 .week__goals li {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px 10px;
+  gap: var(--space-2xs-xs) var(--space-xs-sm);
   align-items: center;
 }
 
@@ -5755,7 +5755,7 @@ dialog.confirm::backdrop {
 
 .goal__top {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .goal__title {
@@ -5775,7 +5775,7 @@ dialog.confirm::backdrop {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   margin-top: var(--space-2xs);
 }
 
@@ -5820,7 +5820,7 @@ dialog.confirm::backdrop {
   appearance: none;
   width: 24px;
   height: 24px;
-  margin-top: -8px;
+  margin-top: -8px; /* fixed: icon */
   border-radius: 50%;
   background: var(--surface);
   border: 1px solid var(--line-strong);
@@ -5879,7 +5879,7 @@ dialog.confirm::backdrop {
 .assist__foot {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding-left: var(--space-2xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
@@ -5976,7 +5976,7 @@ dialog.confirm::backdrop {
 
 .change__undo {
   height: 32px;
-  padding: 0 14px;
+  padding: 0 var(--space-sm-md);
 }
 
 .change__state {
@@ -6007,7 +6007,7 @@ dialog.confirm::backdrop {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  margin-top: 14px;
+  margin-top: var(--space-sm-md);
 }
 
 @media (min-width: 640px) {
@@ -6161,7 +6161,7 @@ dialog.confirm::backdrop {
 .row__trail {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
 }
 
@@ -6179,7 +6179,7 @@ dialog.confirm::backdrop {
 .count-pill {
   min-width: 30px;
   height: 24px;
-  padding: 0 9px;
+  padding: 0 calc(9 * var(--space-px));
   display: inline-grid;
   place-items: center;
   border-radius: var(--radius-pill);
@@ -6194,7 +6194,7 @@ dialog.confirm::backdrop {
 .conn-status {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: calc(7 * var(--space-px));
   font-size: var(--text-small);
   color: var(--ink-2);
 }
@@ -6229,7 +6229,7 @@ dialog.confirm::backdrop {
 }
 
 .conn-status--compact {
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
   white-space: nowrap;
@@ -6260,7 +6260,7 @@ dialog.confirm::backdrop {
   align-items: center;
   gap: var(--space-2xs);
   height: 28px;
-  padding: 0 10px 0 6px;
+  padding: 0 var(--space-xs-sm) 0 var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -6279,7 +6279,7 @@ dialog.confirm::backdrop {
 }
 
 .connectors .notes__head .page-lede {
-  margin-top: -6px;
+  margin-top: calc(-1 * var(--space-2xs-xs));
 }
 
 .conn-foot,
@@ -6287,7 +6287,7 @@ dialog.confirm::backdrop {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding: var(--space-2xs) 0;
   font-size: var(--text-meta);
   color: var(--ink-3);
@@ -6407,7 +6407,7 @@ dialog.confirm::backdrop {
 }
 
 .conn-hero {
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .conn-hero > .logo,
@@ -6480,8 +6480,8 @@ dialog.confirm::backdrop {
 .perm {
   flex: none;
   height: 34px;
-  padding: 0 22px 0 10px;
-  margin-right: -6px;
+  padding: 0 calc(22 * var(--space-px)) 0 var(--space-xs-sm);
+  margin-right: calc(-1 * var(--space-2xs-xs));
   border: 0;
   border-radius: var(--radius-xs);
   appearance: none;
@@ -6537,7 +6537,7 @@ dialog.confirm::backdrop {
 .sheet__lead {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
 }
 
@@ -6552,7 +6552,7 @@ dialog.confirm::backdrop {
 }
 
 .sheet__back {
-  margin-left: -6px;
+  margin-left: calc(-1 * var(--space-2xs-xs));
 }
 
 .cf {
@@ -6662,7 +6662,7 @@ dialog.confirm::backdrop {
 .dir--services .dir__meta {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
   margin-top: var(--space-3xs);
 }
 
@@ -6756,7 +6756,7 @@ dialog.confirm::backdrop {
 }
 
 .dir__tagline {
-  margin-top: 3px;
+  margin-top: calc(3 * var(--space-px));
   font-size: var(--text-small);
   color: var(--ink-2);
   line-height: var(--leading-snug);
@@ -6846,7 +6846,7 @@ dialog.confirm::backdrop {
 .form__more > summary {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 32px;
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -6886,7 +6886,7 @@ dialog.confirm::backdrop {
 .cf-redirect {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   background: var(--sunken);
@@ -6919,7 +6919,7 @@ dialog.confirm::backdrop {
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
   gap: var(--space-3xs);
-  padding: 3px;
+  padding: calc(3 * var(--space-px));
   border-radius: var(--radius-sm);
   background: var(--sunken);
 }
@@ -7262,7 +7262,7 @@ dialog.confirm::backdrop {
   gap: var(--space-xs);
   align-items: center;
   margin-top: var(--space-xs);
-  padding: 6px 6px 6px var(--space-sm);
+  padding: var(--space-2xs-xs) var(--space-2xs-xs) var(--space-2xs-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
 }
@@ -7340,7 +7340,7 @@ dialog.confirm::backdrop {
   gap: var(--space-xs);
   align-items: center;
   margin-top: var(--space-xs);
-  padding: 6px 6px 6px var(--space-sm);
+  padding: var(--space-2xs-xs) var(--space-2xs-xs) var(--space-2xs-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--surface);
 }
@@ -7391,7 +7391,7 @@ dialog.confirm::backdrop {
 .rsvp {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .rsvp__seg {
@@ -7402,7 +7402,7 @@ dialog.confirm::backdrop {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 40px;
   border-radius: var(--radius-sm);
 }
@@ -7449,7 +7449,7 @@ dialog.confirm::backdrop {
 .rsvp__note {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 24px;
   margin: 0;
   padding: 0 var(--space-2xs);
@@ -7481,7 +7481,7 @@ dialog.confirm::backdrop {
 .rsvp__choice {
   display: inline-flex;
   flex: none;
-  gap: 14px;
+  gap: var(--space-sm-md);
   margin-left: auto;
 }
 
@@ -7507,7 +7507,7 @@ dialog.confirm::backdrop {
 /* Events list and Home: your answer as a quiet label (views/records.ts, views/home.ts). */
 .badge--rsvp {
   height: 18px;
-  padding: 0 7px;
+  padding: 0 calc(7 * var(--space-px));
   background: transparent;
   box-shadow: inset 0 0 0 1px var(--line);
   color: var(--ink-3);
@@ -7538,5 +7538,5 @@ dialog.confirm::backdrop {
 /* A mention chip in a note's body (the briefing's "Marcus Webb: last spoke …"): no trailing margin, so a colon or comma sits against the pill. */
 .note .rl-mention {
   margin-right: 0;
-  padding-right: 6px;
+  padding-right: var(--space-2xs-xs);
 }

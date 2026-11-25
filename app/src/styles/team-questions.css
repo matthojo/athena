@@ -8,7 +8,7 @@
 
 .tq {
   display: grid;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   margin: 0;
   padding: 0;
   border: 0;
@@ -34,7 +34,7 @@
   display: inline-flex;
   align-items: center;
   min-height: 36px;
-  padding: 0 14px;
+  padding: 0 var(--space-sm-md);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: var(--sunken);
@@ -51,7 +51,7 @@
 .tq__chip::after {
   content: "";
   position: absolute;
-  inset: -4px -2px;
+  inset: -4px -2px; /* fixed: touch */
 }
 
 .tq__chip:active {
@@ -85,7 +85,7 @@
 .tq__other {
   width: 100%;
   min-height: 44px;
-  padding: 10px 14px;
+  padding: var(--space-xs-sm) var(--space-sm-md);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);

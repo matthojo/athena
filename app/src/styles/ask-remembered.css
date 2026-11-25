@@ -4,7 +4,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  column-gap: 6px;
+  column-gap: var(--space-2xs-xs);
   row-gap: var(--space-3xs);
   margin: var(--space-xs) 0 0;
   font-size: var(--text-meta);
@@ -31,7 +31,7 @@
 /* A 44px target that reads as a word in the line. */
 .remembered__undo {
   min-height: 44px;
-  margin: -12px -8px;
+  margin: calc(-1 * var(--space-sm)) calc(-1 * var(--space-xs));
   padding: 0 var(--space-xs);
   border: 0;
   background: none;

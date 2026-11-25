@@ -90,7 +90,7 @@
 .where__private {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -118,7 +118,7 @@
 .tlimp-example {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -161,7 +161,7 @@
   display: grid;
   grid-template-columns: repeat(12, 4px);
   align-items: end;
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
   height: 28px;
   padding-left: var(--space-xs);
 }

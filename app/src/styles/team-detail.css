@@ -19,8 +19,8 @@
   align-items: center;
   gap: var(--space-2xs);
   min-height: 44px;
-  margin-left: -10px;
-  padding: 0 var(--space-sm) 0 6px;
+  margin-left: calc(-1 * var(--space-xs-sm));
+  padding: 0 var(--space-sm) 0 var(--space-2xs-xs);
   border: 0;
   border-radius: var(--radius-pill);
   background: none;
@@ -101,7 +101,7 @@
   left: 50%;
   top: calc(100% - 22px);
   margin: 0;
-  padding: 5px var(--space-sm);
+  padding: calc(5 * var(--space-px)) var(--space-sm);
   border-radius: var(--radius-pill);
   background: var(--ink);
   color: var(--on-ink);
@@ -117,7 +117,7 @@
   content: "";
   position: absolute;
   left: 50%;
-  top: -4px;
+  top: -4px; /* fixed: icon */
   width: 9px;
   height: 9px;
   border-radius: var(--radius-3xs);
@@ -150,7 +150,7 @@
 /* Name and job read as text until touched. */
 .td-inplace {
   width: 100%;
-  margin: 0 0 0 -9px;
+  margin: 0 0 0 calc(-9 * var(--space-px));
   padding: 1px var(--space-xs);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
@@ -212,7 +212,7 @@
 .td-status {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: calc(7 * var(--space-px));
   min-height: 22px;
   margin: var(--space-2xs) 0 0;
   color: var(--ink-3);
@@ -280,10 +280,10 @@
 
 /* Rename: one quiet control beside Chat and Run now. No fill, no border; a 44px target. */
 .td-rename {
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 44px;
   min-height: 48px;
-  padding-inline: 10px;
+  padding-inline: var(--space-xs-sm);
   color: var(--ink-2);
 }
 
@@ -309,7 +309,7 @@
 @media (min-width: 760px) {
   .td-chat,
   .td-start {
-    padding-inline: 20px;
+    padding-inline: var(--space-md-lg);
   }
 }
 
@@ -457,7 +457,7 @@
   grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: start;
   gap: var(--space-sm);
-  padding: 14px var(--space-md);
+  padding: var(--space-sm-md) var(--space-md);
 }
 
 /* A run that doesn't open (one that didn't finish) keeps the chevron's column empty, so its time lines up with the rest. */
@@ -521,7 +521,7 @@
 .tdw-run__main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
   min-width: 0;
 }
 
@@ -562,7 +562,7 @@
 .tdw-run__waits {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   color: var(--accent-ink);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -675,7 +675,7 @@
 }
 
 .tdw-now__pulse {
-  margin-right: 6px;
+  margin-right: var(--space-2xs-xs);
 }
 
 .tdw-empty {
@@ -712,7 +712,7 @@
 
 .tdw-more {
   justify-self: start;
-  margin-left: -10px;
+  margin-left: calc(-1 * var(--space-xs-sm));
   color: var(--ink-2);
 }
 
@@ -749,8 +749,8 @@
 }
 
 .td-sec__head .btn {
-  margin: -6px -10px -6px 0;
-  gap: 6px;
+  margin: calc(-1 * var(--space-2xs-xs)) calc(-1 * var(--space-xs-sm)) calc(-1 * var(--space-2xs-xs)) 0;
+  gap: var(--space-2xs-xs);
 }
 
 .td-sec__head .btn svg {
@@ -780,7 +780,7 @@
   row-gap: var(--space-3xs);
   width: 100%;
   min-height: 56px;
-  padding: 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-sm);
   border: 0;
   border-radius: var(--radius-md);
   background: none;
@@ -905,7 +905,7 @@
 
 .tdb-sheet__foot .btn {
   min-height: 44px;
-  padding-inline: 20px;
+  padding-inline: var(--space-md-lg);
 }
 
 /* What it knows about you. */
@@ -936,7 +936,7 @@
   align-items: center;
   gap: var(--space-3xs);
   min-height: 36px;
-  padding: 0 var(--space-2xs) 0 14px;
+  padding: 0 var(--space-2xs) 0 var(--space-sm-md);
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink);
@@ -965,7 +965,7 @@
 }
 
 .tdm-all {
-  margin-right: -10px;
+  margin-right: calc(-1 * var(--space-xs-sm));
   color: var(--ink-2);
 }
 
@@ -994,7 +994,7 @@
 .td-delete {
   justify-self: start;
   gap: var(--space-xs);
-  margin-left: -10px;
+  margin-left: calc(-1 * var(--space-xs-sm));
   color: var(--bad);
 }
 
@@ -1029,7 +1029,7 @@
 .td-area {
   width: 100%;
   min-height: 140px;
-  padding: 14px var(--space-md);
+  padding: var(--space-sm-md) var(--space-md);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -1095,7 +1095,7 @@
 
 .td-bubble {
   margin: 0;
-  padding: 10px var(--space-md);
+  padding: var(--space-xs-sm) var(--space-md);
   border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-xs);
   background: var(--sunken);
   color: var(--ink);
@@ -1132,7 +1132,7 @@
 
 .td-more {
   justify-self: start;
-  margin: var(--space-2xs) 0 0 -10px;
+  margin: var(--space-2xs) 0 0 calc(-1 * var(--space-xs-sm));
   color: var(--ink-2);
 }
 
@@ -1175,7 +1175,7 @@
 
 .tds-steps {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0;
   padding-left: 1.4em;
   list-style: decimal;
@@ -1299,7 +1299,7 @@
 .tds-each summary {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 40px;
   color: var(--ink-2);
   font-size: var(--text-small);
@@ -1316,7 +1316,7 @@
   content: "";
   width: 7px;
   height: 7px;
-  margin-top: -3px;
+  margin-top: -3px; /* fixed: icon */
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   transform: rotate(45deg);
@@ -1324,7 +1324,7 @@
 }
 
 .tds-each[open] summary::after {
-  margin-top: 3px;
+  margin-top: calc(3 * var(--space-px));
   transform: rotate(-135deg);
 }
 
@@ -1350,7 +1350,7 @@
   column-gap: var(--space-md);
   row-gap: var(--space-3xs);
   min-height: 56px;
-  padding: 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-sm);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background-color var(--dur-fast) var(--ease-out);
@@ -1420,7 +1420,7 @@
 
 .tdb-web__follows {
   grid-area: follows;
-  margin-top: 6px;
+  margin-top: var(--space-2xs-xs);
   color: var(--ink-3);
   font-size: var(--text-small);
   line-height: var(--leading-snug);
@@ -1431,8 +1431,8 @@
 .tdb-web__need {
   grid-area: need;
   justify-self: start;
-  margin-block: var(--space-2xs) 6px;
-  padding: 6px var(--space-sm);
+  margin-block: var(--space-2xs) var(--space-2xs-xs);
+  padding: var(--space-2xs-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
   color: var(--ink-2);

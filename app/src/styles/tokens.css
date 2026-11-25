@@ -123,14 +123,27 @@
   --weight-semibold: 600;
 
   /* ---------- Space (4pt), times --theme-density ---------- */
+  /* Every padding, margin, gap and inset in the app is one of these, so
+     density reaches all of it (lib/theme-surface.test.ts). A half-step,
+     named for the two steps it sits between (--space-xs-sm is 10), covers
+     the 6, 10 and 14px the interface was drawn with. A length off both,
+     like 3 or 18, is written in density pixels: calc(3 * var(--space-px)). */
+  --space-px: calc(1px * var(--theme-density));
   --space-3xs: calc(2px * var(--theme-density));
   --space-2xs: calc(4px * var(--theme-density));
+  --space-2xs-xs: calc(6px * var(--theme-density));
   --space-xs: calc(8px * var(--theme-density));
+  --space-xs-sm: calc(10px * var(--theme-density));
   --space-sm: calc(12px * var(--theme-density));
+  --space-sm-md: calc(14px * var(--theme-density));
   --space-md: calc(16px * var(--theme-density));
+  --space-md-lg: calc(20px * var(--theme-density));
   --space-lg: calc(24px * var(--theme-density));
+  --space-lg-xl: calc(28px * var(--theme-density));
   --space-xl: calc(32px * var(--theme-density));
+  --space-xl-2xl: calc(40px * var(--theme-density));
   --space-2xl: calc(48px * var(--theme-density));
+  --space-2xl-3xl: calc(56px * var(--theme-density));
   --space-3xl: calc(64px * var(--theme-density));
 
   /* ---------- Shape, times --theme-radius (a pill stays a pill) ---------- */

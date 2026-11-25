@@ -67,7 +67,7 @@
 .cm-filters {
   display: flex;
   gap: var(--space-3xs);
-  padding: 3px;
+  padding: calc(3 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
   overflow-x: auto;
@@ -93,7 +93,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .cm-filter[aria-pressed="true"] {
@@ -198,7 +198,7 @@
 
 .cm-sort__item {
   height: 30px;
-  padding: 0 10px;
+  padding: 0 var(--space-xs-sm);
   border-radius: var(--radius-pill);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
@@ -357,9 +357,9 @@
 .cm-tier {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5 * var(--space-px));
   height: 26px;
-  padding: 0 10px 0 var(--space-xs);
+  padding: 0 var(--space-xs-sm) 0 var(--space-xs);
   border-radius: var(--radius-pill);
   background: var(--sunken);
   font-size: var(--text-meta);
@@ -403,8 +403,8 @@
 .cm-needs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 6px 0 0;
+  gap: var(--space-2xs-xs);
+  margin: var(--space-2xs-xs) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -412,9 +412,9 @@
 .cm-need {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 26px;
-  padding: 0 10px 0 var(--space-2xs);
+  padding: 0 var(--space-xs-sm) 0 var(--space-2xs);
   border-radius: var(--radius-pill);
   border: 1px dashed var(--line-strong);
   font-size: var(--text-meta);
@@ -707,7 +707,7 @@
   flex: none;
   width: 8px;
   height: 8px;
-  margin-left: 6px;
+  margin-left: var(--space-2xs-xs);
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-wash);

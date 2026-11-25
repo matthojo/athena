@@ -124,7 +124,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
-  padding: var(--space-3xs) 9px;
+  padding: var(--space-3xs) calc(9 * var(--space-px));
   border-radius: var(--radius-pill);
   background: color-mix(in oklch, var(--chart-1) 12%, var(--surface));
   color: color-mix(in oklch, var(--chart-1) 78%, var(--ink));
@@ -177,7 +177,7 @@
   gap: var(--space-sm);
   width: 100%;
   min-height: 52px;
-  padding: 6px var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-sm);
   text-align: left;
   color: inherit;
@@ -206,7 +206,7 @@
 .wk-rank__body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
 }
 
@@ -308,7 +308,7 @@ li:not(:first-child) > .wk-rank .wk-rank__fill {
 .wk-bins {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -356,7 +356,7 @@ li:not(:first-child) > .wk-rank .wk-rank__fill {
   align-items: center;
   gap: var(--space-sm);
   min-height: 48px;
-  padding: 6px var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-sm);
   color: inherit;
   text-decoration: none;
@@ -559,7 +559,7 @@ li:not(:first-child) > .wk-rank .wk-rank__fill {
   align-items: baseline;
   gap: var(--space-sm);
   min-height: 44px;
-  padding: 10px 0;
+  padding: var(--space-xs-sm) 0;
   color: inherit;
   text-decoration: none;
   font-size: var(--text-small);
