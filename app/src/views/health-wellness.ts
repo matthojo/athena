@@ -4,7 +4,8 @@
  * year as Body. A card per scale question (Mood, Energy, Rest, Stress,
  * Productivity, the owner's own), each its average in the question's own
  * words, then the change since the range before, a bar a day, week or
- * month (Mood: a coloured dot a day, week or month, components/mood-dots.ts),
+ * month (Mood, Energy, Rest and Stress: a coloured dot a day, week or month,
+ * components/scale-dots.ts),
  * and mornings against evenings; a card per word or area question
  * (Feelings, What affects how you feel, Main focus) with the ones picked
  * most; and the Mind card (mindful minutes, State of Mind), which moved
@@ -16,7 +17,7 @@
 import { h } from "../lib/dom";
 import { icons } from "../components/icons";
 import { healthChart, type ChartPoint } from "../components/health-chart";
-import { moodDots } from "../components/mood-dots";
+import { scaleDots } from "../components/scale-dots";
 import { buckets, fmt, type RangeInfo } from "../components/health-range";
 import { dotGrid, topPicks, answeredDays, cardOrder, checkedInLine, levelWord, mean, mornings, mornLine, oneplace, pickChange, questionTitle, rankPicks, scaleChange, scaleValues, type Ranked } from "../components/wellness-words";
 import { listWords } from "../components/checkin-rules";
@@ -43,6 +44,10 @@ export interface WellnessInput {
 }
 
 const SHOWN_PICKS = 6;
+/** The scale questions drawn as coloured dots; the rest keep their bars. */
+const DOTS = new Set(["mood", "energy", "rested", "stress"]);
+/** Where a high answer is the bad one, so the dots' colours run the other way. */
+const WORSE_HIGH = new Set(["stress"]);
 /** Answers needed before the range to say how it changed. */
 const MIN_TO_COMPARE = 5;
 
@@ -103,7 +108,7 @@ export function wellnessBody(o: WellnessInput): HTMLElement[] {
       source: askedWhen(answered),
       headline: now === null ? null : o.figure(levelWord(q, now), `${oneplace(now)} out of 5, on average`),
       sub: scaleChange(now, then, r.before),
-      chart: now === null ? null : q.id === "mood" ? moodChart(q) : healthChart({ kind: "bars", points, label: `${title} ${each}`, format: (v) => `${levelWord(q, v)} · ${oneplace(v)}`, reference: () => ({ value: 5, text: levelWord(q, 5) }) }),
+      chart: now === null ? null : DOTS.has(q.id) ? dotsChart(q) : healthChart({ kind: "bars", points, label: `${title} ${each}`, format: (v) => `${levelWord(q, v)} · ${oneplace(v)}`, reference: () => ({ value: 5, text: levelWord(q, 5) }) }),
       extra: split ? splitBlock(q, split) : null,
       empty: `Not answered in ${r.in}`,
       // The Mind card shows the mindful pattern, so Mood shows another one.
@@ -111,12 +116,12 @@ export function wellnessBody(o: WellnessInput): HTMLElement[] {
     });
   }
 
-  /** Mood as coloured dots: a day each over four weeks, a week over six months, a month over a year. */
-  function moodChart(q: CheckinQuestion): HTMLElement {
+  /** Coloured dots: a day each over four weeks, a week over six months, a month over a year. */
+  function dotsChart(q: CheckinQuestion): HTMLElement {
     const days = byDay(trends.days);
     const grid = dotGrid(r.id, end, (date) => scaleValues(days.get(date)?.all ?? [], q.id));
     const every = r.id === "4w" ? "each day" : `on average each ${r.id === "6m" ? "week" : "month"}`;
-    return moodDots({ grid, levels: [1, 2, 3, 4, 5].map((v) => levelWord(q, v)), label: `${questionTitle(q)} ${every}`, format: (v) => `${levelWord(q, v)} · ${oneplace(v)}` });
+    return scaleDots({ grid, worseHigh: WORSE_HIGH.has(q.id), levels: [1, 2, 3, 4, 5].map((v) => levelWord(q, v)), label: `${questionTitle(q)} ${every}`, format: (v) => `${levelWord(q, v)} · ${oneplace(v)}` });
   }
 
   function picksCard(q: CheckinQuestion): HTMLElement {

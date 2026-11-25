@@ -1,10 +1,11 @@
 /**
- * Mood as coloured dots (Health → Wellness, the Mood card): a dot a day over
- * four weeks, a week over six months, a month over a year
- * (components/wellness-words.ts dotGrid lays them out). Each dot is the
- * average of every mood answer in it, coloured by the nearest answer, low to
- * great: a diverging pair around a grey "okay" (tokens.css --mood-1 to 5,
- * validated). A hollow ring is a dot with no answer. Three steps are under
+ * A scale question as coloured dots (Health → Wellness: Mood, Energy, Rest
+ * and Stress): a dot a day over four weeks, a week over six months, a month
+ * over a year (components/wellness-words.ts dotGrid lays them out). Each dot
+ * is the average of every answer in it, coloured by the nearest answer from
+ * worst to best: a diverging pair around a grey middle (tokens.css --scale-1
+ * to 5, validated). Where a high answer is the bad one (Stress), the colours
+ * run the other way. A hollow ring is a dot with no answer. Three steps are under
  * 3:1 on the card, so the levels are always named: a legend with the
  * question's words, the same tooltip on pointer and keyboard as the other
  * charts, and a visually hidden table with every value.
@@ -13,24 +14,28 @@
 import { h } from "../lib/dom";
 import { stepOf, type DotCell, type DotGrid } from "./wellness-words";
 
-export interface MoodDotsOptions {
+export interface ScaleDotsOptions {
   grid: DotGrid;
-  /** The question's five levels, low first ("Low" … "Great"). */
+  /** The question's five levels, 1 first ("Low" … "Great"). */
   levels: string[];
+  /** A high answer is the bad one (Stress): 5 takes the worst colour. */
+  worseHigh?: boolean;
   /** "Mood each day": the chart's name and the table's caption. */
   label: string;
   format: (v: number) => string;
 }
 
-export function moodDots(o: MoodDotsOptions): HTMLElement {
+export function scaleDots(o: ScaleDotsOptions): HTMLElement {
+  /** The colour step for an answer: 1 is the worst colour, 5 the best. */
+  const tone = (step: number) => (o.worseHigh ? 6 - step : step);
   const cells: Array<{ cell: DotCell; dot: HTMLElement }> = [];
   const tip = h("div", { class: "mdots__tip", "aria-hidden": "true" });
   const live = h("span", { class: "visually-hidden", "aria-live": "polite" });
-  const text = (c: DotCell) => (c.value === null ? "No check-in" : o.format(c.value));
+  const text = (c: DotCell) => (c.value === null ? "No answer" : o.format(c.value));
 
   const dotFor = (c: DotCell | null): HTMLElement => {
     if (!c) return h("span", { class: "mdots__cell mdots__cell--gap" });
-    const dot = h("span", { class: `mdots__dot ${c.value === null ? "mdots__dot--none" : `mdots__dot--${stepOf(c.value)}`}` });
+    const dot = h("span", { class: `mdots__dot ${c.value === null ? "mdots__dot--none" : `mdots__dot--${tone(stepOf(c.value))}`}` });
     const cell = h("span", { class: "mdots__cell", "data-i": String(cells.length) }, dot, c.caption ? h("span", { class: "mdots__caption" }, c.caption) : null);
     cells.push({ cell: c, dot });
     return cell;
@@ -46,8 +51,8 @@ export function moodDots(o: MoodDotsOptions): HTMLElement {
   const legend = h(
     "ul",
     { class: "mdots__legend", "aria-label": "Key" },
-    ...o.levels.map((word, i) => h("li", {}, h("i", { class: `mdots__swatch mdots__dot--${i + 1}`, "aria-hidden": "true" }), word)),
-    h("li", {}, h("i", { class: "mdots__swatch mdots__dot--none", "aria-hidden": "true" }), "No check-in")
+    ...o.levels.map((word, i) => h("li", {}, h("i", { class: `mdots__swatch mdots__dot--${tone(i + 1)}`, "aria-hidden": "true" }), word)),
+    h("li", {}, h("i", { class: "mdots__swatch mdots__dot--none", "aria-hidden": "true" }), "No answer")
   );
 
   const table = h(
