@@ -4,14 +4,13 @@
  * files give; Athena works it out again from the bundle and trusts its own).
  *
  * - Tier 1: a flow whose every step stays inside Athena: finds, adds, checks, questions, waits and pushes.
- * - Tier 2: anything that uses a model (every skill and assistant; a flow's thinking, drafting or assignment steps;
- *   check-in questions that offer Go deeper) or looks something up outside Athena (the weather, a train, a flight:
- *   each named in `lookups`).
+ * - Tier 2: anything that uses a model (every skill and assistant; a flow's thinking, drafting or assignment steps)
+ *   or looks something up outside Athena (the weather, a train, a flight: each named in `lookups`).
  *
- * Check-in questions only ask, and their answers stay in the owner's Athena (their check-ins, and the day's journal
- * for written answers), so a set is tier 1, except that "Go deeper" on a written answer sends the question and what
- * the owner wrote to the model they chose, for one follow-up question. A set with any question that offers it is
- * tier 2, worked out per set (owner, 25 Nov 2026); the owner still taps the button each time.
+ * A set of check-in questions is always tier 1 (owner, 25 Nov 2026). Questions only ask, and answers stay in the
+ * owner's Athena (their check-ins, and the day's journal for written answers). "Go deeper" on a written answer sends
+ * the question and what the owner wrote to their model for one follow-up, but only when they tap it, as it does for
+ * their own questions; the Add screen and the share sheet say so.
  * - Tier 3: it asks to search the web.
  *
  * `needs` is the accounts the file says it needs, by provider, its event trigger's first. A need is never granted
@@ -20,7 +19,7 @@
 import { readShared, ShareFormatError } from "./team-share";
 import { allSharedSteps, checkSharedFlowSteps, FLOW_DRAFT_TOOLS, readSharedFlow, type SharedFlow } from "./flow-share";
 import { detectKind, KIND_FILES, kindOfFile, type ShareKind } from "./share-kinds";
-import { offersDeeper, readSharedCheckins, type SharedCheckins } from "./checkin-share";
+import { readSharedCheckins, type SharedCheckins } from "./checkin-share";
 
 export interface Reach {
   tier: 1 | 2 | 3;
@@ -76,9 +75,9 @@ export function reachOfSkill(): Reach {
   return reach({ model: true, web: false, lookups: [], needs: [] });
 }
 
-/** A set of check-in questions' reach: a model only through Go deeper, which the owner taps. Pure. */
-export function reachOfCheckins(set: Pick<SharedCheckins, "questions">): Reach {
-  return reach({ model: offersDeeper(set.questions), web: false, lookups: [], needs: [] });
+/** A set of check-in questions' reach: always tier 1. Go deeper reaches a model only when the owner taps it. Pure. */
+export function reachOfCheckins(_set: Pick<SharedCheckins, "questions">): Reach {
+  return reach({ model: false, web: false, lookups: [], needs: [] });
 }
 
 /** The files of an item, as a bundle carries them. */

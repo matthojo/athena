@@ -1,11 +1,11 @@
 /**
  * Sample check-ins, for sample mode and the screenshots: the server's routes
  * (lib/checkin-types.ts) answered from memory. Both routines are on, with
- * one question of the owner's own; the last three weeks have answers, made
+ * two questions of the owner's own (a scale and a written one); the last three weeks have answers, made
  * the same way every time for a given date (seeded, like db/sample-days.ts),
  * and today waits to be done. Edits live until the page reloads. The mood
  * scale sets the sample day's mood, and a written answer with the journal
- * mirror (Athena's own, or one from a shared set) swaps the check-in's
+ * mirror (Athena's own, the owner's own, or one from a shared set) swaps the check-in's
  * section in the sample day's journal, as the server's mirrors would
  * (lib/checkin-journal.ts).
  *
@@ -14,8 +14,8 @@
  * the server's would (lib/checkin-share.ts joinSharedCheckins).
  */
 
-import { DEFAULT_CHECKIN_SETTINGS, PRESET_QUESTIONS, type Checkin, type CheckinKind, type CheckinQuestion, type CheckinSet, type CheckinSettings, type CheckinSettingsView, type CheckinSummary, type CheckinValue, type DeeperReply, type ScaleValue } from "../../../lib/checkin-types";
-import { askable, joinSharedCheckins, removeSetFrom, readSharedCheckins, sharedMirror, type SharedCheckins } from "../../../lib/checkin-share";
+import { DEFAULT_CHECKIN_SETTINGS, ownMirror, PRESET_QUESTIONS, type Checkin, type CheckinKind, type CheckinQuestion, type CheckinSet, type CheckinSettings, type CheckinSettingsView, type CheckinSummary, type CheckinValue, type DeeperReply, type ScaleValue } from "../../../lib/checkin-types";
+import { askable, joinSharedCheckins, removeSetFrom, readSharedCheckins, type SharedCheckins } from "../../../lib/checkin-share";
 import { journalSection, swapJournalSection } from "../../../lib/checkin-journal";
 import { pickPlan } from "../components/checkin-rules";
 import { localToday } from "../lib/time";
@@ -29,7 +29,19 @@ const OWN: CheckinQuestion = {
   high: "Hours",
   lead: "Outside, I spent",
   levels: ["no time at all", "a few minutes", "about half an hour", "an hour or so", "most of the day"],
-  mirror: null,
+  mirror: ownMirror("scale"),
+  preset: false,
+};
+
+/** A written question of the owner's own: its answers go to the day's journal, as Athena's written ones do. */
+const OWN_WRITTEN: CheckinQuestion = {
+  id: "own_notice",
+  type: "text",
+  prompt: "What did you notice on the way home?",
+  kinds: ["evening"],
+  placeholder: "A sound, a colour, the weather.",
+  deeper: false,
+  mirror: ownMirror("text"),
   preset: false,
 };
 
@@ -38,15 +50,15 @@ const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 /** The set taken down from sample Community (db/sample-community.ts SAMPLE_WITHDRAWN_SET). */
 export const SAMPLE_SET_ID = "7d4c1e2a-3b5f-4a6d-8e9c-0f1a2b3c4d5e";
 const SUNDAY: CheckinQuestion[] = [
-  { id: "own_sunday1", type: "text", prompt: "What would you like to leave behind from this week?", kinds: ["evening"], placeholder: "Write it down, then let it go.", deeper: false, mirror: sharedMirror("text"), preset: false, set: SAMPLE_SET_ID },
-  { id: "own_sunday2", type: "text", prompt: "What would make next week feel a little lighter?", kinds: ["evening"], placeholder: "One small thing is plenty.", deeper: false, mirror: sharedMirror("text"), preset: false, set: SAMPLE_SET_ID },
+  { id: "own_sunday1", type: "text", prompt: "What would you like to leave behind from this week?", kinds: ["evening"], placeholder: "Write it down, then let it go.", deeper: false, mirror: ownMirror("text"), preset: false, set: SAMPLE_SET_ID },
+  { id: "own_sunday2", type: "text", prompt: "What would make next week feel a little lighter?", kinds: ["evening"], placeholder: "One small thing is plenty.", deeper: false, mirror: ownMirror("text"), preset: false, set: SAMPLE_SET_ID },
 ];
 
 let settings: CheckinSettings = {
   ...clone(DEFAULT_CHECKIN_SETTINGS),
   morning: { ...clone(DEFAULT_CHECKIN_SETTINGS.morning), enabled: true },
-  evening: { ...clone(DEFAULT_CHECKIN_SETTINGS.evening), enabled: true, questions: [...clone(DEFAULT_CHECKIN_SETTINGS.evening.questions), { id: OWN.id, pinned: false }, ...SUNDAY.map((q) => ({ id: q.id, pinned: false }))] },
-  own: [clone(OWN), ...clone(SUNDAY)],
+  evening: { ...clone(DEFAULT_CHECKIN_SETTINGS.evening), enabled: true, questions: [...clone(DEFAULT_CHECKIN_SETTINGS.evening.questions), { id: OWN.id, pinned: false }, { id: OWN_WRITTEN.id, pinned: false }, ...SUNDAY.map((q) => ({ id: q.id, pinned: false }))] },
+  own: [clone(OWN), clone(OWN_WRITTEN), ...clone(SUNDAY)],
 };
 
 let sets: CheckinSet[] = [
@@ -87,6 +99,7 @@ const WRITTEN: Record<string, string[]> = {
   went_well: ["The review went better than I expected.", "Cooked something new and it worked.", "Cleared the inbox before five."],
   learned: ["That I work better with the door shut.", "How the new heating timer works."],
   tomorrow: ["Start with the hardest thing.", "Leave the laptop closed after dinner."],
+  own_notice: ["The first frost on the cars.", "Someone practising the trumpet two streets over.", "How early it gets dark now."],
 };
 
 function sampleValue(q: CheckinQuestion, r: () => number): CheckinValue {
@@ -195,7 +208,8 @@ export function sampleSetOf(id: string): (CheckinSet & { hash: string | null }) 
 
 export async function saveSampleCheckinSettings(next: CheckinSettings): Promise<CheckinSettingsView> {
   await wait(80);
-  settings = clone(next);
+  // As the server's readOwnQuestion: Athena says where answers go, by type, whatever is sent.
+  settings = { ...clone(next), own: next.own.map((q) => ({ ...clone(q), mirror: ownMirror(q.type) })) };
   return sampleCheckinSettings();
 }
 

@@ -1,6 +1,7 @@
 // Sample check-ins (app/src/db/sample-checkins.ts) with a shared set, as the owner decided on 25 Nov 2026: a set is
-// added asking or switched off, a routine that's off stays off, and a written answer to a shared question goes into
-// that day's journal, is changed and undone with it, and stays there when the set is removed. Made-up words only.
+// added asking or switched off, a routine that's off stays off, and a written answer, to a shared question or to one
+// the owner wrote, goes into that day's journal, is changed and undone with it, and stays there when the set is
+// removed. The owner's own scale stays out, and days already answered aren't back-filled. Made-up words only.
 // Run: npx tsx --test app/src/db/sample-checkins.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -84,4 +85,60 @@ test("journal: a shared written answer is copied, changed and undone with the da
   assert.equal(sampleDayNow(date).journal, kept);
   assert.ok((await sampleCheckin(date, "evening")).plan.some((q) => q.id === text.id));
   assert.ok(!(await sampleCheckinSettings()).own.some((q) => q.set === added.id));
+});
+
+test("journal: the owner's own written answer is copied, changed and undone with the day's journal; their own scale isn't", async () => {
+  const view = await sampleCheckinSettings();
+  const written = view.own.find((q) => q.id === "own_notice")!;
+  const scale = view.own.find((q) => q.id === "own_walk")!;
+  assert.deepEqual([written.type, written.mirror, scale.type, scale.mirror], ["text", "day_journal", "scale", null]);
+  // A settings save can't point them anywhere else: sample mode applies Athena's rule as the server does.
+  const tried = await saveSampleCheckinSettings({ ...view, own: view.own.map((q) => (q.id === scale.id ? { ...q, mirror: "day_mood" as const } : q.id === written.id ? { ...q, mirror: null } : q)) });
+  assert.deepEqual([tried.own.find((q) => q.id === written.id)!.mirror, tried.own.find((q) => q.id === scale.id)!.mirror], ["day_journal", null]);
+  await saveSampleCheckinSettings({ ...view, evening: { ...view.evening, questions: view.evening.questions.map((x) => (x.id === written.id || x.id === scale.id || x.id === "went_well" ? { ...x, pinned: true } : x)) } });
+  const date = (() => {
+    const d = new Date(`${localToday()}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 5);
+    return d.toISOString().slice(0, 10);
+  })();
+  const c = await sampleCheckin(date, "evening");
+  assert.ok(c.plan.some((q) => q.id === written.id) && c.plan.some((q) => q.id === scale.id));
+  const mine = sampleDayNow(date).journal ?? "";
+
+  await answerSampleCheckin(date, "evening", "went_well", { text: "Mended the gate." });
+  await answerSampleCheckin(date, "evening", written.id, { text: "Fog over the playing fields." });
+  await answerSampleCheckin(date, "evening", scale.id, { scale: 2 });
+  const j1 = sampleDayNow(date).journal ?? "";
+  assert.match(j1, /Evening reflection\nWhat went well today\?\nMended the gate\.\n\nWhat did you notice on the way home\?\nFog over the playing fields\./);
+  assert.doesNotMatch(j1, /How much time did you spend outside/);
+
+  await answerSampleCheckin(date, "evening", written.id, { text: "Fog, then sun." });
+  const j2 = sampleDayNow(date).journal ?? "";
+  assert.equal(j2.match(/What did you notice on the way home\?/g)?.length, 1);
+  assert.match(j2, /Fog, then sun\./);
+
+  await answerSampleCheckin(date, "evening", written.id, null);
+  const j3 = sampleDayNow(date).journal ?? "";
+  assert.doesNotMatch(j3, /on the way home/);
+  assert.match(j3, /Mended the gate\./);
+  await answerSampleCheckin(date, "evening", "went_well", null);
+  assert.equal(sampleDayNow(date).journal ?? "", mine);
+  await saveSampleCheckinSettings(view);
+});
+
+test("journal: days already answered aren't back-filled with the owner's own written answers", async () => {
+  // The seeded weeks have answers to own_notice on some evenings; none of them was copied in.
+  const today = localToday();
+  let seen = 0;
+  for (let n = 1; n <= 21; n++) {
+    const d = new Date(`${today}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - n);
+    const date = d.toISOString().slice(0, 10);
+    const c = await sampleCheckin(date, "evening");
+    const a = c.answers["own_notice"]?.value;
+    if (!a || !("text" in a)) continue;
+    seen++;
+    assert.doesNotMatch(sampleDayNow(date).journal ?? "", new RegExp(a.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.ok(seen > 0);
 });

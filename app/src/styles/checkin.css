@@ -770,6 +770,21 @@ button.checkin-card:active {
   gap: var(--space-md);
 }
 
+/* Where a written question's answers go, under its fields. */
+.checkin-edit__goes {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.checkin-edit__goes svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
 .checkin-edit__pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

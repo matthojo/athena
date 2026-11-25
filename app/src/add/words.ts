@@ -9,8 +9,7 @@ import { listingIdOf } from "../../../lib/community-site";
 import { downloadWords, tierWords } from "../community/words";
 import type { Reach } from "../../../lib/reach";
 import type { ShareKind } from "../../../lib/share-kinds";
-import type { CheckinKind, QuestionType } from "../../../lib/checkin-types";
-import { sharedMirror } from "../../../lib/checkin-share";
+import { ownMirror, type CheckinKind, type QuestionType } from "../../../lib/checkin-types";
 import { FLOW_DRAFT_TOOLS, FLOW_LOOK_TOOLS, FLOW_SHARE_TOOLS, type FlowPick, type SharedFlowStep } from "../../../lib/flow-share";
 
 export const KIND_LABEL: Record<ShareKind, string> = { assistant: "Assistant", skill: "Skill", flow: "Flow", checkin: "Check-in questions" };
@@ -54,10 +53,7 @@ const list = (xs: readonly string[]) => (xs.length <= 1 ? xs.join("") : `${xs.sl
 /** Its reach in plain words: the tier's name, as Community and the share sheet name it, and a line for each thing it uses. */
 export function reachWords(r: Reach, kind: ShareKind): { title: string; lines: string[] } {
   const lines: string[] = [];
-  if (kind === "checkin") {
-    if (!r.model) return { title: tierWords(r), lines: ["Its questions stay in your Athena, and so do your answers. Nothing is sent anywhere"] };
-    return { title: tierWords(r), lines: ["When you tap Go deeper on one of its questions, the question and what you wrote go to the AI model you chose, for one follow-up question"] };
-  }
+  if (kind === "checkin") return { title: tierWords(r), lines: ["Its questions stay in your Athena, and so do your answers"] };
   if (r.tier === 1) return { title: tierWords(r), lines: ["Every step stays inside your Athena. Nothing is sent anywhere"] };
   if (r.model) lines.push(kind === "flow" ? "Some of its steps send what they work on to the AI model you chose" : "It sends what it works on to the AI model you chose");
   for (const tool of r.lookups) {
@@ -128,15 +124,19 @@ export function offWords(off: readonly CheckinKind[]): string | null {
 /** Under a question the owner already has. */
 export const HAVE_QUESTION = "You already have this one, so it won't be added again";
 
+/** Go deeper on a shared question: the line the preview shows when one of its questions offers it. */
+export const DEEPER_WORDS = "Like your own questions, any that offer Go deeper send the question and what you wrote to the AI model you chose, but only when you tap it.";
+
 /**
- * "Where your answers go" for a set, from the kinds of answer in it and Athena's rule (lib/checkin-share.ts
- * sharedMirror): written answers go to that day's journal, the rest stay in the check-ins. Pure.
+ * "Where your answers go" for a set, from the kinds of answer in it and Athena's rule (lib/checkin-types.ts
+ * ownMirror, the same for the owner's own questions): written answers go to that day's journal, the rest stay in the
+ * check-ins. Pure.
  */
 export function answersGoWords(types: readonly QuestionType[]): string[] {
-  const journal = types.some((t) => sharedMirror(t) === "day_journal");
-  const rest = types.some((t) => sharedMirror(t) !== "day_journal");
+  const journal = types.some((t) => ownMirror(t) === "day_journal");
+  const rest = types.some((t) => ownMirror(t) !== "day_journal");
   const lines: string[] = [];
-  if (journal) lines.push("Written answers are copied into that day's journal, as your answers to Athena's own written questions are. Undo or change one and the journal follows.");
+  if (journal) lines.push("Written answers go into that day's journal, like your other written answers. Change or undo one and the journal follows.");
   lines.push(journal ? (rest ? "Your other answers stay in your check-ins." : "") : "Your answers stay in your check-ins.");
   lines.push("Athena decides where answers go, whatever the file says. They never set your mood or go to Health.");
   lines.push("How many questions you're asked each day stays as you set it.");

@@ -42,10 +42,10 @@ import { sharedFlowSteps } from "./flow-steps";
 import { tierIcon } from "../community/words";
 import { entriesOf, filesFromDrop, takeHeldFiles, takeSharedFile } from "./hold";
 import { SAMPLE_LINKS } from "./sample-items";
-import { addedWords, addLabel, answersGoWords, basedOnWords, checkinAddedWords, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, offWords, originWords, reachWords, roomWords, startWords, updatedWords, updateLandsWords } from "./words";
+import { addedWords, addLabel, answersGoWords, basedOnWords, checkinAddedWords, DEEPER_WORDS, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, offWords, originWords, reachWords, roomWords, startWords, updatedWords, updateLandsWords } from "./words";
 import { checkinPreview } from "./checkin-preview";
 import { loadCheckinSettings, type CheckinSettingsView } from "../db/checkins";
-import { promptsHere, samePrompt } from "../../../lib/checkin-share";
+import { offersDeeper, promptsHere, samePrompt } from "../../../lib/checkin-share";
 import { CHECKIN_KINDS, MAX_OWN_QUESTIONS, type CheckinKind } from "../../../lib/checkin-types";
 import type { AddResult } from "../../../lib/community-api";
 
@@ -404,6 +404,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
         "questions",
         item.checkins.questions.length === 1 ? "Its question" : `Its ${item.checkins.questions.length} questions`,
         h("p", { class: "form__hint add-sec__lede" }, repeated ? `Each one as it would be asked. ${repeated === 1 ? "You already have one of them" : `You already have ${repeated} of them`}, so ${repeated === 1 ? "it's" : "they're"} marked and won't be added twice.` : "Each one as it would be asked, one to a screen."),
+        offersDeeper(item.checkins.questions) ? h("p", { class: "form__hint add-sec__lede" }, DEEPER_WORDS) : null,
         checkinPreview(item.checkins.questions, (q) => have.has(samePrompt(q.prompt)))
       );
     }

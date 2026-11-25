@@ -17,7 +17,7 @@ import { AthenaInputError, qRaw } from "./db";
 import { checkSettings, listSets, loadCheckinSettings, saveCheckinSettings, settingsView } from "./checkins";
 import { knownTerms } from "./team-share-store";
 import { writeSkillZip } from "./skill-zip";
-import { CHECKIN_FILE, exportCheckins, joinSharedCheckins, offersDeeper, readSharedCheckins, removeSetFrom, serialiseSharedCheckins, setQuestions, type CheckinExport, type SharedCheckins } from "./checkin-share";
+import { CHECKIN_FILE, exportCheckins, joinSharedCheckins, readSharedCheckins, removeSetFrom, serialiseSharedCheckins, type CheckinExport, type SharedCheckins } from "./checkin-share";
 import { ShareFormatError, type KnownTerm } from "./team-share";
 import type { CheckinKind, CheckinSettings, CheckinSettingsView } from "./checkin-types";
 import type { Reach } from "./reach";
@@ -176,10 +176,9 @@ export async function removeCheckinSet(setId: string): Promise<CheckinSettingsVi
   return settingsView(next, await listSets());
 }
 
-/** A set's tier as it is here now, for Community's Update banner: 2 when one of its questions offers Go deeper. */
+/** A set's tier as it is here now, for Community's Update banner: always 1 (lib/reach.ts reachOfCheckins). */
 export async function checkinSetTier(setId: string): Promise<Reach["tier"] | null> {
   if (!UUID.test(setId)) return null;
   const [row] = await qRaw<{ id: string }>(`SELECT id::text AS id FROM checkin_sets WHERE id = $1::uuid`, [setId]);
-  if (!row) return null;
-  return offersDeeper(setQuestions(await loadCheckinSettings(), row.id)) ? 2 : 1;
+  return row ? 1 : null;
 }

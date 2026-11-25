@@ -12,12 +12,12 @@
  * Each question carries what the owner's own questions carry and nothing else: its words (`prompt`), the routines
  * it's asked in (`kinds`: morning, evening or both), how it's answered (`type`) and, for that type, the slider's
  * sentence and ends, the choices, or the hint and whether it offers Go deeper. Never an id, an answer, a day, a
- * pin, a count a day, or where answers are copied to (`mirror`): those are the owner's.
+ * pin, a count a day, or where answers are copied to (`mirror`).
  *
- * Where answers go is Athena's to decide, never the file's (owner, 25 Nov 2026): `sharedMirror`. A written answer is
- * copied into that day's journal, as Athena's own written questions' are (`day_journal`, lib/checkin-journal.ts). A
- * scale, choices or areas answer stays in the check-in, since none of Athena's own questions of those types goes to
- * the journal. No shared question ever sets the day's mood, Health's energy, stress or mood words, or the briefing.
+ * Where answers go is Athena's to decide, never the file's (owner, 25 Nov 2026): lib/checkin-types.ts `ownMirror`,
+ * the same rule as for the questions the owner writes. A written answer is copied into that day's journal, as
+ * Athena's own written questions' are (`day_journal`, lib/checkin-journal.ts). A scale, choices or areas answer stays
+ * in the check-in. No shared question ever sets the day's mood, Health's energy, stress or mood words, or the briefing.
  *
  * Reading one (`readSharedCheckins`) treats every word as someone else's, as the other readers do: checked against
  * the check-in limits, unknown keys dropped (and a field that belongs to another type of answer), an unknown type of
@@ -28,7 +28,7 @@
  * stays off. When the owner's own questions would go past MAX_OWN_QUESTIONS, questions are added in the set's order
  * until there's no room, and the rest are named as left out (owner, 25 Nov 2026).
  */
-import { CHECKIN_KINDS, MAX_OWN_QUESTIONS, PRESET_QUESTIONS, type CheckinKind, type CheckinMirror, type CheckinQuestion, type CheckinSettings, type QuestionType } from "./checkin-types";
+import { CHECKIN_KINDS, MAX_OWN_QUESTIONS, ownMirror, PRESET_QUESTIONS, type CheckinKind, type CheckinQuestion, type CheckinSettings, type QuestionType } from "./checkin-types";
 import { readHeader, type ShareHeader } from "./share-kinds";
 import { addRemoved, findPersonal, scrubText, ShareFormatError, type CheckField, type Finding, type KnownTerm, type Removed } from "./team-share";
 
@@ -179,15 +179,6 @@ export function samePrompt(prompt: string): string {
     .replace(/[\s.?!…:;,]+$/u, "");
 }
 
-/**
- * Where answers to a question from a shared set are copied: the day's journal when Athena's own questions of that
- * type go there (written answers), otherwise nowhere. Never the mood, Health or the briefing, whatever the file says.
- * Pure.
- */
-export function sharedMirror(type: QuestionType): CheckinMirror {
-  return PRESET_QUESTIONS.some((q) => q.type === type && q.mirror === "day_journal") ? "day_journal" : null;
-}
-
 /** Does any question offer Go deeper? A model sees its words, and the owner's answer, only when they tap it. Pure. */
 export const offersDeeper = (questions: ReadonlyArray<Pick<SharedCheckinQuestion, "type" | "deeper">>): boolean => questions.some((q) => q.type === "text" && q.deeper === true);
 
@@ -287,7 +278,7 @@ export function promptsHere(settings: Pick<CheckinSettings, "own">): Set<string>
 
 /**
  * A shared set joined to a set-up: each question whose words aren't already here becomes one of the owner's own
- * (a new id from `newId`, `set` naming where it came from, its answers copied where `sharedMirror` says) and goes at the end of each
+ * (a new id from `newId`, `set` naming where it came from, its answers copied where `ownMirror` says) and goes at the end of each
  * routine it's asked in, unpinned. Nothing already there moves or changes, and no routine is switched on. Past
  * MAX_OWN_QUESTIONS of the owner's own, the rest are left out and named in `full`. Pure.
  */
@@ -310,7 +301,7 @@ export function joinSharedCheckins(settings: CheckinSettings, shared: SharedChec
   const joined = new Set<CheckinKind>();
   for (const q of fresh) {
     const id = opts.newId();
-    next.own.push({ ...toShared(q), id, mirror: sharedMirror(q.type), preset: false, set: opts.setId });
+    next.own.push({ ...toShared(q), id, mirror: ownMirror(q.type), preset: false, set: opts.setId });
     for (const k of q.kinds) {
       next[k].questions.push({ id, pinned: false });
       joined.add(k);

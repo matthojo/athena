@@ -24,14 +24,13 @@ import { icons, type IconName } from "./icons";
 import { openSheet } from "./sheet";
 import { showToast } from "./toast";
 import { confirmDialog } from "./confirm";
-import { moved, ownId, ownQuestionProblem, ROUTINE_NAME, TYPE_NAME } from "./checkin-rules";
+import { DELETE_OWN_BODY, moved, ownAnswersWords, OWN_ANSWERS_WORDS, ownId, ownQuestionProblem, ROUTINE_NAME, TYPE_NAME } from "./checkin-rules";
 import { loadCheckinSettings, removeCheckinSet, saveCheckinSettings, setCheckinSetPaused, type CheckinSet, type CheckinSettings, type CheckinSettingsView } from "../db/checkins";
 import { catalogueStatus } from "../community/status";
-import { sharedMirror } from "../../../lib/checkin-share";
 import { communityHash } from "../community/words";
 import { forgetUpdates } from "../db/community";
 import { fromSetWords, removeSetBody, SETS_ANSWERS_WORDS, setMetaWords, setSwitchWords } from "./checkin-share-words";
-import { AREAS, CHECKIN_KINDS, EMOTIONS, MAX_OWN_QUESTIONS, MAX_PER_DAY, MORE_AREAS, MORE_EMOTIONS, type CheckinKind, type CheckinQuestion, type QuestionType } from "../../../lib/checkin-types";
+import { AREAS, CHECKIN_KINDS, EMOTIONS, MAX_OWN_QUESTIONS, MAX_PER_DAY, MORE_AREAS, MORE_EMOTIONS, ownMirror, type CheckinKind, type CheckinQuestion, type QuestionType } from "../../../lib/checkin-types";
 
 export const TYPE_ICON: Record<QuestionType, IconName> = { scale: "sliders", choices: "tag", areas: "target", text: "pen" };
 
@@ -174,6 +173,7 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
       { class: "checkin-set__own" },
       h("h3", { class: "checkin-set__title" }, "Your questions"),
       own.length ? h("div", { class: "card card--flush list" }, ...rows) : h("p", { class: "checkin-set__hint" }, "Ask yourself something Athena's questions don't cover."),
+      h("p", { class: "checkin-set__hint" }, OWN_ANSWERS_WORDS),
       h("div", { class: "settings__actions" }, add, share)
     );
   }
@@ -320,7 +320,7 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
   function openEditor(was: CheckinQuestion | null, forKind?: CheckinKind) {
     const q: CheckinQuestion = was
       ? clone(was)
-      : { id: ownId(), type: "scale", prompt: "", kinds: forKind ? [forKind] : ["morning", "evening"], low: "Not at all", high: "Very", lead: "", levels: ["", "", "", "", ""], mirror: null, preset: false };
+      : { id: ownId(), type: "scale", prompt: "", kinds: forKind ? [forKind] : ["morning", "evening"], low: "Not at all", high: "Very", lead: "", levels: ["", "", "", "", ""], mirror: ownMirror("scale"), preset: false };
     const form = h("form", { class: "checkin-edit", novalidate: true }) as HTMLFormElement;
     const sheet = openSheet({ label: was ? "Change your question" : "Write a question", title: was ? "Your question" : "New question", body: form, variant: "tall" });
 
@@ -339,8 +339,11 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
     };
 
     const typeFields = h("div", { class: "checkin-edit__type-fields" });
+    // Where this question's answers go, for the kind of answer picked: said where the question is written.
+    const goes = h("p", { class: "form__hint checkin-edit__goes" });
     const paintType = () => {
       const t = q.type;
+      goes.replaceChildren(icons.note(), h("span", {}, ownAnswersWords(t)));
       if (t === "scale") {
         q.levels ??= ["", "", "", "", ""];
         q.low ??= "Not at all";
@@ -405,7 +408,7 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
     const problem = h("p", { class: "form__error", role: "alert" });
     const del = was ? h("button", { class: "btn btn--ghost btn--danger", type: "button" }, icons.trash(), "Delete") : null;
     del?.addEventListener("click", async () => {
-      if (!(await confirmDialog({ title: "Delete this question?", body: "It comes out of both check-ins. Answers you've already given stay on their days.", confirmLabel: "Delete", danger: true }))) return;
+      if (!(await confirmDialog({ title: "Delete this question?", body: DELETE_OWN_BODY, confirmLabel: "Delete", danger: true }))) return;
       change((s) => {
         s.own = s.own.filter((x) => x.id !== q.id);
         for (const k of CHECKIN_KINDS) s[k].questions = s[k].questions.filter((x) => x.id !== q.id);
@@ -418,6 +421,7 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
       input("Question", q.prompt, (v) => (q.prompt = v), { placeholder: "How did you sleep?", maxlength: 160 }),
       h("fieldset", { class: "checkin-edit__kinds" }, h("legend", { class: "field-label" }, "Ask it in"), kindBox("morning"), kindBox("evening")),
       typeFields,
+      goes,
       problem,
       h("div", { class: "checkin-edit__foot" }, del, h("span", { class: "checkin__spacer" }), h("button", { class: "btn btn--primary", type: "submit" }, icons.check(), "Save"))
     );
@@ -427,8 +431,8 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
       e.preventDefault();
       // Only what this type uses is kept.
       // A question from a set stays that set's, so Remove and the switch still find it.
-      // Where a set's answers go is Athena's to say, by type (sharedMirror); the owner's own copy nowhere.
-      const out: CheckinQuestion = { id: q.id, type: q.type, prompt: q.prompt.trim(), kinds: q.kinds, mirror: q.set ? sharedMirror(q.type) : null, preset: false, ...(q.set ? { set: q.set } : {}) };
+      // Where answers go is Athena's to say, by type (ownMirror), for the owner's own and a set's alike; the server says it again.
+      const out: CheckinQuestion = { id: q.id, type: q.type, prompt: q.prompt.trim(), kinds: q.kinds, mirror: ownMirror(q.type), preset: false, ...(q.set ? { set: q.set } : {}) };
       if (q.type === "scale") Object.assign(out, { lead: q.lead?.trim(), levels: q.levels?.map((l) => l.trim()), low: q.low?.trim() || "Not at all", high: q.high?.trim() || "Very" });
       if (q.type === "choices" || q.type === "areas") Object.assign(out, { options: q.options, more: q.more?.length ? q.more : undefined });
       if (q.type === "text") Object.assign(out, { placeholder: q.placeholder?.trim() || undefined, deeper: !!q.deeper });

@@ -4,9 +4,10 @@
  *
  * Each check-in keeps one section in the day's journal: its heading (CHECKIN_HEADINGS), then each written answer
  * under its prompt. The section is found again by its exact text and swapped, so saving the same answer twice changes
- * nothing, an undone answer comes back out, and the owner's own text is never touched. A question from a shared set
- * is copied in the same way when Athena gives it the `day_journal` mirror (lib/checkin-share.ts sharedMirror); the
- * plan keeps the question as it was asked, so removing the set later leaves past days' sections alone.
+ * nothing, an undone answer comes back out, and the owner's own text is never touched. A written question the owner
+ * wrote, or one from a shared set, is copied in the same way: Athena gives it the `day_journal` mirror
+ * (lib/checkin-types.ts ownMirror). The plan keeps each question as it was asked, so a day planned before that rule
+ * keeps its answers out of the journal, and removing a set later leaves past days' sections alone.
  */
 import { MAX_JOURNAL_CHARS } from "./day-types";
 import type { CheckinAnswer, CheckinKind, CheckinQuestion } from "./checkin-types";

@@ -223,6 +223,17 @@ export const PRESET_QUESTIONS: CheckinQuestion[] = [
   { id: "tomorrow", type: "text", prompt: "What do you want to carry into tomorrow?", kinds: ["evening"], placeholder: "Or what you'd like to leave behind.", deeper: true, mirror: "day_journal", preset: true },
 ];
 
+/**
+ * Where answers to a question that isn't one of Athena's go: the owner's own and one from a shared set alike
+ * (owner, 25 Nov 2026). The day's journal when Athena's own questions of that type go there (written answers),
+ * otherwise nowhere. Athena decides by type: never the day's mood, Health or the briefing, whatever a file or a
+ * settings request says. A day's plan keeps each question as it was asked, so a day planned before this rule keeps
+ * its answers where they were. Pure.
+ */
+export function ownMirror(type: QuestionType): CheckinMirror {
+  return PRESET_QUESTIONS.some((q) => q.type === type && q.mirror === "day_journal") ? "day_journal" : null;
+}
+
 /** The settings before the owner changes anything: both routines off, with a short starting set ready for when they turn one on. */
 export const DEFAULT_CHECKIN_SETTINGS: CheckinSettings = {
   morning: {

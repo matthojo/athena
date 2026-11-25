@@ -522,6 +522,15 @@ screen. The contract (types, the question library, the routes) is
   at the end. Building and swapping the section is pure
   (`lib/checkin-journal.ts`), shared with sample mode. `health_energy`, `health_stress`, `health_mood_labels`: Health
   source `athena_checkin` ("Check-ins").
+- **Where the owner's own answers go** (owner, 25 Nov 2026). Athena decides,
+  by type (`ownMirror` in `lib/checkin-types.ts`), for questions the owner
+  wrote and questions from a set alike: a written answer goes to the day's
+  journal like Athena's own written questions; scale, choices and areas
+  answers stay in the check-in. `readOwnQuestion` sets it on every save and
+  read and reads past any `mirror` sent, so no request points an own
+  question at the mood, Health or the briefing. A day's plan keeps its
+  questions as they were asked, so days planned before the rule keep their
+  answers out of the journal: nothing is back-filled or rewritten.
 - **Routes** (`netlify/lib/checkins/routes.ts`, from `api.ts`): settings GET
   and PUT, a range of statuses (no key needed), a day's check-in, PUT and
   DELETE an answer, POST done (keeps the first time), POST deeper (one
@@ -551,10 +560,9 @@ screen. The contract (types, the question library, the routes) is
   off stays off, and past 40 of the owner's own the rest are left out and
   named. "When to start" on `#/add` adds the set asking ("Start asking
   them", the default) or switched off; an Update keeps the set's state.
-  Where answers go is Athena's (`sharedMirror`): a written answer goes to
-  the day's journal like Athena's own written questions, other types stay
-  in the check-in, and `readOwnQuestion` sets this again for every question
-  with `set`. A set switched off (`paused`) is left out of new plans
+  Where answers go is Athena's (`ownMirror`, as for the owner's own
+  questions): a written answer goes to the day's journal, other types stay
+  in the check-in. A set switched off (`paused`) is left out of new plans
   (`askable` in `getCheckin`). `PUT`/`DELETE /api/checkins/sets/:id` switch
   one off or on and remove one with its questions; `POST
   /api/checkins/share` makes a file from questions the owner wrote, with
@@ -2013,12 +2021,12 @@ permission.
   header and up to 40 questions, each its words (`prompt`), `kinds`, `type`
   and that type's fields, nothing of the owner's. `readSharedCheckins` uses
   the own-question limits, drops unknown keys and refuses an unknown type of
-  answer. `exportCheckins`, `joinSharedCheckins`, `removeSetFrom`,
-  `sharedMirror` and `askable` are pure and shared with sample mode.
+  answer. `exportCheckins`, `joinSharedCheckins`, `removeSetFrom` and
+  `askable` are pure and shared with sample mode.
 - **`lib/reach.ts`.** `reachOf(files)`: tier 1 stays inside Athena, tier 2
   uses AI or an outside lookup (each named), tier 3 asks for the web. A set
-  of check-in questions is tier 2 when one of them offers Go deeper, tier 1
-  otherwise. Worked
+  of check-in questions is always tier 1: Go deeper reaches a model only when
+  the owner taps it, as for their own questions. Worked
   out from the files, never declared. Every screen names a tier the same way
   (`app/src/community/words.ts` `tierWords`, `tierIcon`).
 - **`lib/catalogue-types.ts`.** index.json, a bundle and listing.json, with

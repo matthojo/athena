@@ -57,7 +57,11 @@ test("every sample listing is named as its files name it, so the list and the pr
 test("sample check-in questions: listed sets read, and Sunday reset is taken down and switched off", async () => {
   const index = await sampleCatalogue();
   const sets = index.items.filter((i) => i.kind === "checkin");
-  assert.deepEqual(sets.map((s) => [s.name, s.reach.tier]), [["Small joys", 1], ["Slow mornings", 2]]);
+  assert.deepEqual(sets.map((s) => [s.name, s.reach.tier]), [["Small joys", 1], ["Slow mornings", 1]]);
+  // Slow mornings offers Go deeper and is tier 1 all the same: the listing says what Athena works out from its files.
+  for (const s of sets) assert.equal(reachOf({ kind: "checkin", files: (await sampleBundle(s.id))!.bundle.files }).tier, s.reach.tier, s.name);
+  const slow = JSON.parse((await sampleBundle(sets[1].id))!.bundle.files[0].text) as { questions: Array<{ deeper?: boolean }> };
+  assert.ok(slow.questions.some((q) => q.deeper === true));
   const { sampleSetOf, SAMPLE_SET_ID } = await import("./sample-checkins");
   assert.equal(sampleSetOf(SAMPLE_SET_ID)?.paused, true);
   const updates = await sampleUpdates();

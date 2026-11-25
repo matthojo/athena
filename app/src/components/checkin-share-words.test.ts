@@ -3,13 +3,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fromSetWords, questionWhereWords, removeSetBody, SETS_ANSWERS_WORDS, setMetaWords, setSwitchWords, shareFindingsLede, shareReachWords } from "./checkin-share-words";
-import { answersGoWords, checkinAddedWords, offWords, reachWords, roomWords, routinesWords, startWords } from "../add/words";
+import { DELETE_OWN_BODY, ownAnswersWords, OWN_ANSWERS_WORDS } from "./checkin-rules";
+import { answersGoWords, checkinAddedWords, DEEPER_WORDS, offWords, reachWords, roomWords, routinesWords, startWords } from "../add/words";
 
-test("share reach: stays in Athena, or uses AI only through Go deeper", () => {
+test("share reach: always stays in Athena; Go deeper is named, in one line, when one of them offers it", () => {
   assert.equal(shareReachWords(false).title, "Stays in Athena");
   assert.equal(shareReachWords(false).icon, "shield");
-  assert.equal(shareReachWords(true).title, "Uses AI");
-  assert.match(shareReachWords(true).detail, /Go deeper/);
+  assert.doesNotMatch(shareReachWords(false).detail, /Go deeper/);
+  assert.equal(shareReachWords(true).title, "Stays in Athena");
+  assert.equal(shareReachWords(true).icon, "shield");
+  assert.equal(shareReachWords(true).detail.replace(shareReachWords(false).detail, "").trim(), "Go deeper reaches their AI model only when they tap it.");
 });
 
 test("where a finding is", () => {
@@ -30,10 +33,9 @@ test("a set in Settings", () => {
 test("the Add screen: reach in the same plain words, grouped routines, a routine left off", () => {
   const tier1 = reachWords({ tier: 1, model: false, web: false, lookups: [], needs: [] }, "checkin");
   assert.equal(tier1.title, "Stays in Athena");
-  assert.match(tier1.lines[0], /Nothing is sent anywhere/);
-  const tier2 = reachWords({ tier: 2, model: true, web: false, lookups: [], needs: [] }, "checkin");
-  assert.equal(tier2.title, "Uses AI");
-  assert.match(tier2.lines[0], /When you tap Go deeper/);
+  assert.deepEqual(tier1.lines, ["Its questions stay in your Athena, and so do your answers"]);
+  // The Go deeper line the preview shows for a set with such a question (f9a7fda's words).
+  assert.equal(DEEPER_WORDS, "Like your own questions, any that offer Go deeper send the question and what you wrote to the AI model you chose, but only when you tap it.");
   assert.equal(routinesWords(["morning", "evening"]), "Morning and evening");
   assert.equal(offWords([]), null);
   assert.equal(offWords(["evening"]), "Your evening reflection is switched off. Adding these won't switch it on: it stays off until you do, in Settings.");
@@ -62,8 +64,8 @@ test("the Add screen: no room past 40, and a set added switched off", () => {
 
 test("the Add screen: where answers go, from the kinds of answer in the set", () => {
   const mixed = answersGoWords(["text", "scale", "choices"]);
-  assert.match(mixed[0], /^Written answers are copied into that day's journal/);
-  assert.match(mixed[0], /Undo or change one and the journal follows/);
+  assert.match(mixed[0], /^Written answers go into that day's journal, like your other written answers/);
+  assert.match(mixed[0], /Change or undo one and the journal follows/);
   assert.equal(mixed[1], "Your other answers stay in your check-ins.");
   assert.ok(mixed.some((l) => /Athena decides where answers go, whatever the file says/.test(l)));
   assert.ok(mixed.some((l) => /never set your mood or go to Health/.test(l)));
@@ -88,7 +90,16 @@ test("the Add screen: two ways to start, each with its consequence; a routine th
 });
 
 test("Settings: what sets' answers do in the journal, and that removing one leaves it", () => {
-  assert.match(SETS_ANSWERS_WORDS, /Written answers to these questions go into that day's journal/);
+  assert.match(SETS_ANSWERS_WORDS, /Written answers to these questions go into that day's journal, like all your written answers/);
   assert.match(SETS_ANSWERS_WORDS, /Removing a set doesn't change anything already in your journal/);
   assert.match(removeSetBody, /anything already copied into your journal/);
+});
+
+test("Settings and writing a question: written answers to your own go to the journal; the rest stay", () => {
+  assert.match(OWN_ANSWERS_WORDS, /^Written answers to your questions go into that day's journal/);
+  assert.match(OWN_ANSWERS_WORDS, /The rest stay in your check-ins/);
+  assert.match(ownAnswersWords("text"), /goes into that day's journal/);
+  assert.match(ownAnswersWords("text"), /Change or undo it and the journal follows/);
+  for (const t of ["scale", "choices", "areas"] as const) assert.equal(ownAnswersWords(t), "Answers stay in your check-ins. Only written answers go into your journal.");
+  assert.match(DELETE_OWN_BODY, /anything already copied into your journal/);
 });

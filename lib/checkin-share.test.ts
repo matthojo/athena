@@ -13,14 +13,13 @@ import {
   readSharedCheckins,
   removeSetFrom,
   samePrompt,
-  sharedMirror,
   serialiseSharedCheckins,
   type SharedCheckins,
 } from "./checkin-share";
 import { reachOf, reachOfCheckins } from "./reach";
 import { detectKind } from "./share-kinds";
 import { planFor } from "./checkin-plan";
-import { DEFAULT_CHECKIN_SETTINGS, MAX_OWN_QUESTIONS, PRESET_QUESTIONS, type CheckinQuestion, type CheckinSettings } from "./checkin-types";
+import { DEFAULT_CHECKIN_SETTINGS, MAX_OWN_QUESTIONS, ownMirror, PRESET_QUESTIONS, type CheckinQuestion, type CheckinSettings } from "./checkin-types";
 import { ShareFormatError, type KnownTerm } from "./team-share";
 import { journalSection, swapJournalSection } from "./checkin-journal";
 import type { CheckinAnswer } from "./checkin-types";
@@ -111,13 +110,18 @@ test("checkin.json names the kind", () => {
   assert.equal(detectKind(["small-joys/checkin.json", "small-joys/flow.json"]), null);
 });
 
-test("reach: tier 1 when nothing offers Go deeper; tier 2 when a question does, worked out per set", () => {
+test("reach: always tier 1, even when a question offers Go deeper (the owner taps it each time)", () => {
   const plain = readSharedCheckins({ ...FILE, questions: FILE.questions.map((q) => ({ ...q, deeper: false })) });
-  assert.deepEqual(reachOfCheckins(plain), { tier: 1, model: false, web: false, lookups: [], needs: [] });
-  assert.deepEqual(reachOfCheckins(readSharedCheckins(FILE)), { tier: 2, model: true, web: false, lookups: [], needs: [] });
-  // From the files, whatever anyone says about them.
+  const tier1 = { tier: 1, model: false, web: false, lookups: [], needs: [] };
+  // FILE's first question offers Go deeper; the set is tier 1 all the same.
+  assert.ok(readSharedCheckins(FILE).questions.some((q) => q.type === "text" && q.deeper));
+  assert.deepEqual(reachOfCheckins(plain), tier1);
+  assert.deepEqual(reachOfCheckins(readSharedCheckins(FILE)), tier1);
   assert.equal(reachOf({ files: [{ path: "checkin.json", text: JSON.stringify(plain) }] }).tier, 1);
-  assert.equal(reachOf({ kind: "checkin", files: [{ path: "checkin.json", text: JSON.stringify(FILE) }] }).tier, 2);
+  assert.equal(reachOf({ kind: "checkin", files: [{ path: "checkin.json", text: JSON.stringify(FILE) }] }).tier, 1);
+  // Every question offering it: still tier 1.
+  const all = { ...FILE, questions: [FILE.questions[0], { ...FILE.questions[0], prompt: "What surprised you today?" }] };
+  assert.equal(reachOf({ kind: "checkin", files: [{ path: "checkin.json", text: JSON.stringify(all) }] }).tier, 1);
 });
 
 // ---------- making one ----------
@@ -264,10 +268,10 @@ test("the file's questions type-check as shared questions", () => {
 
 // ---------- where answers go (owner, 25 Nov 2026) ----------
 
-test("sharedMirror: written answers go to the journal, as Athena's own written ones do; nothing else goes anywhere", () => {
-  assert.equal(sharedMirror("text"), "day_journal");
+test("ownMirror: written answers go to the journal, as Athena's own written ones do; nothing else goes anywhere", () => {
+  assert.equal(ownMirror("text"), "day_journal");
   for (const t of ["scale", "choices", "areas"] as const) {
-    assert.equal(sharedMirror(t), null);
+    assert.equal(ownMirror(t), null);
     // Matching Athena's own: none of its questions of this type goes to the journal.
     assert.ok(!PRESET_QUESTIONS.some((q) => q.type === t && q.mirror === "day_journal"));
   }
@@ -316,4 +320,47 @@ test("removing a set leaves a past day's plan, and so its journal section, as th
   // Nothing in the removal touches the plan; the section built from it is the same text, so nothing is swapped.
   assert.equal(journalSection("evening", { plan: pastPlan, answers }), before);
   assert.deepEqual(swapJournalSection(`Mine.\n\n${before}`, before, before), { journal: `Mine.\n\n${before}`, section: before });
+});
+
+// ---------- the owner's own written questions (owner, 25 Nov 2026) ----------
+
+test("journal: built-in, own and shared written answers share the check-in's section; an own scale stays out", () => {
+  const j = joinSharedCheckins(settings(), readSharedCheckins(FILE), { setId: SET_ID, newId });
+  const shared = j.settings.own[0];
+  const went = PRESET_QUESTIONS.find((q) => q.id === "went_well")!;
+  const mine: CheckinQuestion = { id: "own_bus", type: "text", prompt: "What did you hear on the bus?", kinds: ["evening"], deeper: false, mirror: ownMirror("text"), preset: false };
+  const steps: CheckinQuestion = { id: "own_steps", type: "scale", prompt: "How far did you walk?", kinds: ["evening"], low: "Hardly", high: "Miles", mirror: ownMirror("scale"), preset: false };
+  assert.deepEqual([mine.mirror, steps.mirror], ["day_journal", null]);
+  const at = "2026-11-26T21:00:00.000Z";
+  const a = (id: string, text: string): CheckinAnswer => ({ question_id: id, value: { text }, answered_at: at });
+  const plan = [went, mine, steps, shared];
+  const answers = { went_well: a("went_well", "Finished the shelf."), own_bus: a("own_bus", "Someone humming a tune."), own_steps: { question_id: "own_steps", value: { scale: 3 as const }, answered_at: at }, [shared.id]: a(shared.id, "A dog in a raincoat.") };
+  const section = journalSection("evening", { plan, answers });
+  assert.equal(section, "Evening reflection\nWhat went well today?\nFinished the shelf.\n\nWhat did you hear on the bus?\nSomeone humming a tune.\n\nWhat made you smile today?\nA dog in a raincoat.");
+  assert.doesNotMatch(section!, /How far did you walk/);
+  // Changed, then undone: the own answer's lines change and go, the rest stay.
+  const day = swapJournalSection("My notes.", null, section);
+  const changed = journalSection("evening", { plan, answers: { ...answers, own_bus: a("own_bus", "Rain on the roof.") } })!;
+  const day2 = swapJournalSection(day.journal, day.section, changed);
+  assert.equal(day2.journal, `My notes.\n\n${changed}`);
+  assert.match(day2.journal, /What did you hear on the bus\?\nRain on the roof\./);
+  const { own_bus: _gone, ...rest } = answers;
+  const undone = journalSection("evening", { plan, answers: rest })!;
+  const day3 = swapJournalSection(day2.journal, day2.section, undone);
+  assert.doesNotMatch(day3.journal, /bus/);
+  assert.match(day3.journal, /^My notes\.\n\nEvening reflection\nWhat went well today\?/);
+});
+
+test("journal: a day planned before the rule keeps its own written answer out, and its journal as it was", () => {
+  // As a plan made before 25 Nov 2026 stored it: the owner's own question with no mirror.
+  const old: CheckinQuestion = { id: "own_bus", type: "text", prompt: "What did you hear on the bus?", kinds: ["evening"], deeper: false, mirror: null, preset: false };
+  const grateful = PRESET_QUESTIONS.find((q) => q.id === "grateful")!;
+  const at = "2026-11-20T21:00:00.000Z";
+  const answers = { grateful: { question_id: "grateful", value: { text: "Soup." }, answered_at: at }, own_bus: { question_id: "own_bus", value: { text: "Laughter." }, answered_at: at } };
+  const section = journalSection("evening", { plan: [grateful, old], answers })!;
+  assert.equal(section, "Evening reflection\nWhat are you grateful for?\nSoup.");
+  const journal = `Mine.\n\n${section}`;
+  // Answering the old question again builds the same section, so the journal isn't touched.
+  const again = journalSection("evening", { plan: [grateful, old], answers: { ...answers, own_bus: { ...answers.own_bus, value: { text: "Quiet." } } } });
+  assert.deepEqual(swapJournalSection(journal, section, again), { journal, section });
 });

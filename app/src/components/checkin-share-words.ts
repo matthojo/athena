@@ -5,11 +5,11 @@
 import type { CheckinSet } from "../../../lib/checkin-types";
 import { tierIcon, tierWords } from "../community/words";
 
-/** The reach card on the share sheet: the tier by the name Community gives it, then why. */
-export function shareReachWords(model: boolean): { title: string; detail: string; icon: "shield" | "sparkle" } {
-  const r = { tier: (model ? 2 : 1) as 1 | 2, model, lookups: [] };
-  if (!model) return { title: tierWords(r), detail: "Questions only ask, and answers stay in the Athena of whoever adds them. Nothing is sent anywhere.", icon: tierIcon(r) as "shield" };
-  return { title: tierWords(r), detail: "One of them offers Go deeper. When whoever adds them taps it, the question and what they wrote go to the AI model they chose.", icon: tierIcon(r) as "sparkle" };
+/** The reach card on the share sheet: always tier 1, with a line on Go deeper when one of them offers it. */
+export function shareReachWords(deeper: boolean): { title: string; detail: string; icon: "shield" } {
+  const r = { tier: 1 as const, model: false, lookups: [] };
+  const base = "Questions only ask, and answers stay in the Athena of whoever adds them.";
+  return { title: tierWords(r), detail: deeper ? `${base} Go deeper reaches their AI model only when they tap it.` : base, icon: tierIcon(r) as "shield" };
 }
 
 /** "In the name", "In question 2", "In questions 1 and 3, and the summary": where a finding is. */
@@ -38,8 +38,8 @@ export const setSwitchWords = (paused: boolean): string => (paused ? "Switched o
 /** A question's line in a routine, when it came from a set. */
 export const fromSetWords = (name: string, paused: boolean): string => (paused ? `From ${name}, switched off` : `From ${name}`);
 
-/** Settings, over the sets: where their answers go (lib/checkin-share.ts sharedMirror), and what removing one keeps. */
-export const SETS_ANSWERS_WORDS = "Written answers to these questions go into that day's journal, as your answers to Athena's own written questions do. Other answers stay in your check-ins. Removing a set doesn't change anything already in your journal.";
+/** Settings, over the sets: where their answers go (lib/checkin-types.ts ownMirror), and what removing one keeps. */
+export const SETS_ANSWERS_WORDS = "Written answers to these questions go into that day's journal, like all your written answers. The rest stay in your check-ins. Removing a set doesn't change anything already in your journal.";
 
 /** The Remove dialog for a set. */
 export const removeSetBody = "Its questions come out of both check-ins. Answers you've already given stay on their days, and so does anything already copied into your journal.";
