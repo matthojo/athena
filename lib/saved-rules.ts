@@ -9,7 +9,7 @@ import type { SavedFacts, SavedThing } from "./saved-kinds";
 export const SAVED_KINDS = ["link", "image", "quote", "snippet", "note"] as const;
 export type SavedKind = (typeof SAVED_KINDS)[number];
 
-export const SAVED_SOURCES = ["shortcut", "extension", "share-target", "app", "email"] as const;
+export const SAVED_SOURCES = ["shortcut", "extension", "share-target", "app", "email", "raycast"] as const;
 export type SavedSource = (typeof SAVED_SOURCES)[number];
 
 /** Caps (docs/notes/saved.md): text, selection and note each; a title; an image; the whole request; the readable copy. */
