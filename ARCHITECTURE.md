@@ -1995,6 +1995,14 @@ permission.
   canonical encoding both repositories compute, pinned by test vectors. An
   item may carry `downloads`, the site's count; an index without it reads as
   before, and the screens then say nothing about it.
+- **The catalogue can grow.** Reading is tolerant of new keys: one Athena
+  doesn't know, on the index, an item, its reach, a withdrawn entry, a
+  bundle, a bundle's file or a listing, is dropped, so the directory site can
+  add a field without older copies refusing the whole index. Every field
+  Athena knows keeps its type, size and count checks, and a bad one still
+  refuses the file whole. The bundle hash is unchanged and covers each file's
+  path and text. A change older copies must not read past bumps `format` or
+  an item's `min_format`; it is never a new key.
 - **Migration 0089.** Nullable `catalogue_id`, `catalogue_hash` and
   `catalogue_version` on `team_assistants`, `ask_skills` and `flows`: which
   listing an item came from, for "You already have this" and update checks.

@@ -10,8 +10,13 @@
  * bundles from the folders.
  *
  * Everything here is pure and shared by the server, the app and the catalogue's build. The validators refuse a
- * file over its byte or count caps before reading further, and drop nothing silently: a catalogue file that
- * doesn't fit is refused whole, since the catalogue is meant to be right.
+ * file over its byte or count caps before reading further. A field this Athena knows that doesn't fit its type,
+ * size or count refuses the file whole, since the catalogue is meant to be right.
+ *
+ * Reading is tolerant of what's new: a key this Athena doesn't know, on the index, an item, its reach, a withdrawn
+ * entry, a bundle, a bundle's file or a listing, is dropped, never kept or passed on. So the directory site can add a
+ * field without every older copy refusing the whole catalogue. A change older copies must not read past goes in
+ * `format` or an item's `min_format`, never in a new key. The bundle hash covers each file's path and text only.
  */
 import { z } from "zod";
 import { SHARE_FORMAT } from "./team-share";
@@ -102,8 +107,7 @@ export const reachSchema: z.ZodType<Reach> = z
     web: z.boolean(),
     lookups: z.array(z.string().regex(TOOL)).max(CATALOGUE_LIMITS.lookups),
     needs: z.array(z.string().regex(PROVIDER)).max(CATALOGUE_LIMITS.needs),
-  })
-  .strict();
+  });
 
 // ---------- index.json ----------
 
@@ -170,10 +174,9 @@ export const catalogueItemSchema: z.ZodType<CatalogueItem> = z
     added_at: when,
     bundle: z.string().max(260).regex(BUNDLE_PATH),
     downloads: z.number().int().min(0).max(CATALOGUE_LIMITS.downloads).optional(),
-  })
-  .strict();
+  });
 
-export const withdrawnSchema: z.ZodType<WithdrawnItem> = z.object({ id: z.string().regex(CATALOGUE_ID), at: when, reason: line(CATALOGUE_LIMITS.reason) }).strict();
+export const withdrawnSchema: z.ZodType<WithdrawnItem> = z.object({ id: z.string().regex(CATALOGUE_ID), at: when, reason: line(CATALOGUE_LIMITS.reason) });
 
 const unique = <T>(key: (t: T) => string, what: string) => (list: T[], ctx: z.RefinementCtx) => {
   const seen = new Set<string>();
@@ -191,7 +194,6 @@ export const catalogueIndexSchema: z.ZodType<CatalogueIndex> = z
     items: z.array(catalogueItemSchema).max(CATALOGUE_LIMITS.items).superRefine(unique((i) => i.id, "item")).superRefine(unique((i) => `${i.kind}/${i.slug}`, "slug")),
     withdrawn: z.array(withdrawnSchema).max(CATALOGUE_LIMITS.withdrawn).superRefine(unique((w) => w.id, "withdrawn id")),
   })
-  .strict()
   .superRefine((index, ctx) => {
     const gone = new Set(index.withdrawn.map((w) => w.id));
     for (const i of index.items) if (gone.has(i.id)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `item “${i.id}” is both listed and withdrawn` });
@@ -217,8 +219,7 @@ const fileSchema = z
   .object({
     path: z.string().max(260).regex(FILE_PATH),
     text: z.string().max(CATALOGUE_LIMITS.fileBytes).refine((t) => byteLength(t) <= CATALOGUE_LIMITS.fileBytes, `a file is ${CATALOGUE_LIMITS.fileBytes.toLocaleString("en-GB")} bytes at most`),
-  })
-  .strict();
+  });
 
 export const catalogueBundleSchema: z.ZodType<CatalogueBundle> = z
   .object({
@@ -227,7 +228,6 @@ export const catalogueBundleSchema: z.ZodType<CatalogueBundle> = z
     kind: z.enum(SHARE_KINDS),
     files: z.array(fileSchema).min(1).max(CATALOGUE_LIMITS.files).superRefine(unique((f) => f.path, "file")),
   })
-  .strict()
   .superRefine((b, ctx) => {
     const total = b.files.reduce((n, f) => n + byteLength(f.text), 0);
     if (total > CATALOGUE_LIMITS.totalBytes) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `an item's files are ${CATALOGUE_LIMITS.totalBytes.toLocaleString("en-GB")} bytes at most` });
@@ -246,8 +246,7 @@ export interface Listing {
 }
 
 export const listingSchema: z.ZodType<Listing> = z
-  .object({ format: z.literal(CATALOGUE_FORMAT), id: z.string().regex(CATALOGUE_ID), added_at: when, featured: z.boolean() })
-  .strict();
+  .object({ format: z.literal(CATALOGUE_FORMAT), id: z.string().regex(CATALOGUE_ID), added_at: when, featured: z.boolean() });
 
 // ---------- reading them ----------
 
