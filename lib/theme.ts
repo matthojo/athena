@@ -31,7 +31,7 @@
  * will read shared ones. readTheme() keeps only known keys, accepts colours
  * only in a small safe syntax (hex, rgb(), hsl() and oklch() with plain
  * numbers: no url(), no var(), nothing that loads or refers to anything) and
- * writes each back out in a canonical form of its own, clamps the numbers,
+ * writes each back out as oklch(), clamps the numbers,
  * and drops the rest. Nothing a theme holds reaches the page except through
  * that canonical form.
  */
@@ -165,16 +165,26 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 
 const hex2 = (n: number) => n.toString(16).padStart(2, "0");
 
-/** The canonical way Athena writes a colour back out: #rrggbb, or oklch(L C H) with four decimals at most. */
+/** A colour written out: #rrggbb for sRGB, oklch(L C H) with five decimals at most (three for the hue). */
 export function formatColour(c: Colour): string {
   if (c.space === "srgb") return `#${hex2(c.r)}${hex2(c.g)}${hex2(c.b)}`;
-  return `oklch(${round(c.l, 4)} ${round(c.c, 4)} ${round(c.h, 2)})`;
+  return `oklch(${round(c.l, 5)} ${round(c.c, 5)} ${round(c.h, 3)})`;
 }
 
-/** A colour in the safe syntax, in Athena's canonical form; null if it isn't one. */
+/**
+ * A colour in the safe syntax, in Athena's canonical form, always oklch(L C H);
+ * null if it isn't one. Never hex: the app mixes colours with transparent in
+ * oklch (color-mix(in oklch, var(--canvas) 92%, transparent)), and Chrome
+ * gives an sRGB colour mixed that way no hue, which it draws as red.
+ */
 export const canonicalColour = (raw: unknown): string | null => {
   const c = parseColour(raw);
-  return c ? formatColour(c) : null;
+  if (!c) return null;
+  if (c.space === "oklch") return formatColour(c);
+  // Five decimals is enough for every hex colour to come back exactly; a grey has no hue.
+  const o = toOklch(c);
+  const grey = o.c < 0.000005;
+  return formatColour({ space: "oklch", l: o.l, c: grey ? 0 : o.c, h: grey ? 0 : o.h });
 };
 
 // OKLab (Björn Ottosson's matrices, public domain).

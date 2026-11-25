@@ -128,12 +128,32 @@ export function applyPaint(doc: Document, paint: Paint): void {
   });
 }
 
+/**
+ * Make a change to the page's theme take effect at once. Some colours
+ * transition slowly on purpose (the glow drifts over six seconds between
+ * times of day, Today's haze and the orb cross-fade), which would make a new
+ * theme seem not to have reached them. With data-repainting on the root,
+ * base.css turns every transition off; the change lands, a layout read makes
+ * the browser work the new styles out, and two frames later transitions are
+ * back. Exported for the tests.
+ */
+export function cutOver(doc: Document, change: () => void): void {
+  const root = doc.documentElement;
+  root.setAttribute(REPAINTING, "");
+  change();
+  void doc.body?.offsetHeight;
+  const raf = doc.defaultView?.requestAnimationFrame?.bind(doc.defaultView);
+  if (raf) raf(() => raf(() => root.removeAttribute(REPAINTING)));
+  else root.removeAttribute(REPAINTING);
+}
+export const REPAINTING = "data-repainting";
+
 /** Draw the chosen theme, and keep it worked out for the next first paint. */
 function apply(s: ThemeState): void {
   const paint = compileTheme(themeFor(s.choice, s));
   store.set(PAINT_KEY, Object.keys(paint.blocks).length || Object.keys(paint.meta).length ? JSON.stringify(paint) : null);
   if (typeof document === "undefined") return;
-  applyPaint(document, paint);
+  cutOver(document, () => applyPaint(document, paint));
   repaint();
 }
 
@@ -225,7 +245,7 @@ export function setPersonal(change: Partial<Personal>): void {
   const p = readPersonal({ ...personal(), ...change });
   store.set(PERSONAL_KEY, p.font || p.size ? JSON.stringify(p) : null);
   if (typeof document !== "undefined") {
-    applyPersonal(document, p);
+    cutOver(document, () => applyPersonal(document, p));
     repaint();
   }
   for (const fn of personalListeners) fn(p);

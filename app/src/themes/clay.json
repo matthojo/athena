@@ -2,7 +2,7 @@
   "format": "athena-theme",
   "version": 1,
   "name": "Clay",
-  "summary": "Warm paper, terracotta and earthy charts",
+  "summary": "Terracotta on warm paper, and its own earthy chart colours",
   "colours": {
     "light": {
       "page": "#f5efe6",

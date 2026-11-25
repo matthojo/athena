@@ -25,7 +25,13 @@ test("colours: only the safe syntax, written back Athena's way", () => {
     ["OKLCH(53% 0.2 264deg)", "oklch(0.53 0.2 264)"],
     ["oklch(0.5 0.1 -90)", "oklch(0.5 0.1 270)"],
   ];
-  for (const [input, out] of ok) assert.equal(canonicalColour(input), out, input);
+  for (const [input, out] of ok) {
+    const c = canonicalColour(input)!;
+    // Written back as oklch(), never hex (Chrome gives a hex colour mixed with transparent in oklch no hue, and draws it red).
+    assert.match(c, /^oklch\([\d.]+ [\d.]+ [\d.]+\)$/, input);
+    assert.equal(out.startsWith("#") ? toHex(parseColour(c)!) : c, out, input);
+    assert.equal(canonicalColour(c), c, `${input}: reading it again changes nothing`);
+  }
   const bad = [
     "red", "transparent", "currentColor", "#abcd", "#12345678", "#ggg", "url(https://example.com/x.png)", "url(x)", "var(--theme-accent)",
     "calc(1px)", "color-mix(in oklab, red, blue)", "rgb(1 2 3 / 0.5)", "rgba(0,0,0,0)", "oklch(0.5 0.1 264 / 50%)", "rgb(1 2)", "rgb(1 2 3 4)",
@@ -34,6 +40,13 @@ test("colours: only the safe syntax, written back Athena's way", () => {
     42, null, undefined, {}, ["#fff"],
   ];
   for (const input of bad) assert.equal(canonicalColour(input), null, String(input));
+});
+
+test("every hex colour survives the trip through oklch exactly", () => {
+  for (let r = 0; r < 256; r += 15) for (let g = 0; g < 256; g += 15) for (let b = 0; b < 256; b += 15) {
+    const hex = `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+    assert.equal(toHex(parseColour(canonicalColour(hex))!), hex);
+  }
 });
 
 test("colour maths: hex, oklch and distance", () => {
@@ -57,8 +70,8 @@ test("a theme reads, and comes back out as the same JSON", () => {
   );
   assert.deepEqual(problems, []);
   assert.ok(theme);
-  assert.equal(theme.colours.light?.page, "#ffffff");
-  assert.equal(theme.colours.dark?.text, "#f0f0f0");
+  assert.equal(theme.colours.light?.page, "oklch(1 0 0)");
+  assert.equal(toHex(parseColour(theme.colours.dark?.text)!), "#f0f0f0");
   assert.equal(theme.chart?.light?.length, CHART_SERIES);
   const again = readTheme(themeJson(theme));
   assert.deepEqual(again.theme, theme);
@@ -85,7 +98,9 @@ test("hostile and broken input: unknown keys dropped, numbers clamped, nothing e
   );
   assert.ok(theme);
   assert.equal(theme.name, "Evil theme");
-  assert.deepEqual(theme.colours, { light: { accent: "#123456" } });
+  assert.deepEqual(Object.keys(theme.colours), ["light"]);
+  assert.deepEqual(Object.keys(theme.colours.light!), ["accent"]);
+  assert.equal(toHex(parseColour(theme.colours.light!.accent)!), "#123456");
   assert.equal(theme.shape.radius, LIMITS.radius.max);
   assert.equal(theme.shape.density, LIMITS.density.min);
   assert.equal(theme.text.scale, 1, "a string isn't a number");

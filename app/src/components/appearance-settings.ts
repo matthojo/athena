@@ -87,7 +87,7 @@ export const APPEARANCE_COPY = {
   saved: (name: string) => `Saved “${name}” and switched to it`,
 
   fontLegend: "Your font",
-  fontHint: "Your font wins over any theme, on this device only.",
+  fontHint: "Only this device uses your font, whatever the theme.",
   fontAthena: "Athena's own",
   fontAthenaSub: "Geist",
   fontSystem: "System font",
@@ -101,7 +101,7 @@ export const APPEARANCE_COPY = {
   fontSeeDenied: "Your browser didn't share the full list, so these are the common fonts only.",
 
   sizeLegend: "Text size",
-  sizeHint: "Your text size wins over any theme, on this device only.",
+  sizeHint: "Only this device uses your text size, whatever the theme.",
   sizeReset: "Reset",
   sizeValue: (pct: number) => `${pct}%`,
 };
@@ -563,26 +563,22 @@ function fontPicker(): { el: HTMLElement; destroy: () => void } {
     ask.hidden = state !== "can-ask";
   };
 
+  // The full list joins the common fonts already found, never replaces them; an empty answer counts as no answer.
+  const take = (all: string[] | null): boolean => {
+    if (!all?.length) return false;
+    fonts = [...new Set([...fonts, ...all])].sort((a, b) => a.localeCompare(b));
+    state = "all";
+    return true;
+  };
   ask.addEventListener("click", async () => {
-    const all = await listDeviceFonts();
-    if (all) {
-      const current = personal().font;
-      fonts = [...new Set([...all, ...(current && current !== SYSTEM_FONT ? [current] : [])])].sort((a, b) => a.localeCompare(b));
-      state = "all";
-    } else state = "denied";
+    if (!take(await listDeviceFonts())) state = "denied";
     paint();
   });
   filter.addEventListener("input", paint);
   // Already allowed in an earlier visit: list them straight away, no prompt.
   if (state === "can-ask")
     void fontPermission().then(async (p) => {
-      if (p !== "granted") return;
-      const all = await listDeviceFonts();
-      if (all) {
-        fonts = all;
-        state = "all";
-        paint();
-      }
+      if (p === "granted" && take(await listDeviceFonts())) paint();
     });
   // A font chosen on this device but not in the common list still shows, so the choice is visible.
   const current = personal().font;

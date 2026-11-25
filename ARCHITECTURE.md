@@ -524,7 +524,9 @@ a `theme.json`:
   known keys; takes colours only as `#rgb`, `#rrggbb`, `rgb()`, `hsl()` or
   `oklch()` with plain numbers, opaque (no `url()`, `var()`, `calc()`,
   `color-mix()`, named colours, escapes or comments) and writes each back as
-  `#rrggbb` or `oklch(L C H)`; clamps the numbers; cuts the name (40),
+  `oklch(L C H)`, exact to the sRGB level (Chrome gives a hex colour mixed
+  with `transparent` in oklch, as `community.css` does, no hue, and draws it
+  red); clamps the numbers; cuts the name (40),
   author (60) and summary (140) to plain text; refuses JSON over 16 KB or
   from a newer version; and lists what it dropped. A chart palette must have
   exactly five colours, every pair at least 0.07 apart in OKLab, or it's
@@ -537,7 +539,10 @@ a `theme.json`:
   selectors outrank `tokens.css`'s `:root` and `:root:where(…)` by
   specificity, so order doesn't matter, and a scheme the theme leaves out
   stays Athena's. Nothing is written to the root's inline style, which the
-  app rewrites (`--kb`). The stored copy is checked again on its way out:
+  app rewrites (`--kb`). A change lands at once: while it's applied the
+  root carries `data-repainting`, which turns every transition off for two
+  frames, so the glow's six-second drift and the orb's cross-fade don't hold
+  the old colours on screen. The stored copy is checked again on its way out:
   only `--theme-*`, `--chart-*`, `--aurora-*` and `--accent-tint` names, and
   values built from hex, numbers, `oklch()`, `color-mix()` and `var()` of
   those names.

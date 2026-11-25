@@ -12,8 +12,10 @@ import { parseHTML } from "linkedom";
 import { BOOT_MARKER, BOOT_SCRIPT } from "./appearance-boot";
 import { APPEARANCE_KEY } from "./appearance";
 import { ATHENA, BLOCKS, compileTheme, glow, paintCss, personalCss, readPersonal, safeValue, SYSTEM_FONT, type Paint } from "./theme-paint";
-import { BUILT_IN, PAINT_KEY, PERSONAL_KEY, applyPaint, applyPersonal } from "./theme";
-import { COLOUR_KEYS, COLOUR_TOKEN, closePairs, readTheme, type Theme } from "../../../lib/theme";
+import { BUILT_IN, PAINT_KEY, PERSONAL_KEY, REPAINTING, applyPaint, applyPersonal, chooseTheme, deleteOwnTheme, saveOwnTheme, setPersonal } from "./theme";
+import { COLOUR_KEYS, COLOUR_TOKEN, canonicalColour, closePairs, readTheme, type Theme } from "../../../lib/theme";
+
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 import athenaChart from "../themes/athena-chart.json";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -68,7 +70,7 @@ test("a theme's colours are scoped to their scheme, and beat tokens.css by speci
   const paint = compileTheme(theme({ colours: { light: { page: "#fafafa", accent: "#aa3300" } }, shape: { radius: 0.5 } }));
   const css = paintCss(paint);
   assert.match(css, /^html:root\{--theme-radius:0\.5;\}/);
-  assert.match(css, /html:root\[data-scheme="light"\]\{--theme-page:#fafafa;--theme-accent:#aa3300;/);
+  assert.match(css, new RegExp(`html:root\\[data-scheme="light"\\]\\{--theme-page:${esc(canonicalColour("#fafafa")!)};--theme-accent:${esc(canonicalColour("#aa3300")!)};`));
   assert.doesNotMatch(css, /data-scheme="dark"\]\{/, "a theme that gives only light leaves dark to Athena");
   assert.deepEqual(paint.meta, { light: "#fafafa" });
   // (0,2,1) and (0,1,1) beat tokens.css's :root and :root:where(…), both (0,1,0).
@@ -96,11 +98,19 @@ test("the page glow: Athena's accent keeps blue and mint, any other accent tints
 test("a chart palette replaces Athena's series; a palette with two alike is refused", () => {
   const palette = ["#c0392b", "#27ae60", "#2980b9", "#8e44ad", "#f39c12"];
   const paint = compileTheme(theme({ chart: { dark: palette } }));
-  assert.deepEqual(Object.entries(paint.blocks.dark!).map(([k, v]) => `${k}=${v}`), palette.map((c, i) => `--chart-${i + 1}=${c}`));
+  assert.deepEqual(Object.entries(paint.blocks.dark!).map(([k, v]) => `${k}=${v}`), palette.map((c, i) => `--chart-${i + 1}=${canonicalColour(c)}`));
   assert.equal(paint.blocks.light, undefined);
   const alike = readTheme({ format: "athena-theme", version: 1, name: "x", chart: { light: ["#c0392b", "#c1392b", "#2980b9", "#8e44ad", "#f39c12"] } });
   assert.equal(alike.theme?.chart, undefined);
   assert.deepEqual(alike.problems, [{ path: "chart.light", why: "chart-close" }]);
+});
+
+test("a theme's colours keep their hue when the app mixes them with transparent", () => {
+  // community.css, ask-threads.css and others: color-mix(in oklch, var(--canvas) 92%, transparent). Chrome gives an
+  // sRGB colour mixed that way no hue and draws it red, so a theme's colours reach the page as oklch(), never hex.
+  const paint = compileTheme(BUILT_IN.find((t) => t.id === "harbour")!.theme);
+  for (const block of Object.values(paint.blocks)) for (const [k, v] of Object.entries(block!)) if (/^--(theme|chart)-/.test(k) && !/radius|density|scale/.test(k)) assert.match(v, /^oklch\(/, k);
+  assert.match(read("../styles/community.css"), /color-mix\(in oklch, var\(--canvas\) 92%, transparent\)/);
 });
 
 test("only safe values reach the stylesheet", () => {
@@ -148,7 +158,7 @@ test("applying and removing a theme", () => {
   const doc = page();
   const paint = compileTheme(BUILT_IN.find((t) => t.id === "harbour")!.theme);
   applyPaint(doc, paint);
-  assert.ok(doc.getElementById("athena-theme")!.textContent!.includes("--theme-accent:#0b7285"));
+  assert.ok(doc.getElementById("athena-theme")!.textContent!.includes(`--theme-accent:${canonicalColour("#0b7285")}`));
   assert.equal(themeColours(doc)[0][1], paint.meta.dark);
   applyPaint(doc, compileTheme(null));
   assert.equal(doc.getElementById("athena-theme")!.textContent, "");
@@ -177,5 +187,43 @@ test("a person's own font and size win over any theme", () => {
     const applied = page();
     applyPersonal(applied, readPersonal(p));
     assert.equal(doc.getElementById("athena-personal")?.textContent ?? "", applied.getElementById("athena-personal")!.textContent, JSON.stringify(p));
+  }
+});
+
+test("a new theme lands at once: no slow transition holds the old glow on screen", () => {
+  // The glow drifts over six seconds between times of day; a theme change must not wait for it.
+  const base = read("../styles/base.css");
+  assert.match(base, /\.aurora span \{[^}]*transition: background-color calc\(var\(--dur-drift\) \/ 5\)/);
+  assert.match(base, /:root\[data-repainting\] \*,\n:root\[data-repainting\] \*::before,\n:root\[data-repainting\] \*::after \{\n {2}transition: none !important;/);
+  // Every way the theme changes turns transitions off while it lands, and back on two frames later.
+  const doc = page();
+  const frames: (() => void)[] = [];
+  Object.assign(doc.defaultView ?? {}, { requestAnimationFrame: (fn: () => void) => frames.push(fn) });
+  const stored = new Map<string, string>([["athena.mode", "sample"]]);
+  const g = globalThis as Record<string, unknown>;
+  const before = { document: g.document, localStorage: g.localStorage, addEventListener: g.addEventListener };
+  g.document = doc;
+  g.localStorage = { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => stored.set(k, v), removeItem: (k: string) => stored.delete(k) };
+  try {
+    const check = (what: string, change: () => void) => {
+      change();
+      assert.equal(doc.documentElement.hasAttribute(REPAINTING), true, `${what}: transitions are off while it lands`);
+      while (frames.length) frames.shift()!();
+      assert.equal(doc.documentElement.hasAttribute(REPAINTING), false, `${what}: and back on after`);
+    };
+    check("choosing a built-in theme", () => chooseTheme("builtin:clay"));
+    assert.match(doc.getElementById("athena-theme")!.textContent!, /--accent-tint:0%/);
+    let id = "";
+    check("saving one of your own", () => (id = saveOwnTheme(BUILT_IN.find((t) => t.id === "mist")!.theme)));
+    let undo = () => undefined as void;
+    check("deleting it", () => (undo = deleteOwnTheme(id)));
+    assert.equal(doc.getElementById("athena-theme")!.textContent, "", "back to Athena's own");
+    check("Undo", () => undo());
+    assert.match(doc.getElementById("athena-theme")!.textContent!, /--accent-tint:0%/);
+    check("switching back to Athena", () => chooseTheme("athena"));
+    assert.equal(doc.getElementById("athena-theme")!.textContent, "");
+    check("your text size", () => setPersonal({ size: 1.25 }));
+  } finally {
+    Object.assign(g, before);
   }
 });
