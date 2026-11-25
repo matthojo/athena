@@ -76,10 +76,10 @@ test("a journal starts from a template: no opening heading, the day's dates, eve
   const day = { date: "Wednesday 25 November", week: "Week of 23 November" };
   assert.equal(
     journalFromTemplate("\n# Gratitude, {{date}}\n\nThree things, {{today}}:\n1. \n\n## For {{week}}\n\n{{open loops}} and {{weird one}}\n\n", day),
-    "Three things, Wednesday 25 November:\n1. \n\n## For Week of 23 November\n\n{{open loops}} and {{weird one}}",
+    "Three things, Wednesday 25 November:\n1. \n\nFor Week of 23 November\n\n{{open loops}} and {{weird one}}",
   );
   // No heading at the top: nothing is left out. Only a level-one heading is the title.
-  assert.equal(journalFromTemplate("## Went well\n\n- [ ] ", day), "## Went well\n\n- [ ] ");
+  assert.equal(journalFromTemplate("## Went well\n\n- [ ] ", day), "Went well\n\n- [ ] ");
   // A template that is only a heading leaves nothing to start from.
   assert.equal(journalFromTemplate("# Just a title\n\n", day), "");
 });

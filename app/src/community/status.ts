@@ -86,7 +86,7 @@ function updateBanner(c: UpdateCheck): HTMLElement | null {
       h("p", { class: "cm-banner__title" }, UPDATE_WORDS),
       tier ? h("p", { class: "cm-banner__reach" }, tier) : null,
       h("p", { class: "cm-banner__text" }, `${versionWords(c.version, n.version)}. ${n.summary}`),
-      h("p", { class: "cm-banner__text" }, `It won't update by itself. Updating keeps this ${NOUN[c.kind]}'s name and history, and replaces the rest with the new version.`),
+      h("p", { class: "cm-banner__text" }, c.kind === "template" ? TEMPLATE_UPDATE_WORDS : `It won't update by itself. Updating keeps this ${NOUN[c.kind]}'s name and history, and replaces the rest with the new version.`),
       h("div", { class: "cm-banner__acts" }, see)
     )
   );
@@ -169,6 +169,9 @@ export function updateDot(kind: ShareKind, id: string, onFound?: () => void): HT
   });
   return dot;
 }
+
+/** A template's Update banner: it never goes over the owner's changes (lib/templates-db.ts replaceSharedTemplate). */
+export const TEMPLATE_UPDATE_WORDS = "It won't update by itself. Updating keeps the name and swaps in the new words, unless you've changed yours. Then the new version goes beside it.";
 
 /** The dot's name, and the banner's title. */
 export const UPDATE_WORDS = "Update available";

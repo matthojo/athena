@@ -46,7 +46,7 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
 
   // ---------- the head ----------
   const fromFile = h("a", { class: "btn btn--soft btn--sm", href: ADD_ROUTE }, icons.plus(), h("span", {}, "From a file or link"));
-  const head = pageHead({ segments: ctx.go ? librarySegments("community", ctx.go) : undefined, title: "Community", lede: "Assistants, skills, flows and check-in questions other people made. Each one is reviewed before it's listed, and nothing is added until you say so.", actions: [fromFile] });
+  const head = pageHead({ segments: ctx.go ? librarySegments("community", ctx.go) : undefined, title: "Community", lede: "Assistants, skills, flows, check-in questions and templates other people made. Each one is reviewed before it's listed, and nothing is added until you say so.", actions: [fromFile] });
 
   // The plain line: what's read, from where, and the switch.
   const swId = "community-check";

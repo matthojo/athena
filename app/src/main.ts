@@ -577,9 +577,29 @@ function mountShell() {
     return true;
   }
 
+  // #/notes?template=<id> (an added template's address, lib/community-api.ts): Notes, with that template's editor over it.
+  function openTemplateLink(hash: string): void {
+    const [path, qs] = hash.replace(/^#\/?/, "").split("?");
+    const id = path.replace(/\/+$/, "") === "notes" ? new URLSearchParams(qs ?? "").get("template") : null;
+    if (!id) return;
+    if (location.hash !== routeHash(route)) history.replaceState(history.state, "", routeHash(route));
+    void Promise.all([import("./components/templates"), import("./db/documents"), import("./components/toast")]).then(([t, d, toast]) =>
+      d.loadTemplates().then(
+        (all) => {
+          const found = all.find((x) => x.id === id);
+          if (found) t.openTemplateEditor(found);
+          else toast.showToast("That template isn't there any more", { icon: "archive" });
+        },
+        () => toast.showToast("Templates need a connection. Try again when you're online.", { icon: "wifiOff" })
+      )
+    );
+  }
+
+  const firstHash = location.hash;
   render();
   openDeepLink(route);
   openCheckinLink();
+  openTemplateLink(firstHash);
 
   // Fetch the other views' code (and warm the editor) once the first screen
   // has loaded, its pictures included, and the device is idle: started any
@@ -605,11 +625,13 @@ function mountShell() {
   window.addEventListener("popstate", () => {
     if ((history.state as { athenaSheet?: string } | null)?.athenaSheet) return;
     if (openCheckinLink()) return;
-    const next = parseRoute(location.hash);
-    if (next.view === route.view && next.source === route.source && next.noteId === route.noteId) return;
+    const hash = location.hash;
+    const next = parseRoute(hash);
+    if (next.view === route.view && next.source === route.source && next.noteId === route.noteId) return openTemplateLink(hash);
     route = next;
     withTransition(() => render());
     openDeepLink(route);
+    openTemplateLink(hash);
   });
 
   // ---------- Shared state -> chrome ----------

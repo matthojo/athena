@@ -195,7 +195,7 @@ export function checkinAddedWords(name: string, got: { added: number; skipped: r
  */
 export function templateGoesWords(name: string, free: string): string[] {
   const lines = [free === name ? `It joins your templates as “${name}”, marked as someone else's.` : `You have a template called “${name}” already, so this one joins as “${free}”. Yours stays as it is.`];
-  lines.push("Use it from Notes, under From template, or to start a day's journal when the page is empty.");
+  lines.push("Use it from Notes, under “From template”, or to start a day's journal when the page is empty.");
   lines.push("You can change it once it's added. Updates from Community never overwrite your changes.");
   return lines;
 }
@@ -212,7 +212,7 @@ export function madePlainWords(changed: boolean): string | null {
 
 /** The confirmation once a template is added, with its free name when it needed one. Pure. */
 export function templateAddedWords(asked: string, got: { name: string; renamed: boolean }): { title: string; body: string; open: string } {
-  const parts = [got.renamed ? `You already had a template called “${asked}”, so this one is “${got.name}”.` : null, "Use it from Notes, under From template. On a day whose journal is empty, it's under Start from a template too."];
+  const parts = [got.renamed ? `You already had a template called “${asked}”, so this one is “${got.name}”.` : null, "Use it from Notes, under “From template”. On a day whose journal is empty, it's under “Start from a template” too."];
   return { title: `${got.name} is in your templates`, body: parts.filter(Boolean).join(" "), open: "Open the template" };
 }
 

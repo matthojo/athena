@@ -377,7 +377,8 @@ export const TEMPLATE_LIMITS = { name: 80, body: 20_000, count: 100 } as const;
 
 /**
  * A template as a day's journal starts from it (app/src/components/journal-start.ts). The journal belongs to its day,
- * which is its title, so an opening "# heading" is left out. {{date}} and {{today}} become the day's own date, and
+ * which is its title, so an opening "# heading" is left out, and since the journal is plain text, the other headings
+ * lose their "#" marks and stay as lines of their own (lists and to-dos keep theirs). {{date}} and {{today}} become the day's own date, and
  * {{week}} its week: the day the owner is writing about, not the day they're writing on. Every other field stays
  * exactly as written, as a blank for them, since a journal has no meeting, person or trip to fill it from and nothing
  * is ever made up. No Sources list: nothing was filled from a record. Pure.
@@ -387,6 +388,7 @@ export function journalFromTemplate(body: string, day: { date: string; week: str
   const first = lines.findIndex((l) => l.trim());
   if (first > -1 && /^#\s+\S/.test(lines[first])) lines.splice(first, 1);
   const text = lines
+    .map((l) => l.replace(/^#{1,6}\s+/, ""))
     .join("\n")
     .replace(FIELD_RE, (whole, name: string) => {
       const key = fieldKey(name);

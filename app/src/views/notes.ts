@@ -10,9 +10,7 @@ import { h } from "../lib/dom";
 import { icons } from "../components/icons";
 import { highlight, noteRow } from "../components/note-row";
 import { noteView, openNoteSheet, type NoteView } from "../components/note-detail";
-import { openTemplateEditor, openTemplatePicker } from "../components/templates";
-import { loadTemplates } from "../db/documents";
-import { showToast } from "../components/toast";
+import { openTemplatePicker } from "../components/templates";
 import { librarySegments } from "../components/library-nav";
 import type { ViewId } from "../components/nav";
 import { notesSnapshot, onNotes, searchNotes } from "../db/data";
@@ -313,20 +311,6 @@ export function renderNotes(ctx: NotesContext): { el: HTMLElement; destroy: () =
 
   const focusSearch = () => requestAnimationFrame(() => input.focus());
   if (ctx.focusSearch) focusSearch();
-
-  // #/notes?template=<id>: a template's own address (an added one's, from the Add screen): its editor, over Notes.
-  const wanted = new URLSearchParams(location.hash.split("?")[1] ?? "").get("template");
-  if (wanted) {
-    history.replaceState(history.state, "", "#/notes");
-    void loadTemplates().then(
-      (all) => {
-        const t = all.find((x) => x.id === wanted);
-        if (t) openTemplateEditor(t);
-        else showToast("That template isn't there any more", { icon: "archive" });
-      },
-      () => showToast("Templates need a connection. Try again when you're online.", { icon: "wifiOff" })
-    );
-  }
 
   return {
     el,

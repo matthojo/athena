@@ -654,3 +654,12 @@
   background: var(--paper-wash);
   color: var(--paper-ink);
 }
+
+/* Community's word on an added template sits in the editor's own rhythm. */
+.tpl-ed > .cm-status:not(:empty) {
+  margin-block: 0;
+}
+
+.tpl-ed > .cm-status .cm-banner {
+  margin: 0;
+}
