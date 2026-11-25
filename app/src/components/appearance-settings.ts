@@ -28,7 +28,8 @@ export function appearanceSection(): { el: HTMLElement; destroy: () => void } {
   const inputs = new Map<Appearance, HTMLInputElement>();
   const choice = (id: Appearance) => {
     const inputId = `appearance-${id}`;
-    const input = h("input", { class: "appearance-choice__input", type: "radio", name: "appearance", value: id, id: inputId }) as HTMLInputElement;
+    // Named by its name alone; System's line under it is its description, not part of its name.
+    const input = h("input", { class: "appearance-choice__input", type: "radio", name: "appearance", value: id, id: inputId, "aria-labelledby": `${inputId}-name` }) as HTMLInputElement;
     if (id === "system") input.setAttribute("aria-describedby", `${inputId}-sub`);
     inputs.set(id, input);
     input.addEventListener("change", () => input.checked && setAppearance(id));
@@ -36,7 +37,7 @@ export function appearanceSection(): { el: HTMLElement; destroy: () => void } {
       "label",
       { class: "appearance-choice", for: inputId },
       input,
-      h("span", { class: "appearance-choice__words" }, h("span", { class: "appearance-choice__name" }, NAMES[id]), id === "system" ? h("span", { class: "appearance-choice__sub", id: `${inputId}-sub` }, APPEARANCE_COPY.systemSub) : null)
+      h("span", { class: "appearance-choice__words" }, h("span", { class: "appearance-choice__name", id: `${inputId}-name` }, NAMES[id]), id === "system" ? h("span", { class: "appearance-choice__sub", id: `${inputId}-sub` }, APPEARANCE_COPY.systemSub) : null)
     );
   };
   const fieldset = h("fieldset", { class: "appearance-choices" }, h("legend", { class: "appearance-choices__legend" }, APPEARANCE_COPY.legend), choice("system"), choice("light"), choice("dark"));
