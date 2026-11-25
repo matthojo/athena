@@ -29,7 +29,7 @@ import { DOCUMENTS_PRESETS, documentsDirect } from "./presets/documents";
 import { LIFE_B_PRESETS, lifeBDirect } from "./presets/life-b";
 
 export type ConnectorAuthType = "oauth" | "token" | "none";
-export type RecipeId = "calendar-meetings" | "email-digest" | "work-activity" | "life-log" | "plays-watches" | "work-sync" | "home" | "custom";
+export type RecipeId = "calendar-meetings" | "calendar-sync" | "email-digest" | "work-activity" | "life-log" | "plays-watches" | "work-sync" | "home" | "custom";
 export type ToolAccess = "read" | "write" | "unknown";
 
 /** How an OAuth account gets its tokens. */
@@ -365,7 +365,7 @@ const CORE_PRESETS: ConnectorPreset[] = [
     needsOwnClient: true,
     ownClientLabel: "Google",
     readTools: ["list_events", "get_event", "search_events", "list_calendars"],
-    recipes: ["calendar-meetings", "custom"],
+    recipes: ["calendar-meetings", "calendar-sync", "custom"],
     help:
       "Google doesn't let apps register themselves, so Athena uses an OAuth client from your own Google Cloud project, the same one as for Gmail if you have it. In that project, turn on the Google Calendar API, add the redirect URI above to the client, and paste the client's ID and secret. Athena asks for read-only access.",
   },
@@ -554,6 +554,12 @@ export const RECIPES: Array<{ id: RecipeId; label: string; description: string; 
     defaultTime: "07:00",
   },
   {
+    id: "calendar-sync",
+    label: "Calendar",
+    description: "Your next two weeks of events in Coming up, kept in step every hour: moved events update and cancelled ones go. Read straight from the calendar, never by the AI.",
+    defaultTime: "08:00",
+  },
+  {
     id: "email-digest",
     label: "Email digest",
     description: "Action items as notes, travel bookings as trips, and orders as purchases you can track to your door. Never touches the inbox, and never stores figures from financial email.",
@@ -597,8 +603,8 @@ export const RECIPES: Array<{ id: RecipeId; label: string; description: string; 
   },
 ];
 
-/** Collections Athena runs by itself, with no model: they run even without AI Gateway (media-sync.ts, work-sync.ts, home-run.ts). */
-export const NO_MODEL_RECIPES: RecipeId[] = ["plays-watches", "work-sync", "home"];
+/** Collections Athena runs by itself, with no model: they run even without AI Gateway (media-sync.ts, work-sync.ts, home-run.ts, calendar-sync.ts). */
+export const NO_MODEL_RECIPES: RecipeId[] = ["plays-watches", "work-sync", "home", "calendar-sync"];
 
 /** "Email digest" + "personal" → "email-digest-personal"; custom collections use their name. */
 export function collectionSource(recipe: RecipeId, name: string, label: string): string {

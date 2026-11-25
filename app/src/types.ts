@@ -686,7 +686,7 @@ export interface Connector {
   updated_at: string;
 }
 
-export type RecipeId = "calendar-meetings" | "email-digest" | "work-activity" | "life-log" | "plays-watches" | "work-sync" | "home" | "custom";
+export type RecipeId = "calendar-meetings" | "calendar-sync" | "email-digest" | "work-activity" | "life-log" | "plays-watches" | "work-sync" | "home" | "custom";
 
 export interface Collection {
   id: string;
@@ -778,6 +778,9 @@ export interface CollectionRun {
       | "work_updated"
       | "accounts_checked"
       | "days_updated"
+      | "calendar_events"
+      | "events_changed"
+      | "events_unchanged"
       | "programmes_finished"
       | "waiting",
       number

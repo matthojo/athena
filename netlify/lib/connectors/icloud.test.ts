@@ -95,7 +95,7 @@ test("the presets: Email and calendar group, read tools, Apple ID field, reached
     assert.equal(directFor({ provider: id, auth_type: "token", oauth: {} })?.id, "icloud");
     assert.equal(directApi({ provider: id, auth_type: "token" }), true);
   }
-  assert.deepEqual(CONNECTOR_PRESETS.find((p) => p.id === "icloud-calendar")!.recipes, ["calendar-meetings", "custom"]);
+  assert.deepEqual(CONNECTOR_PRESETS.find((p) => p.id === "icloud-calendar")!.recipes, ["calendar-meetings", "calendar-sync", "custom"]);
   assert.deepEqual(CONNECTOR_PRESETS.find((p) => p.id === "icloud-contacts")!.recipes, ["calendar-meetings", "custom"]);
 });
 

@@ -158,7 +158,7 @@ const chevron = () => h("span", { class: "row__chevron", "aria-hidden": "true" }
 /** Starters by what you get, not by service (first run). */
 const STARTERS: Array<{ recipe: RecipeId; title: string; line: string; category?: string }> = [
   { recipe: "email-digest", title: "Your email", line: "Things to act on, trips and orders" },
-  { recipe: "calendar-meetings", title: "Your calendar", line: "A note per meeting, and who was there" },
+  { recipe: "calendar-meetings", title: "Your calendar", line: "What's coming up, and a note per meeting" },
   { recipe: "work-activity", title: "Your work", line: "What shipped, what was decided" },
   { recipe: "life-log", title: "Your downtime", line: "What you watched, listened to, read and played" },
   { recipe: "life-log", category: "health", title: "Your health", line: "Sleep, steps, workouts and weight" },

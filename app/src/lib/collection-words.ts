@@ -64,6 +64,7 @@ export const recipeOf = (id: RecipeId) => RECIPES.find((r) => r.id === id) ?? RE
 /** One line per recipe card. */
 const RECIPE_LINE: Record<RecipeId, string> = {
   "calendar-meetings": "Decisions and to-dos from your meetings",
+  "calendar-sync": "Your upcoming events, kept in step every hour",
   "email-digest": "Things to act on, trips and orders, from email",
   "work-activity": "What shipped, what was decided and what's stuck",
   "life-log": "What you watched, played, listened to, read and posted",
@@ -231,6 +232,18 @@ export function whatItSaves(recipe: RecipeId, aheadDays = 14): Saves {
           sub: "Or money and health details",
         },
       };
+    case "calendar-sync":
+      return {
+        saves: [
+          { title: `Your next ${aheadDays || 14} days`, sub: "Events in Coming up and your briefing" },
+          { title: "Who's invited", sub: "Linked to People" },
+          { title: "Moves and cancellations", sub: "Updated every hour" },
+        ],
+        never: {
+          title: "Never sent to the AI",
+          sub: "Athena reads your calendar itself",
+        },
+      };
     case "email-digest":
       return {
         saves: [
@@ -370,6 +383,13 @@ export function workSyncLine(s: { issues_new?: number; prs_new?: number }): stri
   return parts.length ? parts.join(", ") : "Nothing new";
 }
 
+/** A Calendar run: "2 new, 1 changed, 1 cancelled", or "Up to date" (calendar-sync.ts says it the same way). */
+export function calendarSyncLine(s: { events_created?: number; events_changed?: number; archived?: number }): string {
+  const n = (count: number | undefined, word: string) => (count ? `${count.toLocaleString("en-GB")} ${word}` : "");
+  const parts = [n(s.events_created, "new"), n(s.events_changed, "changed"), n(s.archived, "cancelled")].filter(Boolean);
+  return parts.length ? parts.join(", ") : "Up to date";
+}
+
 /** A Home run: "3 days updated, 1 programme finished", or "Up to date" (home-run.ts keeps the per-account detail in its summary). */
 export function homeLine(s: { days_updated?: number; programmes_finished?: number }): string {
   const n = (count: number | undefined, one: string, many: string) => (count ? `${count.toLocaleString("en-GB")} ${plural(count, one, many)}` : "");
@@ -467,6 +487,12 @@ export function runHeadline(r: RunLike, connectors: Connector[] = []): RunWords 
     const s = r.stats;
     const total = (s.issues_new ?? 0) + (s.prs_new ?? 0);
     return { tone: total ? "saved" : "nothing", title: workSyncLine(s), sub: (r.summary ?? "").split(". ").slice(1).join(". "), saved: total };
+  }
+  // Calendar: events new, changed and cancelled; the summary's later sentences say what needs a look.
+  if (typeof r.stats?.calendar_events === "number") {
+    const s = r.stats;
+    const total = (s.events_created ?? 0) + (s.events_changed ?? 0) + (s.archived ?? 0);
+    return { tone: total ? "saved" : "nothing", title: calendarSyncLine(s), sub: (r.summary ?? "").split(". ").slice(1).join(". "), saved: total };
   }
   // Home: days updated and programmes finished; the summary says which account did what (counts only).
   if (typeof r.stats?.days_updated === "number") {

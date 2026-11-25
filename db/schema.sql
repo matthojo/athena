@@ -597,7 +597,7 @@ CREATE TABLE collections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   -- A recipe from netlify/lib/connectors/recipes.ts, or 'custom' (instructions only).
-  recipe TEXT NOT NULL CHECK (recipe IN ('calendar-meetings', 'email-digest', 'work-activity', 'life-log', 'plays-watches', 'work-sync', 'home', 'custom')),
+  recipe TEXT NOT NULL CHECK (recipe IN ('calendar-meetings', 'calendar-sync', 'email-digest', 'work-activity', 'life-log', 'plays-watches', 'work-sync', 'home', 'custom')),
   connector_ids UUID[] NOT NULL DEFAULT '{}',
   -- '' or e.g. 'personal': makes source 'email-digest-personal' and metric
   -- names '..._personal', so two accounts never merge or dedupe each other.
