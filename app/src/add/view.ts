@@ -404,7 +404,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
         "What it may do alone",
         ticks.length || webBox
           ? h("p", { class: "form__hint add-sec__lede" }, `${name} would like to do these without asking. Anything you leave unticked waits for your approval.`)
-          : h("p", { class: "form__hint" }, `Nothing. Every change ${name} wants to make waits for your Go.`),
+          : h("p", { class: "form__hint" }, `Nothing. Every change ${name} wants to make waits for your approval.`),
         ...ticks.map((t) => t.el),
         webBox ? h("label", { class: "wf-tick", for: "add-web" }, webBox, h("span", {}, h("span", { class: "wf-tick__label" }, "Search the web"), h("span", { class: "row__meta" }, "Searches and reads the pages it finds, while “Let Ask search the web” is on"))) : null
       );
@@ -412,16 +412,16 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
         asksFirstSec = section(
           "asks-first",
           "Always asks first",
-          h("p", { class: "form__hint add-sec__lede" }, `${name} also asked to do these alone. Something someone else shared can't, so each one waits for your Go.`),
+          h("p", { class: "form__hint add-sec__lede" }, `${name} also asked to do these alone. Something someone else shared can't, so each one waits for your approval.`),
           h("ul", { class: "wf-asks" }, ...asksFirst.map((t) => {
             const o = asksFirstWords(t);
             return h("li", { class: "wf-tick wf-tick--fixed" }, icons.shield(), h("span", {}, h("span", { class: "wf-tick__label" }, o.label), h("span", { class: "row__meta" }, o.detail)));
           }))
         );
     } else if (item.kind === "skill") {
-      aloneSec = section("alone", "What it may do alone", h("p", { class: "form__hint" }, "Nothing. A skill only changes how Ask goes about a request: changes still wait for your Go, and nothing is sent."));
+      aloneSec = section("alone", "What it may do alone", h("p", { class: "form__hint" }, "Nothing. A skill only changes how Ask goes about a request: changes still wait for your approval, and nothing is sent."));
     } else {
-      const lines: string[] = ["Every step that changes something waits for your Go, even if the flow asked to run on its own."];
+      const lines: string[] = ["Every step that changes something waits for your approval, even if the flow asked to run on its own."];
       if (item.flow.steps.length && JSON.stringify(item.flow.steps).includes('"kind":"think"')) lines.push("Its thinking steps need an assistant. Choose one on the flow's page once it's added.");
       if (item.flow.money) lines.push("It asks to read your spending. That stays off until you allow it on the flow's page.");
       if (item.flow.web) lines.push("It asks to search the web. That stays off until you allow it.");

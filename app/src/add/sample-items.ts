@@ -125,7 +125,7 @@ const ITEMS: Record<string, { title: string; files: CatalogueFile[] }> = {
             "",
             "1. For each topic, read the last week's Slack threads that mention it. Note who asked what, and anything still open.",
             "2. Search the web for news on each topic from the last seven days. Prefer the source over a write-up of it. Skip anything behind a paywall.",
-            "3. Write one short section per topic: what changed, what people are asking, and one thing worth reading, with its link.",
+            "3. Write one short section per topic: what changed, what people are asking, and the one article to read, with its link.",
             "4. Finish with anything that needs a decision from me this week.",
             "",
             "Keep the whole brief under a page. Don't quote anyone at length; say what they said in a sentence. If a topic had nothing new, say so in one line rather than padding it out.",

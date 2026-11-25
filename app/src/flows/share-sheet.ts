@@ -221,7 +221,7 @@ export function openShareFlow(flow: Flow): void {
       h("p", { class: "form__hint" }, "One or two sentences. Whoever adds it reads this first."),
       h("div", { class: "skills-form__label", role: "group", "aria-labelledby": "fs-asks-title" }, h("span", { id: "fs-asks-title" }, "Questions for whoever adds it"), h("p", { class: "form__hint" }, asksHint(questions.length)), askList),
       h("div", { class: "wf-pair" }, h("label", { class: "skills-form__label" }, h("span", {}, "Your GitHub username"), author), h("label", { class: "skills-form__label" }, h("span", {}, "Version"), version)),
-      h("p", { class: "form__hint fs-starts" }, "Wherever it's added, it starts switched off, and every step that changes something waits for their Go."),
+      h("p", { class: "form__hint fs-starts" }, "Wherever it's added, it starts switched off, and every step that changes something waits for their approval."),
       h("div", { class: "skills-form__actions" }, again, download),
       h("p", { class: "form__hint" }, "The file has no link to your Athena. Send it to someone, or keep it in a GitHub repository of yours."),
       submitToCommunity("flow")

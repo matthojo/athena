@@ -3455,7 +3455,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
     const shared = skillId && SAMPLE_PLAN_REQUEST.test(q) ? sampleSkillPlan(skillId) : null;
     if (shared) {
       await playSampleSteps([["Reading Deal notes", "Read Deal notes"], ["Looking for Elena", "Found Elena"], ["Planning the changes", "Planned 2 changes"]], step);
-      return { ...none, text: "Here's the plan: two changes, and nothing happens until you tap Go.", plan: shared.plan, skills: [shared.used] };
+      return { ...none, text: "Here's the plan: two changes, and nothing happens until you tap Approve.", plan: shared.plan, skills: [shared.used] };
     }
     if (SAMPLE_PLAN_REQUEST.test(q) || SAMPLE_ROUTINE_REQUEST.test(q)) {
       // A plan (two or more changes) or a routine, as a real request gets them.

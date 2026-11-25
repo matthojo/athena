@@ -99,11 +99,11 @@ export function sharedFlowSteps(flow: SharedFlow, catalog: readonly CatalogEntry
     const metas: Node[] = [];
     if (s.kind === "think") metas.push(h("span", { class: "flow-card__meta" }, flowIcon("sparkle"), `${s.web ? "Asks to search the web · " : ""}A thinking step: it needs an assistant to run`));
     if (s.kind === "ask") metas.push(h("span", { class: "flow-card__meta" }, `${s.choices.length} choices · waits for your answer`));
-    if (s.kind === "assignment") metas.push(h("span", { class: "flow-card__meta" }, "Starts an assignment. Its lineup waits for your Go"));
+    if (s.kind === "assignment") metas.push(h("span", { class: "flow-card__meta" }, "Starts an assignment. Its lineup waits for your approval"));
     if (s.kind === "tool" && (s.tool === "money" || s.tool === "regular_payments")) metas.push(h("span", { class: "flow-card__meta" }, flowIcon("lock"), "Reads your spending. Off until you allow it on the flow"));
     const go = goWords(s);
     if (go) metas.push(h("span", { class: "flow-card__meta" }, go));
-    const tag = changesSomething(s) ? badge({ tone: "you", words: "Waits for your Go" }) : null;
+    const tag = changesSomething(s) ? badge({ tone: "you", words: "Waits for your approval" }) : null;
     const title = stepTitle(asStep(s), catalog);
     const said = body(s);
     const el = h(

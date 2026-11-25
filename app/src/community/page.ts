@@ -216,7 +216,7 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
     note.hidden = true;
 
     if (!v.configured) {
-      return show(state({ icon: "globe", title: "Community is turned off here", sub: "Whoever runs this Athena set it to use no catalogue, so there's nothing to browse. You can still add something someone sent you.", actions: [addLink()] }));
+      return show(state({ icon: "globe", title: "Community is switched off here", sub: "Whoever runs this Athena set it to use no catalogue, so there's nothing to browse. You can still add something someone sent you.", actions: [addLink()] }));
     }
     if (!v.on) {
       const on = h("button", { class: "btn btn--primary btn--sm", type: "button" }, "Switch it on");

@@ -1779,7 +1779,7 @@ contracts between slices, is `docs/team.md`.
     `cantWorkNote` ("Dot can't work without Linear.", from `unmetNeeds` and
     `cantWorkWords` in `lib/shared-limits.ts`). The "Always asks first" rows
     take their words from `ASKS_FIRST_TOOLS`.
-  - **Go on a plan an imported item limits.** `runAsk` saves the plan with
+  - **Approve on a plan an imported item limits.** `runAsk` saves the plan with
     `limit: { assistant_id?, skill_ids? }` (`planLimit`): the imported
     assistant answering, and the imported skills that limited the turn
     (`AccountScope.skills`, recorded by `limitForSkill`). `goPlan`
@@ -1788,7 +1788,7 @@ contracts between slices, is `docs/team.md`.
     their ticks: the step runners' ports go through `limitedForGo` (strict
     `scopedPorts`, where a look is refused too and the refused account is
     recorded). Steps run unlogged (`runStepsFrom`); one that wasn't refused
-    is logged (`keep`), and one that was refused stops Go before it however
+    is logged (`keep`), and one that was refused stops the plan before it however
     it ended, and what it made is undone through `GoDeps.undo` (`discard`,
     `applyUndo`) and never logged or shown. Then the payload keeps
     `paused` (the step, the account, the ticks and the results so far),
@@ -1797,8 +1797,8 @@ contracts between slices, is `docs/team.md`.
     account (`refuser`: a skill is named before the assistant).
     `POST /api/assistant/plan` with `account` (`once`, `always` or `skip`)
     carries on from that step (`carryOn`): once adds the account to this
-    Go's scope only, always ticks it for the assistant (refused when a skill
-    refused it), skip leaves the step out. Go and an answer claim the plan by
+    approval's scope only, always ticks it for the assistant (refused when a skill
+    refused it), skip leaves the step out. Approve and an answer claim the plan by
     the sealed payload they read. The app draws the question in
     `accountAskEl` (`views/ask.ts`): for a skill, Just this once, Skip it and
     a link to `#/settings/skills/<id>`. In sample mode, imported Dot leaves
@@ -2073,7 +2073,7 @@ permission.
   flow page (`styles/flows.css`, "Sticky foot"): solid, at the bottom of the
   content column, above the phone's dock.
 - **A flow, added** (`importSharedFlow`). New step ids; steps that change
-  something wait for Go and steps that only look run; thinking steps off the
+  something wait for approval and steps that only look run; thinking steps off the
   web; money off; paused, origin `shared`. Unanswered blanks are kept in the
   sealed payload (`Words.unfilled`) and shown as `Flow.unfilled`; until each
   is set, the switch, Run now and a try are refused (`unansweredWords`), and

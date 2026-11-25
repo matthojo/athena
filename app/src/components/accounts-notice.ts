@@ -44,7 +44,7 @@ export function accountsNoticeCard(): { el: HTMLElement; destroy: () => void } {
       h(
         "span",
         { class: "briefing__text" },
-        h("span", { class: "briefing__title", id: "acct-notice-title" }, one ? `${skills[0].title} can't open your accounts` : `${skills.length} imported skills can't open your accounts`),
+        h("span", { class: "briefing__title", id: "acct-notice-title" }, one ? `${skills[0].title} can't open your accounts` : `${skills.length} shared skills can't open your accounts`),
         h("span", { class: "briefing__snippet profile-card__snippet" }, `Skills someone else shared now open only the accounts you tick for them. ${one ? "This one has" : "These have"} none ticked yet.`),
         h("ul", { class: "acct-notice__list" }, ...skills.map((s) => h("li", {}, h("a", { href: `#/settings/skills/${s.id}`, class: "acct-notice__link" }, icons.book(), h("span", {}, `Choose accounts for ${s.title}`), icons.chevronRight())))),
         h("span", { class: "profile-card__actions" }, done)

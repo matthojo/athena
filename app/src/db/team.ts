@@ -66,7 +66,7 @@ function sampleRunNow(r: TeamRun): TeamRun {
         },
         accounts: SAMPLE_ACCOUNTS,
       });
-      r.summary = "One issue came in. I've left a to-do and a reply to Priya for your Go.";
+      r.summary = "One issue came in. I've left a to-do and a reply to Priya for your approval.";
       r.waiting = plan.steps.length;
     }
   }

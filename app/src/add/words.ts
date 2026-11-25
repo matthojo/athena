@@ -58,7 +58,7 @@ export function reachWords(r: Reach, kind: ShareKind): { title: string; lines: s
     const l = LOOKUP_TOOLS[tool];
     lines.push(l ? `${l.label}, from ${l.service}` : "It looks something up outside Athena");
   }
-  if (r.web) lines.push("It asks to search the web and read the pages it finds. That stays off unless you allow it");
+  if (r.web) lines.push("It asks to search the web and read the pages it finds. That stays off until you allow it");
   return { title: tierWords(r), lines };
 }
 
@@ -111,7 +111,7 @@ export const changesSomething = (s: SharedFlowStep): boolean => s.kind === "tool
 /** The line under a step that changes something. */
 export function goWords(s: SharedFlowStep): string | null {
   if (s.kind !== "tool" || !changesSomething(s)) return null;
-  if (FLOW_DRAFT_TOOLS.includes(s.tool)) return "A draft: it always waits for your Go, and nothing is sent";
+  if (FLOW_DRAFT_TOOLS.includes(s.tool)) return "A draft: it always waits for your approval, and nothing is sent";
   return s.go === "auto" ? "It asked to run on its own. You can allow that once it's added" : null;
 }
 

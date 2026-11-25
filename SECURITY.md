@@ -2050,14 +2050,14 @@ words. They reach only what the owner ticked for them, enforced in code.
   finds nothing). A custom MCP server with "Use in Ask" is an account like
   any other. Two limits leave only what both allow. A skill brought into use
   part way through a turn can't take back what was read before it.
-- **Go keeps the limit, and asks** (owner, 24 Nov 2026). A plan records
+- **Approve keeps the limit, and asks** (owner, 24 Nov 2026). A plan records
   who limits it (`ask_plans` payload `limit`, sealed, ids only): the
   imported assistant that proposed it, and each imported skill in use when
-  main Ask (or an assistant) made it. Its Go runs under all of their ticks
+  main Ask (or an assistant) made it. Approving it runs under all of their ticks
   together (`goPlan`, `limitedForGo`): a step that needs another account is
-  refused before the account is reached, and Go stops there. The card names
+  refused before the account is reached, and the plan stops there. The card names
   the account in Athena's words, never the model's. For an assistant it
-  offers Just this once (that Go only; nothing is kept), Always for the
+  offers Just this once (that approval only; nothing is kept), Always for the
   assistant (ticks it) or Skip it. When a skill is what refused it, the card
   names the skill and offers only Just this once and Skip it, with a link to
   the skill's page; the server refuses Always for a skill, so a skill's
@@ -2065,7 +2065,7 @@ words. They reach only what the owner ticked for them, enforced in code.
   skill was removed is held the same way, with no ticks.
 - **A refused step always stops** (owner, 24 Nov 2026). Some steps carry on
   without an account they were refused (a draft written without reading
-  the earlier thread). Any step refused an account stops Go and asks,
+  the earlier thread). Any step refused an account stops the plan and asks,
   however it ended. What it made without the account is undone and never
   kept in What Ask did or shown as done; if an undo fails, that change is
   kept in What Ask did so the owner can see it and undo it there.
@@ -2218,7 +2218,7 @@ and start switched off. Nothing in a file is a permission.
 - **Adding one grants nothing.** `addSharedFlow` reads the file again
   (`readSharedFlow`, `checkSharedFlowSteps`), whatever the caller sends,
   then: step ids made here; every step that changes something waits for
-  Go, whatever the file asked (steps that only look run, as in any flow;
+  approval, whatever the file asked (steps that only look run, as in any flow;
   owner, 24 Nov 2026); thinking steps off the web; spending off; the flow
   off, origin `shared`. The owner's answers fill the blanks; an answer for a
   record must be one of their own ids. A blank left unanswered stays as an
