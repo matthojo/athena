@@ -188,7 +188,7 @@ export async function sampleReplaceTemplate(id: string, raw: SharedTemplate, lis
   const row = rows.find((r) => r.id === id && r.shared && !r.archived);
   if (!row?.shared) throw new Error("That template isn't there any more");
   if (row.shared.changed) {
-    row.shared = { ...row.shared, catalogue_id: null, catalogue_hash: null };
+    row.shared = { ...row.shared, catalogue_hash: null };
     await saveSample(SAMPLE_TEMPLATES, rows);
     return { ...(await sampleAddTemplate(shared, listing)), beside: true };
   }

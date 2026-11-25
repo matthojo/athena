@@ -7,10 +7,11 @@
  * Fields are shown with where they come from, and a field nothing can fill
  * is said to stay a blank, so nothing about a template is a surprise.
  *
- * A template added from someone else (lib/template-share.ts) is marked
- * "Shared" in the picker, with a dot when Community has a newer version; its
- * editor says who made it, and Community's word on it (an update, or taken
- * down). A template the owner wrote has Share in its editor
+ * A template added from someone else (lib/template-share.ts) carries no
+ * badge in the picker (owner, 25 Nov 2026: "Shared" could read as shared
+ * out), only a dot when Community has a newer version; its editor says where
+ * it came from and who made it, and Community's word on it (an update, or
+ * taken down). A template the owner wrote has Share in its editor
  * (components/template-share-sheet.ts).
  */
 import "../styles/documents.css";
@@ -26,17 +27,9 @@ import { hueFor, initials } from "../lib/format";
 import type { EntityKind } from "../types";
 import { clockTime } from "../lib/clock";
 import { catalogueStatus, updateDot } from "../community/status";
-import { SHARED_TAG, sharedByWords, sharedChangeWords } from "./template-share-words";
+import { sharedByWords, sharedChangeWords, templateIcon } from "./template-share-words";
 
-const STARTER_ICON: Record<string, IconName> = {
-  meeting: "calendar",
-  "one-on-one": "people",
-  trip: "suitcase",
-  "weekly-review": "week",
-  letter: "mail",
-  "project-brief": "project",
-};
-const iconFor = (t: NoteTemplate): IconName => (t.starter ? (STARTER_ICON[t.starter] ?? "note") : t.shared ? "copy" : "note");
+const iconFor = (t: NoteTemplate): IconName => templateIcon(t);
 
 /** Where a field's value comes from, grouped for the editor's palette. */
 const GROUPS: Array<{ label: string; keys: string[] }> = [
@@ -100,7 +93,7 @@ export function openTemplatePicker(ctx: TemplateOpenContext, opts: { forMeeting?
         h(
           "span",
           { class: "tpl-card__text" },
-          h("span", { class: "tpl-card__name" }, h("span", { class: "tpl-card__label" }, t.name), t.edited && t.starter ? h("span", { class: "tpl-card__tag" }, "Edited") : null, t.shared ? h("span", { class: "tpl-card__tag tpl-card__tag--shared" }, SHARED_TAG) : null, t.shared?.catalogue_id ? updateDot("template", t.id) : null),
+          h("span", { class: "tpl-card__name" }, h("span", { class: "tpl-card__label" }, t.name), t.edited && t.starter ? h("span", { class: "tpl-card__tag" }, "Edited") : null, t.shared?.catalogue_id ? updateDot("template", t.id) : null),
           h("span", { class: "tpl-card__blurb" }, t.blurb)
         )
       );

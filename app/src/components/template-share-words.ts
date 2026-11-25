@@ -4,6 +4,7 @@
  * the tests can read them without a DOM.
  */
 import { tierIcon, tierWords } from "../community/words";
+import type { IconName } from "./icons";
 
 /** The reach card on the share sheet: always tier 1. */
 export function templateReachWords(): { title: string; detail: string; icon: "shield" } {
@@ -26,10 +27,13 @@ export function templateFindingsLede(n: number): string {
   return `${n === 1 ? "This looks like one" : "These look like some"} of your own details. Change ${n === 1 ? "it" : "them"} in the template, or mark ${n === 1 ? "it" : "each one"} fine to share.`;
 }
 
-/** "By @kind-margins · version 1.0", "From a file": an added template's line in the editor. Pure. */
+/**
+ * "From Community · by @kind-margins · version 1.0", "From a file": an added template's line in its editor, in the
+ * words the other kinds use (components/checkin-share-words.ts setMetaWords). Never a bare "Shared", which could read
+ * as something the owner shared out (owner, 25 Nov 2026). Pure.
+ */
 export function sharedByWords(s: { author: string | null; version: string | null; catalogue_id: string | null }): string {
-  const who = s.author ? `Shared by @${s.author}` : s.catalogue_id ? "Shared through Community" : "Shared from a file";
-  return [who, s.version ? `version ${s.version}` : null].filter(Boolean).join(" · ");
+  return [s.catalogue_id ? "From Community" : "From a file", s.author ? `by @${s.author}` : null, s.version ? `version ${s.version}` : null].filter(Boolean).join(" · ");
 }
 
 /** Under an added template's origin in the editor: what changing it means. */
@@ -37,13 +41,25 @@ export function sharedChangeWords(changed: boolean): string {
   return changed ? "You've changed it, so it's yours now. A new version from Community would go beside it." : "Someone else wrote it. Change it as you like: a new version from Community never overwrites your changes.";
 }
 
-/** The picker's tag on an added template. */
-export const SHARED_TAG = "Shared";
+/** Athena's starters' marks, by key; the owner's own templates are a note, added ones a copy. Pure. */
+const STARTER_ICON: Record<string, IconName> = { meeting: "calendar", "one-on-one": "people", trip: "suitcase", "weekly-review": "week", letter: "mail", "project-brief": "project" };
+export const templateIcon = (t: { starter: string | null; shared?: unknown }): IconName => (t.starter ? (STARTER_ICON[t.starter] ?? "note") : t.shared ? "copy" : "note");
 
 // ---------- a day's journal ----------
 
-/** The templates a journal can start from: the owner's own and those they added, not Athena's starters. Pure. */
-export const journalTemplates = <T extends { starter: string | null }>(all: readonly T[]): T[] => all.filter((t) => !t.starter);
+/**
+ * The templates a journal can start from: all of them, the owner's own and those they added first, in the order the
+ * list gives them, then Athena's starters (owner, 25 Nov 2026). Pure.
+ */
+export const journalTemplates = <T extends { starter: string | null }>(all: readonly T[]): T[] => [...all.filter((t) => !t.starter), ...all.filter((t) => t.starter)];
+
+/** The same, grouped for the sheet under a quiet label; a group with nothing in it is left out. Pure. */
+export function journalGroups<T extends { starter: string | null }>(all: readonly T[]): Array<{ label: string; items: T[] }> {
+  return [
+    { label: "Yours", items: all.filter((t) => !t.starter) },
+    { label: "Athena's", items: all.filter((t) => t.starter) },
+  ].filter((g) => g.items.length);
+}
 
 /** The quiet choice under an empty journal. */
 export const START_LABEL = "Start from a template";

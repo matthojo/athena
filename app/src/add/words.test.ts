@@ -90,6 +90,8 @@ test("a template: it stays in Athena, joins under a free name, and an Update nev
   assert.equal(reachWords(r, "template").title, "Stays in Athena");
   assert.match(reachWords(r, "template").lines[0], /your own records/);
   assert.match(w.templateGoesWords("Weekly review", "Weekly review")[0], /joins your templates as “Weekly review”/);
+  // Nothing in the template picker marks an added one, so nothing here promises a mark.
+  for (const line of [...w.templateGoesWords("Weekly review", "Weekly review"), w.landsWords("template")]) assert.doesNotMatch(line, /marked/);
   assert.match(w.templateGoesWords("Weekly review", "Weekly review (2)")[0], /already, so this one joins as “Weekly review \(2\)”. Yours stays as it is/);
   assert.deepEqual(w.templateAddedWords("Weekly review", { name: "Weekly review (2)", renamed: true }).title, "Weekly review (2) is in your templates");
   assert.match(w.templateAddedWords("Weekly review", { name: "Weekly review (2)", renamed: true }).body, /^You already had a template called “Weekly review”/);

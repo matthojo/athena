@@ -577,11 +577,6 @@
   white-space: nowrap;
 }
 
-.tpl-card__tag--shared {
-  background: var(--paper-wash);
-  color: var(--paper-ink);
-}
-
 .tpl-card__name .cm-dot {
   flex: none;
 }
@@ -662,4 +657,19 @@
 
 .tpl-ed > .cm-status .cm-banner {
   margin: 0;
+}
+
+/* The journal sheet's groups: "Yours", then "Athena's". */
+.jstart__group {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.jstart__label {
+  margin: 0;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }

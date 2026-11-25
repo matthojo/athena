@@ -86,9 +86,14 @@ test("update: over an unchanged template, keeping its name; beside one the owner
   assert.notEqual(beside.id, got.id);
   const theirs = (await findTemplate(got.id))!;
   assert.equal(theirs.body, "# Sunday\n\nMy own question");
-  // It no longer follows the listing; the new one does.
-  assert.equal(theirs.shared!.catalogue_id, null);
+  // It still says it came from Community, but no longer follows the listing (no hash, so no update checks); the new one does.
+  assert.equal(theirs.shared!.catalogue_id, LISTING.id);
+  const { qRaw } = await import("./db");
+  const [h] = await qRaw<{ catalogue_hash: string | null }>(`SELECT catalogue_hash FROM note_templates WHERE id = $1`, [got.id]);
+  assert.equal(h.catalogue_hash, null);
   assert.equal((await findTemplate(beside.id))!.shared!.catalogue_id, LISTING.id);
+  const { liveDeps } = await import("../netlify/lib/community-add-routes");
+  assert.equal((await (await liveDeps()).existing("template", LISTING.id))!.id, beside.id);
   assert.equal((await listTemplates()).filter((t) => t.shared).length, 2);
   // An id that isn't an added template is refused.
   await assert.rejects(replaceSharedTemplate("starter:meeting", next, listing2), /isn't there any more/);

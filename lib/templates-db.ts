@@ -253,8 +253,9 @@ export async function replaceSharedTemplate(id: string, raw: SharedTemplate, cat
   const [row] = await q<Row>(`SELECT ${COLUMNS} FROM note_templates WHERE id = $1 AND archived_at IS NULL AND origin = 'shared'`, [id]);
   if (!row) throw new AthenaInputError("That template isn't there any more", 404);
   if (row.changed_at) {
-    // Theirs stays as they left it, and stops following the listing; the new version goes beside it.
-    await qRaw(`UPDATE note_templates SET catalogue_id = NULL, catalogue_hash = NULL, catalogue_version = NULL, updated_at = now() WHERE id = $1`, [id]);
+    // Theirs stays as they left it, and stops following the listing (no hash, so no update checks), still saying it
+    // came from Community; the new version goes beside it, and is the one found for that listing from now on.
+    await qRaw(`UPDATE note_templates SET catalogue_hash = NULL, updated_at = now() WHERE id = $1`, [id]);
     return { ...(await insertShared(shared, listing)), beside: true };
   }
   const s = await sealer();

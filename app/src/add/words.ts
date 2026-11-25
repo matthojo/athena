@@ -106,7 +106,7 @@ export const addLabel = (kind: ShareKind, name: string): string => (kind === "as
 
 /** Under the Add button: how it lands. */
 export function landsWords(kind: ShareKind): string {
-  if (kind === "template") return "It joins your templates, marked as someone else's. Nothing of yours changes, and you can remove it later.";
+  if (kind === "template") return "It joins your templates. Nothing of yours changes, and you can remove it later.";
   if (kind === "checkin") return "They join your own questions, after the ones you have. Nothing you have moves, and you can remove them later.";
   if (kind === "assistant") return "It joins paused. Nothing runs until you switch it on.";
   if (kind === "skill") return "It starts off. Ask won't use it until you switch it on.";
@@ -194,7 +194,7 @@ export function checkinAddedWords(name: string, got: { added: number; skipped: r
  * used. `free`: the name it will have, which differs from `name` when one of the owner's templates has that name. Pure.
  */
 export function templateGoesWords(name: string, free: string): string[] {
-  const lines = [free === name ? `It joins your templates as “${name}”, marked as someone else's.` : `You have a template called “${name}” already, so this one joins as “${free}”. Yours stays as it is.`];
+  const lines = [free === name ? `It joins your templates as “${name}”. Its editor says who made it.` : `You have a template called “${name}” already, so this one joins as “${free}”. Yours stays as it is.`];
   lines.push("Use it from Notes, under “From template”, or to start a day's journal when the page is empty.");
   lines.push("You can change it once it's added. Updates from Community never overwrite your changes.");
   return lines;
