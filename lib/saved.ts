@@ -25,7 +25,7 @@ import { fetchPageHtml, fetchPageImage } from "./saved-fetch";
 import { parseQuery, score, headline } from "./text-search";
 import { urlHost } from "./team-events";
 import { startTeamEvent } from "./team-triggers";
-import { cleanTags, MAX_SAVED_IMAGE_BYTES, MAX_SAVED_TITLE, MAX_SAVED_TEXT, cleanUrl, planSave, savedUrlKey, SaveTooBig, siteOf, SAVED_KINDS, SAVED_SOURCES, type SaveInput, type SavedFiled, type SavedItem, type SavedKind, type SavedSource } from "./saved-rules";
+import { cleanTags, MAX_SAVED_IMAGE_BYTES, MAX_SAVED_TITLE, MAX_SAVED_TEXT, cleanUrl, planSave, savedUrlKey, SaveTooBig, siteOf, SAVED_KINDS, cleanSource, type SaveInput, type SavedFiled, type SavedItem, type SavedKind, type SavedSource } from "./saved-rules";
 
 export type { SavedItem, SavedKind, SavedSource };
 
@@ -251,7 +251,6 @@ export interface SaveOutcome {
   created: boolean;
 }
 
-const sourceOf = (raw: unknown): SavedSource => (SAVED_SOURCES.includes(raw as SavedSource) ? (raw as SavedSource) : "app");
 
 /** Keep something. Throws AthenaInputError (400), SaveTooBig, SavedImageError, or DataBoxError (503) without the key. */
 export async function saveItem(input: SaveRequest, opts: { read?: typeof readLink; now?: Date; fetchImage?: (url: string) => Promise<Uint8Array> } = {}): Promise<SaveOutcome> {
@@ -331,7 +330,7 @@ export async function saveItem(input: SaveRequest, opts: { read?: typeof readLin
       s.maybe(plan.quote),
       s.maybe(plan.note),
       s.list(tags),
-      sourceOf(input.source),
+      cleanSource(input.source),
       s.maybe(plan.source_url),
       false,
       image?.w ?? null,

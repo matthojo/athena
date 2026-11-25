@@ -131,11 +131,11 @@ test("Saved: capture key, readable copy, images, quotes, CORS, the app's routes 
   assert.equal(r.headers.get("content-type"), "image/webp");
   assert.equal(r.headers.get("x-content-type-options"), "nosniff");
 
-  // The Raycast extension's saves say where they came from (migration 0092); a source nobody knows is filed as the app's.
+  // Any client can name itself as the source (migration 0092); a name that isn't short and plain is filed as the app's.
   r = await send("POST", "/saved", { token: capture, json: { text: "Kept from Raycast", source: "raycast" } });
   assert.equal(r.status, 201);
   assert.equal(r.body.item.source, "raycast");
-  r = await send("POST", "/saved", { token: capture, json: { text: "Kept from somewhere new", source: "somewhere-new" } });
+  r = await send("POST", "/saved", { token: capture, json: { text: "Kept from somewhere odd", source: "Not a name; DROP TABLE" } });
   assert.equal(r.status, 201);
   assert.equal(r.body.item.source, "app");
 
