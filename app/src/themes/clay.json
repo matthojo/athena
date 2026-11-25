@@ -1,0 +1,34 @@
+{
+  "format": "athena-theme",
+  "version": 1,
+  "name": "Clay",
+  "summary": "Terracotta on warm paper, and its own earthy chart colours",
+  "colours": {
+    "light": {
+      "page": "#f5efe6",
+      "surface": "#fcf8f2",
+      "sunken": "#efe7db",
+      "border": "#e3d7c6",
+      "text": "#2a1e16",
+      "textMuted": "#67584b",
+      "accent": "#b0502a",
+      "onAccent": "#fff8f1"
+    },
+    "dark": {
+      "page": "#16110d",
+      "surface": "#1f1813",
+      "sunken": "#29201a",
+      "border": "#382c23",
+      "text": "#f2e8dd",
+      "textMuted": "#c4b3a2",
+      "accent": "#e08a5e",
+      "onAccent": "#21140c"
+    }
+  },
+  "shape": { "radius": 1.15, "density": 1 },
+  "text": { "scale": 1 },
+  "chart": {
+    "light": ["#b0502a", "#5f7f3a", "#c99a2e", "#7d4a7a", "#2f7f86"],
+    "dark": ["#e08a5e", "#9ab86a", "#e3bb5c", "#c48ac0", "#62b6bd"]
+  }
+}

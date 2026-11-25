@@ -3569,3 +3569,44 @@ No collection or Claude reads them, and they offer no tools.
 - **Logs** name a host and a status only. `netlify/lib/car-routes.test.ts`
   asserts that the registration reaches only the two APIs' hosts and never a
   log line.
+
+## 17. Themes, fonts and text size (`lib/theme.ts`, `app/src/lib/theme*.ts`)
+
+A theme changes how Athena looks and nothing else. Every theme is treated as
+untrusted, the owner's own and the built-in ones included, because themes
+shared through Community will go through the same reader.
+
+- **What a theme can do.** Set the nine public `--theme-*` colours for light,
+  dark or both, the corner radius, the density and the text scale (each
+  clamped), and five chart colours per mode. A name, an author and a
+  one-line summary, as plain text.
+- **What it can't.** Name a typeface or load a font, an image or anything
+  else from anywhere; run code; add a selector, a rule or a property of its
+  own; set the in-between shades, status or reach colours; or override the
+  person's own font and text size. `readTheme()` keeps only known keys,
+  accepts colours only as hex, `rgb()`, `hsl()` or `oklch()` with plain
+  numbers, writes each back in its own canonical form, and drops everything
+  else. JSON over 16 KB is refused.
+- **On the page.** A theme becomes a stylesheet in `<style id="athena-theme">`,
+  built by Athena from the reader's output, with fixed selectors. Before it's
+  written (and again in the first-paint script, reading this device's copy),
+  every property name must be `--theme-*`, `--chart-*`, `--aurora-*` or
+  `--accent-tint`, and
+  every value may hold only hex, numbers and `oklch()`, `color-mix()` and
+  `var()` of those names, so a tampered copy in `localStorage` can't load a
+  URL or break out of its rule. It's set as text content, never as HTML.
+- **Where it's kept.** The choice and the owner's own themes are a plain
+  `settings` row (`theme`) on the owner's site, read through the same reader
+  when saved and when served. Not sealed: they're colours, numbers and the
+  names the owner gave their themes. Each device keeps a copy in
+  `localStorage`, cleared by Sign out like everything else.
+- **What leaves the site.** Nothing. There's no contrast service, no font
+  service and no telemetry.
+- **Your font and text size** stay on the device (`athena.personal`). The
+  font name is checked before it's written into a stylesheet (no quotes,
+  backslashes, braces, semicolons, angle brackets or control characters).
+  Listing every font on the device uses the browser's Local Font Access API
+  only after the person taps "Show every font on this device" and the
+  browser asks them; the list is used to draw the choices and isn't stored
+  or sent anywhere. Without it, Athena measures text drawn in about 40
+  common fonts to see which are there.

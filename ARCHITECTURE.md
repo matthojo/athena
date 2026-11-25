@@ -429,15 +429,17 @@ the stylesheets use are built from them:
 | `--theme-font-mono` | code, keys, tabular bits | `--font-mono` |
 | `--theme-text-scale` | a multiplier on every `--text-*` | type sizes |
 
-No remote font is loaded: a theme names fonts on the device or in
-`app/public/fonts/`.
+A theme never sets the three `--theme-font-*` tokens: it can't name a
+typeface, and no font is ever downloaded (owner, 25 Nov 2026). They stay
+Athena's, and only the person's own font, below, changes the face.
 
 Fonts and text size have three layers, and the last one set wins: Athena's
 default (the `--theme-*` values in `tokens.css`), then a theme's own
-`--theme-*` values, then the person's own choice, `--user-font-ui`,
-`--user-font-display`, `--user-font-mono` and `--user-text-scale`. Those are
-unset until someone picks one (a font they read more easily, larger text),
-and no theme can override them. There's no control for them yet.
+`--theme-text-scale`, then the person's own choice, `--user-font-ui`,
+`--user-font-display` and `--user-text-scale` (`--user-font-mono` is there
+but unused). Those are unset until someone picks one in Settings →
+Appearance (a font they read more easily, larger text), and no theme can
+override them.
 
 One thing is outside the theme surface: the Athena wordmark beside the mark
 (the sidebar, Home's header) keeps Funnel Display under every theme and every
@@ -485,6 +487,112 @@ reasons, works `tokens.css` out the way a browser would, sets each public
 colour to something new in light and dark, and fails on any other token
 that doesn't move. The Graph's canvas reads each colour through a probe
 element, so it gets the mix worked out.
+
+### Themes
+
+A theme is a small, versioned piece of JSON (`lib/theme.ts`), the same shape
+built in, made in Settings → Appearance, or later shared through Community as
+a `theme.json`:
+
+```json
+{
+  "format": "athena-theme",
+  "version": 1,
+  "name": "Clay",
+  "author": "optional",
+  "summary": "optional, one line",
+  "colours": {
+    "light": { "page": "#f5efe6", "surface": "#fcf8f2", "sunken": "#efe7db", "border": "#e3d7c6", "text": "#2a1e16",
+               "textMuted": "#67584b", "accent": "#b0502a", "onAccent": "#fff8f1", "focus": "optional" },
+    "dark": { "…": "the same keys" }
+  },
+  "shape": { "radius": 1.15, "density": 1 },
+  "text": { "scale": 1 },
+  "chart": { "light": ["five colours"], "dark": ["five colours"] }
+}
+```
+
+- **What it carries.** The nine public colours, for light, dark or both (and
+  any subset within one), the corner radius (0 to 2), the density (0.8 to
+  1.25), the text scale (0.9 to 1.25), and optionally five data colours per
+  scheme for `--chart-1` to `--chart-5`. A scheme or a colour it leaves out
+  is Athena's own. It never names a typeface, and it can't set in-between
+  shades, status or reach colours, or anything else: those are worked out
+  from what it sets.
+- **The reader.** Every theme is untrusted, the owner's own included,
+  because shared ones will go through the same `readTheme()`. It keeps only
+  known keys; takes colours only as `#rgb`, `#rrggbb`, `rgb()`, `hsl()` or
+  `oklch()` with plain numbers, opaque (no `url()`, `var()`, `calc()`,
+  `color-mix()`, named colours, escapes or comments) and writes each back as
+  `oklch(L C H)`, exact to the sRGB level (Chrome gives a hex colour mixed
+  with `transparent` in oklch, as `community.css` does, no hue, and draws it
+  red); clamps the numbers; cuts the name (40),
+  author (60) and summary (140) to plain text; refuses JSON over 16 KB or
+  from a newer version; and lists what it dropped. A chart palette must have
+  exactly five colours, every pair at least 0.07 apart in OKLab, or it's
+  dropped and Athena's is used: that's the only check on a theme's colours.
+  There's no contrast audit and no warning; the editor's previews show the
+  colours and the person judges.
+- **Applying it.** `app/src/lib/theme-paint.ts` turns a theme into a stylesheet
+  in `<style id="athena-theme">`: shape and size under `html:root`, each
+  scheme's colours under `html:root[data-scheme="light|dark"]`. Those
+  selectors outrank `tokens.css`'s `:root` and `:root:where(…)` by
+  specificity, so order doesn't matter, and a scheme the theme leaves out
+  stays Athena's. Nothing is written to the root's inline style, which the
+  app rewrites (`--kb`). A change lands at once: while it's applied the
+  root carries `data-repainting`, which turns every transition off for two
+  frames, so the glow's six-second drift and the orb's cross-fade don't hold
+  the old colours on screen. The stored copy is checked again on its way out:
+  only `--theme-*`, `--chart-*`, `--aurora-*` and `--accent-tint` names, and
+  values built from hex, numbers, `oklch()`, `color-mix()` and `var()` of
+  those names.
+- **The page glow and the accent's family.** Under Athena's own accent (per
+  scheme) the aurora keeps its blue and mint exactly: the theme's stylesheet
+  doesn't touch it. Some of the accent's shades in `tokens.css` (the first
+  haze, the Ask orb, Talk's orb and glows) add 15% of a fixed pigment,
+  written `var(--accent-tint, 15%)`. Under any other accent the theme sets
+  `--accent-tint: 0%`, so those shades are the accent alone (a fixed cyan in
+  a terracotta accent would turn them grey), and the second haze, the mint,
+  becomes a wash of the accent's own hue at the mint's lightness, with
+  Athena's own recipe. The morning and evening hazes still follow the time
+  of day.
+- **First paint.** The chosen theme, worked out, is kept on the device
+  (`athena.theme.paint`). The first-paint script (`appearance-boot.ts`)
+  writes the same stylesheet from it before any stylesheet loads, with the
+  same checks, and gives both `theme-color` metas the theme's page colours
+  (`data-light`/`data-dark`), so neither a tab nor the installed app shows
+  Athena's defaults first. The manifest keeps Athena's light page: it can
+  only hold one colour, and it's read at install time.
+- **Where it lives.** The choice (`athena`, `builtin:<id>` or `own:<id>`) and
+  the owner's own themes (up to 40) are one plain `settings` row, `theme`,
+  served by `GET`/`PUT /api/settings` and read through the same reader on
+  the server (`lib/theme-prefs.ts`), so they follow the owner to every
+  device, like the Days mood style. Each device keeps a copy
+  (`athena.theme`) for first paint and offline. A change made offline is
+  marked unsent and goes up the next time the app opens; otherwise the
+  server's copy wins on load. Sample mode keeps it all on the device. No
+  migration: the `settings` table already holds it.
+- **Built in.** `app/src/themes/*.json`, read like any other: Athena's own
+  (the defaults in `tokens.css`, kept in step by a test), Clay (warm paper
+  and terracotta, with its own chart palette), Harbour (slate and teal,
+  tighter corners), High contrast (black on white, strong lines, slightly
+  larger text) and Mist (soft greys and lavender, rounder and roomier).
+- **A person's own font and text size** (`athena.personal`) are this
+  device's alone: a font is installed on one device and not another, and a
+  phone and a laptop can want different sizes. The font is Athena's own, the
+  system's interface font, or a font on the device; it sets
+  `--user-font-ui` and `--user-font-display` (the wordmark keeps its face).
+  Athena finds fonts with the Local Font Access API where the browser has it
+  and the person allows it, and otherwise tests a list of about 40 common
+  and accessibility fonts by measuring text drawn in them
+  (`app/src/lib/fonts.ts`); Settings says which. Text size runs from 87.5%
+  to 150%. Both go in `<style id="athena-personal">`, written by the
+  first-paint script too.
+- **Settings → Appearance** shows each theme as a tile drawn from its own
+  tokens (page, card, text, accent, a chip and a tiny chart), and "Make your
+  own": a name, which modes it sets, colour pickers for the nine colours per
+  mode, sliders for corners, spacing and text size, optional chart colours,
+  and a live preview. Saved themes can be edited, and deleted with Undo.
 
 ### The Library: people, places, organisations, events
 

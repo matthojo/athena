@@ -1,0 +1,30 @@
+{
+  "format": "athena-theme",
+  "version": 1,
+  "name": "Mist",
+  "summary": "Soft greys and lavender, rounder and roomier",
+  "colours": {
+    "light": {
+      "page": "#efedea",
+      "surface": "#f6f5f3",
+      "sunken": "#e8e5e1",
+      "border": "#dfdbd6",
+      "text": "#4b4743",
+      "textMuted": "#7c7670",
+      "accent": "#8579ad",
+      "onAccent": "#fbfaff"
+    },
+    "dark": {
+      "page": "#222120",
+      "surface": "#292826",
+      "sunken": "#302f2c",
+      "border": "#3a3835",
+      "text": "#cbc6bf",
+      "textMuted": "#98928a",
+      "accent": "#a69ccc",
+      "onAccent": "#1f1b2b"
+    }
+  },
+  "shape": { "radius": 1.5, "density": 1.1 },
+  "text": { "scale": 1 }
+}

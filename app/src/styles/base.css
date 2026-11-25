@@ -131,6 +131,15 @@ ol {
   transition: background-color calc(var(--dur-drift) / 5) var(--ease-in-out);
 }
 
+/* A new theme lands at once (lib/theme.ts cutOver): for the frame it's
+   applied, nothing transitions, so the glow's six-second drift, Today's haze
+   and the orb's cross-fade don't hold the old colours on screen. */
+:root[data-repainting] *,
+:root[data-repainting] *::before,
+:root[data-repainting] *::after {
+  transition: none !important;
+}
+
 /* The aurora follows the time of day (lib/format.ts followDayPart). */
 :root[data-daypart="morning"] {
   --aurora-a: var(--aurora-a-morning);

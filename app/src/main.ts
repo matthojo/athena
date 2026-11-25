@@ -38,6 +38,7 @@ import { realLinkData } from "./editor/link-data-real";
 import { watchStickyHeads } from "./lib/sticky-head";
 import { followDayPart } from "./lib/format";
 import { watchAppearance } from "./lib/appearance";
+import { syncTheme, watchTheme } from "./lib/theme";
 import { setAppOpenLink } from "./lib/app-links";
 import type { AnyRecord, CustomRecord, EntityKind, Note, RecordKind } from "./types";
 
@@ -697,6 +698,8 @@ function mountShell() {
 
   // The Days mood style is the owner's on every device: take the server's once loaded.
   void syncMoodStyle();
+  // So is the theme, with the owner's own themes (lib/theme.ts).
+  void syncTheme();
 
   // ---------- Where am I? ----------
   // The server runs the 07:30 briefing and collections' "daily at" times in the
@@ -776,6 +779,8 @@ function mountShell() {
 function boot() {
   // Light, Dark or the system's: index.html set it before the first paint; this keeps following it.
   watchAppearance();
+  // The theme and this device's own font and text size: index.html drew them before the first paint too.
+  watchTheme();
   // The aurora follows the time of day (styles/tokens.css).
   followDayPart();
   // Rich links in notes draw from the data layer (db/rich-links.ts).

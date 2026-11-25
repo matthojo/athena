@@ -675,13 +675,18 @@ export async function saveTimeZone(timezone: string): Promise<void> {
 }
 
 /** The owner's settings that are the same on every device. */
-export async function fetchSettings(): Promise<{ timezone: string; mood_style?: string; draft_channels?: DraftChannel[] }> {
+export async function fetchSettings(): Promise<{ timezone: string; mood_style?: string; draft_channels?: DraftChannel[]; theme?: { choice?: unknown; themes?: unknown } }> {
   return request("/settings");
 }
 
 /** The messaging apps the owner uses for drafts, for every device (lib/draft-prefs.ts on the server). */
 export async function saveDraftChannelsSetting(draft_channels: DraftChannel[]): Promise<void> {
   await request("/settings", { method: "PUT", body: JSON.stringify({ draft_channels }) });
+}
+
+/** The chosen theme and the owner's own themes, for every device (lib/theme-prefs.ts on the server). */
+export async function saveThemeSetting(theme: { choice: string; themes: unknown[] }): Promise<void> {
+  await request("/settings", { method: "PUT", body: JSON.stringify({ theme }) });
 }
 
 /** The Days mood style, for every device (lib/day-prefs.ts on the server). */

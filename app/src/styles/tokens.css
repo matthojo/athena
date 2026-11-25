@@ -191,6 +191,10 @@
      - Neutrals mix two public colours: --sunken-strong is mostly the border
        with a little surface, --ink-3 sits between text and surface.
      - The accent's family mixes the accent with white, black or text.
+       Some add 15% of a fixed pigment (the orb's cyan, the glow's blue)
+       as var(--accent-tint, 15%): under any accent but Athena's own, a
+       theme sets it to 0% (app/src/lib/theme-paint.ts), so the family is
+       the accent alone and a warm accent doesn't go grey.
      - Status, chart, graph and other category colours keep their own hue
        (a fixed pigment, so they stay apart and pass the palette validator)
        and lean 20% toward the theme's text, so they sit at a readable
@@ -293,13 +297,13 @@
   --graph-bg: var(--surface);
 
   /* ---------- Atmosphere ---------- */
-  --aurora-a: color-mix(in oklab, color-mix(in oklab, oklch(0.9056 0.31 212.1) 15%, color-mix(in oklab, var(--theme-accent) 31.5%, white)) 60%, transparent);
+  --aurora-a: color-mix(in oklab, color-mix(in oklab, oklch(0.9056 0.31 212.1) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 31.5%, white)) 60%, transparent);
   --aurora-b: color-mix(in oklab, color-mix(in oklab, oklch(0.8945 0.1252 164.5) 80%, var(--theme-page)) 55%, transparent);
   /* The same blue, following the day (base.css, html[data-daypart]): a touch
      cooler towards cyan in the morning, warmer towards the brand indigo in
      the evening. No new colours, only the hue moved along the one family. */
-  --aurora-a-morning: color-mix(in oklab, color-mix(in oklab, oklch(0.9058 0.3398 196.7) 15%, color-mix(in oklab, var(--theme-accent) 26.5%, white)) 58%, transparent);
-  --aurora-a-evening: color-mix(in oklab, color-mix(in oklab, oklch(0.9055 0.2153 258.4) 15%, color-mix(in oklab, var(--theme-accent) 34%, white)) 60%, transparent);
+  --aurora-a-morning: color-mix(in oklab, color-mix(in oklab, oklch(0.9058 0.3398 196.7) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 26.5%, white)) 58%, transparent);
+  --aurora-a-evening: color-mix(in oklab, color-mix(in oklab, oklch(0.9055 0.2153 258.4) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 34%, white)) 60%, transparent);
 
   /* ---------- Elevation ---------- */
   --shadow-card: 0 1px 2px color-mix(in oklab, var(--theme-text) 4%, transparent), 0 6px 20px -12px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 59%, var(--theme-text-muted)) 12%, transparent);
@@ -385,10 +389,10 @@
   --graph-link: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 6%, var(--theme-text-muted)) 20%, transparent);
   --graph-on-node: color-mix(in oklab, var(--theme-page) 62.5%, var(--theme-surface));
 
-  --aurora-a: color-mix(in oklab, color-mix(in oklab, oklch(0.3803 0.3223 227.1) 15%, color-mix(in oklab, var(--theme-accent) 61%, black)) 26%, transparent);
+  --aurora-a: color-mix(in oklab, color-mix(in oklab, oklch(0.3803 0.3223 227.1) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 61%, black)) 26%, transparent);
   --aurora-b: color-mix(in oklab, color-mix(in oklab, oklch(0.5212 0.1128 166.7) 80%, var(--theme-page)) 16%, transparent);
-  --aurora-a-morning: color-mix(in oklab, color-mix(in oklab, oklch(0.437 0.3672 189.8) 15%, color-mix(in oklab, var(--theme-accent) 51.5%, var(--theme-page))) 24%, transparent);
-  --aurora-a-evening: color-mix(in oklab, color-mix(in oklab, oklch(0.3803 0.2824 269.7) 15%, color-mix(in oklab, var(--theme-accent) 61%, black)) 28%, transparent);
+  --aurora-a-morning: color-mix(in oklab, color-mix(in oklab, oklch(0.437 0.3672 189.8) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 51.5%, var(--theme-page))) 24%, transparent);
+  --aurora-a-evening: color-mix(in oklab, color-mix(in oklab, oklch(0.3803 0.2824 269.7) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 61%, black)) 28%, transparent);
 
   --shadow-card: 0 1px 0 oklch(1 0 0 / 0.03) inset;
   --shadow-float: 0 1px 0 oklch(1 0 0 / 0.05) inset, 0 18px 44px -14px oklch(0 0 0 / 0.6);
@@ -436,17 +440,17 @@
 
 :root {
   /* The orb at rest (Ask, Home): the @property initial values above, drawn from the theme. */
-  --orb-hi: color-mix(in oklab, oklch(0.8925 0.3711 189.9) 15%, color-mix(in oklab, var(--theme-accent) 26%, white));
-  --orb-mid: color-mix(in oklab, oklch(0.6371 0.3092 238.6) 15%, color-mix(in oklab, var(--theme-accent) 86.5%, white));
-  --orb-low: color-mix(in oklab, oklch(0.3109 0.363 270.6) 15%, color-mix(in oklab, var(--theme-accent) 74%, black));
-  --orb-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.8977 0.4588 178.9) 15%, color-mix(in oklab, var(--theme-accent) 20%, var(--theme-surface))) 85%, transparent);
+  --orb-hi: color-mix(in oklab, oklch(0.8925 0.3711 189.9) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 26%, white));
+  --orb-mid: color-mix(in oklab, oklch(0.6371 0.3092 238.6) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 86.5%, white));
+  --orb-low: color-mix(in oklab, oklch(0.3109 0.363 270.6) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 74%, black));
+  --orb-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.8977 0.4588 178.9) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 20%, var(--theme-surface))) 85%, transparent);
 }
 
 :root:where([data-scheme="dark"]) {
-  --orb-hi: color-mix(in oklab, oklch(0.88 0.3613 183) 15%, color-mix(in oklab, var(--theme-accent) 40%, white));
-  --orb-mid: color-mix(in oklab, oklch(0.5292 0.5327 249.6) 15%, color-mix(in oklab, var(--theme-accent) 87.5%, black));
-  --orb-low: color-mix(in oklab, oklch(0.2723 0.716 267.4) 15%, color-mix(in oklab, var(--theme-accent) 57%, black));
-  --orb-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.9142 0.4624 182.6) 15%, color-mix(in oklab, var(--theme-accent) 21%, var(--theme-text))) 85%, transparent);
+  --orb-hi: color-mix(in oklab, oklch(0.88 0.3613 183) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 40%, white));
+  --orb-mid: color-mix(in oklab, oklch(0.5292 0.5327 249.6) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 87.5%, black));
+  --orb-low: color-mix(in oklab, oklch(0.2723 0.716 267.4) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 57%, black));
+  --orb-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.9142 0.4624 182.6) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 21%, var(--theme-text))) 85%, transparent);
 }
 
 /* ---------- styles/context-menu.css ---------- */
@@ -604,12 +608,12 @@
   /* styles/components.css */
   --avatar-bg: 0.9143 0.05;
   --avatar-ink: 0.4725 0.1125;
-  --orb-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.4802 0.2601 253.7) 15%, color-mix(in oklab, var(--theme-accent) 95%, black)) 60%, transparent);
-  --orb-before-bg-1: color-mix(in oklab, color-mix(in oklab, oklch(0.4784 0.342 272.6) 15%, color-mix(in oklab, var(--theme-accent) 99.5%, black)) 85%, transparent);
+  --orb-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.4802 0.2601 253.7) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 95%, black)) 60%, transparent);
+  --orb-before-bg-1: color-mix(in oklab, color-mix(in oklab, oklch(0.4784 0.342 272.6) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 99.5%, black)) 85%, transparent);
   --orb-before-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.882 0.125 171.5) 80%, var(--theme-page)) 45%, transparent);
   --orb-after-bg-1: oklch(1 0 0 / 0.78);
-  --orb-after-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.228 0.3362 276) 15%, color-mix(in oklab, var(--theme-accent) 59%, black)) 45%, transparent);
-  --orb-shadow-2: color-mix(in oklab, color-mix(in oklab, oklch(0.4802 0.2601 253.7) 15%, color-mix(in oklab, var(--theme-accent) 95%, black)) 70%, transparent);
+  --orb-after-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.228 0.3362 276) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 59%, black)) 45%, transparent);
+  --orb-shadow-2: color-mix(in oklab, color-mix(in oklab, oklch(0.4802 0.2601 253.7) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 95%, black)) 70%, transparent);
   --btn-danger-ink: oklch(0.99 0 0);
   --switch-before-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 82%, var(--theme-text-muted)) 25%, transparent);
   --logo-granola-bg: #b2c248;
@@ -753,24 +757,24 @@
   --logo-elevenlabs-ink: #fff;
   --logo-elevenlabs-shadow: oklch(1 0 0 / 0.08);
   --talk-btn-wave-ink: oklch(1 0 0 / 0.94);
-  --talk-btn-wave-glow: color-mix(in oklab, color-mix(in oklab, oklch(0.213 0.3934 269.4) 15%, color-mix(in oklab, var(--theme-accent) 59.5%, black)) 55%, transparent);
-  --orb-shadow-3: color-mix(in oklab, color-mix(in oklab, oklch(0.4802 0.2601 253.7) 15%, color-mix(in oklab, var(--theme-accent) 95%, black)) 70%, transparent);
+  --talk-btn-wave-glow: color-mix(in oklab, color-mix(in oklab, oklch(0.213 0.3934 269.4) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 59.5%, black)) 55%, transparent);
+  --orb-shadow-3: color-mix(in oklab, color-mix(in oklab, oklch(0.4802 0.2601 253.7) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 95%, black)) 70%, transparent);
   --talk-bar-cool: color-mix(in oklab, oklch(0.6975 0.1362 198.9) 80%, var(--theme-text));
   --talk-bar-cool-wash: color-mix(in oklab, oklch(0.9392 0.0436 194.4) 80%, var(--theme-surface));
   --talk-bar-cool-ink: color-mix(in oklab, oklch(0.535 0.1108 208.7) 80%, var(--theme-text));
-  --talk-bar-glow-speak: color-mix(in oklab, color-mix(in oklab, oklch(0.7979 0.3697 246.4) 15%, color-mix(in oklab, var(--theme-accent) 62.5%, white)) 50%, transparent);
+  --talk-bar-glow-speak: color-mix(in oklab, color-mix(in oklab, oklch(0.7979 0.3697 246.4) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 62.5%, white)) 50%, transparent);
   --talk-bar-glow-listen: color-mix(in oklab, color-mix(in oklab, oklch(0.9725 0.1116 190.5) 80%, var(--theme-text)) 55%, transparent);
   --talk-orb-listening-hi: color-mix(in oklab, oklch(0.9784 0.063 187.4) 95%, var(--theme-text));
   --talk-orb-listening-mid: color-mix(in oklab, oklch(0.7975 0.1483 209.1) 80%, var(--theme-text));
   --talk-orb-listening-low: color-mix(in oklab, oklch(0.485 0.1597 243.6) 80%, var(--theme-text));
   --talk-orb-listening-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.9889 0.0737 171.5) 95%, var(--theme-text)) 80%, transparent);
-  --talk-orb-speaking-hi: color-mix(in oklab, oklch(0.9997 0.2604 205.1) 15%, color-mix(in oklab, var(--theme-accent) 10%, white));
-  --talk-orb-speaking-mid: color-mix(in oklab, oklch(0.7306 0.4802 246.3) 15%, color-mix(in oklab, var(--theme-accent) 82.5%, white));
-  --talk-orb-speaking-low: color-mix(in oklab, oklch(0.309 0.4453 270) 15%, color-mix(in oklab, var(--theme-accent) 78.5%, black));
+  --talk-orb-speaking-hi: color-mix(in oklab, oklch(0.9997 0.2604 205.1) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 10%, white));
+  --talk-orb-speaking-mid: color-mix(in oklab, oklch(0.7306 0.4802 246.3) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 82.5%, white));
+  --talk-orb-speaking-low: color-mix(in oklab, oklch(0.309 0.4453 270) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 78.5%, black));
   --talk-orb-speaking-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.9818 0.2451 195.1) 30%, color-mix(in oklab, var(--theme-accent) 10.5%, white)) 95%, transparent);
   --talk-orb-paused-hi: color-mix(in oklab, var(--theme-accent) 3.5%, var(--theme-sunken));
-  --talk-orb-paused-mid: color-mix(in oklab, oklch(0.5531 0.3099 89.2) 15%, color-mix(in oklab, var(--theme-accent) 43%, var(--theme-border)));
-  --talk-orb-paused-low: color-mix(in oklab, oklch(0.7465 0.0926 89.8) 15%, color-mix(in oklab, var(--theme-accent) 26.5%, var(--theme-text-muted)));
+  --talk-orb-paused-mid: color-mix(in oklab, oklch(0.5531 0.3099 89.2) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 43%, var(--theme-border)));
+  --talk-orb-paused-low: color-mix(in oklab, oklch(0.7465 0.0926 89.8) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 26.5%, var(--theme-text-muted)));
   --talk-orb-paused-sheen: color-mix(in oklab, color-mix(in oklab, var(--theme-accent) 0.5%, var(--theme-page)) 55%, transparent);
   --talk-orb-paused-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.23 0.1207 260.7) 15%, var(--theme-text-muted)) 50%, transparent);
   /* styles/watch.css */
@@ -848,18 +852,18 @@
   --talk-bar-cool: color-mix(in oklab, oklch(0.7375 0.1245 194.4) 80%, var(--theme-text));
   --talk-bar-cool-wash: color-mix(in oklab, oklch(0.3237 0.0612 197.5) 80%, var(--theme-surface));
   --talk-bar-cool-ink: color-mix(in oklab, oklch(0.8125 0.0995 194.2) 80%, var(--theme-text));
-  --talk-bar-glow-speak: color-mix(in oklab, color-mix(in oklab, oklch(0.549 0.4617 258.8) 15%, color-mix(in oklab, var(--theme-accent) 87%, black)) 50%, transparent);
+  --talk-bar-glow-speak: color-mix(in oklab, color-mix(in oklab, oklch(0.549 0.4617 258.8) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 87%, black)) 50%, transparent);
   --talk-bar-glow-listen: color-mix(in oklab, color-mix(in oklab, oklch(0.5375 0.1245 194.4) 80%, var(--theme-text)) 42%, transparent);
   /* styles/week-review.css */
   --wr-catchup-avatar-bg: 0.3613 0.0625;
   --wr-catchup-avatar-shadow: 0.5112 0.0875;
   --wr-catchup-avatar-ink: 0.8625 0.075;
   --art-img-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 14%, transparent);
-  --orb-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.398 0.7051 260.2) 15%, color-mix(in oklab, var(--theme-accent) 74%, black)) 60%, transparent);
-  --orb-before-bg-1: color-mix(in oklab, color-mix(in oklab, oklch(0.3925 0.8086 267.6) 15%, color-mix(in oklab, var(--theme-accent) 77.5%, black)) 85%, transparent);
+  --orb-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.398 0.7051 260.2) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 74%, black)) 60%, transparent);
+  --orb-before-bg-1: color-mix(in oklab, color-mix(in oklab, oklch(0.3925 0.8086 267.6) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 77.5%, black)) 85%, transparent);
   --orb-before-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.9817 0.1112 171.4) 90%, var(--theme-page)) 45%, transparent);
-  --orb-after-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.1952 0.6148 270.5) 15%, color-mix(in oklab, var(--theme-accent) 45.5%, black)) 45%, transparent);
-  --orb-shadow-2: color-mix(in oklab, color-mix(in oklab, oklch(0.398 0.7051 260.2) 15%, color-mix(in oklab, var(--theme-accent) 74%, black)) 70%, transparent);
+  --orb-after-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.1952 0.6148 270.5) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 45.5%, black)) 45%, transparent);
+  --orb-shadow-2: color-mix(in oklab, color-mix(in oklab, oklch(0.398 0.7051 260.2) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 74%, black)) 70%, transparent);
   --switch-before-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-surface) 47%, var(--theme-border)) 25%, transparent);
   --dir-btn-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-border) 98%, var(--theme-text-muted)) 6%, transparent);
   --seg-item-true-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-border) 98%, var(--theme-text-muted)) 8%, transparent);
@@ -881,21 +885,21 @@
   --record-date-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 84%, var(--theme-accent)) 35%, transparent);
   --story-card-hover-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 84%, var(--theme-accent)) 30%, transparent);
   --rl-date-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 30%, transparent);
-  --talk-btn-wave-glow: color-mix(in oklab, color-mix(in oklab, oklch(0.1952 0.6803 267.1) 15%, color-mix(in oklab, var(--theme-accent) 45.5%, black)) 55%, transparent);
-  --orb-shadow-3: color-mix(in oklab, color-mix(in oklab, oklch(0.398 0.7051 260.2) 15%, color-mix(in oklab, var(--theme-accent) 74%, black)) 70%, transparent);
+  --talk-btn-wave-glow: color-mix(in oklab, color-mix(in oklab, oklch(0.1952 0.6803 267.1) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 45.5%, black)) 55%, transparent);
+  --orb-shadow-3: color-mix(in oklab, color-mix(in oklab, oklch(0.398 0.7051 260.2) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 74%, black)) 70%, transparent);
   --talk-orb-listening-hi: color-mix(in oklab, oklch(0.9375 0.0747 186.9) 80%, var(--theme-text));
   --talk-orb-listening-mid: color-mix(in oklab, oklch(0.6125 0.1491 209.5) 80%, var(--theme-text));
   --talk-orb-listening-low: color-mix(in oklab, oklch(0.3 0.1611 243.8) 80%, var(--theme-text));
   --talk-orb-listening-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.95 0.0876 171) 80%, var(--theme-text)) 80%, transparent);
-  --talk-orb-speaking-hi: color-mix(in oklab, oklch(0.9968 0.2514 201.5) 15%, color-mix(in oklab, var(--theme-accent) 15.5%, white));
-  --talk-orb-speaking-mid: color-mix(in oklab, oklch(0.5507 0.6276 250.5) 15%, color-mix(in oklab, var(--theme-accent) 92%, black));
-  --talk-orb-speaking-low: color-mix(in oklab, oklch(0.2668 0.8196 267.3) 15%, color-mix(in oklab, var(--theme-accent) 60.5%, black));
+  --talk-orb-speaking-hi: color-mix(in oklab, oklch(0.9968 0.2514 201.5) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 15.5%, white));
+  --talk-orb-speaking-mid: color-mix(in oklab, oklch(0.5507 0.6276 250.5) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 92%, black));
+  --talk-orb-speaking-low: color-mix(in oklab, oklch(0.2668 0.8196 267.3) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 60.5%, black));
   --talk-orb-speaking-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.9787 0.2426 193.6) 30%, color-mix(in oklab, var(--theme-accent) 16%, white)) 95%, transparent);
   --talk-orb-paused-hi: color-mix(in oklab, var(--theme-accent) 4%, var(--theme-text));
-  --talk-orb-paused-mid: color-mix(in oklab, oklch(0.4891 0.1197 97.4) 15%, color-mix(in oklab, var(--theme-accent) 32.5%, var(--theme-text-muted)));
-  --talk-orb-paused-low: color-mix(in oklab, oklch(0.5748 0.1771 87) 15%, color-mix(in oklab, var(--theme-accent) 48%, var(--theme-border)));
+  --talk-orb-paused-mid: color-mix(in oklab, oklch(0.4891 0.1197 97.4) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 32.5%, var(--theme-text-muted)));
+  --talk-orb-paused-low: color-mix(in oklab, oklch(0.5748 0.1771 87) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 48%, var(--theme-border)));
   --talk-orb-paused-sheen: color-mix(in oklab, color-mix(in oklab, var(--theme-accent) 9%, white) 55%, transparent);
-  --talk-orb-paused-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.4309 0.0679 89.9) 15%, color-mix(in oklab, var(--theme-accent) 25.5%, var(--theme-border))) 50%, transparent);
+  --talk-orb-paused-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.4309 0.0679 89.9) var(--accent-tint, 15%), color-mix(in oklab, var(--theme-accent) 25.5%, var(--theme-border))) 50%, transparent);
   --watch-switch-item-true-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 10%, transparent);
   --art-img-shadow-1: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 10%, transparent);
   --art-img-shadow-2: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 28%, transparent);

@@ -1,0 +1,30 @@
+{
+  "format": "athena-theme",
+  "version": 1,
+  "name": "Harbour",
+  "summary": "Slate and sea-glass teal, with tighter corners",
+  "colours": {
+    "light": {
+      "page": "#edf2f4",
+      "surface": "#f8fbfc",
+      "sunken": "#e2eaee",
+      "border": "#d0dce2",
+      "text": "#0f1f26",
+      "textMuted": "#445d68",
+      "accent": "#0b7285",
+      "onAccent": "#f2fcff"
+    },
+    "dark": {
+      "page": "#0a1317",
+      "surface": "#101c21",
+      "sunken": "#16262c",
+      "border": "#213740",
+      "text": "#e2eef2",
+      "textMuted": "#9db4bc",
+      "accent": "#4fbfcf",
+      "onAccent": "#052027"
+    }
+  },
+  "shape": { "radius": 0.7, "density": 0.95 },
+  "text": { "scale": 1 }
+}
