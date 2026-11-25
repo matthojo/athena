@@ -998,7 +998,7 @@ CREATE TABLE saved_items (
   quote TEXT,
   note TEXT,
   tags TEXT[] NOT NULL DEFAULT '{}',
-  source TEXT NOT NULL DEFAULT 'app' CHECK (source IN ('shortcut', 'extension', 'share-target', 'app', 'email')),
+  source TEXT NOT NULL DEFAULT 'app' CHECK (source ~ '^[a-z][a-z0-9-]{0,39}$'), -- any short name since 0092; 0038 allowed five
   source_url TEXT,
   has_image BOOLEAN NOT NULL DEFAULT false,
   image_w INT,
