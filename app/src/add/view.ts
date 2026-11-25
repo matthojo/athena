@@ -7,7 +7,8 @@
  * it; where it came from ("Not from Community" unless it did); what it can reach, in plain words worked out from
  * its files; the accounts it needs and whether they're connected; its questions; which accounts it may open (all
  * unticked); what it may do alone (all unticked; "Always asks first" for what it can't be given); then the whole
- * of it, readable. Nothing is kept until Add, and what's added starts switched off.
+ * of it, readable. Nothing is kept until Add, and what's added starts switched off, except check-in questions:
+ * there the owner chooses under "When to start", and asking them is the default.
  */
 import "./add.css";
 // The sticky foot is shared with the flow page (styles/flows.css, "Sticky foot").
@@ -41,10 +42,10 @@ import { sharedFlowSteps } from "./flow-steps";
 import { tierIcon } from "../community/words";
 import { entriesOf, filesFromDrop, takeHeldFiles, takeSharedFile } from "./hold";
 import { SAMPLE_LINKS } from "./sample-items";
-import { addedWords, addLabel, basedOnWords, checkinAddedWords, DEEPER_WORDS, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, offWords, originWords, reachWords, roomWords, updatedWords, updateLandsWords } from "./words";
+import { addedWords, addLabel, answersGoWords, basedOnWords, checkinAddedWords, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, offWords, originWords, reachWords, roomWords, startWords, updatedWords, updateLandsWords } from "./words";
 import { checkinPreview } from "./checkin-preview";
 import { loadCheckinSettings, type CheckinSettingsView } from "../db/checkins";
-import { offersDeeper, promptsHere, samePrompt } from "../../../lib/checkin-share";
+import { promptsHere, samePrompt } from "../../../lib/checkin-share";
 import { CHECKIN_KINDS, MAX_OWN_QUESTIONS, type CheckinKind } from "../../../lib/checkin-types";
 import type { AddResult } from "../../../lib/community-api";
 
@@ -377,7 +378,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     // Check-in questions: every one, grouped by routine, as it would be asked; one the owner has already is marked.
     let joinsKinds: CheckinKind[] = [];
     let offNote: HTMLElement | null = null;
-    let startBox: HTMLInputElement | null = null;
+    let starting: () => boolean = () => true;
     let startSec: HTMLElement | null = null;
     if (item.kind === "checkin") {
       const have = checkinSettings ? promptsHere(checkinSettings) : new Set<string>();
@@ -387,19 +388,22 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       const offText = offWords(off);
       const roomText = checkinSettings ? roomWords(fresh.length, MAX_OWN_QUESTIONS - checkinSettings.own.length) : null;
       offNote = offText || roomText ? h("div", { class: "add-notes" }, ...[roomText, offText].filter((t): t is string => !!t).map((t) => h("p", { class: "add-note add-note--calm" }, icons.toggle(), h("span", {}, t)))) : null;
-      // Start asking them now, or add the set switched off (the owner's decision, 25 Nov 2026): on by default.
-      startBox = h("input", { type: "checkbox", role: "switch", class: "switch", id: "add-start", checked: true, "aria-describedby": "add-start-sub" }) as HTMLInputElement;
-      const startSub = h("span", { class: "checkin-set__sub", id: "add-start-sub" });
-      const paintStart = () => (startSub.textContent = startBox!.checked ? "They take their turns with your own questions from the next check-in." : "The set is added switched off. Switch it on in Settings when you'd like them asked.");
-      startBox.addEventListener("change", paintStart);
-      paintStart();
-      startSec = h("label", { class: "card checkin-set__switch add-start", for: "add-start" }, h("span", { class: "checkin-set__words" }, h("span", { class: "checkin-set__name" }, "Start asking these now"), startSub), startBox);
+      // Start asking them, or add the set switched off (owner, 25 Nov 2026): asking is the default. Neither switches a
+      // routine on; the note above keeps saying so.
+      const sw = startWords(off, joinsKinds);
+      const choice = (value: "on" | "off", o: { label: string; line: string }) => {
+        const input = h("input", { class: "add-start__input", type: "radio", name: "add-start", value, id: `add-start-${value}`, checked: value === "on", "aria-describedby": `add-start-${value}-line` }) as HTMLInputElement;
+        return { input, el: h("label", { class: "add-start__choice", for: `add-start-${value}` }, input, h("span", { class: "add-start__text" }, h("span", { class: "add-start__label" }, o.label), h("span", { class: "add-start__line", id: `add-start-${value}-line` }, o.line))) };
+      };
+      const on = choice("on", sw.on);
+      const offChoice = choice("off", sw.off);
+      starting = () => !offChoice.input.checked;
+      startSec = section("start", sw.legend, h("div", { class: "add-start", role: "radiogroup", "aria-labelledby": "add-start" }, on.el, offChoice.el));
       const repeated = item.checkins.questions.length - fresh.length;
       questionsSec = section(
         "questions",
         item.checkins.questions.length === 1 ? "Its question" : `Its ${item.checkins.questions.length} questions`,
         h("p", { class: "form__hint add-sec__lede" }, repeated ? `Each one as it would be asked. ${repeated === 1 ? "You already have one of them" : `You already have ${repeated} of them`}, so ${repeated === 1 ? "it's" : "they're"} marked and won't be added twice.` : "Each one as it would be asked, one to a screen."),
-        offersDeeper(item.checkins.questions) ? h("p", { class: "form__hint add-sec__lede" }, DEEPER_WORDS) : null,
         checkinPreview(item.checkins.questions, (q) => have.has(samePrompt(q.prompt)))
       );
     }
@@ -459,7 +463,8 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     } else if (item.kind === "skill") {
       aloneSec = section("alone", "What it may do alone", h("p", { class: "form__hint" }, "Nothing. A skill only changes how Ask goes about a request: changes still wait for your approval, and nothing is sent."));
     } else if (item.kind === "checkin") {
-      aloneSec = section("alone", "Where your answers go", h("p", { class: "add-usewhen" }, "They stay in your check-ins with the rest of your answers, and go nowhere else. How many questions you're asked each day stays as you set it."));
+      const lines = answersGoWords(item.checkins.questions.map((q) => q.type));
+      aloneSec = section("alone", "Where your answers go", h("ul", { class: "add-bullets" }, ...lines.map((l) => h("li", {}, l))));
     } else {
       const lines: string[] = ["Every step that changes something waits for your approval, even if the flow asked to run on its own."];
       if (item.flow.steps.length && JSON.stringify(item.flow.steps).includes('"kind":"think"')) lines.push("Its thinking steps need an assistant. Choose one on the flow's page once it's added.");
@@ -555,10 +560,10 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       addBtn.disabled = true;
       addBtn.classList.add("is-busy");
       addBtn.lastChild!.textContent = copying ? "Adding…" : "Updating…";
-      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null, replace: copying ? null : had!.id, start: startBox ? startBox.checked : true };
+      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null, replace: copying ? null : had!.id, start: starting() };
       try {
         const result = await addItem(p, choices);
-        added(p.kind, name, result.href, !!result.updated, result, joinsKinds, startBox ? startBox.checked : true);
+        added(p.kind, name, result.href, !!result.updated, result, joinsKinds, starting());
       } catch (error) {
         if (!alive) return;
         addBtn.disabled = false;

@@ -18,6 +18,7 @@ beforeEach(async () => {
   if (!url) return;
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE checkins, checkin_sets, people CASCADE`);
+  await qRaw(`DELETE FROM days WHERE date = $1::date`, [new Date().toISOString().slice(0, 10)]);
   await qRaw(`DELETE FROM settings WHERE key IN ('checkins', 'community_paused')`);
 });
 
@@ -60,7 +61,7 @@ test("add: the set joins after what's there, skips words already here, and leave
   assert.ok(c.plan.length > 0);
 });
 
-test("add switched off: \"Start asking these now\" turned off adds the set paused", { skip }, async () => {
+test("add switched off: \"Add them switched off\" adds the set paused", { skip }, async () => {
   const { loadSettingsView } = await import("./checkins");
   const { addSharedCheckins } = await import("./checkin-sets");
   await addSharedCheckins(FILE, undefined, { start: false });
@@ -90,6 +91,60 @@ test("switch off, on, and remove: a paused set's questions aren't planned; remov
   assert.deepEqual(v.sets, []);
   assert.ok(!v.own.some((q) => q.id === smile.id));
   assert.deepEqual(v.evening.questions, [{ id: "mood", pinned: true }]);
+});
+
+test("start: both choices leave a routine that's off, off", { skip }, async () => {
+  const { loadSettingsView, saveCheckinSettings } = await import("./checkins");
+  const { addSharedCheckins, removeCheckinSet } = await import("./checkin-sets");
+  const { DEFAULT_CHECKIN_SETTINGS } = await import("./checkin-types");
+  await saveCheckinSettings(structuredClone(DEFAULT_CHECKIN_SETTINGS));
+  for (const start of [true, false]) {
+    const got = await addSharedCheckins(FILE, undefined, { start });
+    const v = await loadSettingsView();
+    assert.deepEqual([v.morning.enabled, v.evening.enabled], [false, false]);
+    assert.deepEqual(got.off, ["morning", "evening"]);
+    assert.equal(v.sets.find((x) => x.id === got.id)?.paused, !start);
+    await removeCheckinSet(got.id);
+  }
+});
+
+test("journal: a shared written answer goes to that day's journal, changes and undoes with it, and stays when the set is removed", { skip }, async () => {
+  const { loadSettingsView, saveCheckinSettings, getCheckin, answerCheckin, clearAnswer } = await import("./checkins");
+  const { addSharedCheckins, removeCheckinSet } = await import("./checkin-sets");
+  const { getDay, patchDay } = await import("./days");
+  const scaled = { ...FILE, questions: [...FILE.questions, { prompt: "How slow was today?", kinds: ["evening" as const], type: "scale" as const }] };
+  const got = await addSharedCheckins(scaled);
+  const v = await loadSettingsView();
+  const smile = v.own.find((q) => q.prompt === "What made you smile today?")!;
+  const slow = v.own.find((q) => q.prompt === "How slow was today?")!;
+  // Athena's rule, whatever the file said: written to the journal, scale nowhere.
+  assert.deepEqual([smile.mirror, slow.mirror], ["day_journal", null]);
+  // The settings can't point a shared question elsewhere either.
+  const tried = await saveCheckinSettings({ morning: v.morning, evening: v.evening, own: v.own.map((q) => (q.id === slow.id ? { ...q, mirror: "day_mood" } : q.id === smile.id ? { ...q, mirror: "briefing" } : q)) });
+  assert.deepEqual([tried.own.find((q) => q.id === smile.id)!.mirror, tried.own.find((q) => q.id === slow.id)!.mirror], ["day_journal", null]);
+  await saveCheckinSettings({ ...v, evening: { enabled: true, per_day: 10, questions: [{ id: smile.id, pinned: true }, { id: slow.id, pinned: true }] } });
+
+  const today = new Date().toISOString().slice(0, 10);
+  await patchDay(today, { journal: "My own words." }, { tz: "UTC" });
+  const c = await getCheckin(today, "evening", { tz: "UTC" });
+  assert.deepEqual(c.plan.map((q) => q.id), [smile.id, slow.id]);
+
+  await answerCheckin(today, "evening", smile.id, { text: "A robin on the fence." }, { tz: "UTC" });
+  await answerCheckin(today, "evening", slow.id, { scale: 4 }, { tz: "UTC" });
+  assert.equal((await getDay(today, { tz: "UTC" }))?.journal, "My own words.\n\nEvening reflection\nWhat made you smile today?\nA robin on the fence.");
+  assert.equal((await getDay(today, { tz: "UTC" }))?.mood, undefined);
+
+  await answerCheckin(today, "evening", smile.id, { text: "Two robins." }, { tz: "UTC" });
+  assert.equal((await getDay(today, { tz: "UTC" }))?.journal, "My own words.\n\nEvening reflection\nWhat made you smile today?\nTwo robins.");
+
+  await clearAnswer(today, "evening", smile.id, { tz: "UTC" });
+  assert.equal((await getDay(today, { tz: "UTC" }))?.journal, "My own words.");
+
+  await answerCheckin(today, "evening", smile.id, { text: "Tea in the garden." }, { tz: "UTC" });
+  const kept = (await getDay(today, { tz: "UTC" }))?.journal;
+  await removeCheckinSet(got.id);
+  assert.equal((await getDay(today, { tz: "UTC" }))?.journal, kept);
+  assert.deepEqual((await getCheckin(today, "evening", { tz: "UTC" })).plan.map((q) => q.id), [smile.id, slow.id]);
 });
 
 test("Community: a set added from a listing is checked, and a withdrawal switches it off once", { skip }, async () => {

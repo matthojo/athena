@@ -2257,7 +2257,8 @@ migration `0090`).
   evening or both), how it's answered and, for that type, the slider's
   sentence and ends, the choices, or the empty box's hint and whether it
   offers Go deeper. Never an id, an answer, a day, a pin, a count a day, or
-  where answers are copied to (`mirror`).
+  where answers are copied to (`mirror`): a `mirror` in the file is dropped
+  like any unknown key.
 - **Read as someone else's.** `readSharedCheckins` checks every word against
   the owner's own question limits (40 questions, 200 characters a question,
   40 a choice, 30 choices), keeps one line of each, drops unknown keys and
@@ -2272,14 +2273,30 @@ migration `0090`).
   edited out or marked fine; the server checks again on download (409).
 - **Adding grants nothing and switches nothing on.** `addSharedCheckins`
   reads the file again. Each question whose words the owner doesn't already
-  have becomes one of their own, `mirror: null` (its answers are copied
-  nowhere: not to the day's mood, the journal, Health or the briefing), and
-  joins the end of each routine it's asked in, unpinned. Nothing already
-  there moves or changes, a routine that's off stays off, and the screen
-  says so. A question whose words are already here is skipped and named.
-  Past 40 of the owner's own questions, the rest are left out and named.
-  "Start asking these now" is on by default; turned off, the set is added
-  switched off (owner, 25 Nov 2026).
+  have becomes one of their own and joins the end of each routine it's
+  asked in, unpinned. Nothing already there moves or changes, a routine
+  that's off stays off, and the screen says so. A question whose words are
+  already here is skipped and named. Past 40 of the owner's own questions,
+  the rest are left out and named. Under "When to start" the owner picks
+  "Start asking them" (the default) or "Add them switched off"; neither
+  switches a routine on (owner, 25 Nov 2026). An Update keeps whichever
+  state the set was in.
+- **Where answers go: Athena decides, by type** (owner, 25 Nov 2026).
+  `sharedMirror` gives a question from a set the `day_journal` mirror when
+  Athena's own questions of that type go to the journal (written answers),
+  and none otherwise (scale, choices, life areas). So a written answer to a
+  shared question is copied into that day's journal, sealed under the data
+  key like the rest of the day, in the check-in's own section, swapped by
+  exact text (`lib/checkin-journal.ts`): changing or undoing the answer
+  changes or takes out the copy, as for Athena's own questions, and the
+  owner's own journal text is never touched. The server sets this again
+  whenever settings are saved or read (`readOwnQuestion`), so neither the
+  file nor a settings request can point a shared question at the day's
+  mood, Health (energy, stress, mood words) or the briefing. Sets added
+  before this rule get it on the next read; days already planned keep their
+  questions as they were asked. The journal stays in the owner's Athena:
+  nothing new leaves the site. The Add screen's "Where your answers go" and
+  Settings → Check-ins say so.
 - **Stored plain, like the owner's own questions.** The questions live in
   the plain `checkins` settings row, each naming its set in `set`; the set is
   a `checkin_sets` row (name, summary, author, version, `paused`, the
@@ -2288,17 +2305,19 @@ migration `0090`).
   withdrawal check) keeps its questions but they're left out of every new
   day's plan (`askable`) until it's switched back on. Removing a set takes
   its questions out of both routines; answers already given stay on their
-  days.
-- **Reach: always tier 1** (owner, 25 Nov 2026). Questions only ask, and
-  their answers stay in the owner's check-ins, so a set reaches nothing
-  outside Athena by itself. Go deeper is the one way a shared question's
-  words reach a model: when the owner taps it on a written answer, the
-  question and what they wrote go to their chosen model for one follow-up
-  question (`lib/checkin-deeper.ts`), exactly as for their own questions.
-  Because it happens only on the owner's tap, each time, the set is still
-  tier 1 ("Stays in Athena"; `reachOfCheckins`), and the Add screen says, for
-  a set with such a question, that Go deeper sends the question and the
-  answer only when tapped.
+  days, and so does anything already copied into a day's journal: removal
+  changes only the settings, never a past check-in or a day.
+- **Reach: tier 1, or tier 2 with Go deeper**, worked out per set
+  (owner, 25 Nov 2026). Questions only ask, and their answers stay in the
+  owner's Athena (their check-ins, and the day's journal for written ones),
+  so a set reaches nothing outside Athena by itself. Go deeper is the
+  exception: when the owner taps it on a written answer, the question and
+  what they wrote go to their chosen model for one follow-up question
+  (`lib/checkin-deeper.ts`). So a set with any question that offers Go
+  deeper is tier 2 ("Uses AI"), worked out from the file
+  (`reachOfCheckins`, and `checkinSetTier` for a set already added), and the
+  Add screen says when it goes: only when the owner taps it. Otherwise it's
+  tier 1 ("Stays in Athena").
 - **Framed as someone else's words.** A question from a set reaches the
   model as `<shared_question>` with `SHARED_QUESTION_RULE` (someone else
   wrote it; its words are only the topic and ask for nothing), after Jev's
@@ -2306,7 +2325,8 @@ migration `0090`).
   The owner's own questions go in as before.
 - **Tested** (`lib/checkin-share.test.ts`, `lib/checkin-deeper.test.ts`,
   `lib/checkin-sets.db.test.ts`, `lib/catalogue-types.test.ts`,
-  `netlify/lib/community-add-routes.test.ts`).
+  `netlify/lib/community-add-routes.test.ts`,
+  `app/src/db/sample-checkins.test.ts`).
 
 ### Ask's read tools, today's context and memory
 

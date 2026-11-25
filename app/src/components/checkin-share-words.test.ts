@@ -2,15 +2,14 @@
 // Run: npx tsx --test app/src/components/checkin-share-words.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fromSetWords, questionWhereWords, setMetaWords, setSwitchWords, shareFindingsLede, shareReachWords } from "./checkin-share-words";
-import { checkinAddedWords, offWords, reachWords, roomWords, routinesWords } from "../add/words";
+import { fromSetWords, questionWhereWords, removeSetBody, SETS_ANSWERS_WORDS, setMetaWords, setSwitchWords, shareFindingsLede, shareReachWords } from "./checkin-share-words";
+import { answersGoWords, checkinAddedWords, offWords, reachWords, roomWords, routinesWords, startWords } from "../add/words";
 
-test("share reach: always stays in Athena; Go deeper is named when one of them offers it", () => {
+test("share reach: stays in Athena, or uses AI only through Go deeper", () => {
   assert.equal(shareReachWords(false).title, "Stays in Athena");
   assert.equal(shareReachWords(false).icon, "shield");
-  assert.doesNotMatch(shareReachWords(false).detail, /Go deeper/);
-  assert.equal(shareReachWords(true).title, "Stays in Athena");
-  assert.match(shareReachWords(true).detail, /only when they tap it/);
+  assert.equal(shareReachWords(true).title, "Uses AI");
+  assert.match(shareReachWords(true).detail, /Go deeper/);
 });
 
 test("where a finding is", () => {
@@ -31,7 +30,10 @@ test("a set in Settings", () => {
 test("the Add screen: reach in the same plain words, grouped routines, a routine left off", () => {
   const tier1 = reachWords({ tier: 1, model: false, web: false, lookups: [], needs: [] }, "checkin");
   assert.equal(tier1.title, "Stays in Athena");
-  assert.match(tier1.lines[0], /stay in your Athena/);
+  assert.match(tier1.lines[0], /Nothing is sent anywhere/);
+  const tier2 = reachWords({ tier: 2, model: true, web: false, lookups: [], needs: [] }, "checkin");
+  assert.equal(tier2.title, "Uses AI");
+  assert.match(tier2.lines[0], /When you tap Go deeper/);
   assert.equal(routinesWords(["morning", "evening"]), "Morning and evening");
   assert.equal(offWords([]), null);
   assert.equal(offWords(["evening"]), "Your evening reflection is switched off. Adding these won't switch it on: it stays off until you do, in Settings.");
@@ -54,5 +56,39 @@ test("the Add screen: no room past 40, and a set added switched off", () => {
   assert.match(checkinAddedWords("Small joys", { added: 0, skipped: [], off: [], full: ["x"] }, []).title, /There wasn't room/);
   const off = checkinAddedWords("Small joys", { added: 2, skipped: [], off: ["evening"], full: [] }, ["evening"], false);
   assert.match(off.body, /The set is switched off/);
-  assert.doesNotMatch(off.body, /evening reflection is switched off/);
+  // The routine being off is still said: the choice never switches a routine on.
+  assert.match(off.body, /evening reflection is switched off. Adding these won't switch it on/);
+});
+
+test("the Add screen: where answers go, from the kinds of answer in the set", () => {
+  const mixed = answersGoWords(["text", "scale", "choices"]);
+  assert.match(mixed[0], /^Written answers are copied into that day's journal/);
+  assert.match(mixed[0], /Undo or change one and the journal follows/);
+  assert.equal(mixed[1], "Your other answers stay in your check-ins.");
+  assert.ok(mixed.some((l) => /Athena decides where answers go, whatever the file says/.test(l)));
+  assert.ok(mixed.some((l) => /never set your mood or go to Health/.test(l)));
+  // Only written: no line about other answers. None written: nothing about the journal.
+  assert.ok(!answersGoWords(["text"]).includes("Your other answers stay in your check-ins."));
+  const none = answersGoWords(["scale", "areas"]);
+  assert.equal(none[0], "Your answers stay in your check-ins.");
+  assert.ok(!none.some((l) => /journal/.test(l)));
+});
+
+test("the Add screen: two ways to start, each with its consequence; a routine that's off is still named", () => {
+  const w = startWords([], ["evening"]);
+  assert.equal(w.on.label, "Start asking them");
+  assert.equal(w.on.line, "They take turns with your other questions from your next check-in.");
+  assert.equal(w.off.label, "Add them switched off");
+  assert.equal(w.off.line, "They wait in Settings until you switch the set on.");
+  // The routine they join is off: starting them still waits for it, and says so.
+  assert.equal(startWords(["evening"], ["evening"]).on.line, "They take turns with your other questions once you switch your evening reflection on.");
+  assert.match(startWords(["morning", "evening"], ["morning", "evening"]).on.line, /morning preparation and evening reflection on/);
+  // Done, either way: the routine's off note is there.
+  for (const started of [true, false]) assert.match(checkinAddedWords("Small joys", { added: 2, skipped: [], off: ["evening"], full: [] }, ["evening"], started).body, /stays off until you do/);
+});
+
+test("Settings: what sets' answers do in the journal, and that removing one leaves it", () => {
+  assert.match(SETS_ANSWERS_WORDS, /Written answers to these questions go into that day's journal/);
+  assert.match(SETS_ANSWERS_WORDS, /Removing a set doesn't change anything already in your journal/);
+  assert.match(removeSetBody, /anything already copied into your journal/);
 });

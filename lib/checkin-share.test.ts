@@ -13,6 +13,7 @@ import {
   readSharedCheckins,
   removeSetFrom,
   samePrompt,
+  sharedMirror,
   serialiseSharedCheckins,
   type SharedCheckins,
 } from "./checkin-share";
@@ -21,6 +22,8 @@ import { detectKind } from "./share-kinds";
 import { planFor } from "./checkin-plan";
 import { DEFAULT_CHECKIN_SETTINGS, MAX_OWN_QUESTIONS, PRESET_QUESTIONS, type CheckinQuestion, type CheckinSettings } from "./checkin-types";
 import { ShareFormatError, type KnownTerm } from "./team-share";
+import { journalSection, swapJournalSection } from "./checkin-journal";
+import type { CheckinAnswer } from "./checkin-types";
 
 const SET_ID = "5b1d2c3e-4f50-4a61-8b72-9c83d4e5f601";
 
@@ -108,13 +111,13 @@ test("checkin.json names the kind", () => {
   assert.equal(detectKind(["small-joys/checkin.json", "small-joys/flow.json"]), null);
 });
 
-test("reach: always tier 1, even when a question offers Go deeper (the owner taps it each time)", () => {
+test("reach: tier 1 when nothing offers Go deeper; tier 2 when a question does, worked out per set", () => {
   const plain = readSharedCheckins({ ...FILE, questions: FILE.questions.map((q) => ({ ...q, deeper: false })) });
-  const tier1 = { tier: 1, model: false, web: false, lookups: [], needs: [] };
-  assert.deepEqual(reachOfCheckins(plain), tier1);
-  assert.deepEqual(reachOfCheckins(readSharedCheckins(FILE)), tier1);
+  assert.deepEqual(reachOfCheckins(plain), { tier: 1, model: false, web: false, lookups: [], needs: [] });
+  assert.deepEqual(reachOfCheckins(readSharedCheckins(FILE)), { tier: 2, model: true, web: false, lookups: [], needs: [] });
+  // From the files, whatever anyone says about them.
   assert.equal(reachOf({ files: [{ path: "checkin.json", text: JSON.stringify(plain) }] }).tier, 1);
-  assert.equal(reachOf({ kind: "checkin", files: [{ path: "checkin.json", text: JSON.stringify(FILE) }] }).tier, 1);
+  assert.equal(reachOf({ kind: "checkin", files: [{ path: "checkin.json", text: JSON.stringify(FILE) }] }).tier, 2);
 });
 
 // ---------- making one ----------
@@ -181,12 +184,12 @@ test("join: questions join the owner's own and the end of their routines, unpinn
   const [smile, kind, close] = j.added;
   assert.deepEqual(j.settings.evening.questions.slice(-3), [smile, kind, close].map((id) => ({ id, pinned: false })));
   assert.deepEqual(j.settings.morning.questions.slice(-1), [{ id: kind, pinned: false }]);
-  // Each is one of the owner's own now, from the set, its answers copied nowhere.
+  // Each is one of the owner's own now, from the set. A written answer goes to the journal; the rest stay put.
   for (const q of j.settings.own.slice(1)) {
     assert.equal(q.set, SET_ID);
     assert.equal(q.preset, false);
-    assert.equal(q.mirror, null);
   }
+  assert.deepEqual(j.settings.own.slice(1).map((q) => [q.type, q.mirror]), [["text", "day_journal"], ["scale", null], ["choices", null]]);
   assert.equal(j.settings.evening.per_day, before.evening.per_day);
   // The input wasn't changed.
   assert.equal(before.own.length, 1);
@@ -257,4 +260,60 @@ test("switched off: a paused set's questions aren't planned; switched back on, t
 test("the file's questions type-check as shared questions", () => {
   const s: SharedCheckins = readSharedCheckins(FILE);
   assert.equal(s.format, 1);
+});
+
+// ---------- where answers go (owner, 25 Nov 2026) ----------
+
+test("sharedMirror: written answers go to the journal, as Athena's own written ones do; nothing else goes anywhere", () => {
+  assert.equal(sharedMirror("text"), "day_journal");
+  for (const t of ["scale", "choices", "areas"] as const) {
+    assert.equal(sharedMirror(t), null);
+    // Matching Athena's own: none of its questions of this type goes to the journal.
+    assert.ok(!PRESET_QUESTIONS.some((q) => q.type === t && q.mirror === "day_journal"));
+  }
+});
+
+test("the file can't say where answers go: any mirror in it is dropped, and Athena's rule applies", () => {
+  const file = { ...FILE, questions: [{ ...FILE.questions[0], mirror: "health_stress" }, { ...FILE.questions[1], mirror: "day_mood" }, { ...FILE.questions[2], mirror: "day_journal" }] };
+  const j = joinSharedCheckins(settings(), readSharedCheckins(file), { setId: SET_ID, newId });
+  assert.deepEqual(j.settings.own.map((q) => q.mirror), ["day_journal", null, null]);
+});
+
+test("journal: a shared written answer is copied, edited in place and undone, exactly as Athena's own", () => {
+  const j = joinSharedCheckins(settings(), readSharedCheckins(FILE), { setId: SET_ID, newId });
+  const shared = j.settings.own[0];
+  const grateful = PRESET_QUESTIONS.find((q) => q.id === "grateful")!;
+  const plan = [grateful, shared];
+  const a = (id: string, text: string): CheckinAnswer => ({ question_id: id, value: { text }, answered_at: "2026-11-25T21:00:00.000Z" });
+  const mine = "Walked along the canal after work.";
+  // Answered: the section names both, in plan order, after the owner's own words.
+  const s1 = journalSection("evening", { plan, answers: { grateful: a("grateful", "A quiet hour."), [shared.id]: a(shared.id, "The cat on the windowsill.") } })!;
+  assert.equal(s1, "Evening reflection\nWhat are you grateful for?\nA quiet hour.\n\nWhat made you smile today?\nThe cat on the windowsill.");
+  const day1 = swapJournalSection(mine, null, s1);
+  assert.equal(day1.journal, `${mine}\n\n${s1}`);
+  // Changed: swapped where it was, the owner's words untouched.
+  const s2 = journalSection("evening", { plan, answers: { grateful: a("grateful", "A quiet hour."), [shared.id]: a(shared.id, "A long call with my sister.") } })!;
+  const day2 = swapJournalSection(day1.journal, day1.section, s2);
+  assert.equal(day2.journal, `${mine}\n\n${s2}`);
+  // Undone: only the shared answer comes out; Athena's own stays.
+  const s3 = journalSection("evening", { plan, answers: { grateful: a("grateful", "A quiet hour.") } });
+  const day3 = swapJournalSection(day2.journal, day2.section, s3);
+  assert.equal(day3.journal, `${mine}\n\nEvening reflection\nWhat are you grateful for?\nA quiet hour.`);
+  // A scale or choices answer from the set never reaches the journal.
+  const scale = j.settings.own[1];
+  assert.equal(journalSection("evening", { plan: [scale], answers: { [scale.id]: { question_id: scale.id, value: { scale: 4 }, answered_at: "2026-11-25T21:00:00.000Z" } } }), null);
+});
+
+test("removing a set leaves a past day's plan, and so its journal section, as they were", () => {
+  const j = joinSharedCheckins(settings(), readSharedCheckins(FILE), { setId: SET_ID, newId });
+  const shared = j.settings.own[0];
+  // A past day's plan keeps the question as it was asked (lib/checkins.ts Stored.plan).
+  const pastPlan = structuredClone([shared]);
+  const answers = { [shared.id]: { question_id: shared.id, value: { text: "Sun at lunch." }, answered_at: "2026-11-20T21:00:00.000Z" } };
+  const before = journalSection("evening", { plan: pastPlan, answers });
+  const removed = removeSetFrom(j.settings, SET_ID);
+  assert.equal(removed.own.length, 0);
+  // Nothing in the removal touches the plan; the section built from it is the same text, so nothing is swapped.
+  assert.equal(journalSection("evening", { plan: pastPlan, answers }), before);
+  assert.deepEqual(swapJournalSection(`Mine.\n\n${before}`, before, before), { journal: `Mine.\n\n${before}`, section: before });
 });

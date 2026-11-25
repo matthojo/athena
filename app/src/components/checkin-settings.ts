@@ -27,9 +27,10 @@ import { confirmDialog } from "./confirm";
 import { moved, ownId, ownQuestionProblem, ROUTINE_NAME, TYPE_NAME } from "./checkin-rules";
 import { loadCheckinSettings, removeCheckinSet, saveCheckinSettings, setCheckinSetPaused, type CheckinSet, type CheckinSettings, type CheckinSettingsView } from "../db/checkins";
 import { catalogueStatus } from "../community/status";
+import { sharedMirror } from "../../../lib/checkin-share";
 import { communityHash } from "../community/words";
 import { forgetUpdates } from "../db/community";
-import { fromSetWords, setMetaWords, setSwitchWords } from "./checkin-share-words";
+import { fromSetWords, removeSetBody, SETS_ANSWERS_WORDS, setMetaWords, setSwitchWords } from "./checkin-share-words";
 import { AREAS, CHECKIN_KINDS, EMOTIONS, MAX_OWN_QUESTIONS, MAX_PER_DAY, MORE_AREAS, MORE_EMOTIONS, type CheckinKind, type CheckinQuestion, type QuestionType } from "../../../lib/checkin-types";
 
 export const TYPE_ICON: Record<QuestionType, IconName> = { scale: "sliders", choices: "tag", areas: "target", text: "pen" };
@@ -204,7 +205,7 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
     });
     const remove = h("button", { class: "btn btn--ghost btn--sm", type: "button" }, icons.trash(), "Remove");
     remove.addEventListener("click", async () => {
-      if (!(await confirmDialog({ title: `Remove ${set.name}?`, body: "Its questions come out of both check-ins. Answers you've already given stay on their days.", confirmLabel: "Remove", danger: true }))) return;
+      if (!(await confirmDialog({ title: `Remove ${set.name}?`, body: removeSetBody, confirmLabel: "Remove", danger: true }))) return;
       void changeSet(() => removeCheckinSet(set.id), `Removed ${set.name}`);
     });
     const questions = h(
@@ -254,9 +255,9 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
       "div",
       { class: "checkin-set__own checkin-set__others" },
       h("h3", { class: "checkin-set__title" }, "From other people"),
-      sets.length
-        ? h("p", { class: "checkin-set__hint" }, "Questions you added from Community or a file. Switch a set off and its questions wait; remove it and they go.")
-        : h("p", { class: "checkin-set__hint" }, "Other people share the questions they ask themselves. Have a look for some that suit you."),
+      ...(sets.length
+        ? [h("p", { class: "checkin-set__hint" }, "Questions you added from Community or a file. Switch a set off and its questions wait; remove it and they go."), h("p", { class: "checkin-set__hint" }, SETS_ANSWERS_WORDS)]
+        : [h("p", { class: "checkin-set__hint" }, "Other people share the questions they ask themselves. Have a look for some that suit you.")]),
       ...sets.map(setCard),
       h("div", { class: "settings__actions" }, browse, file)
     );
@@ -426,7 +427,8 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
       e.preventDefault();
       // Only what this type uses is kept.
       // A question from a set stays that set's, so Remove and the switch still find it.
-      const out: CheckinQuestion = { id: q.id, type: q.type, prompt: q.prompt.trim(), kinds: q.kinds, mirror: null, preset: false, ...(q.set ? { set: q.set } : {}) };
+      // Where a set's answers go is Athena's to say, by type (sharedMirror); the owner's own copy nowhere.
+      const out: CheckinQuestion = { id: q.id, type: q.type, prompt: q.prompt.trim(), kinds: q.kinds, mirror: q.set ? sharedMirror(q.type) : null, preset: false, ...(q.set ? { set: q.set } : {}) };
       if (q.type === "scale") Object.assign(out, { lead: q.lead?.trim(), levels: q.levels?.map((l) => l.trim()), low: q.low?.trim() || "Not at all", high: q.high?.trim() || "Very" });
       if (q.type === "choices" || q.type === "areas") Object.assign(out, { options: q.options, more: q.more?.length ? q.more : undefined });
       if (q.type === "text") Object.assign(out, { placeholder: q.placeholder?.trim() || undefined, deeper: !!q.deeper });

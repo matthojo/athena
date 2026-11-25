@@ -352,7 +352,7 @@ test("check-in questions: Add hands them to their own import and says what joine
   assert.deepEqual(result.checkins, { added: 2, skipped: ["What went well today?"], off: ["evening"], full: [] });
   assert.equal(calls.checkin.length, 1);
   assert.equal(calls.marked.length, 0);
-  // "Start asking these now" is on unless the owner turned it off.
+  // "Start asking them" is the default; "Add them switched off" sends start: false.
   assert.deepEqual((calls.checkin[0] as { opts: unknown }).opts, { start: true });
   await addFrom({ preview, choices: { start: false } }, deps);
   assert.deepEqual((calls.checkin[1] as { opts: unknown }).opts, { start: false });

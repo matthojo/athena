@@ -47,7 +47,7 @@ const SEEDS: Seed[] = [
     kind: "checkin",
     slug: "small-joys",
     name: "Small joys",
-    summary: "Three gentle questions for the end of the day, about the good bits that are easy to miss.",
+    summary: "Four questions for the end of the day, about the good bits that are easy to miss.",
     author: "quiet-desk",
     version: "1.0",
     reach: reach(1),
@@ -58,7 +58,7 @@ const SEEDS: Seed[] = [
         path: "checkin.json",
         text: checkins({
           name: "Small joys",
-          summary: "Three gentle questions for the end of the day, about the good bits that are easy to miss.",
+          summary: "Four questions for the end of the day, about the good bits that are easy to miss.",
           version: "1.0",
           author: "quiet-desk",
           questions: [
@@ -79,7 +79,7 @@ const SEEDS: Seed[] = [
     summary: "Four questions for a slower start to the day.",
     author: "early-light",
     version: "2.1",
-    reach: reach(1),
+    reach: reach(2),
     featured: false,
     days: 5,
     downloads: 860,

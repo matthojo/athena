@@ -25,6 +25,7 @@
  * (folded_into), which takes its rating, link and episode numbers when it
  * has none. That's how Trakt's line for a Netflix episode joins it.
  */
+import { swapJournalSection } from "./checkin-journal";
 import { randomUUID } from "node:crypto";
 import { blindIndexes, dataKeyConfigured, DataKeyMissing, openStrict, sealText } from "./data-box";
 import { isEncryptedPlaceholder } from "./encrypted";
@@ -827,34 +828,7 @@ export async function patchDay(date: string, raw: unknown, opts: { tz?: string }
 
 // ---------- Check-ins (lib/checkins.ts) ----------
 
-/**
- * A journal with one check-in's section swapped: `was` (the section as Athena last wrote it) is
- * replaced by `now`, or taken out with the blank line that kept it apart. When `was` isn't there
- * (never written, or the owner changed it, which makes it theirs), `now` goes at the end. The
- * owner's text is never touched. A section that won't fit in MAX_JOURNAL_CHARS is cut short to
- * fit; `section` is what was written (null: nothing). Pure.
- */
-export function swapJournalSection(journal: string | null | undefined, was: string | null, now: string | null): { journal: string; section: string | null } {
-  const have = journal ?? "";
-  const at = was ? have.indexOf(was) : -1;
-  let before = at >= 0 ? have.slice(0, at) : have;
-  let after = at >= 0 ? have.slice(at + was!.length) : "";
-  if (!now) {
-    if (at < 0) return { journal: have, section: null };
-    if (before.endsWith("\n\n")) before = before.slice(0, -2);
-    else if (after.startsWith("\n\n")) after = after.slice(2);
-    else if (!before.trim()) after = after.replace(/^\n+/, "");
-    return { journal: before + after, section: null };
-  }
-  if (at < 0) {
-    before = before.trimEnd();
-    if (before) before += "\n\n";
-  }
-  const room = MAX_JOURNAL_CHARS - before.length - after.length;
-  const section = (now.length > room ? now.slice(0, Math.max(0, room)) : now).trimEnd();
-  if (!section) return swapJournalSection(have, was, null);
-  return { journal: before + section + after, section };
-}
+export { swapJournalSection } from "./checkin-journal";
 
 /**
  * A check-in's answers copied into the day: `mood` sets the day's mood (null takes the check-in's

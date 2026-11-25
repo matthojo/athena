@@ -21,7 +21,7 @@
  * - a flow: lib/flow-share-store.ts addSharedFlow: paused, blanks filled from the answers;
  * - check-in questions: lib/checkin-sets.ts addSharedCheckins: they join the owner's own, after what's there; a
  *   question whose words are already here is skipped, a routine that's off stays off, and the set starts switched
- *   off when the owner turned off "Start asking these now" (`choices.start` false).
+ *   off when the owner picked "Add them switched off" (`choices.start` false).
  *
  * Add never overwrites by itself: the preview says "You already have this" when an item came from the same listing,
  * and only an explicit `replace` naming that item updates it (its name and history stay, its content becomes the new

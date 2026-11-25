@@ -20,7 +20,8 @@
  *    check-in replaced comes back, unless the owner set one since (lib/days.ts mirrorCheckinDay).
  *  - day_journal: each check-in keeps one section in the day's journal, its heading
  *    (CHECKIN_HEADINGS) then prompt and answer pairs. Only that section is rewritten; the owner's
- *    text is never touched (lib/days.ts swapJournalSection).
+ *    text is never touched (lib/checkin-journal.ts swapJournalSection). A written
+ *    answer to a question from a shared set is copied the same way (lib/checkin-share.ts sharedMirror).
  *  - health_energy, health_stress, health_mood_labels: the latest of each goes to Health under
  *    source "athena_checkin" (lib/health.ts setCheckinHealthDay); none left takes it out.
  *  - briefing: read by the briefing, not copied.
@@ -32,7 +33,8 @@ import { mirrorCheckinDay, readDate, type Mood } from "./days";
 import { setCheckinHealthDay } from "./health";
 import { askedHistory, planFor } from "./checkin-plan";
 import { askDeeper } from "./checkin-deeper";
-import { askable } from "./checkin-share";
+import { askable, sharedMirror } from "./checkin-share";
+import { journalSection } from "./checkin-journal";
 import type { Anthropic } from "./ai";
 import {
   CHECKIN_KINDS,
@@ -57,8 +59,7 @@ import {
 } from "./checkin-types";
 
 export const SETTINGS_KEY = "checkins";
-/** The journal section's heading for each check-in. */
-export const CHECKIN_HEADINGS: Record<CheckinKind, string> = { morning: "Morning preparation", evening: "Evening reflection" };
+export { CHECKIN_HEADINGS, journalSection } from "./checkin-journal";
 /** How far back earlier plans count for whose turn it is. */
 export const HISTORY_DAYS = 60;
 /** The longest range GET /api/checkins answers, in days. */
@@ -138,9 +139,10 @@ function readOwnQuestion(raw: unknown, i: number): CheckinQuestion {
   const type = o.type as QuestionType;
   if (o.preset !== undefined && o.preset !== false) throw new AthenaInputError(`${at}.preset: false (the owner's own)`);
   if (!Array.isArray(o.kinds) || !o.kinds.length || !o.kinds.every(isKind) || new Set(o.kinds).size !== o.kinds.length) throw new AthenaInputError(`${at}.kinds: morning, evening or both`);
-  const mirror = (o.mirror ?? null) as CheckinMirror;
-  if (!MIRRORS[type].includes(mirror)) throw new AthenaInputError(`${at}.mirror: for a ${type} question, one of ${MIRRORS[type].map(String).join(", ")}`);
   if (o.set !== undefined && o.set !== null && (typeof o.set !== "string" || !SET_ID.test(o.set))) throw new AthenaInputError(`${at}.set: the id of the set it was added from`);
+  // A question from someone else's set: Athena decides where its answers go, by type (sharedMirror), whatever is sent.
+  const mirror = typeof o.set === "string" ? sharedMirror(type) : ((o.mirror ?? null) as CheckinMirror);
+  if (!MIRRORS[type].includes(mirror)) throw new AthenaInputError(`${at}.mirror: for a ${type} question, one of ${MIRRORS[type].map(String).join(", ")}`);
   const q: CheckinQuestion = { id: o.id, type, prompt: words(o.prompt, `${at}.prompt`, 200, { required: true })!, kinds: CHECKIN_KINDS.filter((k) => (o.kinds as string[]).includes(k)), mirror, preset: false, ...(typeof o.set === "string" ? { set: o.set.toLowerCase() } : {}) };
   const extra = (fields: string[]) => {
     for (const f of OWN_FIELDS.slice(4, 12)) if (!fields.includes(f) && o[f] !== undefined && o[f] !== null) throw new AthenaInputError(`${at}.${f}: not for a ${type} question`);
@@ -431,19 +433,6 @@ export async function listCheckins(from: string, to: string): Promise<CheckinSum
 }
 
 // ---------- Mirrors ----------
-
-/** A check-in's section for the day's journal: its heading, then each written answer under its prompt. Null: nothing written. Pure. */
-export function journalSection(kind: CheckinKind, s: Pick<Stored, "plan" | "answers">): string | null {
-  const pairs: string[] = [];
-  for (const q of s.plan) {
-    if (q.mirror !== "day_journal") continue;
-    const v = s.answers[q.id]?.value;
-    if (!v || !("text" in v)) continue;
-    pairs.push(`${q.prompt}\n${v.text}`);
-    if (v.deeper?.text) pairs.push(`${v.deeper.question}\n${v.deeper.text}`);
-  }
-  return pairs.length ? `${CHECKIN_HEADINGS[kind]}\n${pairs.join("\n\n")}` : null;
-}
 
 /** The latest answer of the day, across both check-ins, for questions with this mirror. Pure. */
 export function latestFor(checkins: Array<Pick<Stored, "plan" | "answers">>, mirror: CheckinMirror): CheckinValue | null {

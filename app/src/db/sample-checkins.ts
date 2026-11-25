@@ -4,7 +4,10 @@
  * one question of the owner's own; the last three weeks have answers, made
  * the same way every time for a given date (seeded, like db/sample-days.ts),
  * and today waits to be done. Edits live until the page reloads. The mood
- * scale sets the sample day's mood, as the server's mirror would.
+ * scale sets the sample day's mood, and a written answer with the journal
+ * mirror (Athena's own, or one from a shared set) swaps the check-in's
+ * section in the sample day's journal, as the server's mirrors would
+ * (lib/checkin-journal.ts).
  *
  * One set of check-in questions came from Community: "Sunday reset", since taken down, so it's switched off and its
  * two questions wait (db/sample-community.ts lists the withdrawal). Sets added from the `#/add` screen join here as
@@ -12,7 +15,8 @@
  */
 
 import { DEFAULT_CHECKIN_SETTINGS, PRESET_QUESTIONS, type Checkin, type CheckinKind, type CheckinQuestion, type CheckinSet, type CheckinSettings, type CheckinSettingsView, type CheckinSummary, type CheckinValue, type DeeperReply, type ScaleValue } from "../../../lib/checkin-types";
-import { askable, joinSharedCheckins, removeSetFrom, readSharedCheckins, type SharedCheckins } from "../../../lib/checkin-share";
+import { askable, joinSharedCheckins, removeSetFrom, readSharedCheckins, sharedMirror, type SharedCheckins } from "../../../lib/checkin-share";
+import { journalSection, swapJournalSection } from "../../../lib/checkin-journal";
 import { pickPlan } from "../components/checkin-rules";
 import { localToday } from "../lib/time";
 
@@ -34,8 +38,8 @@ const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 /** The set taken down from sample Community (db/sample-community.ts SAMPLE_WITHDRAWN_SET). */
 export const SAMPLE_SET_ID = "7d4c1e2a-3b5f-4a6d-8e9c-0f1a2b3c4d5e";
 const SUNDAY: CheckinQuestion[] = [
-  { id: "own_sunday1", type: "text", prompt: "What would you like to leave behind from this week?", kinds: ["evening"], placeholder: "Write it down, then let it go.", deeper: false, mirror: null, preset: false, set: SAMPLE_SET_ID },
-  { id: "own_sunday2", type: "text", prompt: "What would make next week feel a little lighter?", kinds: ["evening"], placeholder: "One small thing is plenty.", deeper: false, mirror: null, preset: false, set: SAMPLE_SET_ID },
+  { id: "own_sunday1", type: "text", prompt: "What would you like to leave behind from this week?", kinds: ["evening"], placeholder: "Write it down, then let it go.", deeper: false, mirror: sharedMirror("text"), preset: false, set: SAMPLE_SET_ID },
+  { id: "own_sunday2", type: "text", prompt: "What would make next week feel a little lighter?", kinds: ["evening"], placeholder: "One small thing is plenty.", deeper: false, mirror: sharedMirror("text"), preset: false, set: SAMPLE_SET_ID },
 ];
 
 let settings: CheckinSettings = {
@@ -211,10 +215,22 @@ export async function sampleCheckinRange(from: string, to: string): Promise<Chec
   return out;
 }
 
-async function mirror(date: string, q: CheckinQuestion | undefined, value: CheckinValue | null): Promise<void> {
-  if (q?.mirror !== "day_mood") return;
-  const { patchSampleDay } = await import("./sample-days");
-  await patchSampleDay(date, { mood: value && "scale" in value ? value.scale : null }).catch(() => undefined);
+/** The section each check-in last wrote to its day's journal, as the server keeps it in the check-in. */
+const sections = new Map<string, string>();
+
+async function mirror(c: Checkin, q: CheckinQuestion | undefined, value: CheckinValue | null): Promise<void> {
+  if (q?.mirror === "day_mood") {
+    const { patchSampleDay } = await import("./sample-days");
+    await patchSampleDay(c.date, { mood: value && "scale" in value ? value.scale : null }).catch(() => undefined);
+    return;
+  }
+  if (q?.mirror !== "day_journal") return;
+  const { patchSampleDay, sampleDayNow } = await import("./sample-days");
+  const k = key(c.date, c.kind);
+  const swapped = swapJournalSection(sampleDayNow(c.date).journal, sections.get(k) ?? null, journalSection(c.kind, c));
+  if (swapped.section) sections.set(k, swapped.section);
+  else sections.delete(k);
+  await patchSampleDay(c.date, { journal: swapped.journal || null }).catch(() => undefined);
 }
 
 export async function answerSampleCheckin(date: string, kind: CheckinKind, questionId: string, value: CheckinValue | null): Promise<Checkin> {
@@ -222,7 +238,7 @@ export async function answerSampleCheckin(date: string, kind: CheckinKind, quest
   const c = store.get(key(date, kind)) ?? plan(date, kind);
   if (value === null) delete c.answers[questionId];
   else c.answers[questionId] = { question_id: questionId, value: clone(value), answered_at: new Date().toISOString() };
-  await mirror(date, c.plan.find((q) => q.id === questionId), value);
+  await mirror(c, c.plan.find((q) => q.id === questionId), value);
   return clone(c);
 }
 

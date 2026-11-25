@@ -57,7 +57,7 @@ test("every sample listing is named as its files name it, so the list and the pr
 test("sample check-in questions: listed sets read, and Sunday reset is taken down and switched off", async () => {
   const index = await sampleCatalogue();
   const sets = index.items.filter((i) => i.kind === "checkin");
-  assert.deepEqual(sets.map((s) => [s.name, s.reach.tier]), [["Small joys", 1], ["Slow mornings", 1]]);
+  assert.deepEqual(sets.map((s) => [s.name, s.reach.tier]), [["Small joys", 1], ["Slow mornings", 2]]);
   const { sampleSetOf, SAMPLE_SET_ID } = await import("./sample-checkins");
   assert.equal(sampleSetOf(SAMPLE_SET_ID)?.paused, true);
   const updates = await sampleUpdates();
@@ -79,4 +79,37 @@ test("sample mode adds a set as the server would: after what's there, skipping w
   assert.equal(after.sets.at(-1)?.name, "Small joys");
   const removed = await sampleRemoveSet(got.id);
   assert.deepEqual(removed.evening.questions, before.evening.questions);
+});
+
+const COUNT_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+/** The number a summary opens with ("Four questions…", "Three quiet questions…"), or null. */
+const countIn = (summary: string): number | null => COUNT_WORDS[summary.split(/\s+/)[0].toLowerCase()] ?? null;
+
+test("every sample set of check-in questions says as many questions as it holds", async () => {
+  const index = await sampleCatalogue();
+  for (const item of index.items.filter((i) => i.kind === "checkin")) {
+    const got = (await sampleBundle(item.id))!;
+    const file = JSON.parse(got.bundle.files.find((f) => f.path.endsWith("checkin.json"))!.text) as { summary: string; questions: unknown[] };
+    for (const summary of [item.summary, file.summary]) {
+      const n = countIn(summary);
+      if (n !== null) assert.equal(n, file.questions.length, `${item.name}: “${summary}”`);
+    }
+  }
+  // The Add screen's sample links, and the set sample check-ins already has.
+  const { SAMPLE_LINKS, sampleLinkFiles } = await import("../add/sample-items");
+  let links = 0;
+  for (const { link } of SAMPLE_LINKS) {
+    const f = sampleLinkFiles(link)?.find((x) => x.path.endsWith("checkin.json"));
+    if (!f) continue;
+    const file = JSON.parse(f.text) as { summary: string; questions: unknown[] };
+    const n = countIn(file.summary);
+    if (n !== null) (links++, assert.equal(n, file.questions.length, `“${file.summary}”`));
+  }
+  assert.ok(links > 0);
+  const { sampleCheckinSettings } = await import("./sample-checkins");
+  const view = await sampleCheckinSettings();
+  for (const set of view.sets) {
+    const n = countIn(set.summary);
+    if (n !== null) assert.equal(n, view.own.filter((q) => q.set === set.id).length, `${set.name}: “${set.summary}”`);
+  }
 });
