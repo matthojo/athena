@@ -48,7 +48,9 @@ export const dbCommunityStore: CommunityStore = {
        UNION ALL
        SELECT 'skill', id::text, catalogue_id, catalogue_hash, catalogue_version, enabled FROM ask_skills WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL AND assistant_id IS NULL
        UNION ALL
-       SELECT 'flow', id::text, catalogue_id, catalogue_hash, catalogue_version, NOT paused FROM flows WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL`
+       SELECT 'flow', id::text, catalogue_id, catalogue_hash, catalogue_version, NOT paused FROM flows WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL
+       UNION ALL
+       SELECT 'checkin', id::text, catalogue_id, catalogue_hash, catalogue_version, NOT paused FROM checkin_sets WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL`
     );
   },
   async pausedBefore() {
@@ -66,9 +68,12 @@ export const dbCommunityStore: CommunityStore = {
     if (ids("assistant").length) await q(`UPDATE team_assistants SET paused = true, updated_at = now() WHERE id = ANY($1::uuid[])`, [ids("assistant")]);
     if (ids("skill").length) await q(`UPDATE ask_skills SET enabled = false, updated_at = now() WHERE id = ANY($1::uuid[])`, [ids("skill")]);
     if (ids("flow").length) await q(`UPDATE flows SET paused = true, updated_at = now() WHERE id = ANY($1::uuid[])`, [ids("flow")]);
+    // A set switched off: its questions aren't asked until the owner switches it back on (lib/checkin-sets.ts).
+    if (ids("checkin").length) await q(`UPDATE checkin_sets SET paused = true, updated_at = now() WHERE id = ANY($1::uuid[])`, [ids("checkin")]);
   },
   async tierHere(row) {
     if (row.kind === "skill") return 2;
+    if (row.kind === "checkin") return (await import("../../lib/checkin-sets")).checkinSetTier(row.id);
     if (row.kind === "assistant") {
       const [a] = await q<{ web: boolean }>(`SELECT web FROM team_assistants WHERE id = $1::uuid`, [row.id]);
       return a ? (a.web ? 3 : 2) : null;

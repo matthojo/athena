@@ -6,6 +6,11 @@
  * - Tier 1: a flow whose every step stays inside Athena: finds, adds, checks, questions, waits and pushes.
  * - Tier 2: anything that uses a model (every skill and assistant; a flow's thinking, drafting or assignment steps)
  *   or looks something up outside Athena (the weather, a train, a flight: each named in `lookups`).
+ *
+ * A set of check-in questions is always tier 1 (owner, 25 Nov 2026). Questions only ask, and answers stay in the
+ * owner's Athena (their check-ins, and the day's journal for written answers). "Go deeper" on a written answer sends
+ * the question and what the owner wrote to their model for one follow-up, but only when they tap it, as it does for
+ * their own questions; the Add screen and the share sheet say so.
  * - Tier 3: it asks to search the web.
  *
  * `needs` is the accounts the file says it needs, by provider, its event trigger's first. A need is never granted
@@ -14,6 +19,7 @@
 import { readShared, ShareFormatError } from "./team-share";
 import { allSharedSteps, checkSharedFlowSteps, FLOW_DRAFT_TOOLS, readSharedFlow, type SharedFlow } from "./flow-share";
 import { detectKind, KIND_FILES, kindOfFile, type ShareKind } from "./share-kinds";
+import { readSharedCheckins, type SharedCheckins } from "./checkin-share";
 
 export interface Reach {
   tier: 1 | 2 | 3;
@@ -69,6 +75,11 @@ export function reachOfSkill(): Reach {
   return reach({ model: true, web: false, lookups: [], needs: [] });
 }
 
+/** A set of check-in questions' reach: always tier 1. Go deeper reaches a model only when the owner taps it. Pure. */
+export function reachOfCheckins(_set: Pick<SharedCheckins, "questions">): Reach {
+  return reach({ model: false, web: false, lookups: [], needs: [] });
+}
+
 /** The files of an item, as a bundle carries them. */
 export interface ReachInput {
   /** Taken from the files when left out. */
@@ -90,7 +101,7 @@ function parseJson(text: string, file: string): unknown {
  */
 export function reachOf(bundle: ReachInput): Reach {
   const kind = detectKind(bundle.files.map((f) => f.path));
-  if (!kind) throw new ShareFormatError("There's no assistant.json, SKILL.md or flow.json in that.");
+  if (!kind) throw new ShareFormatError("There's no assistant.json, SKILL.md, flow.json or checkin.json in that.");
   if (bundle.kind && bundle.kind !== kind) throw new ShareFormatError(`That's listed as a ${bundle.kind}, but its files are a ${kind}.`);
   const main = bundle.files
     .filter((f) => kindOfFile(f.path) === kind)
@@ -105,5 +116,7 @@ export function reachOf(bundle: ReachInput): Reach {
       return reachOfAssistant(readShared(parseJson(main.text, KIND_FILES.assistant)));
     case "skill":
       return reachOfSkill();
+    case "checkin":
+      return reachOfCheckins(readSharedCheckins(parseJson(main.text, KIND_FILES.checkin)));
   }
 }

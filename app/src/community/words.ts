@@ -15,7 +15,11 @@ export const KIND_WORDS: Readonly<Record<ShareKind, { one: string; many: string 
   assistant: { one: "Assistant", many: "Assistants" },
   skill: { one: "Skill", many: "Skills" },
   flow: { one: "Flow", many: "Flows" },
+  checkin: { one: "Check-in questions", many: "Check-ins" },
 };
+
+/** The kind in a sentence: "this flow", "this set of check-in questions". Pure. */
+export const KIND_NOUN: Readonly<Record<ShareKind, string>> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "set of check-in questions" };
 
 /** `?kind=` as the address gives it, or "all". Pure. */
 export function readKind(raw: string | null | undefined): KindFilter {
@@ -109,7 +113,7 @@ export function ordered(items: readonly CatalogueItem[], sort: CommunitySort = "
 /** The list for a filter, a search and a sort: in order, with counts per kind for the filter's labels. Pure. */
 export function filtered(items: readonly CatalogueItem[], kind: KindFilter, query: string, accountName?: (provider: string) => string, sort: CommunitySort = "featured"): { items: CatalogueItem[]; counts: Record<KindFilter, number> } {
   const found = items.filter((i) => matches(i, query, accountName));
-  const counts = { all: found.length, assistant: 0, skill: 0, flow: 0 } as Record<KindFilter, number>;
+  const counts = { all: found.length, assistant: 0, skill: 0, flow: 0, checkin: 0 } as Record<KindFilter, number>;
   for (const i of found) counts[i.kind]++;
   return { items: ordered(kind === "all" ? found : found.filter((i) => i.kind === kind), sort), counts };
 }
@@ -124,7 +128,7 @@ export function versionWords(was: string | null, now: string | null): string {
 /** "Submit to Community": the two steps the owner takes, since Athena never publishes anything itself. Pure. */
 export function submitSteps(kind: ShareKind, file: string): { hint: string; lede: string; steps: Array<{ title: string; detail: string }>; note: string } {
   return {
-    hint: `Offer this ${kind} to everyone who uses Athena`,
+    hint: `Offer this ${KIND_NOUN[kind]} to everyone who uses Athena`,
     lede: "Athena won't publish it for you. It takes two steps:",
     steps: [
       { title: "Put the folder in a public GitHub repository of yours", detail: `Use the folder from Download, with ${file} at its top. If it came as a zip, unzip it first.` },
