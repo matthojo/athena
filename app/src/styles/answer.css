@@ -87,7 +87,7 @@
   min-width: 17px;
   height: 17px;
   margin-left: 3px;
-  padding: 0 4px;
+  padding: 0 var(--space-2xs);
   border-radius: var(--radius-xs);
   background: var(--accent-wash);
   color: var(--accent-ink);
@@ -107,7 +107,7 @@ a.cite {
 }
 
 .cite + .cite {
-  margin-left: 2px;
+  margin-left: var(--space-3xs);
 }
 
 /* A thumb-sized target without moving the text. */
@@ -160,7 +160,7 @@ a.cite {
   width: 100%;
   min-width: 0;
   min-height: 48px;
-  padding: 6px 12px 6px 7px;
+  padding: 6px var(--space-sm) 6px 7px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -269,7 +269,7 @@ a.cite {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: var(--space-sm);
   font-size: var(--text-meta);
   line-height: 1.45;
   color: var(--ink-3);
@@ -279,7 +279,7 @@ a.cite {
   flex: none;
   width: 13px;
   height: 13px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 .answer__fix {
@@ -302,7 +302,7 @@ a.cite {
 
 .answer-bubble .bubble__foot svg {
   flex: none;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 /* A keyword search shown in place of an answer: why, and the button that
@@ -314,8 +314,8 @@ a.cite {
   align-items: center;
   justify-content: space-between;
   gap: 10px 14px;
-  margin: 0 0 12px;
-  padding: 10px 10px 10px 12px;
+  margin: 0 0 var(--space-sm);
+  padding: 10px 10px 10px var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
 }
@@ -348,9 +348,9 @@ a.cite {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 14px;
+  gap: var(--space-sm) 14px;
   overflow: hidden;
-  padding: 14px 14px 14px 16px;
+  padding: 14px 14px 14px var(--space-md);
   background: var(--sunken);
   border-color: transparent;
   box-shadow: none;
@@ -385,7 +385,7 @@ a.cite {
   flex: none;
   gap: 6px;
   min-height: 44px;
-  padding-inline: 16px;
+  padding-inline: var(--space-md);
 }
 
 /* Lined up with the words, past the icon (18px and its 10px gap). */
@@ -466,12 +466,12 @@ a.cite {
   height: 100%;
   width: auto;
   border-radius: var(--radius-2xs);
-  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.14);
+  box-shadow: 0 1px 2px var(--art-img-shadow);
 }
 
 /* Room for a second line of the title beside a cover, and for a web page's, which is most of what its chip says. */
 .source--web {
-  padding-block: 8px;
+  padding-block: var(--space-xs);
 }
 
 .source--web .source__title,

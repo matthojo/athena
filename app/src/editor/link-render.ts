@@ -25,6 +25,7 @@ import type { LinkKind } from "../../../lib/links";
 import { MODE_LABEL, bareUrl, hostOf, type LinkMode, type LinkTarget } from "./link-model";
 import type { LinkPreview, LiveCard } from "./link-data";
 import { clockTime } from "../lib/clock";
+import { darkSource } from "../lib/appearance";
 
 export type LinkState = "loading" | "loaded" | "failed" | "offline";
 export type ThingKind = LinkKind | "web";
@@ -179,7 +180,7 @@ export function favicon(t: Thing, cls = "rl-fav"): HTMLElement {
   const ui = t.embed ? PROVIDER_UI[t.embed.provider] : null;
   if (t.favicon && !ui) return h("span", { class: `${cls} rl-fav--img`, "aria-hidden": "true" }, pic(t.favicon, "rl-fav__img"));
   const letter = (t.embed ? PROVIDER_NAMES[t.embed.provider] : t.site)[0]?.toUpperCase() ?? "·";
-  return h("span", { class: cls, style: `--mark:${ui?.mark ?? "#5a6170"}`, "aria-hidden": "true" }, letter);
+  return h("span", { class: cls, style: `--mark:${ui?.mark ?? "var(--rl-mark-default)"}`, "aria-hidden": "true" }, letter);
 }
 
 /** What leads a mention: a face, the site's mark or the kind's icon. */
@@ -340,7 +341,7 @@ function liveBody(t: Thing, onTodo?: (done: boolean) => void): { cls: string; ki
             ? h(
                 "span",
                 { class: "rl-media rl-media--square rl-map" },
-                h("picture", {}, live.mapDark ? h("source", { srcset: live.mapDark, media: "(prefers-color-scheme: dark)" }) : null, pic(live.map, "rl-media__img", `Map of ${t.title}`))
+                h("picture", {}, live.mapDark ? darkSource(live.mapDark) : null, pic(live.map, "rl-media__img", `Map of ${t.title}`))
               )
             : h("span", { class: "rl-tile rl-k--place" }, icon("pin")),
           h("span", { class: "rl-card__body" }, h("span", { class: "rl-card__title" }, t.title), live.area ? h("span", { class: "rl-card__kind" }, live.area) : null, live.lastVisit ? metaRow("clock", `Last there ${shortDate(live.lastVisit)}`) : null),

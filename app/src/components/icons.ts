@@ -192,6 +192,8 @@ export const icons = {
     ),
   cup: () => svg(base(`<path d="M4.5 9h11v4.8a4.7 4.7 0 0 1-4.7 4.7H9.2a4.7 4.7 0 0 1-4.7-4.7z"/><path d="M15.5 10.5h1.6a2.4 2.4 0 0 1 0 4.8h-1.9M8 3.8v2.4M11.5 3.8v2.4"/>`)),
   laptop: () => svg(base(`<rect x="5" y="5.5" width="14" height="9.5" rx="1.5"/><path d="M3 18.5h18"/>`)),
+  /** Appearance: a circle, half filled. */
+  contrast: () => svg(base(`<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>`)),
   bag: () => svg(base(`<path d="M5.5 8.5h13l-1 10.2a1.5 1.5 0 0 1-1.5 1.3H8a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 10.5V7a3 3 0 0 1 6 0v3.5"/>`)),
   /** Recipes: a cooking pot with a lid. */
   pot: () => svg(base(`<path d="M4.5 10.5h15v5.5a3.5 3.5 0 0 1-3.5 3.5H8a3.5 3.5 0 0 1-3.5-3.5z"/><path d="M2.5 12h2M19.5 12h2M6 10.5a6 6 0 0 1 12 0M12 4.5v-1"/>`)),

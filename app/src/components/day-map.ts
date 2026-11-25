@@ -28,6 +28,7 @@ import { isSampleMode } from "../db/api";
 import { decodeHeader, fetchDayMap, PROVIDER_INFO, type DayMapResult, type DayMapState, type TileProvider } from "../db/art-api";
 import "../styles/attachments.css";
 import "../styles/days-art.css";
+import { onSchemeChange, scheme } from "../lib/appearance";
 
 export interface DayMapOptions {
   /** The day, "YYYY-MM-DD". */
@@ -49,8 +50,7 @@ export interface DayMapHandle {
 
 const CACHE = "athena-maps-v1";
 const keyFor = (date: string, theme: string, size: string) => `/map-cache/${date}/${theme}/${size}`;
-const dark = window.matchMedia("(prefers-color-scheme: dark)");
-const theme = () => (dark.matches ? "dark" : "light");
+const theme = scheme;
 
 /** "Home, Dishoom, then Hampstead Heath": the stops in order, repeats after the first left out (except going home). */
 export function stopsInWords(places: string[]): string {
@@ -241,15 +241,14 @@ export function dayMap(opts: DayMapOptions): DayMapHandle {
     } else if (!kept) showProblem("unavailable");
   }
 
-  const onTheme = () => void load(true);
-  dark.addEventListener("change", onTheme);
+  const stopTheme = onSchemeChange(() => void load(true));
   void load();
   return {
     el,
     reload: () => void load(true),
     destroy: () => {
       destroyed = true;
-      dark.removeEventListener("change", onTheme);
+      stopTheme();
       if (current) URL.revokeObjectURL(current.url);
     },
   };

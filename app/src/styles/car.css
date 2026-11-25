@@ -120,7 +120,7 @@
   flex: none;
   width: 16px;
   height: 16px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   color: var(--warn);
 }
 

@@ -28,7 +28,7 @@
 }
 
 .memory__link:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -92,7 +92,7 @@
 }
 
 .memory__hide:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 

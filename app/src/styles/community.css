@@ -66,7 +66,7 @@
 
 .cm-filters {
   display: flex;
-  gap: 2px;
+  gap: var(--space-3xs);
   padding: 3px;
   border-radius: var(--radius-pill);
   background: var(--sunken);
@@ -81,7 +81,7 @@
 .cm-filter {
   flex: 1 0 auto;
   height: 38px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
   border-radius: var(--radius-pill);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -141,7 +141,7 @@
   flex: none;
   width: 16px;
   height: 16px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   color: var(--warn);
 }
 
@@ -190,8 +190,8 @@
 
 .cm-sort {
   display: flex;
-  gap: 2px;
-  padding: 2px;
+  gap: var(--space-3xs);
+  padding: var(--space-3xs);
   border-radius: var(--radius-pill);
   background: var(--sunken);
 }
@@ -259,7 +259,7 @@
 }
 
 .cm-row:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
   border-radius: inherit;
 }
@@ -276,7 +276,7 @@
 }
 
 .cm-row__tile {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 .cm-row__tile--assistant {
@@ -298,7 +298,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .cm-row__top {
@@ -337,8 +337,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px var(--space-xs);
-  margin-top: 2px;
+  gap: var(--space-3xs) var(--space-xs);
+  margin-top: var(--space-3xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -359,7 +359,7 @@
   align-items: center;
   gap: 5px;
   height: 26px;
-  padding: 0 10px 0 8px;
+  padding: 0 10px 0 var(--space-xs);
   border-radius: var(--radius-pill);
   background: var(--sunken);
   font-size: var(--text-meta);
@@ -414,7 +414,7 @@
   align-items: center;
   gap: 6px;
   height: 26px;
-  padding: 0 10px 0 4px;
+  padding: 0 10px 0 var(--space-2xs);
   border-radius: var(--radius-pill);
   border: 1px dashed var(--line-strong);
   font-size: var(--text-meta);
@@ -535,7 +535,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .cm-banner__title {
@@ -558,7 +558,7 @@
 }
 
 .cm-banner__quote {
-  margin: 2px 0;
+  margin: var(--space-3xs) 0;
   padding-left: var(--space-sm);
   border-left: 2px solid color-mix(in oklch, var(--warn) 45%, transparent);
   font-size: var(--text-small);
@@ -683,7 +683,7 @@
 
   .cm-row__chevron {
     align-self: start;
-    margin-top: 2px;
+    margin-top: var(--space-3xs);
   }
 }
 
@@ -751,7 +751,7 @@
 }
 
 .cm-submit__toggle:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
   border-radius: var(--radius-md);
 }

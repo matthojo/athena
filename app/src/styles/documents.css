@@ -72,7 +72,7 @@
 }
 
 .tpl-card__main:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -81,7 +81,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .tpl-card__name,
@@ -241,7 +241,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--sunken);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: var(--text-small);
   line-height: 1.6;
   color: var(--ink);
@@ -335,7 +335,7 @@
 
 .tpl-ed__chips .chip {
   height: 32px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
 }
 
 .tpl-ed__error {
@@ -422,7 +422,7 @@
 
 .change__open {
   height: 32px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
 }
 
 @media (max-width: 479px) {
@@ -485,7 +485,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .prep__title {
@@ -608,7 +608,7 @@
 
 .tpl-ed__origin-text {
   display: grid;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 

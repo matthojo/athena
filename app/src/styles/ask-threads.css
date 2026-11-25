@@ -60,7 +60,7 @@
   align-items: center;
   gap: 6px;
   height: 44px;
-  padding: 0 14px 0 12px;
+  padding: 0 14px 0 var(--space-sm);
   border-radius: var(--radius-pill);
   color: var(--ink-2);
   font-size: var(--text-small);
@@ -143,7 +143,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-block: 16px;
+  padding-block: var(--space-md);
 }
 
 .skeleton-line {
@@ -177,7 +177,7 @@
 .chats__list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .chats__group {
@@ -222,7 +222,7 @@
   gap: var(--space-sm);
   min-width: 0;
   min-height: 48px;
-  padding: 12px 4px 12px var(--space-sm);
+  padding: var(--space-sm) var(--space-2xs) var(--space-sm) var(--space-sm);
   text-align: left;
   border-radius: inherit;
 }
@@ -249,7 +249,7 @@
 .chat-row__main--found {
   flex-direction: column;
   align-items: stretch;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .chat-row__snippet {
@@ -298,7 +298,7 @@
 }
 
 .chat-row__more {
-  margin-right: 4px;
+  margin-right: var(--space-2xs);
   color: var(--ink-3);
 }
 
@@ -449,7 +449,7 @@
   .ask__rail .chat-row__main {
     flex-direction: column;
     align-items: stretch;
-    gap: 2px;
+    gap: var(--space-3xs);
     min-height: 40px;
     padding-block: 9px;
   }

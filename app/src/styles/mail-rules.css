@@ -104,7 +104,7 @@
 
 .mail-suggest__body {
   display: grid;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -156,8 +156,8 @@
 
 .mail-chip {
   height: 32px;
-  padding: 0 4px 0 12px;
-  gap: 2px;
+  padding: 0 var(--space-2xs) 0 var(--space-sm);
+  gap: var(--space-3xs);
   color: var(--ink);
 }
 
@@ -242,7 +242,7 @@
 
 .mail-label {
   height: 32px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
 }
 
 .mail-label svg {

@@ -7,21 +7,6 @@
  * amber when it waits for you. Value chips take the graph's colours.
  */
 
-:root {
-  --flow-mint-ink: oklch(0.44 0.1 170);
-  --flow-violet-wash: oklch(0.95 0.035 300);
-  --flow-violet-ink: oklch(0.47 0.16 300);
-  --flow-wire: var(--line-strong);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --flow-mint-ink: oklch(0.82 0.09 170);
-    --flow-violet-wash: oklch(0.29 0.06 300);
-    --flow-violet-ink: oklch(0.83 0.09 300);
-  }
-}
-
 .flows {
   max-width: 640px;
   padding-bottom: var(--space-3xl);
@@ -203,7 +188,7 @@ button.flow-chip {
 
 .flow-seg {
   display: flex;
-  gap: 2px;
+  gap: var(--space-3xs);
   padding: 3px;
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -218,7 +203,7 @@ button.flow-chip {
 .flow-seg__item {
   flex: 1 0 auto;
   min-height: 40px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
   border: 0;
   border-radius: var(--radius-sm);
   background: none;
@@ -287,7 +272,7 @@ button.flow-chip {
 }
 
 .flow-sug__why {
-  margin: 2px 0 0;
+  margin: var(--space-3xs) 0 0;
   color: var(--ink-2);
   font-size: var(--text-small);
 }
@@ -297,11 +282,11 @@ button.flow-chip {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  padding-left: 48px;
+  padding-left: var(--space-2xl);
 }
 
 .flow-sug__name {
-  margin-left: 4px;
+  margin-left: var(--space-2xs);
   color: var(--ink-3);
   font-size: var(--text-meta);
 }
@@ -324,7 +309,7 @@ button.flow-chip {
   flex-direction: column;
   gap: 10px;
   width: 100%;
-  padding: 16px 18px;
+  padding: var(--space-md) 18px;
   border: 1px solid var(--line);
   color: inherit;
   font: inherit;
@@ -373,7 +358,7 @@ button.flow-chip {
 }
 
 .flow-row--compact {
-  padding: 14px 16px;
+  padding: 14px var(--space-md);
 }
 
 .flow-empty {
@@ -407,10 +392,10 @@ button.flow-chip {
 .flow-back {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   min-height: 44px;
   margin-left: -10px;
-  padding: 0 12px 0 6px;
+  padding: 0 var(--space-sm) 0 6px;
   border: 0;
   border-radius: var(--radius-pill);
   background: none;
@@ -556,7 +541,7 @@ button.flow-chip {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
   min-width: 0;
 }
 
@@ -595,7 +580,7 @@ button.flow-chip {
 }
 
 .flow-card__chev {
-  margin-top: 8px;
+  margin-top: var(--space-xs);
   color: var(--ink-3);
 }
 
@@ -609,7 +594,7 @@ button.flow-chip {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-  padding: 10px 14px 12px 62px;
+  padding: 10px 14px var(--space-sm) 62px;
   border-top: 1px solid var(--line);
   font-size: var(--text-meta);
 }
@@ -621,7 +606,7 @@ button.flow-chip {
 .flow-wire {
   width: 2px;
   height: 12px;
-  margin-left: 32px;
+  margin-left: var(--space-xl);
   background: var(--flow-wire);
 }
 
@@ -671,8 +656,8 @@ button.flow-chip {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  margin-left: 32px;
-  padding: 4px 0 6px 16px;
+  margin-left: var(--space-xl);
+  padding: var(--space-2xs) 0 6px var(--space-md);
   border-left: 2px solid var(--flow-wire);
 }
 
@@ -727,7 +712,7 @@ button.flow-chip {
 
 .flow-done {
   align-self: flex-start;
-  margin: var(--space-xs) 0 0 8px;
+  margin: var(--space-xs) 0 0 var(--space-xs);
   padding: 3px 10px;
   border-radius: var(--radius-pill);
   background: var(--sunken);
@@ -763,7 +748,7 @@ button.flow-chip {
 
 .flow-drawn {
   margin: 0 0 var(--space-md);
-  padding: 12px 14px;
+  padding: var(--space-sm) 14px;
   border-radius: var(--radius-sm);
   background: var(--warn-wash);
   color: var(--ink);
@@ -771,7 +756,7 @@ button.flow-chip {
 }
 
 .flow-drawn ul {
-  margin: 4px 0 0;
+  margin: var(--space-2xs) 0 0;
   padding-left: 18px;
 }
 
@@ -853,7 +838,7 @@ button.flow-chip {
 }
 
 .flow-hand__title {
-  margin: 4px 0 0;
+  margin: var(--space-2xs) 0 0;
   font-size: var(--text-body);
   font-weight: var(--weight-semibold);
 }
@@ -866,7 +851,7 @@ button.flow-chip {
 
 .flow-hand__go {
   align-self: flex-start;
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
   background: var(--surface);
   color: var(--flow-violet-ink);
 }
@@ -874,16 +859,16 @@ button.flow-chip {
 .flow-may {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   margin-top: var(--space-xl);
-  padding: 16px 18px;
+  padding: var(--space-md) 18px;
 }
 
 .flow-may__row {
   display: flex;
   justify-content: space-between;
   gap: var(--space-sm);
-  padding: 8px 0;
+  padding: var(--space-xs) 0;
   font-size: var(--text-small);
 }
 
@@ -958,7 +943,7 @@ button.flow-chip {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: var(--space-2xs);
   margin-top: var(--space-lg);
 }
 
@@ -1089,7 +1074,7 @@ button.flow-chip {
 
 .flow-field__box {
   min-height: 48px;
-  padding: 12px 14px;
+  padding: var(--space-sm) 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -1145,7 +1130,7 @@ button.flow-chip {
 }
 
 .flow-preview__card {
-  padding: 12px 14px;
+  padding: var(--space-sm) 14px;
   border-radius: var(--radius-sm);
   background: var(--sunken);
 }
@@ -1157,7 +1142,7 @@ button.flow-chip {
 
 .flow-preview__from {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
   color: var(--ink-3);
   font-size: var(--text-meta);
 }
@@ -1211,7 +1196,7 @@ button.flow-chip {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 10px 12px;
+  padding: 10px var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--flow-violet-wash);
   color: var(--ink);
@@ -1252,7 +1237,7 @@ button.flow-chip {
 }
 
 .flow-add__group {
-  margin: var(--space-sm) 4px 6px;
+  margin: var(--space-sm) var(--space-2xs) 6px;
   color: var(--ink-3);
   font-size: var(--text-micro);
   font-weight: var(--weight-semibold);
@@ -1263,7 +1248,7 @@ button.flow-chip {
 .flow-add__list {
   display: flex;
   flex-direction: column;
-  padding: 4px 0;
+  padding: var(--space-2xs) 0;
   border-radius: var(--radius-md);
   background: var(--canvas);
 }
@@ -1274,7 +1259,7 @@ button.flow-chip {
   gap: var(--space-sm);
   width: 100%;
   min-height: 52px;
-  padding: 8px 14px;
+  padding: var(--space-xs) 14px;
   border: 0;
   background: none;
   color: inherit;
@@ -1323,7 +1308,7 @@ button.flow-chip {
 }
 
 .flow-add__none {
-  margin: var(--space-md) 4px;
+  margin: var(--space-md) var(--space-2xs);
   color: var(--ink-3);
 }
 
@@ -1443,7 +1428,7 @@ button.flow-chip {
 .flow-changes {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-xs);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1459,7 +1444,7 @@ button.flow-chip {
 .flow-changes svg {
   width: 16px;
   height: 16px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   flex: none;
   color: var(--flow-violet-ink);
 }
@@ -1491,7 +1476,7 @@ button.flow-chip {
 
 .flow-new__input {
   width: 100%;
-  padding: 14px 16px;
+  padding: 14px var(--space-md);
   border: 2px solid var(--accent);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -1559,7 +1544,7 @@ button.flow-chip {
 }
 
 .flow-run__label {
-  margin: 2px 0 0;
+  margin: var(--space-3xs) 0 0;
   color: var(--ink-2);
   font-size: var(--text-small);
 }
@@ -1580,7 +1565,7 @@ button.flow-chip {
 
 .flow-trace {
   margin: 0 0 var(--space-md);
-  padding: 6px 16px;
+  padding: 6px var(--space-md);
   list-style: none;
 }
 
@@ -1604,7 +1589,7 @@ button.flow-chip {
 
 .flow-trace__rail {
   flex: none;
-  padding-top: 4px;
+  padding-top: var(--space-2xs);
 }
 
 .flow-trace__rail .flow-mark {
@@ -1615,7 +1600,7 @@ button.flow-chip {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
   min-width: 0;
 }
 
@@ -1645,8 +1630,8 @@ button.flow-chip {
   display: flex;
   gap: var(--space-xs);
   align-items: flex-start;
-  margin-top: 4px;
-  padding: 12px;
+  margin-top: var(--space-2xs);
+  padding: var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--warn-wash);
 }
@@ -1670,7 +1655,7 @@ button.flow-chip {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
 }
 
 .flow-run > .btn--ghost {
@@ -1694,7 +1679,7 @@ button.flow-chip {
   align-items: center;
   gap: var(--space-xs);
   min-height: 48px;
-  padding: 0 16px;
+  padding: 0 var(--space-md);
   border: 1.5px dashed var(--line-strong);
   border-radius: var(--radius-md);
   background: none;

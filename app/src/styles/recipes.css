@@ -16,7 +16,7 @@
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
-  padding-bottom: 2px;
+  padding-bottom: var(--space-3xs);
 }
 
 .rc-filters::-webkit-scrollbar {
@@ -27,7 +27,7 @@
   flex: none;
   width: 1px;
   align-self: stretch;
-  margin: 4px 2px;
+  margin: var(--space-2xs) var(--space-3xs);
   background: var(--line);
 }
 
@@ -156,8 +156,8 @@
 .rc-card__body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px 12px;
+  gap: var(--space-2xs);
+  padding: 10px var(--space-sm) var(--space-sm);
 }
 
 .rc-card__title {
@@ -174,7 +174,7 @@
 .rc-card__tags {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   font-size: var(--text-meta);
   color: var(--ink-2);
 }
@@ -267,7 +267,7 @@
 
 .rc-edit__label .prop__textarea {
   color: var(--ink);
-  padding: 10px 12px;
+  padding: 10px var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
 }
@@ -281,7 +281,7 @@
 .rc-back {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   align-self: flex-start;
   min-height: 44px;
   margin-top: var(--page-top, 0);
@@ -343,7 +343,7 @@
 .rc-meta span {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .rc-meta svg,
@@ -355,7 +355,7 @@
 .rc-source {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   color: var(--accent-ink);
   text-decoration: none;
 }
@@ -700,7 +700,7 @@ html.is-cooking .sidebar {
   padding: var(--space-md);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px var(--space-md);
+  gap: var(--space-xs) var(--space-md);
   border-radius: var(--radius-md);
   background: var(--sunken);
   font-size: var(--text-body);
@@ -748,7 +748,7 @@ html.is-cooking .sidebar {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 6px 6px 6px 16px;
+  padding: 6px 6px 6px var(--space-md);
   border-radius: var(--radius-pill);
   background: var(--ink);
   color: var(--on-ink);
@@ -840,7 +840,7 @@ html.is-cooking .sidebar {
   grid-template-columns: 44px minmax(0, 1fr) auto;
   gap: var(--space-sm);
   align-items: center;
-  padding: 10px 10px 10px 12px;
+  padding: 10px 10px 10px var(--space-sm);
   border-radius: var(--radius-md);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -898,7 +898,7 @@ html.is-cooking .sidebar {
 .rc-day__main {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
   min-width: 0;
 }
 
@@ -956,7 +956,7 @@ html.is-cooking .sidebar {
 .rc-day__tools {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .rc-day__handle {
@@ -1117,7 +1117,7 @@ html.is-cooking .sidebar {
   align-items: center;
   gap: var(--space-sm);
   min-height: 52px;
-  padding: 8px var(--space-md);
+  padding: var(--space-xs) var(--space-md);
   cursor: pointer;
 }
 
@@ -1169,8 +1169,8 @@ html.is-cooking .sidebar {
 }
 
 .rs-pantry__chip {
-  gap: 2px;
-  padding-right: 4px;
+  gap: var(--space-3xs);
+  padding-right: var(--space-2xs);
 }
 
 .rs-pantry__x {

@@ -21,7 +21,7 @@
 
 .grimp-book__day,
 .grimp-book__stars {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 /* The day it lands on, like a calendar leaf. */
@@ -47,7 +47,7 @@
 }
 
 .grimp-book__m {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
   letter-spacing: 0.02em;

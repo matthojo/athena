@@ -364,8 +364,84 @@ native app, scaffolded under `app/`) provides:
   match across notes, people and to-dos). **New note** is
   a sheet reachable from anywhere (the + button, the sidebar, or `C`). The
   visual system — Funnel Display + Geist, OKLCH tokens tinted toward cobalt,
-  light-first with a system-driven dark mode — is documented in
-  `.impeccable.md` and `app/src/styles/tokens.css`.
+  light-first with a dark mode that follows the system unless Settings →
+  Appearance says otherwise — is documented in `.impeccable.md` and
+  `app/src/styles/tokens.css`.
+
+### Appearance and the theme surface
+
+**One switch.** Settings → Appearance offers System (the default), Light and
+Dark. The choice is kept per device in `localStorage` (`athena.appearance`),
+not on the server: it has to be read before the first paint, synchronously,
+and two devices can want different answers. `lib/appearance.ts` resolves it
+to a scheme and puts both on the root element:
+`<html data-appearance="system|light|dark" data-scheme="light|dark">`. With
+System it follows the device's setting live, as before.
+
+Every stylesheet reads `data-scheme` and nothing else. Light values are the
+plain rules; dark ones are written under `:where([data-scheme="dark"])`
+(`:root:where(…)` for tokens), which adds no specificity, so they cascade
+exactly as the old `prefers-color-scheme` blocks did. Most dark values live
+in `tokens.css` alone; a component stylesheet has a dark rule only where
+something other than a colour changes (a filter, an opacity). Code that draws
+(the Graph's canvas, day maps, a place's map) reads `scheme()` and
+`onSchemeChange()`; a `<picture>` with a dark version uses `darkSource()`,
+since a `<source media>` sees only the system. Nothing else may ask for
+`prefers-color-scheme` (`lib/appearance.test.ts`).
+
+**First paint.** `lib/appearance-boot.ts` is a few lines of ES5 that
+`vite.config.ts` inlines into `index.html`'s `<head>`, after the
+`theme-color` and `color-scheme` metas and before any stylesheet. It sets the
+root's attributes and gives both `theme-color` metas the chosen scheme's
+colour (their `data-light`/`data-dark`), so a tab, a reload or the installed
+app's cold start never shows the wrong mode. `color-scheme` follows the
+scheme, so form controls and scrollbars match. The manifest holds one colour,
+the light page, as before.
+
+**Tokens only.** Every colour in the app's CSS and TypeScript comes from a
+token in `tokens.css`; `lib/colour-tokens.test.ts` fails on a raw hex,
+`rgb()`/`oklch()`-style value or named colour anywhere else, with a short
+allowlist, each entry with its reason: other companies' logos, sample mode's
+made-up content, the avatar kit's palette, drawn pictures and cover art, and
+contrast maths that needs copies of surface colours. Mask gradients are
+exempt (their `#000` means "opaque"). A colour drawn in an element's own hue
+is a token holding lightness and chroma: `oklch(var(--avatar-bg) var(--h))`.
+
+**The theme surface.** At the top of `tokens.css`, fifteen public `--theme-*`
+tokens are what a theme will set, for light, dark or both. The system tokens
+the stylesheets use are built from them:
+
+| Token | What it is | Feeds |
+| --- | --- | --- |
+| `--theme-page` | the page behind everything | `--canvas` |
+| `--theme-surface` | cards, sheets, fields | `--surface` |
+| `--theme-sunken` | fills set into a surface | `--sunken` |
+| `--theme-border` | hairlines and dividers | `--line` |
+| `--theme-text` | text | `--ink` |
+| `--theme-text-muted` | secondary text | `--ink-2` |
+| `--theme-accent` | the brand colour: links, selection, primary marks | `--accent` |
+| `--theme-on-accent` | text and marks on the accent | `--on-accent` |
+| `--theme-focus` | the keyboard focus ring (the accent by default) | `--focus` |
+| `--theme-radius` | a multiplier on every `--radius-*` but the pill | corners |
+| `--theme-density` | a multiplier on every `--space-*` | spacing |
+| `--theme-font-ui` | the interface face | `--font-ui` |
+| `--theme-font-display` | titles and headings | `--font-display` |
+| `--theme-font-mono` | code, keys, tabular bits | `--font-mono` |
+| `--theme-text-scale` | a multiplier on every `--text-*` | type sizes |
+
+No remote font is loaded: a theme names fonts on the device or in
+`app/public/fonts/`. Font sizes and radii were already tokens
+(`lib/type-scale.test.ts`); every font family is now one, and spacing on the
+4pt scale is written as `--space-*` (`lib/theme-surface.test.ts`). About half
+the spacing values in the stylesheets are off the scale (6, 10 and 14px
+mostly) and don't follow `--theme-density` yet.
+
+The steps between the public colours (`--sunken-strong`, `--line-strong`,
+`--ink-3`, `--on-ink`, `--accent-wash`, `--accent-ink`, the status, chart and
+graph palettes, and the component tokens at the foot of `tokens.css`) keep
+their designed values for light and dark. They don't move when a public
+colour does: a theme that changes the page or the accent has to set them
+too, or the change that adds themes derives them from the public ones.
 
 ### The Library: people, places, organisations, events
 

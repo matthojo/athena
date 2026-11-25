@@ -1,0 +1,97 @@
+/* Settings → Appearance (components/appearance-settings.ts): three choices, drawn like
+   Settings → Days' mood styles (days.css .mood-style) so the two read as one family. */
+
+.appearance-choices {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.appearance-choices__legend {
+  padding: 0;
+  margin-bottom: var(--space-xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.appearance-choice {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.appearance-choice:has(.appearance-choice__input:checked) {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.appearance-choice:has(.appearance-choice__input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .appearance-choice:not(:has(.appearance-choice__input:checked)):hover {
+    background: var(--sunken);
+  }
+}
+
+.appearance-choice__input {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-3);
+  background: transparent;
+}
+
+.appearance-choice__input::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: scale(0);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.appearance-choice__input:checked {
+  border-color: var(--ink);
+}
+
+.appearance-choice__input:checked::before {
+  transform: scale(1);
+}
+
+.appearance-choice__input:focus-visible {
+  outline: none;
+}
+
+.appearance-choice__words {
+  display: grid;
+  gap: var(--space-3xs);
+  min-width: 0;
+}
+
+.appearance-choice__name {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.appearance-choice__sub {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}

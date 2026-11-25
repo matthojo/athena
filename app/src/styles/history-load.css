@@ -14,7 +14,7 @@
 }
 
 .hist-row__takeout {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 /* While it loads, the clock's tile breathes; nothing moves with reduced motion. */
@@ -39,5 +39,5 @@
 
 /* The connected sheet: the row in its own soft card under the hero. */
 .acct-done .hist-card {
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-md);
 }

@@ -50,7 +50,7 @@
   overflow-x: auto;
   scrollbar-width: none;
   margin-inline: calc(-1 * var(--space-md));
-  padding: 2px var(--space-md) 0;
+  padding: var(--space-3xs) var(--space-md) 0;
 }
 
 .loops__ctx::-webkit-scrollbar {
@@ -67,7 +67,7 @@
 
 .chip--menu {
   height: 30px;
-  padding: 0 8px 0 11px;
+  padding: 0 var(--space-xs) 0 11px;
   gap: 6px;
   font-size: var(--text-meta);
   color: var(--ink-2);
@@ -97,7 +97,7 @@
 .loops__clear {
   flex: none;
   font-size: var(--text-meta);
-  padding: 0 4px;
+  padding: 0 var(--space-2xs);
   min-height: 30px;
 }
 
@@ -196,8 +196,8 @@
 .prop--ctx .prop__control {
   flex-direction: column;
   align-items: stretch;
-  gap: 2px;
-  padding-block: 4px;
+  gap: var(--space-3xs);
+  padding-block: var(--space-2xs);
 }
 
 /* The chips wrap rather than scroll, so every context is visible at once. */
@@ -211,7 +211,7 @@
 }
 
 .prop--ctx .ctx-by-athena:not([hidden]) {
-  padding-top: 2px;
+  padding-top: var(--space-3xs);
 }
 
 /* At phone width each label in the to-do sheet sits above its control, as in the habit sheet. */

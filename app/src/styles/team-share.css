@@ -3,7 +3,7 @@
 /* .field is a one-line box with no room above or below: a text box here gets some. */
 .wf textarea.field {
   height: auto;
-  padding: 12px 14px;
+  padding: var(--space-sm) 14px;
   line-height: var(--leading-body);
 }
 
@@ -34,7 +34,7 @@
   flex: none;
   width: 16px;
   height: 16px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   color: var(--good);
 }
 
@@ -166,7 +166,7 @@
 .wf-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
   margin: 0;
   padding: var(--space-sm);
   border-radius: var(--radius-md);
@@ -186,7 +186,7 @@
   flex: none;
   width: 16px;
   height: 16px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 .wf-list li.is-ok svg {
@@ -210,14 +210,14 @@
 .wf-tick > span {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .wf-tick__box {
   flex: none;
   width: 18px;
   height: 18px;
-  margin: 2px 0 0;
+  margin: var(--space-3xs) 0 0;
   accent-color: var(--accent);
 }
 
@@ -280,6 +280,6 @@
   flex: none;
   width: 18px;
   height: 18px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   color: var(--ink-2);
 }

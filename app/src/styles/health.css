@@ -21,7 +21,7 @@
 
 .health__range .chip {
   height: 32px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
 }
 
 .health__body {
@@ -394,7 +394,7 @@
 .mdots__plot {
   display: grid;
   align-items: center;
-  gap: 6px 4px;
+  gap: 6px var(--space-2xs);
 }
 
 .mdots__plot--days {
@@ -499,7 +499,7 @@
   left: 0;
   z-index: 5;
   pointer-events: none;
-  padding: 4px 8px;
+  padding: var(--space-2xs) var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--ink);
   color: var(--on-ink);
@@ -512,7 +512,7 @@
 }
 
 .mdots__tip .meta {
-  margin-left: 4px;
+  margin-left: var(--space-2xs);
   font-weight: var(--weight-regular);
   color: color-mix(in oklch, var(--on-ink) 70%, var(--ink));
 }
@@ -622,7 +622,7 @@
   left: 0;
   z-index: 5;
   pointer-events: none;
-  padding: 4px 8px;
+  padding: var(--space-2xs) var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--ink);
   color: var(--on-ink);
@@ -708,7 +708,7 @@
 .hsrc__label {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -730,7 +730,7 @@
 .hsrc__chip {
   height: 36px;
   gap: 6px;
-  padding: 0 12px 0 5px;
+  padding: 0 var(--space-sm) 0 5px;
   font-size: var(--text-small);
 }
 
@@ -739,7 +739,7 @@
   height: 24px;
   border-radius: var(--radius-xs);
   /* A light tile in both themes, like Apple Health's: dark marks (Whoop, Withings, Oura) stay visible on a dark chip. */
-  background: oklch(1 0 0);
+  background: var(--logo-bg);
 }
 
 .hsrc__only .hsrc__chip {
@@ -752,9 +752,9 @@
   width: 24px;
   height: 24px;
   border-radius: var(--radius-xs);
-  background: oklch(1 0 0);
+  background: var(--hsrc-apple-bg);
   box-shadow: inset 0 0 0 1px var(--line);
-  color: oklch(0.63 0.22 18);
+  color: var(--hsrc-apple-ink);
 }
 
 .hsrc__apple svg {
@@ -804,8 +804,8 @@
 .hchart__tip-parts {
   font-weight: var(--weight-regular);
   display: grid;
-  gap: 2px;
-  margin-top: 4px;
+  gap: var(--space-3xs);
+  margin-top: var(--space-2xs);
 }
 
 .hchart__tip-part {
@@ -853,7 +853,7 @@
 
 
 .health__minor-note {
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }

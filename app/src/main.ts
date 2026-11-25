@@ -37,6 +37,7 @@ import { setLinkData } from "./editor/link-data";
 import { realLinkData } from "./editor/link-data-real";
 import { watchStickyHeads } from "./lib/sticky-head";
 import { followDayPart } from "./lib/format";
+import { watchAppearance } from "./lib/appearance";
 import { setAppOpenLink } from "./lib/app-links";
 import type { AnyRecord, CustomRecord, EntityKind, Note, RecordKind } from "./types";
 
@@ -773,6 +774,8 @@ function mountShell() {
 }
 
 function boot() {
+  // Light, Dark or the system's: index.html set it before the first paint; this keeps following it.
+  watchAppearance();
   // The aurora follows the time of day (styles/tokens.css).
   followDayPart();
   // Rich links in notes draw from the data layer (db/rich-links.ts).

@@ -18,7 +18,7 @@
 .dock__side {
   display: flex;
   min-width: 0;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .dock__item {
@@ -110,10 +110,10 @@
 .lib-nav__back {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-height: 44px;
   margin: calc(var(--space-xs) * -1) 0 calc(var(--space-2xs) * -1) -6px;
-  padding: 0 10px 0 2px;
+  padding: 0 10px 0 var(--space-3xs);
   border-radius: var(--radius-sm);
   font-size: var(--text-ui);
   font-weight: var(--weight-medium);
@@ -210,18 +210,8 @@
 .lib-group[data-group="you"],
 .side-group[data-group="you"] {
   --lib-wash: var(--mint-wash);
-  --lib-ink: oklch(0.45 0.09 170);
-  --lib-icon: oklch(0.45 0.09 170);
-}
-
-@media (prefers-color-scheme: dark) {
-  .lib-group[data-group="home"],
-  .side-group[data-group="home"],
-  .lib-group[data-group="you"],
-  .side-group[data-group="you"] {
-    --lib-ink: oklch(0.8 0.08 170);
-    --lib-icon: oklch(0.8 0.08 170);
-  }
+  --lib-ink: var(--lib-group-home-ink);
+  --lib-icon: var(--lib-group-home-icon);
 }
 
 .lib-group[data-group="kinds"],
@@ -331,7 +321,7 @@ dialog.jump::backdrop {
 }
 
 .jump__head {
-  padding: var(--space-xs) 10px 4px;
+  padding: var(--space-xs) 10px var(--space-2xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-semibold);
   letter-spacing: 0.06em;
@@ -342,7 +332,7 @@ dialog.jump::backdrop {
 .jump__row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   min-height: 44px;
   padding: 0 10px;
   border-radius: var(--radius-sm);
@@ -593,7 +583,7 @@ dialog.jump::backdrop {
 .side-nav--foot {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 /* The section tabs fade at an edge with more beyond it. */

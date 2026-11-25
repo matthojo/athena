@@ -30,7 +30,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-sm);
-  margin-bottom: 2px;
+  margin-bottom: var(--space-3xs);
 }
 
 .travel__kicker {
@@ -128,7 +128,7 @@
   align-items: start;
   min-height: 44px;
   margin: -6px -8px;
-  padding: 6px 8px;
+  padding: 6px var(--space-xs);
   border-radius: var(--radius-sm);
   text-align: left;
   transition: background-color var(--dur-fast) var(--ease-out);
@@ -143,7 +143,7 @@
 .tleg__time {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   padding-top: 1px;
 }
 
@@ -171,7 +171,7 @@
 .tleg__body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -205,7 +205,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
+  gap: var(--space-2xs) 10px;
 }
 
 .tleg__where {
@@ -336,7 +336,7 @@
 .travel__tube {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-xs);
   margin-top: var(--space-xs);
   padding-top: var(--space-sm);
   border-top: 1px solid var(--line);
@@ -412,7 +412,7 @@
 
   .travel--home .tleg__open {
     grid-template-columns: minmax(0, 1fr);
-    row-gap: 4px;
+    row-gap: var(--space-2xs);
   }
 
   .travel--home .tleg__time {

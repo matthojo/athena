@@ -72,7 +72,7 @@
 /* 36px tall, with the chip's own 4px hit area above and below: 44px to tap. */
 .trg-chips--quiet .trg-chip {
   height: 36px;
-  padding-inline: 12px;
+  padding-inline: var(--space-sm);
   background: var(--sunken);
   border-color: transparent;
   color: var(--ink-2);
@@ -91,7 +91,7 @@
 /* How it starts: a quiet two-way switch above the controls. */
 .trg-kind {
   padding: 3px;
-  gap: 2px;
+  gap: var(--space-3xs);
   border-radius: var(--radius-pill);
   background: var(--sunken);
   justify-self: start;
@@ -112,11 +112,9 @@
   box-shadow: var(--shadow-card), 0 0 0 1px var(--line);
 }
 
-@media (prefers-color-scheme: dark) {
-  .trg-kind .trg-chip[aria-checked="true"] {
-    background: var(--sunken-strong);
-    box-shadow: 0 0 0 1px var(--line-strong);
-  }
+:where([data-scheme="dark"]) .trg-kind .trg-chip[aria-checked="true"] {
+  background: var(--sunken-strong);
+  box-shadow: 0 0 0 1px var(--line-strong);
 }
 
 .trg-days {
@@ -191,7 +189,7 @@
 
 .trg-time:focus-visible,
 .trg-input:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -259,7 +257,7 @@
   .trg-kind .trg-chip {
     flex: 1 1 auto;
     min-width: 0;
-    padding-inline: 12px;
+    padding-inline: var(--space-sm);
     font-size: var(--text-small);
   }
 

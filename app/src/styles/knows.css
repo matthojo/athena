@@ -9,7 +9,7 @@
 }
 
 .knows__lede {
-  margin: -2px 0 2px;
+  margin: -2px 0 var(--space-3xs);
   padding-inline: var(--space-2xs);
   font-size: var(--text-meta);
   line-height: var(--leading-snug);
@@ -29,7 +29,7 @@
 
 .knows-row__why {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
   font-size: var(--text-meta);
   font-style: italic;
   line-height: var(--leading-snug);
@@ -47,7 +47,7 @@
 }
 
 .knows-empty__title {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-2xs);
   font-weight: var(--weight-semibold);
   color: var(--ink);
 }

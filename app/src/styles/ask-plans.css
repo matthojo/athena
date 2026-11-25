@@ -73,7 +73,7 @@ label.plan__step {
 .plan__label {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   font-size: var(--text-ui);
   line-height: var(--leading-snug);
   overflow-wrap: anywhere;
@@ -179,7 +179,7 @@ label.plan__step:has(.plan__tick:not(:checked)) .plan__label {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .picks__title {
@@ -283,7 +283,7 @@ label.plan__step:has(.plan__tick:not(:checked)) .plan__label {
 
 .activity-row__meta {
   color: var(--ink-3);
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 .activity-row__meta a {
@@ -303,7 +303,7 @@ label.plan__step:has(.plan__tick:not(:checked)) .plan__label {
 .activity-state {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   font-size: var(--text-small);
   color: var(--ink-3);
   white-space: nowrap;
@@ -411,7 +411,7 @@ label.plan__step:has(.plan__tick:not(:checked)) .plan__label {
 }
 
 .plan__ask-link:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: var(--radius-3xs);
 }

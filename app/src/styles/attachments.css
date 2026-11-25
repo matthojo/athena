@@ -3,7 +3,7 @@
 /* The composer grows from a pill into a soft card when files are in it. */
 .composer-bar.has-files {
   flex-wrap: wrap;
-  row-gap: 4px;
+  row-gap: var(--space-2xs);
   padding-top: 10px;
   padding-left: 10px;
   border-radius: var(--radius-lg);
@@ -12,8 +12,8 @@
 .composer-files {
   flex: 1 0 100%;
   display: flex;
-  gap: 8px;
-  padding: 0 0 2px;
+  gap: var(--space-xs);
+  padding: 0 0 var(--space-3xs);
   overflow-x: auto;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
@@ -29,9 +29,9 @@
   flex: 1 0 100%;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin: 0 4px 2px 0;
-  padding: 8px 12px;
+  gap: var(--space-xs);
+  margin: 0 var(--space-2xs) var(--space-3xs) 0;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-md);
   background: var(--warn-wash);
   color: var(--ink-2);
@@ -135,7 +135,7 @@
   transform: scale(0.97);
 }
 .file-tile__body:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -173,7 +173,7 @@
 
 /* Documents */
 .file-tile--doc .file-tile__body {
-  padding: 8px 12px 8px 8px;
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-xs);
 }
 .file-tile__icon {
   position: relative;
@@ -333,7 +333,7 @@
 }
 .msg-files__photos {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2xs);
   overflow: hidden;
   border-radius: var(--radius-md);
 }
@@ -422,7 +422,7 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 12px;
+  padding: var(--space-sm);
   background: var(--sunken);
 }
 .file-tile--note.file-tile--doc .file-tile__text {
@@ -459,7 +459,7 @@
   width: 100%;
   min-height: 44px;
   margin: 0;
-  padding: 0 2px 0 12px;
+  padding: 0 var(--space-3xs) 0 var(--space-sm);
   border: 0;
   border-radius: var(--radius-sm);
   background: none;
@@ -477,7 +477,7 @@
   color: var(--ink);
 }
 .file-summary__toggle:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 /* Athena's mark: a small cobalt orb. */
@@ -486,7 +486,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, color-mix(in oklch, var(--accent) 45%, white), var(--accent) 70%);
+  background: radial-gradient(circle at 35% 30%, color-mix(in oklch, var(--accent) 45%, var(--file-summary-mark-bg)), var(--accent) 70%);
 }
 .file-summary__line {
   flex: 1;
@@ -530,7 +530,7 @@
 }
 .file-summary__box {
   position: relative;
-  padding: 14px 16px 12px;
+  padding: 14px var(--space-md) var(--space-sm);
   border-radius: var(--radius-md);
   background: var(--accent-wash);
 }
@@ -556,7 +556,7 @@
   overflow-wrap: anywhere;
 }
 .file-summary__note {
-  margin: 8px 0 0;
+  margin: var(--space-xs) 0 0;
   font-size: var(--text-meta);
   line-height: 1.4;
   color: var(--ink-3);
@@ -593,12 +593,12 @@ dialog.viewer {
   margin: 0;
   padding: 0;
   border: 0;
-  background: oklch(0.15 0.012 264 / 0.985);
-  color: oklch(0.97 0.005 264);
+  background: var(--viewer-bg);
+  color: var(--viewer-ink);
   animation: viewer-fade var(--dur-base) var(--ease-out);
 }
 dialog.viewer::backdrop {
-  background: oklch(0.15 0.012 264);
+  background: var(--viewer-backdrop-bg);
 }
 .viewer[open] {
   display: grid;
@@ -631,7 +631,7 @@ dialog.viewer::backdrop {
 }
 .viewer .btn--soft,
 .viewer .icon-btn {
-  background: oklch(1 0 0 / 0.12);
+  background: var(--btn-soft-bg);
   color: inherit;
   border-color: transparent;
 }
@@ -670,7 +670,7 @@ dialog.viewer::backdrop {
   height: 100%;
   border: 0;
   border-radius: var(--radius-xs);
-  background: #fff;
+  background: var(--viewer-pdf-bg);
 }
 .viewer__text {
   width: min(720px, 100%);
@@ -692,7 +692,7 @@ dialog.viewer::backdrop {
   width: min(360px, 100%);
   padding: var(--space-xl) var(--space-lg);
   border-radius: var(--radius-xl);
-  background: oklch(1 0 0 / 0.06);
+  background: var(--viewer-card-bg);
   text-align: center;
 }
 .viewer__card-icon {
@@ -711,7 +711,7 @@ dialog.viewer::backdrop {
 }
 .viewer__card-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-xs);
   margin-top: var(--space-md);
 }
 .viewer__card-actions .viewer__action {
@@ -808,9 +808,9 @@ dialog.viewer::backdrop {
 .confirm__check {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-sm);
   margin-top: var(--space-md);
-  padding: 12px 14px;
+  padding: var(--space-sm) 14px;
   min-height: 44px;
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -844,7 +844,7 @@ dialog.viewer::backdrop {
   width: 10px;
   height: 6px;
   margin-top: -2px;
-  border: solid var(--on-ink, #fff);
+  border: solid var(--on-ink);
   border-width: 0 0 2px 2px;
   transform: rotate(-45deg) scale(0);
   transition: transform var(--dur-fast) var(--ease-out-expo);
@@ -860,13 +860,13 @@ dialog.viewer::backdrop {
 }
 
 .confirm__check-box:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
 .confirm__check-text {
   display: grid;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 

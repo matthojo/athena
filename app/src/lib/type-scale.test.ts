@@ -83,7 +83,7 @@ test("every border radius in the stylesheets is a --radius-* token", () => {
 });
 
 test("nothing smaller than --text-meta but the one micro step, and that one is 11px", () => {
-  const sizes = [...tokens.matchAll(/--text-([\w-]+):\s*([\d.]+)rem/g)].map(([, name, rem]) => [name, Number(rem) * 16] as const);
+  const sizes = [...tokens.matchAll(/--text-([\w-]+):\s*calc\(([\d.]+)rem \* var\(--theme-text-scale\)\)/g)].map(([, name, rem]) => [name, Number(rem) * 16] as const);
   const small = sizes.filter(([, px]) => px < 12);
   assert.deepEqual(small, [["micro", 11]]);
 });

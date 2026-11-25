@@ -159,7 +159,7 @@
 .skill-switch > span {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .skill-switch__title {
@@ -194,7 +194,7 @@
   flex: none;
   width: 16px;
   height: 16px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 .skills-loading {
@@ -319,7 +319,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: var(--text-meta);
 }
 
@@ -332,7 +332,7 @@
 .skill-skipped {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
   margin: 0;
   padding: var(--space-xs) var(--space-sm);
   list-style: none;
@@ -344,7 +344,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 2px var(--space-sm);
+  gap: var(--space-3xs) var(--space-sm);
   font-weight: var(--weight-regular);
 }
 
@@ -371,7 +371,7 @@
 .ask__head-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 /* The menu stays reachable on a fresh chat, where the head itself is hidden. */
@@ -430,7 +430,7 @@
   align-items: center;
   gap: 6px;
   height: 28px;
-  padding: 0 10px 0 4px;
+  padding: 0 10px 0 var(--space-2xs);
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink-2);

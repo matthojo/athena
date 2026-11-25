@@ -14,7 +14,7 @@
 
 .stagebar__track {
   display: flex;
-  gap: 2px;
+  gap: var(--space-3xs);
   height: 12px;
   border-radius: var(--radius-pill);
   overflow: hidden;
@@ -32,7 +32,7 @@
 .stage-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
+  gap: var(--space-2xs) 14px;
   margin: 0;
   padding: 0;
   list-style: none;

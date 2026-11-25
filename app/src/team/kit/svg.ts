@@ -120,8 +120,8 @@ const KEEP = new Set([INK, "#fff", "#ffffff"]);
 
 /**
  * Give every coloured fill and stroke its dark-mode value as a custom
- * property (--kd, --ks) beside the light one. avatar.css swaps them in under
- * prefers-color-scheme: dark; without the stylesheet the light colours stand.
+ * property (--kd, --ks) beside the light one. avatar.css swaps them in when the app is
+ * dark (data-scheme="dark", lib/appearance.ts); without the stylesheet the light colours stand.
  */
 export function withDark(markup: string): string {
   return markup.replace(/<([a-z]+)\b([^>]*?)(\/?)>/g, (tag, name: string, attrs: string, close: string) => {

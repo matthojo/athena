@@ -97,3 +97,19 @@ test("the search index has one entry per section", () => {
     ]
   );
 });
+
+test("the site follows the system's scheme, the switch the copied tokens.css reads", async () => {
+  const { SCHEME_SCRIPT } = await import("./build-site");
+  for (const dark of [false, true]) {
+    const attrs: Record<string, string> = {};
+    let onChange: (() => void) | null = null;
+    const document = { documentElement: { setAttribute: (k: string, v: string) => (attrs[k] = v) } };
+    const query = { matches: dark, addEventListener: (_: string, fn: () => void) => (onChange = fn) };
+    const window = { matchMedia: (q: string) => (assert.equal(q, "(prefers-color-scheme: dark)"), query) };
+    new Function("document", "window", SCHEME_SCRIPT)(document, window);
+    assert.equal(attrs["data-scheme"], dark ? "dark" : "light");
+    query.matches = !dark;
+    onChange!();
+    assert.equal(attrs["data-scheme"], dark ? "light" : "dark");
+  }
+});

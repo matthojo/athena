@@ -1,7 +1,7 @@
 /* Home's one-time notice about imported skills' accounts (components/accounts-notice.ts). */
 .acct-notice__list {
   display: grid;
-  gap: 2px;
+  gap: var(--space-3xs);
   margin: var(--space-xs) 0 0;
   padding: 0;
   list-style: none;

@@ -17,10 +17,10 @@
 .td-back {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   min-height: 44px;
   margin-left: -10px;
-  padding: 0 12px 0 6px;
+  padding: 0 var(--space-sm) 0 6px;
   border: 0;
   border-radius: var(--radius-pill);
   background: none;
@@ -85,7 +85,7 @@
 }
 
 .td-disc:focus-visible .td-face {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 
@@ -101,7 +101,7 @@
   left: 50%;
   top: calc(100% - 22px);
   margin: 0;
-  padding: 5px 12px;
+  padding: 5px var(--space-sm);
   border-radius: var(--radius-pill);
   background: var(--ink);
   color: var(--on-ink);
@@ -143,7 +143,7 @@
 .td-id {
   grid-area: id;
   display: grid;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -151,7 +151,7 @@
 .td-inplace {
   width: 100%;
   margin: 0 0 0 -9px;
-  padding: 1px 8px;
+  padding: 1px var(--space-xs);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -214,7 +214,7 @@
   align-items: center;
   gap: 7px;
   min-height: 22px;
-  margin: 4px 0 0;
+  margin: var(--space-2xs) 0 0;
   color: var(--ink-3);
   font-size: var(--text-small);
 }
@@ -301,9 +301,9 @@
 /* 16px sides on a phone, so paused ("Turn back on" is wider than "Run now") all three still fit at 390px. */
 .td-chat,
 .td-start {
-  gap: 8px;
+  gap: var(--space-xs);
   min-height: 48px;
-  padding-inline: 16px;
+  padding-inline: var(--space-md);
 }
 
 @media (min-width: 760px) {
@@ -488,7 +488,7 @@
 }
 
 .tdw-run__open:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
@@ -638,7 +638,7 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  padding: 12px var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid color-mix(in oklch, var(--who, var(--accent)) 35%, var(--line));
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -656,7 +656,7 @@
 .tdw-now__text {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -777,7 +777,7 @@
     "note go";
   align-items: center;
   column-gap: var(--space-sm);
-  row-gap: 2px;
+  row-gap: var(--space-3xs);
   width: 100%;
   min-height: 56px;
   padding: 10px var(--space-sm);
@@ -816,7 +816,7 @@
 }
 
 .tdb-row:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
@@ -859,13 +859,13 @@
 
 .tdb-lines {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .tdb-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .tdb-line svg {
@@ -934,9 +934,9 @@
 .tdm-fact {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-height: 36px;
-  padding: 0 4px 0 14px;
+  padding: 0 var(--space-2xs) 0 14px;
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink);
@@ -993,7 +993,7 @@
 
 .td-delete {
   justify-self: start;
-  gap: 8px;
+  gap: var(--space-xs);
   margin-left: -10px;
   color: var(--bad);
 }
@@ -1029,7 +1029,7 @@
 .td-area {
   width: 100%;
   min-height: 140px;
-  padding: 14px 16px;
+  padding: 14px var(--space-md);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -1056,7 +1056,7 @@
   align-items: center;
   gap: var(--space-md);
   min-height: 56px;
-  padding: 8px var(--space-md);
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-md);
   cursor: pointer;
 }
@@ -1070,7 +1070,7 @@
 .td-allow__text {
   flex: 1;
   display: grid;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -1095,7 +1095,7 @@
 
 .td-bubble {
   margin: 0;
-  padding: 10px 16px;
+  padding: 10px var(--space-md);
   border-radius: var(--radius-md) var(--radius-md) var(--radius-md) var(--radius-xs);
   background: var(--sunken);
   color: var(--ink);
@@ -1156,11 +1156,9 @@
   gap: var(--space-2xs) 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  .td-wardrobe .kit-wr-seg button[aria-checked="true"] {
-    background: var(--sunken-strong);
-    box-shadow: 0 0 0 1.5px var(--ink-2);
-  }
+:where([data-scheme="dark"]) .td-wardrobe .kit-wr-seg button[aria-checked="true"] {
+  background: var(--sunken-strong);
+  box-shadow: 0 0 0 1.5px var(--ink-2);
 }
 
 /* How <Name> works: its own skill (team/team-skill-section.ts) */
@@ -1254,7 +1252,7 @@
   border-radius: var(--radius-sm);
   background: var(--sunken);
   color: var(--ink-2);
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: var(--text-small);
   line-height: var(--leading-body);
   white-space: pre-wrap;
@@ -1350,7 +1348,7 @@
     "foot foot";
   align-items: center;
   column-gap: var(--space-md);
-  row-gap: 2px;
+  row-gap: var(--space-3xs);
   min-height: 56px;
   padding: 10px var(--space-sm);
   border-radius: var(--radius-md);
@@ -1389,7 +1387,7 @@
 }
 
 .tdb-web:has(.switch:focus-visible) {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
@@ -1413,7 +1411,7 @@
 
 .tdb-web__detail {
   grid-area: detail;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   color: var(--ink-3);
   font-size: var(--text-small);
   line-height: var(--leading-snug);
@@ -1433,8 +1431,8 @@
 .tdb-web__need {
   grid-area: need;
   justify-self: start;
-  margin-block: 4px 6px;
-  padding: 6px 12px;
+  margin-block: var(--space-2xs) 6px;
+  padding: 6px var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
   color: var(--ink-2);

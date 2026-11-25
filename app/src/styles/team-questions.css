@@ -26,7 +26,7 @@
 .tq__choices {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .tq__chip {
@@ -78,7 +78,7 @@
 }
 
 .tq__chip:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
