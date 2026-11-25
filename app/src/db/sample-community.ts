@@ -76,7 +76,7 @@ const SEEDS: Seed[] = [
     kind: "checkin",
     slug: "slow-mornings",
     name: "Slow mornings",
-    summary: "A softer start: how you slept, what you're looking forward to, and one unhurried thing for today.",
+    summary: "Four questions for a slower start to the day.",
     author: "early-light",
     version: "2.1",
     reach: reach(2),
@@ -88,7 +88,7 @@ const SEEDS: Seed[] = [
         path: "checkin.json",
         text: checkins({
           name: "Slow mornings",
-          summary: "A softer start: how you slept, what you're looking forward to, and one unhurried thing for today.",
+          summary: "Four questions for a slower start to the day.",
           version: "2.1",
           author: "early-light",
           questions: [

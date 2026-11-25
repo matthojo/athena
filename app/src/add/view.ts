@@ -448,7 +448,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     } else if (item.kind === "skill") {
       aloneSec = section("alone", "What it may do alone", h("p", { class: "form__hint" }, "Nothing. A skill only changes how Ask goes about a request: changes still wait for your approval, and nothing is sent."));
     } else if (item.kind === "checkin") {
-      aloneSec = section("alone", "Where your answers go", h("p", { class: "add-usewhen" }, "They stay in your check-ins, with the rest of your answers. These questions don't copy them anywhere else, and they don't change how many questions you're asked each day."));
+      aloneSec = section("alone", "Where your answers go", h("p", { class: "add-usewhen" }, "They stay in your check-ins with the rest of your answers, and go nowhere else. How many questions you're asked each day stays as you set it."));
     } else {
       const lines: string[] = ["Every step that changes something waits for your approval, even if the flow asked to run on its own."];
       if (item.flow.steps.length && JSON.stringify(item.flow.steps).includes('"kind":"think"')) lines.push("Its thinking steps need an assistant. Choose one on the flow's page once it's added.");
