@@ -2142,6 +2142,13 @@ and start switched off. Nothing in a file is a permission.
 - **A download count is the site's word.** `downloads` on an index item is
   shown rounded and used to order the list, nothing else; it's checked as a
   whole number within a cap, and an index without it reads as before.
+- **Only fields Athena knows are kept.** A key it doesn't know, on the
+  index, an item, a withdrawn entry, a bundle, a bundle's file or a listing,
+  is dropped as the file is read (`lib/catalogue-types.ts`): never stored,
+  shown or passed on. Every known field keeps its type, size and count
+  checks, and one that doesn't fit refuses the whole file. The bundle hash
+  covers each file's path and text, so an extra key can't carry changed
+  words past it.
 - **A withdrawn item is paused once** (assistant or flow paused, skill
   switched off) and remembered in the plain settings row `community_paused`,
   so switching it back on sticks. Nothing is deleted or updated by itself.
