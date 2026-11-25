@@ -13,6 +13,12 @@ test("plain views round-trip", () => {
   }
 });
 
+test("Health's Wellness tab keeps its path; anything else under Health opens Body", () => {
+  assert.deepEqual(parseRoute("#/health/wellness"), r("health", "wellness"));
+  assert.equal(routeHash(r("health", "wellness")), "#/health/wellness");
+  assert.deepEqual(parseRoute("#/health/elsewhere"), r("health"));
+});
+
 test("home: empty, bare and unknown hashes", () => {
   for (const h of ["", "#", "#/", "#/nowhere", "#/kind"]) assert.deepEqual(parseRoute(h), r("home"));
   assert.equal(routeHash(r("home")), "#/");

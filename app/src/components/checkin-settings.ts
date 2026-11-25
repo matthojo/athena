@@ -39,6 +39,7 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
     h("div", { class: "src-head" }, h("h2", { class: "settings__heading", id: "settings-checkins" }, icons.chat(), "Check-ins")),
     h("p", { class: "settings__lede" }, "A few questions to start the day and a few to end it, one to a screen. Changes apply from the next check-in."),
     h("p", { class: "settings__note" }, icons.bell(), "Set the reminder times in ", times),
+    h("p", { class: "settings__note" }, icons.heart(), "See how you've felt over time in ", h("a", { class: "settings__link", href: "#/health/wellness" }, "Health → Wellness")),
     body
   );
 

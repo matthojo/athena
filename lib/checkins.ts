@@ -32,6 +32,7 @@ import { mirrorCheckinDay, readDate, type Mood } from "./days";
 import { setCheckinHealthDay } from "./health";
 import { askedHistory, planFor } from "./checkin-plan";
 import { askDeeper } from "./checkin-deeper";
+import { trendsOf, type TrendRow } from "./checkin-trends";
 import type { Anthropic } from "./ai";
 import {
   CHECKIN_KINDS,
@@ -39,6 +40,7 @@ import {
   MAX_ANSWER_CHARS,
   MAX_OWN_QUESTIONS,
   MAX_PER_DAY,
+  MAX_TRENDS_DAYS,
   PRESET_QUESTIONS,
   type Checkin,
   type CheckinAnswer,
@@ -48,6 +50,7 @@ import {
   type CheckinSettings,
   type CheckinSettingsView,
   type CheckinSummary,
+  type CheckinTrends,
   type CheckinValue,
   type DeeperReply,
   type QuestionType,
@@ -396,6 +399,30 @@ export async function listCheckins(from: string, to: string): Promise<CheckinSum
     out.set(r.date, s);
   }
   return [...out.values()];
+}
+
+/**
+ * GET /api/checkins/trends: the scale answers and picks in [from, to], for Health → Wellness
+ * (lib/checkin-trends.ts). Opens each row, so it needs the key; a row under a key this copy doesn't
+ * have is passed over. Never plans a day.
+ */
+export async function checkinTrends(from: string, to: string): Promise<CheckinTrends> {
+  readDate(from, "from");
+  readDate(to, "to");
+  if (to < from) throw new AthenaInputError("to: on or after from");
+  if (daysBetween(from, to) + 1 > MAX_TRENDS_DAYS) throw new AthenaInputError(`At most ${MAX_TRENDS_DAYS} days at a time`);
+  needKey();
+  const rows = await qRaw<Row>(`SELECT to_char(date, 'YYYY-MM-DD') AS date, kind, sealed, status, done_at FROM checkins WHERE date BETWEEN $1::date AND $2::date`, [from, to]);
+  const opened: TrendRow[] = [];
+  for (const r of rows) {
+    try {
+      const s = open(r);
+      opened.push({ date: r.date, kind: r.kind, status: r.status, plan: s.plan, answers: s.answers });
+    } catch {
+      // Sealed under a key this copy doesn't have: left out of the trend.
+    }
+  }
+  return trendsOf(opened);
 }
 
 // ---------- Mirrors ----------

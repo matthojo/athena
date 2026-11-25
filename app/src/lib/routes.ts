@@ -69,6 +69,8 @@ export function parseRoute(hash: string, today = localToday()): Route {
   if (view === "saved") return { view: "saved", source: null, noteId: id ? decodeURIComponent(id) : null };
   // #/recipes, #/recipes/<id>, #/recipes/<id>/cook, #/recipes/plan, #/recipes/list: Recipes keeps its own path.
   if (view === "recipes") return { view: "recipes", source: null, noteId: path.split("/").slice(1).map(decodeURIComponent).join("/") || null };
+  // #/health, #/health/wellness: Health's Body and Wellness tabs.
+  if (view === "health") return { view: "health", source: null, noteId: id === "wellness" ? "wellness" : null };
   // #/trips/<id>, #/purchases/<id>: a push or Coming up opening one.
   if (view === "trips" || view === "purchases") return { view, source: null, noteId: id ? decodeURIComponent(id) : null };
   // #/settings, or #/settings/<section> (fields, sources, voice, iphone, api-keys; accounts and collections open sources).
@@ -112,6 +114,7 @@ export function routeHash(r: Route): string {
   if (r.view === "community") return `#/community${r.source ? `?${r.source}` : ""}`;
   if (r.view === "flows") return `#/flows${r.noteId ? `/${r.noteId.split("/").map(encodeURIComponent).join("/")}` : ""}`;
   if (r.view === "add") return `#/add${r.source ? `?${r.source}` : ""}`;
+  if (r.view === "health") return `#/health${r.noteId === "wellness" ? "/wellness" : ""}`;
   if (PLAIN_VIEWS.includes(r.view)) return `#/${r.view}`;
   if (RECORD_VIEWS[r.view] || r.view === "graph" || r.view === "saved" || r.view === "trips" || r.view === "purchases") return `#/${r.view}${r.noteId ? `/${encodeURIComponent(r.noteId)}` : ""}`;
   const qs = r.source !== null ? `?source=${encodeURIComponent(r.source)}` : "";

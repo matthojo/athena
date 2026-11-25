@@ -2,7 +2,8 @@
  * A day's check-in answers on its page (views/days-day.ts): each routine
  * that has answers, as a compact list of question and answer, read-only,
  * with Edit to open that day's check-in at its first question. Skips aren't
- * listed. Hidden when the day has none.
+ * listed. Ends with a link to Health → Wellness, where the answers show
+ * over weeks and months. Hidden when the day has none.
  */
 
 import "../styles/checkin.css";
@@ -49,7 +50,8 @@ export function checkinDaySection(date: string): { el: HTMLElement; destroy: () 
     if (dead) return;
     const blocks = got.filter((x): x is readonly [CheckinKind, Checkin] => !!x).map(([k, c]) => block(k, c)).filter((x): x is HTMLElement => !!x);
     el.hidden = !blocks.length;
-    el.replaceChildren(h("div", { class: "day-sec__head" }, h("h2", { class: "day-sec__title", id: `checkin-day-${date}` }, "Check-ins")), ...blocks);
+    const trends = h("a", { class: "btn btn--ghost btn--sm day-more", href: "#/health/wellness" }, "How you've felt over time", icons.arrowRight());
+    el.replaceChildren(h("div", { class: "day-sec__head" }, h("h2", { class: "day-sec__title", id: `checkin-day-${date}` }, "Check-ins")), ...blocks, trends);
   }
 
   const off = onCheckinsChange(() => void load());

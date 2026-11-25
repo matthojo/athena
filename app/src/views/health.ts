@@ -6,6 +6,10 @@
  * its chart: averages over the range, compared with the range before.
  * Nothing is cached on the device. "Log" (components/health-log-sheet.ts)
  * types a day in by hand, for anyone without a connected app.
+ *
+ * Two tabs: Body (#/health), the figures above, and Wellness
+ * (#/health/wellness, views/health-wellness.ts), the morning and evening
+ * check-ins over the same range, with the Mind card.
  */
 
 import "../styles/health.css";
@@ -19,6 +23,9 @@ import { healthLine, hoursMinutes, kilos, litres, MG_PER_COFFEE, RECHARGE, stage
 import "../styles/health-food.css";
 import { hasStages, stageBar, stageLegend, STAGES, UNSTAGED } from "../components/sleep-stages";
 import { addDays } from "../../../lib/dates";
+import { buckets, fmt, longDay, RANGES, shortDay, type Bucket as RangeBucket, type Range } from "../components/health-range";
+import { wellnessBody } from "./health-wellness";
+import { loadCheckinSettings, loadCheckinTrends, onCheckinsChange, type CheckinTrends } from "../db/checkins";
 import { localToday } from "../lib/time";
 import { loadPatterns } from "../db/patterns";
 import { patternSlot } from "../components/patterns-block";
@@ -27,66 +34,26 @@ import type { ViewId } from "../components/nav";
 import { pageHead } from "../components/page-head";
 import { clockOfDay } from "../lib/clock";
 
-type Range = "4w" | "6m" | "1y";
-const RANGES: Array<{ id: Range; label: string; days: number; before: string; in: string }> = [
-  { id: "4w", label: "4 weeks", days: 28, before: "the 4 weeks before", in: "these 4 weeks" },
-  { id: "6m", label: "6 months", days: 182, before: "the 6 months before", in: "these 6 months" },
-  { id: "1y", label: "Year", days: 364, before: "the year before", in: "this year" },
-];
 const RANGE_KEY = "athena.healthRange";
 
 const thousands = (n: number) => Math.round(n).toLocaleString("en-GB");
-const utc = (day: string) => new Date(`${day}T12:00:00Z`);
-const fmt = (day: string, o: Intl.DateTimeFormatOptions) => utc(day).toLocaleDateString("en-GB", { ...o, timeZone: "UTC" });
-const shortDay = (day: string) => fmt(day, { weekday: "short", day: "numeric", month: "short" });
-const longDay = (day: string) => fmt(day, { weekday: "long", day: "numeric", month: "long" });
 /** Workout time: "9h 24m", or "114 hours" once it's long. */
 const timeIn = (m: number) => (m >= 600 ? `${Math.round(m / 60)} hours` : hoursMinutes(m));
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
-/** Monday of the day's week. */
-function weekStart(day: string): string {
-  const dow = (utc(day).getUTCDay() + 6) % 7;
-  return addDays(day, -dow);
-}
+type Bucket = RangeBucket<HealthDay>;
 
-interface Bucket {
-  key: string;
-  label: string;
-  tick?: string;
-  days: HealthDay[];
-}
+type Tab = "body" | "wellness";
+const TABS: Array<{ id: Tab; label: string; path: string | null }> = [
+  { id: "body", label: "Body", path: null },
+  { id: "wellness", label: "Wellness", path: "wellness" },
+];
 
-/** The range cut into what one bar shows: a day, a week or a month. */
-function buckets(range: Range, end: string, byDate: Map<string, HealthDay>): Bucket[] {
-  const out: Bucket[] = [];
-  if (range === "4w") {
-    for (let i = 27; i >= 0; i--) {
-      const d = addDays(end, -i);
-      out.push({ key: d, label: shortDay(d), tick: i % 7 === 0 ? fmt(d, { day: "numeric", month: "short" }) : undefined, days: byDate.has(d) ? [byDate.get(d)!] : [] });
-    }
-    return out;
-  }
-  if (range === "6m") {
-    const last = weekStart(end);
-    for (let i = 25; i >= 0; i--) {
-      const w = addDays(last, -7 * i);
-      const days = Array.from({ length: 7 }, (_, k) => byDate.get(addDays(w, k))).filter((x): x is HealthDay => !!x && x.date <= end);
-      const newMonth = i === 25 || fmt(w, { month: "short" }) !== fmt(addDays(w, -7), { month: "short" });
-      out.push({ key: w, label: i === 0 && addDays(w, 6) > end ? "This week so far" : `Week of ${fmt(w, { day: "numeric", month: "short" })}`, tick: newMonth ? fmt(addDays(w, 6), { month: "short" }) : undefined, days });
-    }
-    return out;
-  }
-  const [y, m] = end.split("-").map(Number);
-  for (let i = 11; i >= 0; i--) {
-    const dt = new Date(Date.UTC(y, m - 1 - i, 1, 12));
-    const prefix = dt.toISOString().slice(0, 7);
-    const days = [...byDate.values()].filter((d) => d.date.startsWith(prefix) && d.date <= end);
-    const monthName = dt.toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
-    out.push({ key: prefix, label: i === 0 ? `${dt.toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" })} so far` : monthName, tick: dt.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" }), days });
-  }
-  return out;
-}
+/**
+ * The last figures read, kept in memory only (never on the device), so
+ * moving between Body and Wellness paints at once while they're read again.
+ */
+let kept: { data: HealthDays; sources: HealthSources | null; trends: CheckinTrends | null; routinesOn: boolean | null } | null = null;
 
 const workoutsOf = (days: HealthDay[]) => days.flatMap((d) => (d.workouts ?? []).map((w) => ({ ...w, date: d.date })));
 const minutesOf = (days: HealthDay[]) => workoutsOf(days).reduce((n, w) => n + w.minutes, 0);
@@ -109,7 +76,8 @@ function sourceWord(choice: HealthChoice, s: HealthSources | null): string | nul
   return SOURCE_NAMES[pick];
 }
 
-export function renderHealth(ctx: { go: (view: ViewId, opts?: { noteId?: string | null }) => void }): { el: HTMLElement; destroy: () => void } {
+export function renderHealth(ctx: { go: (view: ViewId, opts?: { noteId?: string | null }) => void; path?: string | null }): { el: HTMLElement; destroy: () => void } {
+  const tab: Tab = ctx.path === "wellness" ? "wellness" : "body";
   let range: Range = "4w";
   try {
     const saved = sessionStorage.getItem(RANGE_KEY) as Range | null;
@@ -117,9 +85,12 @@ export function renderHealth(ctx: { go: (view: ViewId, opts?: { noteId?: string 
   } catch {
     // private mode: start at four weeks
   }
-  let data: HealthDays | null = null;
-  let sources: HealthSources | null = null;
+  let data: HealthDays | null = kept?.data ?? null;
+  let sources: HealthSources | null = kept?.sources ?? null;
+  let trends: CheckinTrends | null = kept?.trends ?? null;
+  let routinesOn: boolean | null = kept?.routinesOn ?? null;
   let failed = false;
+  let dead = false;
 
   const rangeRow = h("div", { class: "chip-row health__range", role: "radiogroup", "aria-label": "Show" });
   const paintRange = () =>
@@ -144,13 +115,27 @@ export function renderHealth(ctx: { go: (view: ViewId, opts?: { noteId?: string 
 
   const body = h("div", { class: "health__body", "aria-busy": "true" });
   const LEDE = "Sleep, steps, workouts and weight from the apps you've connected and what you log yourself. Only you can see them.";
-  const logBtn = h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.plus(), "Log");
-  logBtn.addEventListener("click", () => openHealthLogSheet(() => load()));
-  const lede = h("p", { class: "page-lede" }, LEDE);
+  const WELLNESS_LEDE = "How you've felt, from your morning and evening check-ins. Only you can see this.";
+  const logBtn = tab === "body" ? h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.plus(), "Log") : null;
+  logBtn?.addEventListener("click", () => openHealthLogSheet(() => load()));
+  const lede = h("p", { class: "page-lede" }, tab === "body" ? LEDE : WELLNESS_LEDE);
+  const tabs = h(
+    "nav",
+    { class: "segmented segmented--sub health__tabs", "aria-label": "Health" },
+    ...TABS.map((t) => {
+      const b = h("button", { class: "segmented__item", type: "button", "aria-current": t.id === tab ? "page" : undefined }, t.label);
+      b.addEventListener("click", () => {
+        if (t.id === tab) return;
+        history.pushState(history.state, "", `#/health${t.path ? `/${t.path}` : ""}`);
+        ctx.go("health", { noteId: t.path });
+      });
+      return b;
+    })
+  );
   const el = h(
     "div",
     { class: "view lists health" },
-    pageHead({ segments: librarySegments("health", ctx.go), title: "Health", actions: [rangeRow, logBtn], lede }),
+    pageHead({ segments: librarySegments("health", ctx.go), title: "Health", actions: [rangeRow, logBtn], lede, below: [tabs] }),
     body
   );
 
@@ -192,24 +177,32 @@ export function renderHealth(ctx: { go: (view: ViewId, opts?: { noteId?: string 
         retry.disabled = true;
         load();
       });
-      body.replaceChildren(h("div", { class: "card empty" }, h("span", { class: "tile" }, icons.wifiOff()), h("p", { class: "empty__title" }, "Couldn't reach Athena"), h("p", { class: "empty__sub" }, "Your health figures stay on your server. Try again when you're online."), retry));
+      body.replaceChildren(h("div", { class: "card empty" }, h("span", { class: "tile" }, icons.wifiOff()), h("p", { class: "empty__title" }, "Couldn't reach Athena"), h("p", { class: "empty__sub" }, tab === "body" ? "Your health figures stay on your server. Try again when you're online." : "Your check-ins stay on your server. Try again when you're online."), retry));
       return;
     }
-    if (!data) return;
+    if (!data || (tab === "wellness" && !trends)) return;
     body.removeAttribute("aria-busy");
     const today = data.today || localToday();
     const byDate = new Map(data.days.map((d) => [d.date, d]));
-    rangeRow.hidden = !data.days.length;
-    if (!data.days.length) return void body.replaceChildren(emptyState());
+    rangeRow.hidden = tab === "body" ? !data.days.length : !trends!.days.length;
+    if (tab === "body" && !data.days.length) return void body.replaceChildren(emptyState());
 
     const r = RANGES.find((x) => x.id === range)!;
-    const end = byDate.has(today) ? today : addDays(today, -1);
+    // Body ends yesterday until today has figures; check-ins are answered as the day goes, so Wellness ends today.
+    const end = tab === "wellness" || byDate.has(today) ? today : addDays(today, -1);
     const start = addDays(end, -(r.days - 1));
     const inRange = data.days.filter((d) => d.date >= start && d.date <= end);
     const before = data.days.filter((d) => d.date >= addDays(start, -r.days) && d.date < start);
     const bs = buckets(range, end, byDate);
     const avgPoints = (f: (d: HealthDay) => number | undefined): ChartPoint[] =>
       bs.map((b) => ({ label: b.label, tick: b.tick, value: mean(b.days.map(f).filter((v): v is number => v !== undefined)) }));
+
+    if (tab === "wellness") {
+      // Wellness: the check-ins, with the Mind card from the figures.
+      const { mind } = foodAndMind(inRange, before, bs, r);
+      body.replaceChildren(...wellnessBody({ range: r, start, end, trends: trends!, routinesOn, mind, card, figure, go: ctx.go }));
+      return;
+    }
 
     // ---- the last day, in the Life log's words ----
     const lastDay = [...data.days].reverse().find((d) => healthLine(d));
@@ -381,15 +374,15 @@ export function renderHealth(ctx: { go: (view: ViewId, opts?: { noteId?: string 
         pattern: (ps) => forOutcome(ps, "resting_hr")[0],
       });
     }
-    // ---- food and drink, and mind (Apple Health, or Oura's tags and sessions) ----
-    const { food, mind } = foodAndMind(inRange, before, bs, r);
+    // ---- food and drink (Apple Health, or Oura's tags); Mind is on Wellness ----
+    const { food } = foodAndMind(inRange, before, bs, r);
 
     lede.textContent = recovery ? "Sleep, recovery, steps, workouts and weight from the apps you've connected. Only you can see them." : LEDE;
 
     const choose = h("button", { class: "health__choose", type: "button" }, icons.sliders(), h("span", {}, "Choose where each figure comes from"), h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()));
     choose.addEventListener("click", () => ctx.go("settings", { noteId: "health" }));
 
-    body.replaceChildren(...[latest, h("div", { class: "health__grid" }, sleep, recovery, steps, workouts, weight, food, mind), choose].filter((x): x is HTMLElement => !!x));
+    body.replaceChildren(...[latest, h("div", { class: "health__grid" }, sleep, recovery, steps, workouts, weight, food), choose].filter((x): x is HTMLElement => !!x));
   }
 
   /**
@@ -482,17 +475,34 @@ export function renderHealth(ctx: { go: (view: ViewId, opts?: { noteId?: string 
 
   const load = () => {
     const today = localToday();
-    void Promise.all([loadHealthDays(addDays(today, -730), today), loadHealthSources().catch(() => null)])
-      .then(([d, s]) => {
+    // Wellness also reads the check-ins over the same two years, and whether a routine is on (for its first-time card).
+    const wellness =
+      tab === "wellness"
+        ? Promise.all([loadCheckinTrends(addDays(today, -730), today), loadCheckinSettings().then((x) => x.morning.enabled || x.evening.enabled, () => null)])
+        : Promise.resolve(null);
+    void Promise.all([loadHealthDays(addDays(today, -730), today), loadHealthSources().catch(() => null), wellness])
+      .then(([d, s, w]) => {
         data = d;
         sources = s;
+        if (w) [trends, routinesOn] = w;
+        kept = { data, sources, trends, routinesOn };
       })
       .catch(() => {
-        failed = true;
+        // Figures already on screen stay; with nothing to show, say so.
+        if (!data || (tab === "wellness" && !trends)) failed = true;
       })
-      .finally(paint);
+      .finally(() => !dead && paint());
   };
+  // A check-in answered here, on another device or through MCP shows up while Wellness is open.
+  const off = tab === "wellness" ? onCheckinsChange(() => load()) : () => undefined;
+  if (data && (tab === "body" || trends)) paint();
   load();
 
-  return { el, destroy: () => undefined };
+  return {
+    el,
+    destroy: () => {
+      dead = true;
+      off();
+    },
+  };
 }

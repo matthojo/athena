@@ -28,6 +28,9 @@
  *   GET  /api/checkins/settings                         → CheckinSettingsView
  *   PUT  /api/checkins/settings        CheckinSettings  → CheckinSettingsView
  *   GET  /api/checkins?from=YYYY-MM-DD&to=YYYY-MM-DD    → CheckinSummary[] (at most 400 days)
+ *   GET  /api/checkins/trends?from=YYYY-MM-DD&to=YYYY-MM-DD → CheckinTrends (at most MAX_TRENDS_DAYS)
+ *        The scale, word and area answers over a range, for Health → Wellness.
+ *        Never plans a day. Written answers stay out: they're in the day's journal.
  *   GET  /api/checkins/:date/:kind                      → Checkin
  *        Works out the day's plan the first time it is read and keeps it, so
  *        a settings change shows up from the next day that has no plan yet.
@@ -153,6 +156,28 @@ export interface CheckinSummary {
   morning?: "open" | "done";
   evening?: "open" | "done";
 }
+
+/** One day's check-in as a trend reads it: the scale answers and the picks, no written answers and no skips. */
+export interface CheckinTrendDay {
+  date: string;
+  kind: CheckinKind;
+  status: "open" | "done";
+  /** Question id → the scale answer. */
+  scales: Record<string, ScaleValue>;
+  /** Question id → the words or areas picked (never empty). */
+  picks: Record<string, string[]>;
+}
+
+/** What GET /api/checkins/trends returns. */
+export interface CheckinTrends {
+  /** Oldest first; only check-ins with at least one scale answer or pick. */
+  days: CheckinTrendDay[];
+  /** Every scale, choices and areas question those days answered, as it was last asked, so the app can name it and read its levels. */
+  questions: CheckinQuestion[];
+}
+
+/** The longest range GET /api/checkins/trends answers: two years, so a year can be compared with the one before. */
+export const MAX_TRENDS_DAYS = 731;
 
 export interface DeeperRequest {
   question_id: string;

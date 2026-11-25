@@ -120,6 +120,19 @@ sealed with the day and drawn only on the Health page, with no map.
   in today's context. Claude over MCP reads note bodies as they are, line
   included.
 
+### Check-ins (migration `0075`, `lib/checkins.ts`)
+
+The morning and evening check-ins' questions and answers are sealed under
+the data key, one `checkins` row per day and routine; only `status` and
+`done_at` stay readable, for calendars and streaks.
+
+- **Who can read them.** Only the Functions, for the owner: a day's
+  check-in (`GET /api/checkins/:date/:kind`) and, for Health → Wellness,
+  `GET /api/checkins/trends`, which opens up to two years of rows in the
+  Function and answers with the scale answers and the picked words and
+  areas only. Written answers never leave through it. The app holds the
+  trends in memory while Athena is open and never stores them on the device.
+
 ### Places and visits (migration `0031`, `lib/places-visits.ts`)
 
 Where you went each day, from a Google Maps Timeline file and Swarm
