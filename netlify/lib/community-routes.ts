@@ -50,7 +50,9 @@ export const dbCommunityStore: CommunityStore = {
        UNION ALL
        SELECT 'flow', id::text, catalogue_id, catalogue_hash, catalogue_version, NOT paused FROM flows WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL
        UNION ALL
-       SELECT 'checkin', id::text, catalogue_id, catalogue_hash, catalogue_version, NOT paused FROM checkin_sets WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL`
+       SELECT 'checkin', id::text, catalogue_id, catalogue_hash, catalogue_version, NOT paused FROM checkin_sets WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL
+       UNION ALL
+       SELECT 'template', id::text, catalogue_id, catalogue_hash, catalogue_version, false FROM note_templates WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL AND archived_at IS NULL AND origin = 'shared'`
     );
   },
   async pausedBefore() {
@@ -70,10 +72,13 @@ export const dbCommunityStore: CommunityStore = {
     if (ids("flow").length) await q(`UPDATE flows SET paused = true, updated_at = now() WHERE id = ANY($1::uuid[])`, [ids("flow")]);
     // A set switched off: its questions aren't asked until the owner switches it back on (lib/checkin-sets.ts).
     if (ids("checkin").length) await q(`UPDATE checkin_sets SET paused = true, updated_at = now() WHERE id = ANY($1::uuid[])`, [ids("checkin")]);
+    // A template never runs, so there's nothing to switch off: installed() reports it as not running, and a taken-down
+    // template only shows the catalogue's reason beside it. It stays the owner's, usable, until they remove it.
   },
   async tierHere(row) {
     if (row.kind === "skill") return 2;
     if (row.kind === "checkin") return (await import("../../lib/checkin-sets")).checkinSetTier(row.id);
+    if (row.kind === "template") return (await import("../../lib/templates-db")).templateTier(row.id);
     if (row.kind === "assistant") {
       const [a] = await q<{ web: boolean }>(`SELECT web FROM team_assistants WHERE id = $1::uuid`, [row.id]);
       return a ? (a.web ? 3 : 2) : null;

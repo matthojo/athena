@@ -1426,13 +1426,17 @@ the owner already has.
   behind it stays a visible `{{blank}}`. Nothing is invented, and no
   mailbox is read when filling. Health, money, mood and journal never go
   in: a week's days give only each day's line or where it went. Template
-  names and bodies are sealed (§11).
+  names and bodies are sealed (§11). A template someone else shared fills
+  the same way, from the owner's own records only (Community, below).
 - **Ask's `fill_template` and `send_note`.** Claude chooses the template and
   what it's about (an event, people, a trip, a project). It gets back only
   which fields were filled and which were left blank, never the text, so
   collected text can't reach the model through this tool and the model
   can't add to it. Everything the note collects (an email's lines, a
-  catch-up) is data and is never followed as an instruction. `send_note`
+  catch-up) is data and is never followed as an instruction. For a template
+  someone else shared, the result holds only Athena's words: the fields
+  Athena knows, by their own names, and a count of the rest; never that
+  template's heading or its own field names. `send_note`
   sends nothing itself: it prepares a card, and the doc or page is made at
   `POST /api/documents` when the owner taps Send or Update (§10, "Outward
   actions wait for a tap"). A Shortcut has no such tool (§5).
@@ -2101,13 +2105,14 @@ words. They reach only what the owner ticked for them, enforced in code.
   mode's Dot keeps its extra asks.
 - **Tested** (`lib/shared-limits.test.ts`, `lib/ask-plans.test.ts`, `lib/shared-items.db.test.ts`).
 
-### Community (migrations `0089`, `0090`, `lib/community-*.ts`, `lib/flow-share*.ts`, `lib/checkin-share.ts`, `lib/checkin-sets.ts`, `netlify/lib/community-*.ts`)
+### Community (migrations `0089`, `0090`, `0091`, `lib/community-*.ts`, `lib/flow-share*.ts`, `lib/checkin-share.ts`, `lib/checkin-sets.ts`, `lib/template-share.ts`, `lib/templates-db.ts`, `netlify/lib/community-*.ts`)
 
-Shared assistants, skills, flows and check-in questions are someone else's
-words. They reach Athena through one screen (`#/add`) and two routes, behind
-the bearer token. Assistants, skills and flows start switched off; check-in
-questions join the owner's own but never switch a check-in on. Nothing in a
-file is a permission.
+Shared assistants, skills, flows, check-in questions and note templates are
+someone else's words. They reach Athena through one screen (`#/add`) and two
+routes, behind the bearer token. Assistants, skills and flows start switched
+off; check-in questions join the owner's own but never switch a check-in on;
+a template joins the owner's templates and does nothing by itself. Nothing in
+a file is a permission.
 
 **Reading the catalogue: what leaves the site.**
 
@@ -2161,11 +2166,13 @@ file is a permission.
 - **A withdrawn item is paused once** (assistant or flow paused, skill
   switched off, a set of check-in questions switched off so its questions
   aren't asked) and remembered in the plain settings row `community_paused`,
-  so switching it back on sticks. Nothing is deleted or updated by itself.
+  so switching it back on sticks. Nothing is deleted or updated by itself. A
+  template does nothing by itself, so nothing is paused: it stays as it is,
+  with the catalogue's reason shown in its editor, until the owner removes it.
 - **Plain columns.** `catalogue_id`, `catalogue_hash` and `catalogue_version`
-  on `team_assistants`, `ask_skills`, `flows` and `checkin_sets` hold the catalogue's public
-  id, a SHA-256 of the item's files as added and the author's version:
-  nothing the owner wrote.
+  on `team_assistants`, `ask_skills`, `flows`, `checkin_sets` and
+  `note_templates` hold the catalogue's public id, a SHA-256 of the item's
+  files as added and the author's version: nothing the owner wrote.
 
 **Adding something someone shared.**
 
@@ -2174,11 +2181,12 @@ file is a permission.
   the skill zip reader). Its files are cut down to the item's own folder,
   text only, within the catalogue's caps (32 files, 100 KB each, 500 KB in
   all), and read by its kind's own reader (`readShared`, `intakeEntries`,
-  `readSharedFlow`, then `checkSharedFlowSteps`, `readSharedCheckins`). Kind, reach and hash are
+  `readSharedFlow`, then `checkSharedFlowSteps`, `readSharedCheckins`,
+  `readSharedTemplate`). Kind, reach and hash are
   worked out here from the files; the catalogue's or author's word for them
   is never used. A lone file renamed on the way is read by what it holds.
-- **Links** are GitHub only (`parseShareLink`, a `flow.json` or
-  `checkin.json` read as its folder), fetched once through the same guard as skill links. Any other
+- **Links** are GitHub only (`parseShareLink`, a `flow.json`,
+  `checkin.json` or `template.json` read as its folder), fetched once through the same guard as skill links. Any other
   host is refused, so a shared item can't point Athena at someone's own site.
 - **Catalogue listings.** A bundle is checked with `verifyBundle` against its
   own hash and the index's before it is read.
@@ -2332,6 +2340,56 @@ migration `0090`).
   `lib/checkin-sets.db.test.ts`, `lib/catalogue-types.test.ts`,
   `netlify/lib/community-add-routes.test.ts`, `lib/checkins.db.test.ts`,
   `app/src/db/sample-checkins.test.ts`, `app/src/db/sample-community.test.ts`).
+
+**Shared note templates** (`lib/template-share.ts`, `lib/templates-db.ts`,
+migration `0091`).
+
+- **What a template carries.** template.json, format 1: a name, a one-line
+  summary, the optional header (`version`, `author`, `based_on`) and the
+  body: Markdown with `{{fields}}`, as the owner's own templates are. Never
+  an id, a starter key, or a note made from it.
+- **Read as someone else's.** `readSharedTemplate` checks every word
+  against the template limits (80 characters a name, 400 a summary, 20,000
+  the body), drops unknown keys and control characters, and makes the body
+  plain (`plainTemplateBody`) so nothing in it can make Athena fetch
+  anything by itself: a web link loses its card, mention or embed mode
+  (`plainWebLinks`), a picture (`![…](…)`) becomes a plain link to it, raw
+  HTML tags and comments go, and `athena://` links and record ids (someone
+  else's Athena) keep only their words. The note editor's schema drops
+  pictures and HTML as well, so this holds twice.
+- **Fields fill only from the owner's own records.** A shared template is
+  filled exactly as the owner's own are (`lib/template-fill.ts`): from
+  records already in their Athena, never from the file or a model, and a
+  field Athena doesn't know stays a blank. In a day's journal, only `{{date}}`,
+  `{{today}}` and `{{week}}` fill in, with that day's date
+  (`journalFromTemplate`); nothing else is read.
+- **Reach: always tier 1.** It reaches nothing outside the owner's Athena
+  (`reachOfTemplate`). Ask's `fill_template` hands a model only Athena's
+  words about one (§9, "Documents Athena writes"). Its name can be listed to
+  Ask among the owner's templates' names, as a label to pick by.
+- **Adding grants nothing and replaces nothing.** `addSharedTemplate` reads
+  the file again and keeps it as a new row marked `origin = 'shared'`, with
+  its author, version and listing plain, and its name, body and summary
+  sealed under the data key (§11). One of the owner's templates, or one of
+  Athena's starters, is never replaced or renamed: a name already in use
+  gets a number on the end. An Update (`replaceSharedTemplate`) replaces only
+  an added template the owner hasn't changed; once they've changed it
+  (`changed_at`), theirs is left exactly as it is and stops following the
+  listing, and the new version is added beside it.
+- **Checked before it leaves.** `POST /api/templates/:id/share` takes only a
+  template the owner wrote (not one of Athena's starters, edited or not, and
+  not one added from someone else), takes links into the site and
+  `athena://` links out (`scrubText`, a line at a time) and flags the owner's
+  people, places, addresses, contact details and private links
+  (`findPersonal`, the same terms as the other kinds) in the name, the
+  summary and the body. Nothing downloads until each finding is edited out
+  or marked fine; the server checks again on download (409). Notes made from
+  it never go.
+- **Removed like any template.** Removing one archives it, with Undo. Notes
+  and journal pages started from it are the owner's and stay as they are.
+- **Tested** (`lib/template-share.test.ts`, `lib/template-share.db.test.ts`,
+  `lib/templates.test.ts`, `netlify/lib/community-add-routes.test.ts`,
+  `app/src/db/sample-community.test.ts`).
 
 ### Ask's read tools, today's context and memory
 
@@ -2803,7 +2861,7 @@ the status counts and the tests all read it from there.
 | `files` (migration `0019`) | `name`, `summary`, `extracted_text`; the bytes themselves are sealed in Netlify Blobs (see "Files" below) |
 | `days` (migration `0032`) | `line`, `private` (mood and journal) |
 | `day_entries` | `external_id`, `title`, `subtitle`, `url`, `grp`, `note`; the source's id is matched by a blind index (`ext_key`) |
-| `note_templates` | `name`, `body` |
+| `note_templates` | `name`, `body`, `summary` |
 | `document_exports` | `title` |
 | `recipes` (migration `0053`) | `url`, `title`, `body`, `tags` (each); the address is matched by a blind index (`url_bidx`) |
 | `grocery_items` | `item` |

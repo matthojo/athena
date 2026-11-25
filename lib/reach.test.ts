@@ -81,7 +81,7 @@ test("reachOf reads the files, not what anyone says about them", () => {
 
 test("reachOf refuses what it can't read, and a kind that doesn't match the files", () => {
   const isShareError = (re: RegExp) => (e: unknown) => e instanceof ShareFormatError && re.test(e.message);
-  assert.throws(() => reachOf({ files: [{ path: "README.md", text: "Hello" }] }), isShareError(/no assistant.json, SKILL.md, flow.json or checkin.json/));
+  assert.throws(() => reachOf({ files: [{ path: "README.md", text: "Hello" }] }), isShareError(/no assistant.json, SKILL.md, flow.json, checkin.json or template.json/));
   assert.throws(() => reachOf({ files: [{ path: "flow.json", text: "{not json" }] }), isShareError(/isn't valid JSON/));
   assert.throws(() => reachOf({ kind: "skill", files: [{ path: "flow.json", text: "{}" }] }), isShareError(/listed as a skill, but its files are a flow/));
   assert.throws(() => reachOf({ files: [{ path: "flow.json", text: JSON.stringify(flowFile([tool("s1", "send_note")])) }] }), isShareError(/can't use “send_note”/));

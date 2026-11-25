@@ -7,11 +7,11 @@ import { catalogueIndexSchema, catalogueBundleSchema, verifyBundle } from "../..
 import { reachOf } from "../../../lib/reach";
 import { sampleBundle, sampleCatalogue, sampleUpdates } from "./sample-community";
 
-test("the sample index passes the catalogue's own checks, with all four kinds and tiers", async () => {
+test("the sample index passes the catalogue's own checks, with all five kinds and tiers", async () => {
   const index = await sampleCatalogue();
   assert.ok(catalogueIndexSchema.safeParse(index).success, JSON.stringify(catalogueIndexSchema.safeParse(index).error?.issues[0]));
   assert.ok(index.items.length >= 12);
-  assert.deepEqual(new Set(index.items.map((i) => i.kind)), new Set(["assistant", "skill", "flow", "checkin"]));
+  assert.deepEqual(new Set(index.items.map((i) => i.kind)), new Set(["assistant", "skill", "flow", "checkin", "template"]));
   assert.deepEqual(new Set(index.items.map((i) => i.reach.tier)), new Set([1, 2, 3]));
   assert.ok(index.items.some((i) => i.featured));
 });
@@ -116,4 +116,37 @@ test("every sample set of check-in questions says as many questions as it holds"
     const n = countIn(set.summary);
     if (n !== null) assert.equal(n, view.own.filter((q) => q.set === set.id).length, `${set.name}: “${set.summary}”`);
   }
+});
+
+test("sample templates: a weekly review, a gratitude page and a year-end reflection, each tier 1 and readable", async () => {
+  const { readSharedTemplate } = await import("../../../lib/template-share");
+  const index = await sampleCatalogue();
+  const templates = index.items.filter((i) => i.kind === "template");
+  assert.deepEqual(templates.map((t) => [t.name, t.reach.tier]), [["Gentle weekly review", 1], ["Gratitude page", 1], ["Year-end reflection", 1]]);
+  for (const t of templates) {
+    const got = (await sampleBundle(t.id))!;
+    const read = readSharedTemplate(JSON.parse(got.bundle.files[0].text));
+    assert.equal(read.author, t.author, t.slug);
+    assert.ok(read.body.length > 40, t.slug);
+  }
+});
+
+test("sample templates already added: Gratitude page has a newer version listed, and Morning pages was taken down", async () => {
+  const { SAMPLE_ADDED_TEMPLATE_ROWS, SAMPLE_TEMPLATE_IDS } = await import("./sample-community");
+  const { readSharedTemplate } = await import("../../../lib/template-share");
+  // As db/documents.ts keeps them: each reads as a shared template would.
+  for (const r of SAMPLE_ADDED_TEMPLATE_ROWS) assert.doesNotThrow(() => readSharedTemplate({ format: 1, name: r.name, summary: r.shared.summary, body: r.body }), r.name);
+  const index = await sampleCatalogue();
+  const checks = (await sampleUpdates()).filter((u) => u.kind === "template");
+  const gratitude = checks.find((c) => c.id === SAMPLE_TEMPLATE_IDS.gratitude)!;
+  assert.equal(gratitude.newer?.version, "1.1");
+  assert.equal(gratitude.newer?.hash, index.items.find((i) => i.id === gratitude.catalogue_id)?.hash);
+  assert.equal(gratitude.withdrawn, null);
+  const morning = checks.find((c) => c.id === SAMPLE_TEMPLATE_IDS.morning)!;
+  assert.equal(morning.newer, null);
+  assert.ok(index.withdrawn.some((w) => w.id === morning.catalogue_id && w.reason === morning.withdrawn?.reason));
+  // Updated to the listed version, the template has nothing more to hear.
+  const listed = index.items.find((i) => i.id === gratitude.catalogue_id)!;
+  const after = await sampleUpdates([{ id: SAMPLE_TEMPLATE_IDS.gratitude, catalogue_id: listed.id, hash: listed.hash, version: "1.1", changed: false }]);
+  assert.equal(after.filter((u) => u.kind === "template").length, 0);
 });

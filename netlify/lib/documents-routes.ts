@@ -7,6 +7,8 @@
  *   PATCH /api/templates/:id                 { name?, body? } → template (a starter's id is "starter:<key>")
  *   POST  /api/templates/:id/archive|restore → { ok }
  *   POST  /api/templates/:id/fill            { event_id?, person_ids?, trip_id?, project_id?, week_of? } → { title, body, blanks, filled, about }
+ *   POST  /api/templates/:id/share           { edits?, fine?, download? } → TemplateExport (lib/template-share.ts); with
+ *                                            download, the zip, or 409 with what's still flagged
  *   GET   /api/templates/prepare             { suggestions }: Today's "Prepare notes"
  *
  *   GET   /api/documents/accounts            { accounts }: where a note can be sent
@@ -18,7 +20,7 @@
  *   GET   /api/documents/notion/:account/pages?q=   { pages }: for the parent picker
  */
 import { AthenaInputError } from "../../lib/db";
-import { archiveTemplate, createTemplate, findTemplate, listTemplates, restoreTemplate, updateTemplate } from "../../lib/templates-db";
+import { archiveTemplate, createTemplate, exportTemplateFor, findTemplate, listTemplates, restoreTemplate, templateZip, updateTemplate } from "../../lib/templates-db";
 import { fillFromAthena, prepareSuggestions } from "../../lib/template-fill";
 import { documentAccounts, documentPorts, isDocumentProvider, listExports, notionWriteState, sendNote, setNotionParent, undoExport } from "../../lib/documents";
 
@@ -70,6 +72,15 @@ export async function handleDocumentRoutes(req: Request, url: URL, segments: str
     if (third === "restore" && req.method === "POST") {
       await restoreTemplate(tid);
       return reply({ ok: true });
+    }
+    if (third === "share" && !fourth) {
+      if (req.method !== "POST") return reply({ error: "Method not allowed" }, 405);
+      const b = await body(req);
+      const { ownHosts } = await import("../../lib/team-share-store");
+      const made = await exportTemplateFor(tid, b, { hosts: ownHosts(new URL(req.url).origin) });
+      if (b.download !== true) return reply(made);
+      if (made.findings.length) return reply({ error: "Check what's flagged first: edit it out, or say it's fine to share.", findings: made.findings }, 409);
+      return new Response(Buffer.from(await templateZip(made)), { status: 200, headers: { "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="${made.slug}.zip"`, "Cache-Control": "no-store" } });
     }
     if (third === "fill" && req.method === "POST") {
       const b = await body(req);

@@ -83,3 +83,23 @@ test("once added: where it lives and that it's off", () => {
   assert.equal(addedWords("skill", "Packing list").title, "Packing list is in your skills, off");
   assert.equal(addedWords("flow", "Plant care").open, "Open the flow");
 });
+
+test("a template: it stays in Athena, joins under a free name, and an Update never goes over the owner's changes", async () => {
+  const w = await import("./words");
+  const r = { tier: 1 as const, model: false, web: false, lookups: [], needs: [] };
+  assert.equal(reachWords(r, "template").title, "Stays in Athena");
+  assert.match(reachWords(r, "template").lines[0], /your own records/);
+  assert.match(w.templateGoesWords("Weekly review", "Weekly review")[0], /joins your templates as “Weekly review”/);
+  assert.match(w.templateGoesWords("Weekly review", "Weekly review (2)")[0], /already, so this one joins as “Weekly review \(2\)”. Yours stays as it is/);
+  assert.deepEqual(w.templateAddedWords("Weekly review", { name: "Weekly review (2)", renamed: true }).title, "Weekly review (2) is in your templates");
+  assert.match(w.templateAddedWords("Weekly review", { name: "Weekly review (2)", renamed: true }).body, /^You already had a template called “Weekly review”/);
+  assert.equal(addedWords("template", "Gratitude page").open, "Open the template");
+  const had = { id: "x", version: "1.0", href: "#/notes?template=x", newer: true };
+  assert.match(w.haveWords("template", { ...had, changed: true }, "1.1").detail, /you've changed it since. Version 1.1 can go beside it, and yours stays as you left it/);
+  assert.match(w.haveWords("template", had, "1.1").detail, /look it over, then update yours/);
+  assert.match(w.updateLandsWords("template", true), /Yours stays as you left it/);
+  assert.equal(w.updatedWords("template", "Gratitude page", true).title, "The new Gratitude page is beside yours");
+  assert.equal(w.madePlainWords(false), null);
+  assert.match(w.madePlainWords(true)!, /nothing in it loads by itself/);
+  assert.equal(w.fieldLine(null), "Athena doesn't know this one, so it stays a blank for you");
+});

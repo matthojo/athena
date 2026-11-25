@@ -884,3 +884,9 @@
   background: var(--dusk-wash);
   color: var(--dusk-ink);
 }
+
+/* Templates: warm paper, for journaling rather than work. */
+.cm-row__tile--template {
+  background: var(--paper-wash);
+  color: var(--paper-ink);
+}

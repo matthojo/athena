@@ -16,10 +16,11 @@ export const KIND_WORDS: Readonly<Record<ShareKind, { one: string; many: string 
   skill: { one: "Skill", many: "Skills" },
   flow: { one: "Flow", many: "Flows" },
   checkin: { one: "Check-in questions", many: "Check-ins" },
+  template: { one: "Template", many: "Templates" },
 };
 
 /** The kind in a sentence: "this flow", "this set of check-in questions". Pure. */
-export const KIND_NOUN: Readonly<Record<ShareKind, string>> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "set of check-in questions" };
+export const KIND_NOUN: Readonly<Record<ShareKind, string>> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "set of check-in questions", template: "template" };
 
 /** `?kind=` as the address gives it, or "all". Pure. */
 export function readKind(raw: string | null | undefined): KindFilter {
@@ -113,7 +114,7 @@ export function ordered(items: readonly CatalogueItem[], sort: CommunitySort = "
 /** The list for a filter, a search and a sort: in order, with counts per kind for the filter's labels. Pure. */
 export function filtered(items: readonly CatalogueItem[], kind: KindFilter, query: string, accountName?: (provider: string) => string, sort: CommunitySort = "featured"): { items: CatalogueItem[]; counts: Record<KindFilter, number> } {
   const found = items.filter((i) => matches(i, query, accountName));
-  const counts = { all: found.length, assistant: 0, skill: 0, flow: 0, checkin: 0 } as Record<KindFilter, number>;
+  const counts = { all: found.length, assistant: 0, skill: 0, flow: 0, checkin: 0, template: 0 } as Record<KindFilter, number>;
   for (const i of found) counts[i.kind]++;
   return { items: ordered(kind === "all" ? found : found.filter((i) => i.kind === kind), sort), counts };
 }

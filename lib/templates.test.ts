@@ -1,7 +1,7 @@
 // Run: npx tsx --test lib/templates.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { blankRanges, fieldKey, fillTemplate, filledTitle, parseTemplate, splitTitle, STARTERS, templateNeeds, type FieldValues } from "./templates";
+import { blankRanges, fieldKey, fillTemplate, filledTitle, journalFromTemplate, parseTemplate, splitTitle, STARTERS, templateNeeds, type FieldValues } from "./templates";
 
 const PERSON = "11111111-1111-4111-8111-111111111111";
 const EVENT = "22222222-2222-4222-8222-222222222222";
@@ -70,4 +70,16 @@ test("the opening heading becomes the note's title, unless it's still a blank", 
   assert.deepEqual(splitTitle("# Design review\n\nWith Priya", "Meeting notes"), { title: "Design review", body: "With Priya" });
   assert.deepEqual(splitTitle("# {{meeting}}\n\nWith Priya", "Meeting notes"), { title: "Meeting notes", body: "# {{meeting}}\n\nWith Priya" });
   assert.deepEqual(splitTitle("No heading", "Letter"), { title: "Letter", body: "No heading" });
+});
+
+test("a journal starts from a template: no opening heading, the day's dates, every other field left as written", () => {
+  const day = { date: "Wednesday 25 November", week: "Week of 23 November" };
+  assert.equal(
+    journalFromTemplate("\n# Gratitude, {{date}}\n\nThree things, {{today}}:\n1. \n\n## For {{week}}\n\n{{open loops}} and {{weird one}}\n\n", day),
+    "Three things, Wednesday 25 November:\n1. \n\n## For Week of 23 November\n\n{{open loops}} and {{weird one}}",
+  );
+  // No heading at the top: nothing is left out. Only a level-one heading is the title.
+  assert.equal(journalFromTemplate("## Went well\n\n- [ ] ", day), "## Went well\n\n- [ ] ");
+  // A template that is only a heading leaves nothing to start from.
+  assert.equal(journalFromTemplate("# Just a title\n\n", day), "");
 });

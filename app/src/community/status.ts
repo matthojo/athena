@@ -24,8 +24,8 @@ import type { ShareKind } from "../../../lib/share-kinds";
 import type { Reach } from "../../../lib/reach";
 import { tierPhrase, versionWords } from "./words";
 
-const NOUN: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "set of questions" };
-const LIST: Record<ShareKind, string> = { assistant: "#/team", skill: "#/settings/skills", flow: "#/flows", checkin: "#/settings/checkins" };
+const NOUN: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "set of questions", template: "template" };
+const LIST: Record<ShareKind, string> = { assistant: "#/team", skill: "#/settings/skills", flow: "#/flows", checkin: "#/settings/checkins", template: "#/notes" };
 
 /** What a tier reaches, when only the tier is known (the item here). */
 const TIER_HERE: Record<Reach["tier"], string> = { 1: "stays in Athena", 2: "uses AI or a lookup outside Athena", 3: "searches the web" };
@@ -45,6 +45,12 @@ interface Running {
 
 /** The item as it is now, and how to switch it on or remove it. Loaded only for a withdrawn item. */
 async function running(kind: ShareKind, id: string): Promise<Running | null> {
+  if (kind === "template") {
+    // A template never runs, so there's nothing to switch back on: only Remove (archived, like any template).
+    const m = await import("../db/documents");
+    const t = (await m.loadTemplates()).find((x) => x.id === id);
+    return t ? { on: true, setOn: async () => undefined, remove: () => m.archiveTemplate(id) } : null;
+  }
   if (kind === "checkin") {
     const m = await import("../db/checkins");
     const set = (await m.loadCheckinSettings()).sets.find((x) => x.id === id);
@@ -91,7 +97,8 @@ function withdrawnBanner(c: UpdateCheck, r: Running | null, repaint: () => void,
   if (!w) return null;
   const noun = NOUN[c.kind];
   const paused = c.kind === "checkin" ? "Athena switched it off, so its questions aren't asked for now. They stay yours: switch the set back on, or remove it." : "Athena paused it. It stays yours: switch it back on, or remove it.";
-  const state = !r ? "" : r.on ? `You switched it back on. It stays yours, but there won't be updates.` : paused;
+  // A template does nothing by itself, so nothing was switched off.
+  const state = !r ? "" : c.kind === "template" ? "A template does nothing by itself, so Athena left it as it is. It's still yours to use, or to remove. There won't be updates." : r.on ? `You switched it back on. It stays yours, but there won't be updates.` : paused;
   const acts: HTMLElement[] = [];
   if (r && !r.on && ownActions) {
     const on = h("button", { class: "btn btn--soft btn--sm", type: "button" }, "Switch it back on") as HTMLButtonElement;
@@ -113,7 +120,12 @@ function withdrawnBanner(c: UpdateCheck, r: Running | null, repaint: () => void,
   if (r && ownActions) {
     const remove = h("button", { class: "btn btn--ghost btn--sm cm-remove", type: "button" }, icons.trash(), h("span", {}, "Remove")) as HTMLButtonElement;
     remove.addEventListener("click", async () => {
-      const ok = await confirmDialog({ title: `Remove this ${noun}?`, body: c.kind === "checkin" ? "Its questions come out of your check-ins. Answers you've already given stay on their days." : `It's removed from your Athena. You can't undo this.`, confirmLabel: "Remove", danger: true });
+      const ok = await confirmDialog({
+        title: `Remove this ${noun}?`,
+        body: c.kind === "checkin" ? "Its questions come out of your check-ins. Answers you've already given stay on their days." : c.kind === "template" ? "It comes out of your templates. Notes and journal pages you started from it stay as they are." : `It's removed from your Athena. You can't undo this.`,
+        confirmLabel: "Remove",
+        danger: true,
+      });
       if (!ok) return;
       remove.disabled = true;
       try {

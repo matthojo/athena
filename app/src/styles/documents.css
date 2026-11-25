@@ -567,3 +567,90 @@
 .tpl-ed__field > code {
   justify-self: start;
 }
+
+/* ---------- Templates someone else shared (lib/template-share.ts) ---------- */
+
+.tpl-card__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tpl-card__tag--shared {
+  background: var(--paper-wash);
+  color: var(--paper-ink);
+}
+
+.tpl-card__name .cm-dot {
+  flex: none;
+}
+
+.tpl-ed__origin {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--paper-wash);
+}
+
+.tpl-ed__origin-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--paper-ink);
+}
+
+.tpl-ed__origin-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.tpl-ed__origin-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tpl-ed__origin-title {
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.tpl-ed__origin-sub {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.ts-words-box .ts-words {
+  max-height: 280px;
+  overflow: auto;
+}
+
+/* A day's "Start from a template" sheet (components/journal-start.ts). */
+.jstart__tile--shared {
+  background: var(--paper-wash);
+  color: var(--paper-ink);
+}
+
+.jstart__empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-md) var(--space-md);
+  text-align: center;
+}
+
+.jstart__empty .tile {
+  background: var(--paper-wash);
+  color: var(--paper-ink);
+}

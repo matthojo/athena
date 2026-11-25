@@ -1136,3 +1136,111 @@
 .add-sec[hidden] {
   display: none;
 }
+
+/* ---------- Note templates (add/template-preview.ts): warm paper, a page as a note from it would look ---------- */
+
+.add-hero__tile--template,
+.add--template .add-kind--template {
+  background: var(--paper-wash);
+  color: var(--paper-ink);
+}
+
+.add-tpl {
+  margin: 0;
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.add-tpl__page {
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  /* A long template scrolls inside its page, so the rest of the screen stays in reach. */
+  max-height: min(70vh, 640px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.add-tpl__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.add-tpl__page .editor__content.add-tpl__body {
+  min-height: 0;
+  padding-bottom: 0;
+}
+
+.add-tpl__caption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs, 6px);
+  padding-inline: var(--space-xs);
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.add-tpl__caption svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+.add-tpl-fields {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.add-tpl-field {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: baseline;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.add-tpl-field + .add-tpl-field {
+  border-top: 1px solid var(--line);
+}
+
+.add-tpl-field__name {
+  padding: 1px 6px;
+  border-radius: var(--radius-2xs);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-family: inherit;
+  font-size: 0.92em;
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.add-tpl-field.is-unknown .add-tpl-field__name {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+@media (max-width: 560px) {
+  .add-tpl__page {
+    padding: var(--space-md);
+  }
+
+  .add-tpl-field {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .add-tpl-field__name {
+    justify-self: start;
+  }
+}
