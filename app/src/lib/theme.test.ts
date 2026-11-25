@@ -1,0 +1,181 @@
+/**
+ * Themes on the page (theme-paint.ts, theme.ts, appearance-boot.ts): the
+ * built-in themes, applying and removing a theme, the first-paint script, the
+ * page glow, chart palettes, and a person's own font and size winning over
+ * any theme.
+ */
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { parseHTML } from "linkedom";
+import { BOOT_MARKER, BOOT_SCRIPT } from "./appearance-boot";
+import { APPEARANCE_KEY } from "./appearance";
+import { ATHENA, BLOCKS, compileTheme, glow, paintCss, personalCss, readPersonal, safeValue, SYSTEM_FONT, type Paint } from "./theme-paint";
+import { BUILT_IN, PAINT_KEY, PERSONAL_KEY, applyPaint, applyPersonal } from "./theme";
+import { COLOUR_KEYS, COLOUR_TOKEN, closePairs, readTheme, type Theme } from "../../../lib/theme";
+import athenaChart from "../themes/athena-chart.json";
+
+const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
+const INDEX = read("../../index.html");
+const TOKENS = read("../styles/tokens.css");
+const page = () => parseHTML(INDEX.replace(BOOT_MARKER, "")).document;
+
+const theme = (more: Record<string, unknown> = {}): Theme => readTheme({ format: "athena-theme", version: 1, name: "Test", ...more }).theme!;
+
+function boot(stored: Record<string, string>, systemDark = false) {
+  const document = page();
+  const localStorage = { getItem: (key: string) => stored[key] ?? null };
+  const window = { matchMedia: () => ({ matches: systemDark }) };
+  new Function("document", "window", "localStorage", BOOT_SCRIPT)(document, window, localStorage);
+  return document;
+}
+
+const themeColours = (doc: Document) => [...doc.querySelectorAll('meta[name="theme-color"]')].map((m) => [m.getAttribute("data-light"), m.getAttribute("data-dark"), m.getAttribute("content")]);
+
+test("Athena's own theme data matches tokens.css", () => {
+  for (const scheme of ["light", "dark"] as const) {
+    const block = scheme === "light" ? TOKENS.slice(TOKENS.indexOf(":root {")) : TOKENS.slice(TOKENS.indexOf(':root:where([data-scheme="dark"]) {'));
+    for (const key of COLOUR_KEYS.filter((k) => k !== "focus")) {
+      const value = new RegExp(`${COLOUR_TOKEN[key]}:\\s*([^;]+);`).exec(block)![1].trim();
+      assert.equal(ATHENA.colours[scheme]?.[key], value, `${scheme} ${key}`);
+    }
+    // The chart pigments the editor starts from are tokens.css's own.
+    athenaChart[scheme].forEach((c, i) => assert.ok(block.includes(`--chart-${i + 1}: color-mix(in oklab, ${c} 80%`), `${scheme} chart ${i + 1}`));
+  }
+});
+
+test("the built-in themes read cleanly and have real character", () => {
+  assert.ok(BUILT_IN.length >= 4 && BUILT_IN.length <= 5);
+  for (const file of ["clay", "harbour", "contrast", "mist"]) {
+    const { theme, problems } = readTheme(read(`../themes/${file}.json`));
+    assert.deepEqual(problems, [], file);
+    assert.ok(theme?.colours.light && theme.colours.dark, `${file} gives light and dark`);
+    assert.ok(theme.summary, `${file} says what it is`);
+  }
+  // A chart palette in a built-in theme passes the one check a palette has.
+  for (const { theme } of BUILT_IN) for (const s of ["light", "dark"] as const) if (theme.chart?.[s]) assert.deepEqual(closePairs(theme.chart[s]!), []);
+});
+
+test("Athena's own theme puts nothing on the page", () => {
+  assert.equal(paintCss(compileTheme(null)), "");
+  const athena = compileTheme(ATHENA);
+  // Its colours are tokens.css's own, and the glow keeps Athena's blue and mint.
+  for (const block of Object.values(athena.blocks)) for (const k of Object.keys(block!)) assert.doesNotMatch(k, /aurora/);
+});
+
+test("a theme's colours are scoped to their scheme, and beat tokens.css by specificity", () => {
+  const paint = compileTheme(theme({ colours: { light: { page: "#fafafa", accent: "#aa3300" } }, shape: { radius: 0.5 } }));
+  const css = paintCss(paint);
+  assert.match(css, /^html:root\{--theme-radius:0\.5;\}/);
+  assert.match(css, /html:root\[data-scheme="light"\]\{--theme-page:#fafafa;--theme-accent:#aa3300;/);
+  assert.doesNotMatch(css, /data-scheme="dark"\]\{/, "a theme that gives only light leaves dark to Athena");
+  assert.deepEqual(paint.meta, { light: "#fafafa" });
+  // (0,2,1) and (0,1,1) beat tokens.css's :root and :root:where(…), both (0,1,0).
+  assert.equal(BLOCKS.light, 'html:root[data-scheme="light"]');
+  assert.equal(BLOCKS.root, "html:root");
+});
+
+test("the page glow: Athena's accent keeps blue and mint, any other accent tints both hazes", () => {
+  const same = compileTheme(theme({ colours: { light: { accent: ATHENA.colours.light!.accent, page: "#ffffff" }, dark: { accent: ATHENA.colours.dark!.accent } } }));
+  assert.doesNotMatch(paintCss(same), /aurora|accent-tint/);
+  const green = compileTheme(theme({ colours: { light: { accent: "oklch(0.6 0.15 150)" } } }));
+  const light = green.blocks.light!;
+  // The first haze (and the rest of the accent's family) drops Athena's fixed blue pigment and is the accent alone.
+  assert.equal(light["--accent-tint"], "0%");
+  const tokens = TOKENS.replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const t of ["--aurora-a", "--aurora-a-morning", "--aurora-a-evening", "--orb-hi", "--orb-mid", "--orb-low"])
+    assert.match(tokens, new RegExp(`\\n  ${t}: color-mix\\(in oklab, (?:color-mix\\(in oklab, )?oklch\\([\\d. ]+\\) var\\(--accent-tint, 15%\\), color-mix\\(in oklab, var\\(--theme-accent\\)`), t);
+  assert.doesNotMatch(tokens, /oklch\([\d. ]+\) 15%, color-mix\(in oklab, var\(--theme-accent\)/, "every fixed pigment in an accent shade goes through --accent-tint");
+  // The second haze, Athena's mint, becomes the accent's hue: no fixed mint.
+  assert.equal(light["--aurora-b"], "color-mix(in oklab, color-mix(in oklab, oklch(0.89 0.105 150) 80%, var(--theme-page)) 55%, transparent)");
+  assert.equal(green.blocks.dark, undefined, "dark keeps Athena's glow, with Athena's dark accent");
+  assert.match(glow("#ff8800", "dark")["--aurora-b"], /16%, transparent\)$/);
+});
+
+test("a chart palette replaces Athena's series; a palette with two alike is refused", () => {
+  const palette = ["#c0392b", "#27ae60", "#2980b9", "#8e44ad", "#f39c12"];
+  const paint = compileTheme(theme({ chart: { dark: palette } }));
+  assert.deepEqual(Object.entries(paint.blocks.dark!).map(([k, v]) => `${k}=${v}`), palette.map((c, i) => `--chart-${i + 1}=${c}`));
+  assert.equal(paint.blocks.light, undefined);
+  const alike = readTheme({ format: "athena-theme", version: 1, name: "x", chart: { light: ["#c0392b", "#c1392b", "#2980b9", "#8e44ad", "#f39c12"] } });
+  assert.equal(alike.theme?.chart, undefined);
+  assert.deepEqual(alike.problems, [{ path: "chart.light", why: "chart-close" }]);
+});
+
+test("only safe values reach the stylesheet", () => {
+  for (const ok of ["#ffffff", "oklch(0.5 0.1 264)", "color-mix(in oklab, oklch(0.9 0.2 10) 15%, var(--theme-accent)) 60%", "1.15"]) assert.ok(safeValue(ok), ok);
+  for (const bad of ["url(x)", "#fff;}body{display:none", "var(--x, url(y))", "var(--kb)", "expression(alert(1))", 'oklch(0.5 0.1 1) "', "image-set(x 1x)", "calc(1px)", "a\\62 c", "x".repeat(401)])
+    assert.ok(!safeValue(bad), bad);
+  const hostile = { v: 1, blocks: { light: { "--theme-page": "url(https://example.com/x)", "--theme-text": "#000000", color: "red", "--theme-accent;color:red": "#fff" }, "body{": { "--theme-page": "#fff" } }, meta: {} } as unknown as Paint;
+  assert.equal(paintCss(hostile), 'html:root[data-scheme="light"]{--theme-text:#000000;}');
+});
+
+test("the first-paint script draws the stored theme exactly as the app does, before any stylesheet", () => {
+  const paint = compileTheme(BUILT_IN.find((t) => t.id === "clay")!.theme);
+  for (const dark of [false, true]) {
+    const doc = boot({ [PAINT_KEY]: JSON.stringify(paint) }, dark);
+    assert.equal(doc.getElementById("athena-theme")?.textContent, paintCss(paint));
+    const scheme = dark ? "dark" : "light";
+    assert.deepEqual(themeColours(doc)[0], [paint.meta.light, paint.meta.dark, paint.meta[scheme]], "theme-color is the theme's page, in step with the scheme");
+    // The app's own applyPaint agrees.
+    const applied = page();
+    applyPaint(applied, paint);
+    assert.equal(applied.getElementById("athena-theme")?.textContent, doc.getElementById("athena-theme")?.textContent);
+    assert.deepEqual(themeColours(applied).map((m) => m.slice(0, 2)), themeColours(doc).map((m) => m.slice(0, 2)));
+  }
+  // The script sits before the first stylesheet, so the style it adds is there first; specificity, not order, does the rest.
+  assert.ok(INDEX.indexOf(BOOT_MARKER) < INDEX.indexOf('rel="stylesheet"'));
+});
+
+test("the first-paint script refuses a tampered copy, and survives a broken one", () => {
+  const tampered = JSON.stringify({ v: 1, blocks: { light: { "--theme-page": "url(https://example.com/beacon)", "--theme-text": "#111111" }, evil: { "--theme-page": "#fff" } }, meta: { light: "red;x" } });
+  const doc = boot({ [PAINT_KEY]: tampered });
+  assert.equal(doc.getElementById("athena-theme")?.textContent, 'html:root[data-scheme="light"]{--theme-text:#111111;}');
+  assert.equal(themeColours(doc)[0][0], "#f4f6f8");
+  for (const broken of ["{", "null", "[]", '{"v":2,"blocks":{"light":{"--theme-text":"#000000"}}}', JSON.stringify({ v: 1, blocks: "x" })]) {
+    const d = boot({ [PAINT_KEY]: broken, [APPEARANCE_KEY]: "dark" });
+    assert.equal(d.getElementById("athena-theme"), null, broken);
+    assert.equal(d.documentElement.getAttribute("data-scheme"), "dark", "the scheme is still set");
+  }
+  // Nothing stored: as before themes, no style and Athena's theme-color.
+  const plain = boot({});
+  assert.equal(plain.getElementById("athena-theme"), null);
+  assert.deepEqual(themeColours(plain)[0], ["#f4f6f8", "#0c0e13", "#f4f6f8"]);
+});
+
+test("applying and removing a theme", () => {
+  const doc = page();
+  const paint = compileTheme(BUILT_IN.find((t) => t.id === "harbour")!.theme);
+  applyPaint(doc, paint);
+  assert.ok(doc.getElementById("athena-theme")!.textContent!.includes("--theme-accent:#0b7285"));
+  assert.equal(themeColours(doc)[0][1], paint.meta.dark);
+  applyPaint(doc, compileTheme(null));
+  assert.equal(doc.getElementById("athena-theme")!.textContent, "");
+  assert.deepEqual(themeColours(doc).map((m) => m.slice(0, 2)), [["#f4f6f8", "#0c0e13"], ["#f4f6f8", "#0c0e13"]], "back to Athena's own");
+  assert.equal(doc.querySelectorAll("#athena-theme").length, 1, "one style element, reused");
+});
+
+test("a person's own font and size win over any theme", () => {
+  // tokens.css reads the person's layer first, then the theme's.
+  for (const f of ["ui", "display"]) assert.match(TOKENS, new RegExp(`--font-${f}: var\\(--user-font-${f}, var\\(--theme-font-${f}\\)\\);`));
+  assert.match(TOKENS, /--text-body: calc\(1rem \* var\(--user-text-scale, var\(--theme-text-scale\)\)\);/);
+  // The wordmark is neither.
+  assert.doesNotMatch(/--font-wordmark: ([^;]+);/.exec(TOKENS)![1], /user|theme/);
+  const css = personalCss({ font: "Atkinson Hyperlegible", size: 1.25 });
+  assert.equal(css, 'html:root{--user-font-ui:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;--user-font-display:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;--user-text-scale:1.25;}');
+  assert.match(personalCss({ font: SYSTEM_FONT }), /^html:root\{--user-font-ui:system-ui,/);
+  // A theme never sets --user-*: even a theme with the largest text leaves the person's size in charge.
+  assert.doesNotMatch(paintCss(compileTheme(theme({ text: { scale: 9 } }))), /--user-/);
+  // Stored values are checked.
+  assert.deepEqual(readPersonal({ font: 'Evil"; } body { x', size: 40 }), { size: 1.5 });
+  assert.deepEqual(readPersonal({ font: " Arial", size: 1 }), {});
+  assert.deepEqual(readPersonal("x"), {});
+  // The first-paint script writes the same, and refuses the same.
+  for (const p of [{ font: "Lexend", size: 1.125 }, { font: SYSTEM_FONT }, { size: 0.875 }, { font: "x}y", size: "big" }]) {
+    const doc = boot({ [PERSONAL_KEY]: JSON.stringify(p) });
+    const applied = page();
+    applyPersonal(applied, readPersonal(p));
+    assert.equal(doc.getElementById("athena-personal")?.textContent ?? "", applied.getElementById("athena-personal")!.textContent, JSON.stringify(p));
+  }
+});

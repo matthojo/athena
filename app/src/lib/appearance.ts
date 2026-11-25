@@ -87,6 +87,14 @@ function update(): void {
   for (const fn of listeners) fn(next);
 }
 
+/** Redraw what draws in code (the Graph, maps) and theme-color: the theme or a person's font changed, not the scheme. */
+export function repaint(): void {
+  if (typeof document === "undefined") return;
+  current = applyAppearance(document, appearance(), systemDark());
+  refreshSchemeSources(document);
+  for (const fn of listeners) fn(current);
+}
+
 /** Keep this device's choice, and redraw in it. */
 export function setAppearance(choice: Appearance): void {
   try {

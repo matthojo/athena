@@ -137,6 +137,7 @@ import { daysBetween, monthDays, monthStats, screenTime, shiftDay } from "../../
 import { mailPort } from "../lib/connectors/gmail-drafts";
 import { slackPort } from "../lib/connectors/slack-drafts";
 import { loadDraftChannels, saveDraftChannels } from "../../lib/draft-prefs";
+import { loadThemePrefs, saveThemePrefs } from "../../lib/theme-prefs";
 import { parseAnswerHistory, runAsk, type AnswerOptions, type AskReply } from "../../lib/answer";
 import { runAssistantTurn } from "../../lib/team-chat";
 import { answerStage, openQuestions, readAssignment, sweepAssignments } from "../../lib/assignment-run";
@@ -1204,27 +1205,30 @@ async function handlePushSettings(req: Request): Promise<Response> {
 // ---------- settings ----------
 
 /**
- * GET → { timezone, mood_style, draft_channels }. PUT { timezone?, mood_style?,
- * draft_channels? }: the zone the owner's device is in, the Days mood style
- * (lib/day-prefs.ts) and the messaging apps they use for drafts
- * (lib/draft-prefs.ts), the same on every device. Send at least one.
+ * GET → { timezone, mood_style, draft_channels, theme }. PUT { timezone?,
+ * mood_style?, draft_channels?, theme? }: the zone the owner's device is in,
+ * the Days mood style (lib/day-prefs.ts), the messaging apps they use for
+ * drafts (lib/draft-prefs.ts) and the chosen theme with the owner's own
+ * themes (lib/theme-prefs.ts), the same on every device. Send at least one.
  */
 async function handleSettings(req: Request): Promise<Response> {
   if (req.method === "GET") {
-    const [timezone, mood_style, draft_channels] = await Promise.all([getOwnerTimeZone(), loadMoodStyle(), loadDraftChannels()]);
-    return json(req, { timezone, mood_style, draft_channels });
+    const [timezone, mood_style, draft_channels, theme] = await Promise.all([getOwnerTimeZone(), loadMoodStyle(), loadDraftChannels(), loadThemePrefs()]);
+    return json(req, { timezone, mood_style, draft_channels, theme });
   }
   if (req.method !== "PUT") return errorResponse(req, 405, "Method not allowed");
   const body = await parseJsonBody(req);
   const tz = body && typeof body.timezone === "string" ? body.timezone : null;
   const style = body?.mood_style;
   const channels = body?.draft_channels;
-  if (!tz && style === undefined && channels === undefined) return errorResponse(req, 400, "Missing 'timezone', 'mood_style' or 'draft_channels'");
+  const theme = body?.theme;
+  if (!tz && style === undefined && channels === undefined && theme === undefined) return errorResponse(req, 400, "Missing 'timezone', 'mood_style', 'draft_channels' or 'theme'");
   if (style !== undefined && !isMoodStyle(style)) return errorResponse(req, 400, `mood_style: one of ${MOOD_STYLES.join(", ")}`);
   if (tz) await setOwnerTimeZone(tz);
   if (style !== undefined) await saveMoodStyle(style);
   const saved = channels !== undefined ? await saveDraftChannels(channels) : undefined;
-  return json(req, { ...(tz ? { timezone: tz } : {}), ...(style !== undefined ? { mood_style: style } : {}), ...(saved ? { draft_channels: saved } : {}) });
+  const themes = theme !== undefined ? await saveThemePrefs(theme) : undefined;
+  return json(req, { ...(tz ? { timezone: tz } : {}), ...(style !== undefined ? { mood_style: style } : {}), ...(saved ? { draft_channels: saved } : {}), ...(themes ? { theme: themes } : {}) });
 }
 
 // ---------- the owner's profile (lib/profile.ts) ----------
