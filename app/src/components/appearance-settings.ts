@@ -69,7 +69,8 @@ export const APPEARANCE_COPY = {
   radiusEnds: ["Square", "Round"],
   density: "Spacing",
   densityEnds: ["Tight", "Roomy"],
-  scale: "Text size",
+  scale: "Theme text size",
+  scaleHint: "Your own Text size setting, further down this page, overrides it on this device.",
   scaleEnds: ["Smaller", "Larger"],
   chartToggle: "Use my own chart colours",
   chartHint: "Charts use five colours, and each has to look different from the others.",
@@ -386,9 +387,10 @@ function themeEditor(id: string | undefined, done: () => void): { el: HTMLElemen
   };
 
   // Sliders.
-  const slider = (key: "radius" | "density" | "scale", label: string, ends: string[], lim: { min: number; max: number }, step: number) => {
+  const slider = (key: "radius" | "density" | "scale", label: string, ends: string[], lim: { min: number; max: number }, step: number, hint?: string) => {
     const out = h("output", { class: "theme-editor__value", for: `${uid}-${key}` });
-    const input = h("input", { class: "range", type: "range", id: `${uid}-${key}`, min: lim.min, max: lim.max, step, value: shape[key] }) as HTMLInputElement;
+    const hintId = `${uid}-${key}-hint`;
+    const input = h("input", { class: "range", type: "range", id: `${uid}-${key}`, min: lim.min, max: lim.max, step, value: shape[key], "aria-describedby": hint ? hintId : undefined }) as HTMLInputElement;
     const show = () => {
       out.textContent = `${pct(shape[key])}%`;
       input.setAttribute("aria-valuetext", `${pct(shape[key])}%`);
@@ -404,7 +406,8 @@ function themeEditor(id: string | undefined, done: () => void): { el: HTMLElemen
       { class: "theme-editor__slider" },
       h("div", { class: "theme-editor__slider-head" }, h("label", { class: "field-label", for: `${uid}-${key}` }, label), out),
       input,
-      h("div", { class: "theme-editor__ends", "aria-hidden": "true" }, h("span", {}, ends[0]), h("span", {}, ends[1]))
+      h("div", { class: "theme-editor__ends", "aria-hidden": "true" }, h("span", {}, ends[0]), h("span", {}, ends[1])),
+      hint ? h("p", { class: "form__hint", id: hintId }, hint) : null
     );
   };
 
@@ -484,7 +487,7 @@ function themeEditor(id: string | undefined, done: () => void): { el: HTMLElemen
           h("legend", { class: "field-label" }, C.shapeLegend),
           slider("radius", C.radius, C.radiusEnds, LIMITS.radius, 0.05),
           slider("density", C.density, C.densityEnds, LIMITS.density, 0.05),
-          slider("scale", C.scale, C.scaleEnds, LIMITS.scale, 0.05)
+          slider("scale", C.scale, C.scaleEnds, LIMITS.scale, 0.05, C.scaleHint)
         ),
         h(
           "div",

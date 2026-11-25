@@ -227,3 +227,12 @@ test("a new theme lands at once: no slow transition holds the old glow on screen
     Object.assign(g, before);
   }
 });
+
+test("the editor names its text size as the theme's, and says your own Text size overrides it", () => {
+  const src = read("../components/appearance-settings.ts");
+  assert.match(src, /\n  scale: "Theme text size",\n  scaleHint: "Your own Text size setting, further down this page, overrides it on this device.",/);
+  assert.match(src, /\n  sizeLegend: "Text size",/, "your own setting keeps the name the hint points to");
+  // The hint describes the slider for screen readers.
+  assert.match(src, /"aria-describedby": hint \? hintId : undefined/);
+  assert.match(src, /slider\("scale", C\.scale, C\.scaleEnds, LIMITS\.scale, 0\.05, C\.scaleHint\)/);
+});
