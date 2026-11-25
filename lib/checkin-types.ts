@@ -41,6 +41,10 @@
  *   DELETE /api/checkins/:date/:kind/answers/:question_id → Checkin (takes the mirror back out)
  *   POST /api/checkins/:date/:kind/done                 → Checkin
  *   POST /api/checkins/:date/:kind/deeper   DeeperRequest → DeeperReply
+ *   PUT  /api/checkins/sets/:id        { paused }       → CheckinSettingsView   (switch an added set off or on)
+ *   DELETE /api/checkins/sets/:id                       → CheckinSettingsView   (remove a set and its questions)
+ *   POST /api/checkins/share  { question_ids, edits?, fine?, download? } → CheckinExport, or with download the zip
+ *        (409 with what's still flagged). lib/checkin-share.ts, lib/checkin-sets.ts.
  *
  * App deep links (the pushes open these):
  *   #/checkin/morning            today's morning preparation
@@ -103,6 +107,11 @@ export interface CheckinQuestion {
   mirror: CheckinMirror;
   /** true for Athena's presets, false for the owner's own. */
   preset: boolean;
+  /**
+   * The owner's own only: the set of check-in questions it was added from (CheckinSet.id), when it came from a file
+   * someone else shared (lib/checkin-share.ts). Absent for a question the owner wrote.
+   */
+  set?: string;
 }
 
 /** One routine's set-up. */
@@ -122,9 +131,27 @@ export interface CheckinSettings {
   own: CheckinQuestion[];
 }
 
-/** What GET /api/checkins/settings returns: the settings plus every question that can be picked. */
+/**
+ * A set of check-in questions added from a file someone shared or from Community (lib/checkin-share.ts). Its
+ * questions are among the owner's own, each naming it in `set`. Switched off (`paused`), they aren't asked until the
+ * owner switches it back on; Athena switches a set off once when Community takes its listing down.
+ */
+export interface CheckinSet {
+  id: string;
+  name: string;
+  summary: string;
+  author: string | null;
+  version: string | null;
+  paused: boolean;
+  /** The Community listing it came from, or null for a file or a link. */
+  catalogue_id: string | null;
+  added_at: string;
+}
+
+/** What GET /api/checkins/settings returns: the settings plus every question that can be picked, and the sets added. */
 export interface CheckinSettingsView extends CheckinSettings {
   library: CheckinQuestion[];
+  sets: CheckinSet[];
 }
 
 /** An answer. Exactly one shape per question type; `skipped` for any type. */
@@ -220,6 +247,17 @@ export const PRESET_QUESTIONS: CheckinQuestion[] = [
   { id: "learned", type: "text", prompt: "What did you learn today?", kinds: ["evening"], placeholder: "A few words is enough, or skip this one.", deeper: true, mirror: "day_journal", preset: true },
   { id: "tomorrow", type: "text", prompt: "What do you want to carry into tomorrow?", kinds: ["evening"], placeholder: "Or what you'd like to leave behind.", deeper: true, mirror: "day_journal", preset: true },
 ];
+
+/**
+ * Where answers to a question that isn't one of Athena's go: the owner's own and one from a shared set alike
+ * (owner, 25 Nov 2026). The day's journal when Athena's own questions of that type go there (written answers),
+ * otherwise nowhere. Athena decides by type: never the day's mood, Health or the briefing, whatever a file or a
+ * settings request says. A day's plan keeps each question as it was asked, so a day planned before this rule keeps
+ * its answers where they were. Pure.
+ */
+export function ownMirror(type: QuestionType): CheckinMirror {
+  return PRESET_QUESTIONS.some((q) => q.type === type && q.mirror === "day_journal") ? "day_journal" : null;
+}
 
 /** The settings before the owner changes anything: both routines off, with a short starting set ready for when they turn one on. */
 export const DEFAULT_CHECKIN_SETTINGS: CheckinSettings = {

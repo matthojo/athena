@@ -24,6 +24,7 @@ import { addImported } from "./team-share";
 import { listTeam, teamChanged, updateAssistant } from "./team";
 import { fetchSkill, fetchSkills, saveSkill } from "./skills";
 import { flowsChanged, sampleAddSharedFlow, sampleReplaceSharedFlow } from "./flows";
+import { checkinsChanged } from "./checkins";
 
 export type { AddChoices, AddPreview, AddResult, CatalogueView, CommunitySettings, UpdateCheck };
 
@@ -152,6 +153,7 @@ export async function addItem(preview: AddPreview, choices: AddChoices): Promise
   // The lists that hold it follow, and an Update clears its "Update available".
   if (result.kind === "assistant") teamChanged();
   else if (result.kind === "flow") flowsChanged();
+  else if (result.kind === "checkin") checkinsChanged();
   if (result.updated) forgetUpdates();
   return result;
 }
@@ -191,6 +193,7 @@ const HREF: Record<AddPreview["kind"], (id: string) => string> = {
   assistant: (id) => `#/team/${encodeURIComponent(id)}`,
   skill: (id) => `#/settings/skills/${encodeURIComponent(id)}`,
   flow: (id) => `#/flows/${encodeURIComponent(id)}`,
+  checkin: () => "#/settings/checkins",
 };
 
 async function sampleAdd(p: AddPreview, choices: AddChoices): Promise<AddResult> {
@@ -211,6 +214,11 @@ async function sampleReplace(p: AddPreview, choices: AddChoices, id: string): Pr
     const s = item.skill;
     const was = await fetchSkill(id);
     await saveSkill({ name: was?.name ?? s.name, description: s.description, body: s.body, extra: s.extra, files: s.files, skipped: s.skipped, enabled: false, accounts: choices.accounts }, id);
+  } else if (item.kind === "checkin") {
+    const { sampleReplaceCheckins } = await import("./sample-checkins");
+    const got = await sampleReplaceCheckins(id, item.checkins, { id: p.listing!.id, hash: p.hash, version: p.listing?.version ?? null });
+    forgetUpdates();
+    return { kind: "checkin", id, href: HREF.checkin(id), updated: true, checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } };
   } else await sampleReplaceSharedFlow(id, importSharedFlow(item.flow, choices.answers));
   forgetUpdates();
   return { kind: p.kind, id, href: HREF[p.kind](id), updated: true };
@@ -234,6 +242,12 @@ async function sampleAddNew(p: AddPreview, choices: AddChoices): Promise<AddResu
     for (let n = 2; taken.has(name); n++) name = `${s.name.slice(0, 60)}-${n}`;
     const saved = await saveSkill({ name, description: s.description, body: s.body, extra: s.extra, files: s.files, skipped: s.skipped, source: s.source, enabled: false, accounts: choices.accounts });
     return { kind: "skill", id: saved.id, href: `#/settings/skills/${encodeURIComponent(saved.id)}` };
+  }
+  if (item.kind === "checkin") {
+    const { sampleAddCheckins } = await import("./sample-checkins");
+    const listing = "catalogue" in p.from && p.listing ? { id: p.listing.id, hash: p.hash, version: p.listing.version } : undefined;
+    const got = await sampleAddCheckins(item.checkins, listing, { start: choices.start !== false });
+    return { kind: "checkin", id: got.id, href: HREF.checkin(got.id), checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } };
   }
   const made = await sampleAddSharedFlow(importSharedFlow(item.flow, choices.answers));
   return { kind: "flow", id: made.id, href: `#/flows/${encodeURIComponent(made.id)}` };

@@ -18,7 +18,10 @@
  * - an assistant: lib/team-share-store.ts importAssistant: paused, ticked tools it asked for that an import may
  *   grant, web only when asked for and ticked, ticked accounts only;
  * - a skill: lib/skills-store.ts createSkill: off (an imported skill always starts off), ticked accounts only;
- * - a flow: lib/flow-share-store.ts addSharedFlow: paused, blanks filled from the answers.
+ * - a flow: lib/flow-share-store.ts addSharedFlow: paused, blanks filled from the answers;
+ * - check-in questions: lib/checkin-sets.ts addSharedCheckins: they join the owner's own, after what's there; a
+ *   question whose words are already here is skipped, a routine that's off stays off, and the set starts switched
+ *   off when the owner picked "Add them switched off" (`choices.start` false).
  *
  * Add never overwrites by itself: the preview says "You already have this" when an item came from the same listing,
  * and only an explicit `replace` naming that item updates it (its name and history stay, its content becomes the new
@@ -32,6 +35,8 @@ import { detectKind, type ShareKind } from "../../lib/share-kinds";
 import { SkillFormatError, SKILL_LIMITS, type IntakeEntry, type SkillSource } from "../../lib/skills";
 import { parseShareLink, ShareFormatError, type ImportInput, type SharedSkill } from "../../lib/team-share";
 import type { FlowAnswers, SharedFlow } from "../../lib/flow-share";
+import type { SharedCheckins } from "../../lib/checkin-share";
+import type { AddedCheckins } from "../../lib/checkin-sets";
 import { cleanAccountIds } from "../../lib/shared-limits";
 
 type Json = (data: unknown, status?: number) => Response;
@@ -59,14 +64,16 @@ export interface CommunityAddDeps {
   replaceAssistant: (id: string, input: ImportInput) => Promise<{ writing: Promise<unknown> | null }>;
   replaceSkill: (id: string, input: { description: string; body: string; extra: string; files: SharedSkill["files"]; skipped: SharedSkill["skipped"]; accounts: string[] }) => Promise<void>;
   replaceFlow: (id: string, shared: SharedFlow, answers: FlowAnswers, catalogue: { id: string; hash: string; version?: string }) => Promise<void>;
-  /** Record the listing an assistant or skill came from (migration 0089). Flows record their own. */
+  addCheckins: (shared: SharedCheckins, catalogue?: { id: string; hash: string; version?: string }, opts?: { start?: boolean }) => Promise<AddedCheckins>;
+  replaceCheckins: (id: string, shared: SharedCheckins, catalogue: { id: string; hash: string; version?: string }) => Promise<AddedCheckins>;
+  /** Record the listing an assistant or skill came from (migration 0089). Flows and check-in questions record their own. */
   markCatalogue: (kind: "assistant" | "skill", id: string, listing: { id: string; hash: string; version: string | null }) => Promise<void>;
   now: () => Date;
 }
 
 /** The server's own: the stores, the catalogue and the link guard. Loaded on first use, so tests never touch them. */
 export async function liveDeps(): Promise<CommunityAddDeps> {
-  const [{ loadBundle }, { fetchGithubFolder }, { catalogueUrl }, { q }, { importAssistant, updateImportedAssistant }, { createSkill, updateSkill, listSkills, freeName }, { addSharedFlow, replaceSharedFlow }] = await Promise.all([
+  const [{ loadBundle }, { fetchGithubFolder }, { catalogueUrl }, { q }, { importAssistant, updateImportedAssistant }, { createSkill, updateSkill, listSkills, freeName }, { addSharedFlow, replaceSharedFlow }, { addSharedCheckins, replaceSharedCheckins }] = await Promise.all([
     import("./community-catalogue"),
     import("../../lib/skill-fetch"),
     import("../../lib/community-config"),
@@ -74,8 +81,9 @@ export async function liveDeps(): Promise<CommunityAddDeps> {
     import("../../lib/team-share-store"),
     import("../../lib/skills-store"),
     import("../../lib/flow-share-store"),
+    import("../../lib/checkin-sets"),
   ]);
-  const TABLE = { assistant: "team_assistants", skill: "ask_skills", flow: "flows" } as const;
+  const TABLE = { assistant: "team_assistants", skill: "ask_skills", flow: "flows", checkin: "checkin_sets" } as const;
   return {
     loadBundle,
     fetchLink: (url) => fetchGithubFolder(parseAddLink(url)),
@@ -98,6 +106,8 @@ export async function liveDeps(): Promise<CommunityAddDeps> {
     replaceAssistant: async (id, input) => ({ writing: (await updateImportedAssistant(id, input as unknown as Record<string, unknown>)).writing }),
     replaceSkill: async (id, input) => void (await updateSkill(id, { ...input, enabled: false })),
     replaceFlow: async (id, shared, answers, catalogue) => void (await replaceSharedFlow(id, shared, answers, catalogue)),
+    addCheckins: addSharedCheckins,
+    replaceCheckins: replaceSharedCheckins,
     markCatalogue: async (kind, id, l) => {
       await q(`UPDATE ${TABLE[kind]} SET catalogue_id = $2, catalogue_hash = $3, catalogue_version = $4 WHERE id = $1::uuid`, [id, l.id, l.hash, l.version]);
     },
@@ -108,13 +118,13 @@ export async function liveDeps(): Promise<CommunityAddDeps> {
 // ---------- links ----------
 
 /**
- * A link to something shared: a GitHub folder, or a file in it (assistant.json, SKILL.md or flow.json, read as its
+ * A link to something shared: a GitHub folder, or a file in it (assistant.json, SKILL.md, flow.json or checkin.json, read as its
  * folder), on github.com or raw.githubusercontent.com. Anything else is refused, so a shared item can't point
  * Athena at someone's own site. Throws ShareFormatError. Pure.
  */
 export function parseAddLink(raw: string) {
-  // lib/team-share.ts reads a link to assistant.json or SKILL.md as its folder; a flow.json is read the same way.
-  const asFolder = raw.trim().replace(/\/flow\.json(?=$|[?#])/i, "/SKILL.md");
+  // lib/team-share.ts reads a link to assistant.json or SKILL.md as its folder; a flow.json or checkin.json is read the same way.
+  const asFolder = raw.trim().replace(/\/(?:flow|checkin)\.json(?=$|[?#])/i, "/SKILL.md");
   try {
     return parseShareLink(asFolder);
   } catch (error) {
@@ -126,7 +136,7 @@ export function parseAddLink(raw: string) {
       // not a link at all: the reader's words say so
     }
     if (host && host !== "github.com" && host !== "www.github.com" && host !== "raw.githubusercontent.com") throw new ShareFormatError("Athena adds things from GitHub links only. For anything else, download it and add the file.");
-    throw new ShareFormatError(error.message.replace("Link to the assistant's folder on GitHub, or to its assistant.json.", "Link to its folder on GitHub, or to the assistant.json, SKILL.md or flow.json in it.").replace("an assistant on GitHub", "anything on GitHub"));
+    throw new ShareFormatError(error.message.replace("Link to the assistant's folder on GitHub, or to its assistant.json.", "Link to its folder on GitHub, or to the assistant.json, SKILL.md, flow.json or checkin.json in it.").replace("an assistant on GitHub", "anything on GitHub"));
   }
 }
 
@@ -136,11 +146,13 @@ const HREF: Record<ShareKind, (id: string) => string> = {
   assistant: (id) => `#/team/${encodeURIComponent(id)}`,
   skill: (id) => `#/settings/skills/${encodeURIComponent(id)}`,
   flow: (id) => `#/flows/${encodeURIComponent(id)}`,
+  // A set lives in Settings → Check-ins, beside the owner's own questions.
+  checkin: () => "#/settings/checkins",
 };
 
 const fromCatalogue = (bundle: CatalogueBundle): ItemFiles => {
   const kind = detectKind(bundle.files.map((f) => f.path));
-  if (!kind) throw new ShareFormatError("That listing's files aren't an assistant, a skill or a flow.");
+  if (!kind) throw new ShareFormatError("That listing's files aren't an assistant, a skill, a flow or check-in questions.");
   return { kind, files: bundle.files, skipped: [], folder: null };
 };
 
@@ -195,6 +207,7 @@ export function readChoices(raw: unknown): AddChoices {
     money: c.money === true,
     assistant_id: typeof c.assistant_id === "string" ? c.assistant_id.slice(0, 64) : null,
     replace: typeof c.replace === "string" ? c.replace.slice(0, 64) : null,
+    start: c.start !== false,
   };
 }
 
@@ -252,7 +265,12 @@ export async function addFrom(body: unknown, deps: CommunityAddDeps): Promise<{ 
     if (mark) await deps.markCatalogue("skill", id, mark);
     return { result: { kind: "skill", id, href: HREF.skill(id) }, writing: null };
   }
-  const { id } = await deps.addFlow(item.flow, flowAnswers(item.flow, choices), mark ? { id: mark.id, hash: mark.hash, ...(mark.version ? { version: mark.version } : {}) } : undefined);
+  const listed = mark ? { id: mark.id, hash: mark.hash, ...(mark.version ? { version: mark.version } : {}) } : undefined;
+  if (item.kind === "checkin") {
+    const got = await deps.addCheckins(item.checkins, listed, { start: choices.start !== false });
+    return { result: { kind: "checkin", id: got.id, href: HREF.checkin(got.id), checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } }, writing: null };
+  }
+  const { id } = await deps.addFlow(item.flow, flowAnswers(item.flow, choices), listed);
   return { result: { kind: "flow", id, href: HREF.flow(id) }, writing: null };
 }
 
@@ -287,7 +305,13 @@ async function replaceFrom(id: string, preview: AddPreview, choices: AddChoices,
     await deps.markCatalogue("skill", id, mark);
     return done(null);
   }
-  await deps.replaceFlow(id, item.flow, flowAnswers(item.flow, choices), { id: mark.id, hash: mark.hash, ...(mark.version ? { version: mark.version } : {}) });
+  const listed = { id: mark.id, hash: mark.hash, ...(mark.version ? { version: mark.version } : {}) };
+  if (item.kind === "checkin") {
+    const got = await deps.replaceCheckins(id, item.checkins, listed);
+    const d = done(null);
+    return { ...d, result: { ...d.result, checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } } };
+  }
+  await deps.replaceFlow(id, item.flow, flowAnswers(item.flow, choices), listed);
   return done(null);
 }
 

@@ -1,5 +1,5 @@
 /**
- * Community: the three kinds of thing people share, and what every shared file has in common. Pure and shared by
+ * Community: the four kinds of thing people share, and what every shared file has in common. Pure and shared by
  * the server and the app.
  *
  * A shared item is a folder of plain files: data, never code. One file names its kind:
@@ -7,6 +7,7 @@
  *   assistant.json   a Team assistant (lib/team-share.ts), with its SKILL.md and reference files beside it
  *   SKILL.md         a skill in Claude's format (lib/skills.ts), with its reference files
  *   flow.json        a flow (lib/flow-share.ts)
+ *   checkin.json     a set of check-in questions (lib/checkin-share.ts)
  *
  * The JSON files carry the same optional header: `format` (the file format, a whole number), `version` (the
  * author's own, free text like 1.2.0), `author` (a GitHub username) and `based_on` (the item it was made from: a
@@ -14,7 +15,7 @@
  */
 import { basedOnLink } from "./team-share";
 
-export const SHARE_KINDS = ["assistant", "skill", "flow"] as const;
+export const SHARE_KINDS = ["assistant", "skill", "flow", "checkin"] as const;
 export type ShareKind = (typeof SHARE_KINDS)[number];
 
 /** The file that says what a folder is. */
@@ -22,6 +23,7 @@ export const KIND_FILES: Readonly<Record<ShareKind, string>> = {
   assistant: "assistant.json",
   skill: "SKILL.md",
   flow: "flow.json",
+  checkin: "checkin.json",
 };
 
 export const isShareKind = (v: unknown): v is ShareKind => typeof v === "string" && (SHARE_KINDS as readonly string[]).includes(v);
@@ -66,7 +68,7 @@ export function kindOfFile(path: string): ShareKind | null {
  * What a folder, zip or link's files are, from their paths alone. The shallowest identifying file decides, so a
  * folder of several items is named by the one at its top. At that level an assistant.json wins (the SKILL.md beside
  * it is the assistant's own skill); a flow.json beside a SKILL.md, with no assistant.json, can't be told apart and
- * gives null. Hidden files and macOS's __MACOSX folder are ignored. Null when nothing identifies it. Pure.
+ * gives null, as does any other pair of kinds side by side. Hidden files and macOS's __MACOSX folder are ignored. Null when nothing identifies it. Pure.
  */
 export function detectKind(paths: readonly string[]): ShareKind | null {
   const found = paths

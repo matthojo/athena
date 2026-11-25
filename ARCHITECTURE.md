@@ -519,8 +519,18 @@ screen. The contract (types, the question library, the routes) is
   they've set one since. `day_journal`: one section per check-in ("Morning
   preparation", "Evening reflection"), swapped by exact text, never touching
   the owner's words; if the owner edited Athena's section, a fresh one goes
-  at the end. `health_energy`, `health_stress`, `health_mood_labels`: Health
+  at the end. Building and swapping the section is pure
+  (`lib/checkin-journal.ts`), shared with sample mode. `health_energy`, `health_stress`, `health_mood_labels`: Health
   source `athena_checkin` ("Check-ins").
+- **Where the owner's own answers go** (owner, 25 Nov 2026). Athena decides,
+  by type (`ownMirror` in `lib/checkin-types.ts`), for questions the owner
+  wrote and questions from a set alike: a written answer goes to the day's
+  journal like Athena's own written questions; scale, choices and areas
+  answers stay in the check-in. `readOwnQuestion` sets it on every save and
+  read and reads past any `mirror` sent, so no request points an own
+  question at the mood, Health or the briefing. A day's plan keeps its
+  questions as they were asked, so days planned before the rule keep their
+  answers out of the journal: nothing is back-filled or rewritten.
 - **Routes** (`netlify/lib/checkins/routes.ts`, from `api.ts`): settings GET
   and PUT, a range of statuses (no key needed), trends (`GET
   /api/checkins/trends`, up to two years of scale answers and picks, opened
@@ -554,6 +564,26 @@ screen. The contract (types, the question library, the routes) is
   done. With the evening routine on, the evening push becomes "Evening
   reflection" and opens `/#/checkin/evening`; only a finished reflection
   skips it. With it off, the evening prompt is as before.
+- **Sets from other people** (`lib/checkin-share.ts`, `lib/checkin-sets.ts`,
+  migration `0090_checkin-sets`). A set of check-in questions someone shared
+  (checkin.json, a Community kind) is added through `#/add`. Its questions
+  join the owner's own (`own`, each with `set` naming the `checkin_sets`
+  row) and the end of each routine they're asked in, unpinned
+  (`joinSharedCheckins`); words already here are skipped, a routine that's
+  off stays off, and past 40 of the owner's own the rest are left out and
+  named. "When to start" on `#/add` adds the set asking ("Start asking
+  them", the default) or switched off; an Update keeps the set's state.
+  Where answers go is Athena's (`ownMirror`, as for the owner's own
+  questions): a written answer goes to the day's journal, other types stay
+  in the check-in. A set switched off (`paused`) is left out of new plans
+  (`askable` in `getCheckin`). `PUT`/`DELETE /api/checkins/sets/:id` switch
+  one off or on and remove one with its questions; `POST
+  /api/checkins/share` makes a file from questions the owner wrote, with
+  the personal-data check. Settings → Check-ins lists sets under "From other
+  people" with their questions, a switch, Remove and Community's word on
+  them, has Share under "Your questions", and "Browse Community" opens
+  `#/community?kind=checkin`. Go deeper frames a shared question as
+  someone else's words (`SHARED_QUESTION_RULE`).
 - **Briefing.** `lib/briefing-run.ts` reads today's morning check-in
   (`loadCheckin`, never plans) and passes answers to questions whose mirror
   is `briefing` to the writer as `morning_checkin` ("Focus: Work, Family",
@@ -1970,7 +2000,7 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
 
 ### Community
 
-People share assistants, skills and flows as folders of plain files: data,
+People share assistants, skills, flows and check-in questions as folders of plain files: data,
 never code. The Community site (a separate repository and a directory people
 sign in to and submit through) reviews items and serves the catalogue as
 static files. Every way in, a listing, a link or files, ends at one preview,
@@ -1979,8 +2009,9 @@ permission.
 
 **The files.**
 
-- **`lib/share-kinds.ts`.** The kinds (`assistant`, `skill`, `flow`), the file
-  that names each (assistant.json, SKILL.md, flow.json), the optional header
+- **`lib/share-kinds.ts`.** The kinds (`assistant`, `skill`, `flow`,
+  `checkin`), the file that names each (assistant.json, SKILL.md, flow.json,
+  checkin.json), the optional header
   (`version`, `author`, `based_on`) and `detectKind(paths)`. `based_on` is a
   github.com link or a listing on the Community site (`basedOnLink`).
 - **`lib/community-site.ts`.** `COMMUNITY_SITE`, the one constant naming the
@@ -1999,8 +2030,16 @@ permission.
   or an earlier step) without the database, from `FLOW_TOOL_SHAPES`, which a
   test keeps in step with `lib/flow-catalog.ts`. Reach, the preview, import,
   export and the catalogue's own CI all run it.
+- **`lib/checkin-share.ts`.** checkin.json, format 1: a name, a summary, the
+  header and up to 40 questions, each its words (`prompt`), `kinds`, `type`
+  and that type's fields, nothing of the owner's. `readSharedCheckins` uses
+  the own-question limits, drops unknown keys and refuses an unknown type of
+  answer. `exportCheckins`, `joinSharedCheckins`, `removeSetFrom` and
+  `askable` are pure and shared with sample mode.
 - **`lib/reach.ts`.** `reachOf(files)`: tier 1 stays inside Athena, tier 2
-  uses AI or an outside lookup (each named), tier 3 asks for the web. Worked
+  uses AI or an outside lookup (each named), tier 3 asks for the web. A set
+  of check-in questions is always tier 1: Go deeper reaches a model only when
+  the owner taps it, as for their own questions. Worked
   out from the files, never declared. Every screen names a tier the same way
   (`app/src/community/words.ts` `tierWords`, `tierIcon`).
 - **`lib/catalogue-types.ts`.** index.json, a bundle and listing.json, with
@@ -2015,10 +2054,14 @@ permission.
   Athena knows keeps its type, size and count checks, and a bad one still
   refuses the file whole. The bundle hash is unchanged and covers each file's
   path and text. A change older copies must not read past bumps `format` or
-  an item's `min_format`; it is never a new key.
+  an item's `min_format`; it is never a new key. An item of a kind this copy
+  doesn't know is skipped and the rest of the index is read
+  (`isUnknownKind`), so the directory can list a new kind before every copy
+  has updated.
 - **Migration 0089.** Nullable `catalogue_id`, `catalogue_hash` and
   `catalogue_version` on `team_assistants`, `ask_skills` and `flows`: which
   listing an item came from, for "You already have this" and update checks.
+  Migration 0090 adds `checkin_sets` with the same three columns.
 
 **The catalogue.**
 

@@ -6,9 +6,11 @@ import assert from "node:assert/strict";
 import { detectKind, isShareKind, KIND_FILES, kindOfFile, readHeader, SHARE_KINDS } from "./share-kinds";
 import { ASSISTANT_FILE } from "./team-share";
 import { FLOW_FILE } from "./flow-share";
+import { CHECKIN_FILE } from "./checkin-share";
 
 test("each kind has its own file, matching the readers' names", () => {
-  assert.deepEqual([...SHARE_KINDS], ["assistant", "skill", "flow"]);
+  assert.deepEqual([...SHARE_KINDS], ["assistant", "skill", "flow", "checkin"]);
+  assert.equal(KIND_FILES.checkin, CHECKIN_FILE);
   assert.equal(KIND_FILES.assistant, ASSISTANT_FILE);
   assert.equal(KIND_FILES.flow, FLOW_FILE);
   assert.equal(KIND_FILES.skill, "SKILL.md");

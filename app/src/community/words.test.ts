@@ -104,7 +104,7 @@ test("featured first, then newest; the filter keeps counts for every kind", () =
     f.items.map((i) => i.id),
     ["2", "1"]
   );
-  assert.deepEqual(f.counts, { all: 3, assistant: 0, skill: 1, flow: 2 });
+  assert.deepEqual(f.counts, { all: 3, assistant: 0, skill: 1, flow: 2, checkin: 0 });
   assert.equal(filtered([a, b, c], "all", "pick").counts.all, 1);
 });
 

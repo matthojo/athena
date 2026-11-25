@@ -878,3 +878,9 @@
     transition: none;
   }
 }
+
+/* Check-in questions: the dusk tile, quieter than the other kinds. */
+.cm-row__tile--checkin {
+  background: var(--dusk-wash);
+  color: var(--dusk-ink);
+}

@@ -916,3 +916,223 @@
     height: 56px;
   }
 }
+
+/* ---------- Check-in questions (add/checkin-preview.ts): calmer than the other kinds ---------- */
+
+.add-hero__tile--checkin {
+  background: var(--dusk-wash);
+  color: var(--dusk-ink);
+}
+
+.add--checkin .add-kind--checkin {
+  background: var(--dusk-wash);
+  color: var(--dusk-ink);
+}
+
+.add-note--calm {
+  background: var(--dusk-wash);
+  color: var(--ink);
+}
+
+.add-note--calm svg {
+  color: var(--dusk-ink);
+}
+
+.add-cq-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.add-cq-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.add-cq-group__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.add-cq-group__icon {
+  display: inline-flex;
+  color: var(--dusk-ink);
+}
+
+.add-cq-group__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.add-cq-group__count {
+  margin-left: auto;
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+.add-cq-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each question as the check-in asks it: its words large and quiet, its control below, untouchable. */
+.add-cq {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md) var(--space-md) var(--space-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.add-cq__q {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.add-cq__how {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.add-cq__control {
+  pointer-events: none;
+  user-select: none;
+}
+
+.add-cq__control .checkin-text {
+  min-height: 0;
+  resize: none;
+}
+
+.add-cq__control textarea.checkin-text {
+  height: 84px;
+}
+
+.add-cq.is-had {
+  background: var(--sunken);
+  border-style: dashed;
+}
+
+.add-cq.is-had .add-cq__q {
+  color: var(--ink-2);
+}
+
+.add-cq__had {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.add-cq__had svg {
+  width: 16px;
+  height: 16px;
+  color: var(--good);
+}
+
+/* The scale, smaller: the same sentence and slider, sized for a list rather than a whole screen. */
+.add-cq .scale {
+  gap: var(--space-sm);
+  padding-block: var(--space-xs) 0;
+}
+
+.add-cq .scale__sentence {
+  min-height: 0;
+}
+
+.add-cq .scale__level {
+  font-size: var(--text-heading);
+}
+
+@media (min-width: 640px) {
+  .add-cq .scale {
+    width: 100%;
+    max-width: 480px;
+    margin-inline: auto;
+  }
+}
+
+.add-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* "When to start": two choices, each with its one-line consequence, styled as the review sheet's choices. */
+.add-start {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.add-start__choice {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.add-start__choice:has(.add-start__input:checked) {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.add-start__choice:has(.add-start__input:focus-visible) {
+  outline: 2px solid var(--focus, var(--accent));
+  outline-offset: 2px;
+}
+
+.add-start__input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--ink);
+}
+
+.add-start__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.add-start__label {
+  font-weight: var(--weight-medium);
+}
+
+.add-start__line {
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+
+.add-sec[hidden] {
+  display: none;
+}

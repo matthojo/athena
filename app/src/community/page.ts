@@ -1,6 +1,6 @@
 /**
- * #/community (and #/community?kind=flow&sort=downloads): the reviewed catalogue of assistants, skills and flows
- * other people shared. A filter by kind, a search, and an order: featured picks first and then the newest, or the
+ * #/community (and #/community?kind=flow&sort=downloads): the reviewed catalogue of assistants, skills, flows and
+ * check-in questions other people shared. A filter by kind, a search, and an order: featured picks first and then the newest, or the
  * most downloaded (offered once the index carries counts). Each row says what it is, who made it, how often it was
  * downloaded when the index says, what it reaches in plain words, and the accounts it needs, marked connected or
  * not; tapping one opens its preview at #/add?catalogue=<id>, where nothing is kept until the owner says Add.
@@ -25,8 +25,8 @@ import type { CatalogueItem } from "../../../lib/catalogue-types";
 import type { ShareKind } from "../../../lib/share-kinds";
 import { communityHash, downloadWords, filtered, hasDownloads, KIND_WORDS, readKind, readSort, tierDetail, tierIcon, tierWords, type CommunitySort, type KindFilter } from "./words";
 
-const KIND_ICON: Record<ShareKind, IconName> = { assistant: "person", skill: "book", flow: "loop" };
-const FILTERS: KindFilter[] = ["all", "assistant", "skill", "flow"];
+const KIND_ICON: Record<ShareKind, IconName> = { assistant: "person", skill: "book", flow: "loop", checkin: "chat" };
+const FILTERS: KindFilter[] = ["all", "assistant", "skill", "flow", "checkin"];
 const filterLabel = (k: KindFilter) => (k === "all" ? "All" : KIND_WORDS[k].many);
 
 const SORTS: ReadonlyArray<{ sort: CommunitySort; label: string }> = [
@@ -46,7 +46,7 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
 
   // ---------- the head ----------
   const fromFile = h("a", { class: "btn btn--soft btn--sm", href: ADD_ROUTE }, icons.plus(), h("span", {}, "From a file or link"));
-  const head = pageHead({ segments: ctx.go ? librarySegments("community", ctx.go) : undefined, title: "Community", lede: "Assistants, skills and flows other people made. Each one is reviewed before it's listed, and nothing is added until you say so.", actions: [fromFile] });
+  const head = pageHead({ segments: ctx.go ? librarySegments("community", ctx.go) : undefined, title: "Community", lede: "Assistants, skills, flows and check-in questions other people made. Each one is reviewed before it's listed, and nothing is added until you say so.", actions: [fromFile] });
 
   // The plain line: what's read, from where, and the switch.
   const swId = "community-check";
