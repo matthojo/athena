@@ -108,7 +108,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0 6px;
+  gap: 0 var(--space-2xs-xs);
   margin-top: var(--space-2xs);
 }
 
@@ -315,7 +315,7 @@
 .wellness__track {
   position: relative;
   height: 2px;
-  margin: 0 5px;
+  margin: 0 calc(5 * var(--space-px));
   border-radius: var(--radius-3xs);
   background: var(--chart-grid);
 }
@@ -394,7 +394,7 @@
 .mdots__plot {
   display: grid;
   align-items: center;
-  gap: 6px var(--space-2xs);
+  gap: var(--space-2xs-xs) var(--space-2xs);
 }
 
 .mdots__plot--days {
@@ -483,7 +483,7 @@
 .mdots__legend li {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .mdots__swatch {
@@ -635,7 +635,7 @@
 }
 
 .hchart__tip .meta {
-  margin-left: 6px;
+  margin-left: var(--space-2xs-xs);
   font-weight: var(--weight-regular);
   color: color-mix(in oklch, var(--on-ink) 70%, var(--ink));
 }
@@ -724,13 +724,13 @@
 }
 
 .hsrc__choices {
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .hsrc__chip {
   height: 36px;
-  gap: 6px;
-  padding: 0 var(--space-sm) 0 5px;
+  gap: var(--space-2xs-xs);
+  padding: 0 var(--space-sm) 0 calc(5 * var(--space-px));
   font-size: var(--text-small);
 }
 
@@ -783,7 +783,7 @@
 /* A phone: names alone, so three apps fit one line. */
 @media (max-width: 480px) {
   .hsrc__choices .hsrc__chip {
-    padding: 0 14px;
+    padding: 0 var(--space-sm-md);
   }
 
   .hsrc__choices .hsrc__chip .logo,
@@ -811,7 +811,7 @@
 .hchart__tip-part {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   white-space: nowrap;
 }
 

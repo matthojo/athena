@@ -123,14 +123,27 @@
   --weight-semibold: 600;
 
   /* ---------- Space (4pt), times --theme-density ---------- */
+  /* Every padding, margin, gap and inset in the app is one of these, so
+     density reaches all of it (lib/theme-surface.test.ts). A half-step,
+     named for the two steps it sits between (--space-xs-sm is 10), covers
+     the 6, 10 and 14px the interface was drawn with. A length off both,
+     like 3 or 18, is written in density pixels: calc(3 * var(--space-px)). */
+  --space-px: calc(1px * var(--theme-density));
   --space-3xs: calc(2px * var(--theme-density));
   --space-2xs: calc(4px * var(--theme-density));
+  --space-2xs-xs: calc(6px * var(--theme-density));
   --space-xs: calc(8px * var(--theme-density));
+  --space-xs-sm: calc(10px * var(--theme-density));
   --space-sm: calc(12px * var(--theme-density));
+  --space-sm-md: calc(14px * var(--theme-density));
   --space-md: calc(16px * var(--theme-density));
+  --space-md-lg: calc(20px * var(--theme-density));
   --space-lg: calc(24px * var(--theme-density));
+  --space-lg-xl: calc(28px * var(--theme-density));
   --space-xl: calc(32px * var(--theme-density));
+  --space-xl-2xl: calc(40px * var(--theme-density));
   --space-2xl: calc(48px * var(--theme-density));
+  --space-2xl-3xl: calc(56px * var(--theme-density));
   --space-3xl: calc(64px * var(--theme-density));
 
   /* ---------- Shape, times --theme-radius (a pill stays a pill) ---------- */
@@ -171,110 +184,127 @@
   --z-popover: 400;
   --z-toast: 500;
 
+  /* ---------- Everything below is worked out from the public colours ----------
+     So a theme that sets only the --theme-* colours recolours the whole app.
+     Each shade is a color-mix() in oklab (no relative colour syntax, which
+     needs newer browsers than the popover API Athena already relies on):
+     - Neutrals mix two public colours: --sunken-strong is mostly the border
+       with a little surface, --ink-3 sits between text and surface.
+     - The accent's family mixes the accent with white, black or text.
+     - Status, chart, graph and other category colours keep their own hue
+       (a fixed pigment, so they stay apart and pass the palette validator)
+       and lean 20% toward the theme's text, so they sit at a readable
+       lightness on its surface. Washes lean 20% toward the surface, hazes
+       toward the page; the orb leans on the accent.
+     - Tinted shadows are the text colour at an alpha. Pure black shadows
+       and white highlights stay black and white.
+     The light and dark blocks hold each its own mix where one recipe can't
+     reproduce both of Athena's designed values. */
+
   /* ---------- Surfaces ---------- */
   --canvas: var(--theme-page);
   --surface: var(--theme-surface);
   --sunken: var(--theme-sunken);
-  --sunken-strong: oklch(0.93 0.007 264);
+  --sunken-strong: color-mix(in oklab, var(--theme-surface) 15.5%, var(--theme-border));
   --line: var(--theme-border);
-  --line-strong: oklch(0.87 0.008 264);
-  --scrim: oklch(0.25 0.02 264 / 0.28);
+  --line-strong: color-mix(in oklab, var(--theme-border) 90.5%, var(--theme-text-muted));
+  --scrim: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 82%, var(--theme-text-muted)) 28%, transparent);
 
   /* ---------- Ink ---------- */
   --ink: var(--theme-text);
   --ink-2: var(--theme-text-muted);
-  --ink-3: oklch(0.49 0.012 264); /* 4.5:1 on the aurora haze too */
-  --on-ink: oklch(0.985 0.003 264);
+  --ink-3: color-mix(in oklab, var(--theme-surface) 36%, var(--theme-text)); /* 4.5:1 on the aurora haze too */
+  --on-ink: color-mix(in oklab, var(--theme-page) 54.5%, var(--theme-surface));
 
   /* ---------- Brand ---------- */
   --accent: var(--theme-accent);
   --on-accent: var(--theme-on-accent);
   --focus: var(--theme-focus);
-  --accent-wash: oklch(0.95 0.03 264);
-  --accent-ink: oklch(0.45 0.19 264);
-  --mint-wash: oklch(0.955 0.035 170);
+  --accent-wash: color-mix(in oklab, var(--theme-accent) 10%, var(--theme-surface));
+  --accent-ink: color-mix(in oklab, var(--theme-accent) 86%, black);
+  --mint-wash: color-mix(in oklab, oklch(0.9455 0.0438 169.3) 80%, var(--theme-surface));
   /* Check-in questions shared through Community: a soft dusk, quieter than the other kinds. */
-  --dusk-wash: oklch(0.955 0.028 40);
-  --dusk-ink: oklch(0.47 0.1 40);
+  --dusk-wash: color-mix(in oklab, oklch(0.9455 0.0354 40.6) 80%, var(--theme-surface));
+  --dusk-ink: color-mix(in oklab, oklch(0.535 0.1272 40.9) 80%, var(--theme-text));
   /* Note templates shared through Community: warm paper, for journaling rather than work. */
-  --paper-wash: oklch(0.962 0.024 88);
-  --paper-ink: oklch(0.47 0.075 75);
+  --paper-wash: color-mix(in oklab, oklch(0.9542 0.0305 87.9) 80%, var(--theme-surface));
+  --paper-ink: color-mix(in oklab, oklch(0.535 0.0967 75.3) 80%, var(--theme-text));
 
   /* ---------- Status (reserved; always paired with an icon or label) ---------- */
-  --good: oklch(0.5 0.12 158); /* 4.5:1 on sunken panels too */
-  --warn: oklch(0.53 0.12 65);
-  --warn-wash: oklch(0.95 0.04 80);
-  --bad: oklch(0.55 0.19 25);
+  --good: color-mix(in oklab, oklch(0.5725 0.1509 156.9) 80%, var(--theme-text)); /* 4.5:1 on sunken panels too */
+  --warn: color-mix(in oklab, oklch(0.61 0.1528 65.4) 80%, var(--theme-text));
+  --warn-wash: color-mix(in oklab, oklch(0.9392 0.0505 80) 80%, var(--theme-surface));
+  --bad: color-mix(in oklab, oklch(0.635 0.2391 25.6) 80%, var(--theme-text));
 
   /* ---------- Charts (dataviz-validated pair) ---------- */
-  --chart-1: #3266e4;
-  --chart-2: #019d7e;
+  --chart-1: color-mix(in oklab, oklch(0.6353 0.2467 264) 80%, var(--theme-text));
+  --chart-2: color-mix(in oklab, oklch(0.7227 0.15 171) 80%, var(--theme-text));
   /* Series 3–5 (the day ribbon's media kinds and calendar labels): with --chart-1 every pair
      passes the validator all-pairs on --sunken, both modes, and each is at least 3:1 on it. */
-  --chart-3: #9d4616;
-  --chart-4: #9a2a95;
-  --chart-5: #668e4f;
+  --chart-3: color-mix(in oklab, oklch(0.573 0.1643 45.9) 80%, var(--theme-text));
+  --chart-4: color-mix(in oklab, oklch(0.5721 0.2356 330.6) 80%, var(--theme-text));
+  --chart-5: color-mix(in oklab, oklch(0.6992 0.1276 133.9) 80%, var(--theme-text));
   --chart-grid: var(--line);
-  --chart-axis: oklch(0.78 0.01 264);
+  --chart-axis: color-mix(in oklab, var(--theme-border) 72%, var(--theme-text-muted));
   /* Sleep stages, stacked deep → REM → core → awake (validator: every pair passes in both modes;
      core is under 3:1, so stages always carry a legend with amounts and a table). */
-  --stage-deep: #1c4fb0;
-  --stage-rem: #019d7e;
-  --stage-core: #6da7ec;
-  --stage-awake: #eb6834;
+  --stage-deep: color-mix(in oklab, oklch(0.516 0.2024 261.6) 80%, var(--theme-text));
+  --stage-rem: color-mix(in oklab, oklch(0.7227 0.15 171) 80%, var(--theme-text));
+  --stage-core: color-mix(in oklab, oklch(0.8438 0.1449 253.4) 80%, var(--theme-text));
+  --stage-awake: color-mix(in oklab, oklch(0.786 0.2209 41.2) 80%, var(--theme-text));
   /* How a check-in answer felt, worst → best, on Health → Wellness (a diverging pair: rust for the worst, cobalt for the best,
      a neutral grey at okay). Validator, all pairs, both modes: CVD and normal-vision pass; the
      grey reads grey on purpose; three steps are under 3:1, so the dots carry a labelled legend,
      a tooltip and a table. */
-  --scale-1: #c25d27;
-  --scale-2: #fc8c45;
-  --scale-3: #b2b4b8;
-  --scale-4: #729afb;
-  --scale-5: #3266e4;
-  --stage-none: oklch(0.8 0.01 264);
+  --scale-1: color-mix(in oklab, oklch(0.6891 0.1838 46.2) 80%, var(--theme-text));
+  --scale-2: color-mix(in oklab, oklch(0.8849 0.202 50.8) 80%, var(--theme-text));
+  --scale-3: color-mix(in oklab, var(--theme-page) 73.5%, var(--theme-text));
+  --scale-4: color-mix(in oklab, oklch(0.8227 0.1838 265.8) 80%, var(--theme-text));
+  --scale-5: color-mix(in oklab, oklch(0.6353 0.2467 264) 80%, var(--theme-text));
+  --stage-none: color-mix(in oklab, var(--theme-sunken) 70.5%, var(--theme-text-muted));
 
   /* To-do contexts (lib/todo-context.ts CONTEXT_COLOURS): small dots, so mid-tone */
-  --ctx-grey: oklch(0.66 0.012 264);
-  --ctx-blue: oklch(0.58 0.17 264);
-  --ctx-teal: oklch(0.62 0.1 195);
-  --ctx-green: oklch(0.62 0.13 155);
-  --ctx-amber: oklch(0.74 0.14 75);
-  --ctx-orange: oklch(0.67 0.16 45);
-  --ctx-red: oklch(0.6 0.19 25);
-  --ctx-pink: oklch(0.64 0.17 350);
-  --ctx-violet: oklch(0.57 0.17 300);
+  --ctx-grey: color-mix(in oklab, var(--theme-border) 47.5%, var(--theme-text-muted));
+  --ctx-blue: color-mix(in oklab, oklch(0.6725 0.2095 264) 80%, var(--theme-text));
+  --ctx-teal: color-mix(in oklab, oklch(0.7225 0.124 193.7) 80%, var(--theme-text));
+  --ctx-green: color-mix(in oklab, oklch(0.7225 0.1635 154) 80%, var(--theme-text));
+  --ctx-amber: color-mix(in oklab, oklch(0.8725 0.178 75.2) 80%, var(--theme-text));
+  --ctx-orange: color-mix(in oklab, oklch(0.785 0.2023 45.5) 80%, var(--theme-text));
+  --ctx-red: color-mix(in oklab, oklch(0.6975 0.2391 25.6) 80%, var(--theme-text));
+  --ctx-pink: color-mix(in oklab, oklch(0.7475 0.2123 350.8) 80%, var(--theme-text));
+  --ctx-violet: color-mix(in oklab, oklch(0.66 0.2101 300.5) 80%, var(--theme-text));
 
   /* ---------- Graph: one hue per kind with a page; details share a quiet violet ----------
      Each clears 3:1 against the surface it's drawn on (graphical objects). */
-  --graph-person: oklch(0.55 0.19 264);
-  --graph-note: oklch(0.62 0.022 264);
-  --graph-place: oklch(0.6 0.115 170);
-  --graph-organisation: oklch(0.64 0.135 66);
-  --graph-event: oklch(0.6 0.175 25);
-  --graph-record: oklch(0.58 0.15 345);
-  --graph-saved: oklch(0.55 0.12 110);
-  --graph-detail: oklch(0.6 0.1 300);
-  --graph-link: oklch(0.5 0.02 264 / 0.26);
+  --graph-person: color-mix(in oklab, oklch(0.635 0.2345 264) 80%, var(--theme-text));
+  --graph-note: color-mix(in oklab, oklch(0.7225 0.0245 264) 80%, var(--theme-text));
+  --graph-place: color-mix(in oklab, oklch(0.6975 0.144 168.8) 80%, var(--theme-text));
+  --graph-organisation: color-mix(in oklab, oklch(0.7475 0.1716 66.3) 80%, var(--theme-text));
+  --graph-event: color-mix(in oklab, oklch(0.6975 0.2203 25.7) 80%, var(--theme-text));
+  --graph-record: color-mix(in oklab, oklch(0.6725 0.1871 345.9) 80%, var(--theme-text));
+  --graph-saved: color-mix(in oklab, oklch(0.635 0.1527 109.5) 80%, var(--theme-text));
+  --graph-detail: color-mix(in oklab, oklch(0.6975 0.1226 300.8) 80%, var(--theme-text));
+  --graph-link: color-mix(in oklab, color-mix(in oklab, var(--theme-border) 14.5%, var(--theme-text-muted)) 26%, transparent);
   --graph-link-hot: var(--accent);
   --graph-ring: var(--accent);
   --graph-label: var(--ink-2);
   --graph-label-strong: var(--ink);
-  --graph-on-node: oklch(0.99 0.004 264);
+  --graph-on-node: color-mix(in oklab, var(--theme-page) 15%, var(--theme-surface));
   --graph-bg: var(--surface);
 
   /* ---------- Atmosphere ---------- */
-  --aurora-a: oklch(0.86 0.09 240 / 0.6);
-  --aurora-b: oklch(0.91 0.1 165 / 0.55);
+  --aurora-a: color-mix(in oklab, color-mix(in oklab, oklch(0.9056 0.31 212.1) 15%, color-mix(in oklab, var(--theme-accent) 31.5%, white)) 60%, transparent);
+  --aurora-b: color-mix(in oklab, color-mix(in oklab, oklch(0.8945 0.1252 164.5) 80%, var(--theme-page)) 55%, transparent);
   /* The same blue, following the day (base.css, html[data-daypart]): a touch
      cooler towards cyan in the morning, warmer towards the brand indigo in
      the evening. No new colours, only the hue moved along the one family. */
-  --aurora-a-morning: oklch(0.88 0.08 228 / 0.58);
-  --aurora-a-evening: oklch(0.85 0.09 262 / 0.6);
+  --aurora-a-morning: color-mix(in oklab, color-mix(in oklab, oklch(0.9058 0.3398 196.7) 15%, color-mix(in oklab, var(--theme-accent) 26.5%, white)) 58%, transparent);
+  --aurora-a-evening: color-mix(in oklab, color-mix(in oklab, oklch(0.9055 0.2153 258.4) 15%, color-mix(in oklab, var(--theme-accent) 34%, white)) 60%, transparent);
 
   /* ---------- Elevation ---------- */
-  --shadow-card: 0 1px 2px oklch(0.3 0.02 264 / 0.04), 0 6px 20px -12px oklch(0.3 0.03 264 / 0.12);
-  --shadow-float: 0 2px 6px oklch(0.3 0.03 264 / 0.06), 0 18px 44px -14px oklch(0.3 0.04 264 / 0.26);
-  --shadow-sheet: 0 -8px 40px -12px oklch(0.25 0.04 264 / 0.22);
+  --shadow-card: 0 1px 2px color-mix(in oklab, var(--theme-text) 4%, transparent), 0 6px 20px -12px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 59%, var(--theme-text-muted)) 12%, transparent);
+  --shadow-float: 0 2px 6px color-mix(in oklab, var(--theme-text) 6%, transparent), 0 18px 44px -14px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 75.5%, var(--theme-accent)) 26%, transparent);
+  --shadow-sheet: 0 -8px 40px -12px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 87%, var(--theme-accent)) 22%, transparent);
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -303,68 +333,62 @@
 
 :root:where([data-scheme="dark"]) {
   color-scheme: dark;
+  --scrim: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 48.5%, black) 60%, transparent);
 
-  --sunken-strong: oklch(0.28 0.013 264);
-  --line-strong: oklch(0.34 0.014 264);
-  --scrim: oklch(0.08 0.01 264 / 0.6);
+  --accent-wash: color-mix(in oklab, var(--theme-accent) 41.5%, black);
+  --accent-ink: color-mix(in oklab, var(--theme-accent) 61.5%, white);
+  --mint-wash: color-mix(in oklab, oklch(0.2988 0.0503 166.6) 80%, var(--theme-surface));
+  --dusk-wash: color-mix(in oklab, oklch(0.3112 0.0522 42.3) 80%, var(--theme-surface));
+  --dusk-ink: color-mix(in oklab, oklch(0.8125 0.0886 40.7) 80%, var(--theme-text));
+  --paper-wash: color-mix(in oklab, oklch(0.3112 0.0405 80.3) 80%, var(--theme-surface));
+  --paper-ink: color-mix(in oklab, oklch(0.8375 0.0765 85) 80%, var(--theme-text));
 
-  --ink-3: oklch(0.68 0.012 264);
-  --on-ink: oklch(0.18 0.012 264);
+  --good: color-mix(in oklab, oklch(0.6625 0.1754 157.5) 80%, var(--theme-text));
+  --warn: color-mix(in oklab, oklch(0.7375 0.1515 80) 80%, var(--theme-text));
+  --warn-wash: color-mix(in oklab, oklch(0.3237 0.0655 80.2) 80%, var(--theme-surface));
+  --bad: color-mix(in oklab, oklch(0.6375 0.2008 25.4) 80%, var(--theme-text));
 
-  --accent-wash: oklch(0.29 0.06 264);
-  --accent-ink: oklch(0.82 0.1 264);
-  --mint-wash: oklch(0.28 0.04 170);
-  --dusk-wash: oklch(0.29 0.04 40);
-  --dusk-ink: oklch(0.84 0.07 40);
-  --paper-wash: oklch(0.29 0.03 80);
-  --paper-ink: oklch(0.86 0.06 85);
+  --chart-1: color-mix(in oklab, oklch(0.5619 0.2109 264.2) 80%, var(--theme-text));
+  --chart-2: color-mix(in oklab, oklch(0.5891 0.1506 171.4) 80%, var(--theme-text));
+  --chart-3: color-mix(in oklab, oklch(0.4517 0.1637 45.4) 80%, var(--theme-text));
+  --chart-4: color-mix(in oklab, oklch(0.4503 0.2374 330.4) 80%, var(--theme-text));
+  --chart-5: color-mix(in oklab, oklch(0.5759 0.2389 134.8) 80%, var(--theme-text));
+  --chart-axis: color-mix(in oklab, var(--theme-border) 68%, var(--theme-text-muted));
+  --stage-deep: color-mix(in oklab, oklch(0.5992 0.1887 267.6) 80%, var(--theme-text));
+  --stage-rem: color-mix(in oklab, oklch(0.5891 0.1506 171.4) 80%, var(--theme-text));
+  --stage-core: color-mix(in oklab, oklch(0.3793 0.2102 266.6) 80%, var(--theme-text));
+  --stage-awake: color-mix(in oklab, oklch(0.5401 0.2168 40.4) 80%, var(--theme-text));
+  --scale-1: color-mix(in oklab, oklch(0.6734 0.1628 49.3) 80%, var(--theme-text));
+  --scale-2: color-mix(in oklab, oklch(0.4375 0.1755 50.6) 80%, var(--theme-text));
+  --scale-3: color-mix(in oklab, var(--theme-page) 69%, var(--theme-text));
+  --scale-4: color-mix(in oklab, oklch(0.3373 0.2366 266.1) 80%, var(--theme-text));
+  --scale-5: color-mix(in oklab, oklch(0.6562 0.1643 265.5) 80%, var(--theme-text));
+  --stage-none: color-mix(in oklab, var(--theme-border) 74%, var(--theme-text-muted));
+  --ctx-grey: color-mix(in oklab, var(--theme-border) 38%, var(--theme-text-muted));
+  --ctx-blue: color-mix(in oklab, oklch(0.6375 0.1735 264) 80%, var(--theme-text));
+  --ctx-teal: color-mix(in oklab, oklch(0.6625 0.1245 194.4) 80%, var(--theme-text));
+  --ctx-green: color-mix(in oklab, oklch(0.6625 0.163 154.5) 80%, var(--theme-text));
+  --ctx-amber: color-mix(in oklab, oklch(0.7625 0.164 80) 80%, var(--theme-text));
+  --ctx-orange: color-mix(in oklab, oklch(0.6875 0.1762 45.3) 80%, var(--theme-text));
+  --ctx-red: color-mix(in oklab, oklch(0.6375 0.2008 25.4) 80%, var(--theme-text));
+  --ctx-pink: color-mix(in oklab, oklch(0.6875 0.1749 350.5) 80%, var(--theme-text));
+  --ctx-violet: color-mix(in oklab, oklch(0.6375 0.1738 300.3) 80%, var(--theme-text));
 
-  --good: oklch(0.72 0.14 158);
-  --warn: oklch(0.78 0.12 80);
-  --warn-wash: oklch(0.3 0.05 80);
-  --bad: oklch(0.7 0.16 25);
+  --graph-person: color-mix(in oklab, oklch(0.65 0.1797 264) 80%, var(--theme-text));
+  --graph-note: color-mix(in oklab, oklch(0.55 0.021 264) 80%, var(--theme-text));
+  --graph-place: color-mix(in oklab, oklch(0.6625 0.1439 169.4) 80%, var(--theme-text));
+  --graph-organisation: color-mix(in oklab, oklch(0.75 0.1577 78.1) 80%, var(--theme-text));
+  --graph-event: color-mix(in oklab, oklch(0.65 0.1883 25.4) 80%, var(--theme-text));
+  --graph-record: color-mix(in oklab, oklch(0.6625 0.1623 345.5) 80%, var(--theme-text));
+  --graph-saved: color-mix(in oklab, oklch(0.6375 0.1513 109.8) 80%, var(--theme-text));
+  --graph-detail: color-mix(in oklab, oklch(0.6375 0.1113 300.5) 80%, var(--theme-text));
+  --graph-link: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 6%, var(--theme-text-muted)) 20%, transparent);
+  --graph-on-node: color-mix(in oklab, var(--theme-page) 62.5%, var(--theme-surface));
 
-  --chart-1: #5686f2;
-  --chart-2: #23aa8a;
-  --chart-3: #ae5528;
-  --chart-4: #ab3ba5;
-  --chart-5: #56a700;
-  --chart-axis: oklch(0.45 0.012 264);
-  --stage-deep: #6c8ff2;
-  --stage-rem: #23aa8a;
-  --stage-core: #3557c0;
-  --stage-awake: #d95926;
-  --scale-1: #e88d5a;
-  --scale-2: #ac5107;
-  --scale-3: #494a4e;
-  --scale-4: #2649c0;
-  --scale-5: #7ba0f6;
-  --stage-none: oklch(0.42 0.012 264);
-  --ctx-grey: oklch(0.6 0.012 264);
-  --ctx-blue: oklch(0.7 0.14 264);
-  --ctx-teal: oklch(0.72 0.1 195);
-  --ctx-green: oklch(0.72 0.13 155);
-  --ctx-amber: oklch(0.8 0.13 80);
-  --ctx-orange: oklch(0.74 0.14 45);
-  --ctx-red: oklch(0.7 0.16 25);
-  --ctx-pink: oklch(0.74 0.14 350);
-  --ctx-violet: oklch(0.7 0.14 300);
-
-  --graph-person: oklch(0.71 0.145 264);
-  --graph-note: oklch(0.63 0.018 264);
-  --graph-place: oklch(0.72 0.115 170);
-  --graph-organisation: oklch(0.79 0.125 78);
-  --graph-event: oklch(0.71 0.15 25);
-  --graph-record: oklch(0.72 0.13 345);
-  --graph-saved: oklch(0.7 0.12 110);
-  --graph-detail: oklch(0.7 0.09 300);
-  --graph-link: oklch(0.8 0.02 264 / 0.2);
-  --graph-on-node: oklch(0.18 0.012 264);
-
-  --aurora-a: oklch(0.42 0.12 250 / 0.26);
-  --aurora-b: oklch(0.45 0.09 168 / 0.16);
-  --aurora-a-morning: oklch(0.44 0.1 232 / 0.24);
-  --aurora-a-evening: oklch(0.42 0.12 266 / 0.28);
+  --aurora-a: color-mix(in oklab, color-mix(in oklab, oklch(0.3803 0.3223 227.1) 15%, color-mix(in oklab, var(--theme-accent) 61%, black)) 26%, transparent);
+  --aurora-b: color-mix(in oklab, color-mix(in oklab, oklch(0.5212 0.1128 166.7) 80%, var(--theme-page)) 16%, transparent);
+  --aurora-a-morning: color-mix(in oklab, color-mix(in oklab, oklch(0.437 0.3672 189.8) 15%, color-mix(in oklab, var(--theme-accent) 51.5%, var(--theme-page))) 24%, transparent);
+  --aurora-a-evening: color-mix(in oklab, color-mix(in oklab, oklch(0.3803 0.2824 269.7) 15%, color-mix(in oklab, var(--theme-accent) 61%, black)) 28%, transparent);
 
   --shadow-card: 0 1px 0 oklch(1 0 0 / 0.03) inset;
   --shadow-float: 0 1px 0 oklch(1 0 0 / 0.05) inset, 0 18px 44px -14px oklch(0 0 0 / 0.6);
@@ -374,9 +398,12 @@
 /* ======================================================================
    Component tokens: the colours of particular parts, moved here from their
    stylesheets so no colour is written anywhere else (lib/colour-tokens.test.ts).
-   A theme sets the public tokens above; these are fixed recipes it can
-   still override one by one. A "--x: L C" pair is an oklch() lightness and
-   chroma, drawn with a hue the element carries: oklch(var(--x) var(--h)).
+   They're worked out from the public tokens above like the rest, but for
+   a few fixed ones: drawn over photos, video and maps (media), other
+   companies' colours (brand), print, the avatar kit, and white on a
+   saturated fill (on-colour). A "--x: L C" pair is an oklch() lightness and
+   chroma, drawn with a hue the element carries and leaning 20% toward the
+   theme: color-mix(in oklab, oklch(var(--x) var(--h)) 80%, var(--surface)).
    ====================================================================== */
 
 /* ---------- styles/components.css ---------- */
@@ -407,74 +434,89 @@
   initial-value: oklch(0.9 0.08 205 / 0.85);
 }
 
+:root {
+  /* The orb at rest (Ask, Home): the @property initial values above, drawn from the theme. */
+  --orb-hi: color-mix(in oklab, oklch(0.8925 0.3711 189.9) 15%, color-mix(in oklab, var(--theme-accent) 26%, white));
+  --orb-mid: color-mix(in oklab, oklch(0.6371 0.3092 238.6) 15%, color-mix(in oklab, var(--theme-accent) 86.5%, white));
+  --orb-low: color-mix(in oklab, oklch(0.3109 0.363 270.6) 15%, color-mix(in oklab, var(--theme-accent) 74%, black));
+  --orb-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.8977 0.4588 178.9) 15%, color-mix(in oklab, var(--theme-accent) 20%, var(--theme-surface))) 85%, transparent);
+}
+
+:root:where([data-scheme="dark"]) {
+  --orb-hi: color-mix(in oklab, oklch(0.88 0.3613 183) 15%, color-mix(in oklab, var(--theme-accent) 40%, white));
+  --orb-mid: color-mix(in oklab, oklch(0.5292 0.5327 249.6) 15%, color-mix(in oklab, var(--theme-accent) 87.5%, black));
+  --orb-low: color-mix(in oklab, oklch(0.2723 0.716 267.4) 15%, color-mix(in oklab, var(--theme-accent) 57%, black));
+  --orb-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.9142 0.4624 182.6) 15%, color-mix(in oklab, var(--theme-accent) 21%, var(--theme-text))) 85%, transparent);
+}
+
 /* ---------- styles/context-menu.css ---------- */
 
 :root {
-  --cm-surface: oklch(0.995 0.002 264 / 0.86);
-  --cm-hair: oklch(0.25 0.02 264 / 0.1);
-  --cm-wash: oklch(0.25 0.02 264 / 0.06);
-  --cm-press: oklch(0.25 0.02 264 / 0.09);
-  --cm-scrim: oklch(0.22 0.02 264 / 0.16);
-  --cm-shadow: 0 0 0 0.5px oklch(0.25 0.02 264 / 0.16), 0 2px 4px oklch(0.25 0.02 264 / 0.05), 0 12px 28px -8px oklch(0.25 0.03 264 / 0.18), 0 32px 64px -24px oklch(0.25 0.04 264 / 0.3);
+  --cm-surface: color-mix(in oklab, color-mix(in oklab, var(--theme-surface) 93.5%, white) 86%, transparent);
+  --cm-hair: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 82%, var(--theme-text-muted)) 10%, transparent);
+  --cm-wash: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 82%, var(--theme-text-muted)) 6%, transparent);
+  --cm-press: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 82%, var(--theme-text-muted)) 9%, transparent);
+  --cm-scrim: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 95.5%, var(--theme-text-muted)) 16%, transparent);
+  --cm-shadow: 0 0 0 0.5px color-mix(in oklab, var(--theme-text) 16%, transparent), 0 2px 4px color-mix(in oklab, var(--theme-text) 5%, transparent), 0 12px 28px -8px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 88.5%, var(--theme-accent)) 18%, transparent), 0 32px 64px -24px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 87%, var(--theme-accent)) 30%, transparent);
   --cm-spring: var(--ease-spring);
   --cm-spring-dur: var(--dur-spring);
 }
 
 :root:where([data-scheme="dark"]) {
-  --cm-surface: oklch(0.255 0.012 264 / 0.84);
-  --cm-hair: oklch(1 0 0 / 0.09);
-  --cm-wash: oklch(1 0 0 / 0.07);
-  --cm-press: oklch(1 0 0 / 0.1);
-  --cm-scrim: oklch(0.08 0.01 264 / 0.42);
+  --cm-surface: color-mix(in oklab, color-mix(in oklab, var(--theme-surface) 93.5%, white) 84%, transparent);
+  --cm-hair: color-mix(in oklab, var(--theme-text) 9%, transparent);
+  --cm-wash: color-mix(in oklab, var(--theme-text) 7%, transparent);
+  --cm-press: color-mix(in oklab, var(--theme-text) 10%, transparent);
+  --cm-scrim: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 48.5%, black) 42%, transparent);
   --cm-shadow: 0 0 0 0.5px oklch(1 0 0 / 0.14), inset 0 1px 0 oklch(1 0 0 / 0.05), 0 12px 28px -8px oklch(0 0 0 / 0.6), 0 32px 64px -24px oklch(0 0 0 / 0.8);
 }
 
 /* ---------- styles/days.css ---------- */
 
 :root {
-  --today-morning-a: oklch(0.89 0.075 50 / 0.6);
-  --today-morning-b: oklch(0.91 0.08 75 / 0.5);
-  --today-day-a: oklch(0.92 0.06 78 / 0.8);
-  --today-day-b: oklch(0.94 0.03 240 / 0.45);
-  --today-evening-a: oklch(0.87 0.065 310 / 0.55);
-  --today-evening-b: oklch(0.8 0.075 275 / 0.42);
+  --today-morning-a: color-mix(in oklab, color-mix(in oklab, oklch(0.8695 0.0946 50.3) 80%, var(--theme-page)) 60%, transparent);
+  --today-morning-b: color-mix(in oklab, color-mix(in oklab, oklch(0.8945 0.101 75.1) 80%, var(--theme-page)) 50%, transparent);
+  --today-day-a: color-mix(in oklab, color-mix(in oklab, oklch(0.907 0.076 78.1) 80%, var(--theme-page)) 80%, transparent);
+  --today-day-b: color-mix(in oklab, color-mix(in oklab, oklch(0.932 0.0366 239.4) 80%, var(--theme-page)) 45%, transparent);
+  --today-evening-a: color-mix(in oklab, color-mix(in oklab, oklch(0.8445 0.0806 310.5) 80%, var(--theme-page)) 55%, transparent);
+  --today-evening-b: color-mix(in oklab, color-mix(in oklab, oklch(0.757 0.0928 275.1) 80%, var(--theme-page)) 42%, transparent);
 }
 
 :root:where([data-scheme="dark"]) {
-  --today-morning-a: oklch(0.52 0.11 42 / 0.42);
-  --today-morning-b: oklch(0.58 0.1 68 / 0.24);
-  --today-day-a: oklch(0.46 0.055 75 / 0.48);
-  --today-day-b: oklch(0.44 0.04 245 / 0.2);
-  --today-evening-a: oklch(0.46 0.1 310 / 0.38);
-  --today-evening-b: oklch(0.38 0.1 275 / 0.36);
+  --today-morning-a: color-mix(in oklab, color-mix(in oklab, oklch(0.6087 0.1394 42.7) 80%, var(--theme-page)) 42%, transparent);
+  --today-morning-b: color-mix(in oklab, color-mix(in oklab, oklch(0.6837 0.1274 68.3) 80%, var(--theme-page)) 24%, transparent);
+  --today-day-a: color-mix(in oklab, color-mix(in oklab, oklch(0.5338 0.0712 75.3) 80%, var(--theme-page)) 48%, transparent);
+  --today-day-b: color-mix(in oklab, color-mix(in oklab, oklch(0.5088 0.0476 244) 80%, var(--theme-page)) 20%, transparent);
+  --today-evening-a: color-mix(in oklab, color-mix(in oklab, oklch(0.5338 0.1233 310.8) 80%, var(--theme-page)) 38%, transparent);
+  --today-evening-b: color-mix(in oklab, color-mix(in oklab, oklch(0.4337 0.1225 275.2) 80%, var(--theme-page)) 36%, transparent);
 }
 
 /* ---------- styles/flows.css ---------- */
 
 :root {
-  --flow-mint-ink: oklch(0.44 0.1 170);
-  --flow-violet-wash: oklch(0.95 0.035 300);
-  --flow-violet-ink: oklch(0.47 0.16 300);
+  --flow-mint-ink: color-mix(in oklab, oklch(0.4975 0.1252 168.6) 80%, var(--theme-text));
+  --flow-violet-wash: color-mix(in oklab, oklch(0.9392 0.0433 300.4) 80%, var(--theme-surface));
+  --flow-violet-ink: color-mix(in oklab, oklch(0.535 0.1976 300.5) 80%, var(--theme-text));
   --flow-wire: var(--line-strong);
 }
 
 :root:where([data-scheme="dark"]) {
-  --flow-mint-ink: oklch(0.82 0.09 170);
-  --flow-violet-wash: oklch(0.29 0.06 300);
-  --flow-violet-ink: oklch(0.83 0.09 300);
+  --flow-mint-ink: color-mix(in oklab, oklch(0.7875 0.1126 169.2) 80%, var(--theme-text));
+  --flow-violet-wash: color-mix(in oklab, oklch(0.3112 0.0726 301.4) 80%, var(--theme-surface));
+  --flow-violet-ink: color-mix(in oklab, oklch(0.8 0.1113 300.5) 80%, var(--theme-text));
 }
 
 /* ---------- styles/rich-links.css ---------- */
 
 :root {
-  --rl-hair: oklch(0.25 0.02 264 / 0.09);
-  --rl-hair-img: oklch(0.2 0.02 264 / 0.07);
-  --rl-shadow: 0 0 0 1px var(--rl-hair), 0 1px 1px oklch(0.25 0.02 264 / 0.03), 0 2px 5px -2px oklch(0.25 0.03 264 / 0.06), 0 14px 28px -18px oklch(0.25 0.04 264 / 0.18);
-  --rl-shadow-hover: 0 0 0 1px oklch(0.25 0.02 264 / 0.12), 0 2px 3px oklch(0.25 0.02 264 / 0.04), 0 6px 12px -6px oklch(0.25 0.03 264 / 0.1), 0 24px 44px -22px oklch(0.25 0.04 264 / 0.26);
-  --rl-float: 0 0 0 1px var(--rl-hair), 0 2px 4px oklch(0.25 0.02 264 / 0.05), 0 10px 20px -8px oklch(0.25 0.03 264 / 0.14), 0 28px 56px -24px oklch(0.25 0.04 264 / 0.28);
+  --rl-hair: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 82%, var(--theme-text-muted)) 9%, transparent);
+  --rl-hair-img: color-mix(in oklab, var(--theme-text) 7%, transparent);
+  --rl-shadow: 0 0 0 1px var(--rl-hair), 0 1px 1px color-mix(in oklab, var(--theme-text) 3%, transparent), 0 2px 5px -2px color-mix(in oklab, var(--theme-text) 6%, transparent), 0 14px 28px -18px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 87%, var(--theme-accent)) 18%, transparent);
+  --rl-shadow-hover: 0 0 0 1px color-mix(in oklab, var(--theme-text) 12%, transparent), 0 2px 3px color-mix(in oklab, var(--theme-text) 4%, transparent), 0 6px 12px -6px color-mix(in oklab, var(--theme-text) 10%, transparent), 0 24px 44px -22px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 87%, var(--theme-accent)) 26%, transparent);
+  --rl-float: 0 0 0 1px var(--rl-hair), 0 2px 4px color-mix(in oklab, var(--theme-text) 5%, transparent), 0 10px 20px -8px color-mix(in oklab, var(--theme-text) 14%, transparent), 0 28px 56px -24px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 87%, var(--theme-accent)) 28%, transparent);
   --rl-glow: 26%;
   --rl-glow-hover: 42%;
-  --rl-sk: oklch(0.93 0.007 264);
+  --rl-sk: color-mix(in oklab, var(--theme-sunken) 40.5%, var(--theme-border));
   --rl-shine: oklch(1 0 0 / 0.55);
   --rl-spring: var(--ease-spring);
   --rl-spring-dur: var(--dur-spring);
@@ -482,14 +524,12 @@
 }
 
 :root:where([data-scheme="dark"]) {
-  --rl-hair: oklch(1 0 0 / 0.08);
-  --rl-hair-img: oklch(1 0 0 / 0.07);
+  --rl-hair: color-mix(in oklab, var(--theme-text) 8%, transparent);
   --rl-shadow: 0 0 0 1px var(--rl-hair), inset 0 1px 0 oklch(1 0 0 / 0.04), 0 2px 6px -2px oklch(0 0 0 / 0.4), 0 16px 32px -18px oklch(0 0 0 / 0.7);
   --rl-shadow-hover: 0 0 0 1px oklch(1 0 0 / 0.12), inset 0 1px 0 oklch(1 0 0 / 0.05), 0 4px 10px -4px oklch(0 0 0 / 0.5), 0 26px 48px -22px oklch(0 0 0 / 0.8);
   --rl-float: 0 0 0 1px oklch(1 0 0 / 0.1), inset 0 1px 0 oklch(1 0 0 / 0.05), 0 10px 24px -8px oklch(0 0 0 / 0.55), 0 30px 60px -24px oklch(0 0 0 / 0.75);
   --rl-glow: 30%;
   --rl-glow-hover: 48%;
-  --rl-sk: oklch(0.27 0.012 264);
   --rl-shine: oklch(1 0 0 / 0.06);
 }
 
@@ -497,12 +537,12 @@
 
 /* Washes for a late date and a high or medium priority: warm, not mixed with the cool surface. */
 :root {
-  --todo-bad-wash: oklch(0.955 0.03 25);
+  --todo-bad-wash: color-mix(in oklab, oklch(0.9455 0.0378 25.7) 80%, var(--theme-surface));
   --todo-warn-wash: var(--warn-wash);
 }
 
 :root:where([data-scheme="dark"]) {
-  --todo-bad-wash: oklch(0.29 0.06 25);
+  --todo-bad-wash: color-mix(in oklab, oklch(0.3112 0.0766 26.9) 80%, var(--theme-surface));
 }
 
 /* ---------- styles/week-moment.css ---------- */
@@ -510,45 +550,45 @@
 :root {
   --wm-h: 148px;
   --wm-ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent);
-  --wm-print: oklch(0.99 0.004 85);
-  --wm-print-shadow: 0 1px 2px oklch(0.25 0.03 264 / 0.12), 0 8px 18px -10px oklch(0.25 0.04 264 / 0.35);
+  --wm-print: color-mix(in oklab, oklch(0.9892 0.0055 84.9) 80%, var(--theme-surface));
+  --wm-print-shadow: 0 1px 2px color-mix(in oklab, var(--theme-text) 12%, transparent), 0 8px 18px -10px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 87%, var(--theme-accent)) 35%, transparent);
 }
 
 :root:where([data-scheme="dark"]) {
-  --wm-print: oklch(0.3 0.01 264);
+  --wm-print: color-mix(in oklab, oklch(0.3237 0.0095 264) 80%, var(--theme-surface));
   --wm-print-shadow: 0 1px 2px oklch(0 0 0 / 0.5), 0 10px 22px -10px oklch(0 0 0 / 0.8);
 }
 
 /* ---------- styles/week-review.css ---------- */
 
 :root {
-  --wr-hair: oklch(0.25 0.02 264 / 0.09);
-  --wr-shadow: 0 0 0 1px var(--wr-hair), 0 1px 1px oklch(0.25 0.02 264 / 0.03), 0 2px 5px -2px oklch(0.25 0.03 264 / 0.06), 0 14px 28px -18px oklch(0.25 0.04 264 / 0.18);
-  --wr-mood-1: oklch(0.6 0.15 25);
-  --wr-mood-2: oklch(0.7 0.13 60);
-  --wr-mood-3: oklch(0.78 0.1 95);
-  --wr-mood-4: oklch(0.68 0.12 160);
-  --wr-mood-5: oklch(0.6 0.15 200);
+  --wr-hair: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 82%, var(--theme-text-muted)) 9%, transparent);
+  --wr-shadow: 0 0 0 1px var(--wr-hair), 0 1px 1px color-mix(in oklab, var(--theme-text) 3%, transparent), 0 2px 5px -2px color-mix(in oklab, var(--theme-text) 6%, transparent), 0 14px 28px -18px color-mix(in oklab, color-mix(in oklab, var(--theme-text) 87%, var(--theme-accent)) 18%, transparent);
+  --wr-mood-1: color-mix(in oklab, oklch(0.6975 0.1891 25.8) 80%, var(--theme-text));
+  --wr-mood-2: color-mix(in oklab, oklch(0.8225 0.1652 60.4) 80%, var(--theme-text));
+  --wr-mood-3: color-mix(in oklab, oklch(0.9225 0.1279 94.7) 80%, var(--theme-text));
+  --wr-mood-4: color-mix(in oklab, oklch(0.7975 0.1508 158.9) 80%, var(--theme-text));
+  --wr-mood-5: color-mix(in oklab, oklch(0.6975 0.1862 199.2) 80%, var(--theme-text));
   --wr-person: var(--graph-person);
   --wr-place: var(--graph-place);
   --wr-rail: 200px;
 }
 
 :root:where([data-scheme="dark"]) {
-  --wr-hair: oklch(1 0 0 / 0.08);
+  --wr-hair: color-mix(in oklab, var(--theme-text) 8%, transparent);
   --wr-shadow: 0 0 0 1px var(--wr-hair), inset 0 1px 0 oklch(1 0 0 / 0.04), 0 2px 6px -2px oklch(0 0 0 / 0.4), 0 16px 32px -18px oklch(0 0 0 / 0.7);
-  --wr-mood-1: oklch(0.66 0.15 25);
-  --wr-mood-2: oklch(0.74 0.13 60);
-  --wr-mood-3: oklch(0.8 0.1 95);
-  --wr-mood-4: oklch(0.72 0.12 160);
-  --wr-mood-5: oklch(0.68 0.13 200);
-  --wr-person: oklch(0.72 0.14 264);
-  --wr-place: oklch(0.74 0.11 170);
+  --wr-mood-1: color-mix(in oklab, oklch(0.5875 0.1883 25.4) 80%, var(--theme-text));
+  --wr-mood-2: color-mix(in oklab, oklch(0.6875 0.1639 60.2) 80%, var(--theme-text));
+  --wr-mood-3: color-mix(in oklab, oklch(0.7625 0.1265 94.9) 80%, var(--theme-text));
+  --wr-mood-4: color-mix(in oklab, oklch(0.6625 0.1504 159.4) 80%, var(--theme-text));
+  --wr-mood-5: color-mix(in oklab, oklch(0.6125 0.1618 199.5) 80%, var(--theme-text));
+  --wr-person: color-mix(in oklab, oklch(0.6625 0.1735 264) 80%, var(--theme-text));
+  --wr-place: color-mix(in oklab, oklch(0.6875 0.1376 169.4) 80%, var(--theme-text));
 }
 
 :root {
   /* styles/answer.css */
-  --art-img-shadow: oklch(0.2 0.02 264 / 0.14);
+  --art-img-shadow: color-mix(in oklab, var(--theme-text) 14%, transparent);
   /* styles/ask-picture.css */
   --pic-zoom-bg: oklch(0.21 0.012 264 / 0.55);
   --pic-zoom-ink: oklch(0.985 0.003 264);
@@ -562,52 +602,52 @@
   --viewer-pdf-bg: #fff;
   --viewer-card-bg: oklch(1 0 0 / 0.06);
   /* styles/components.css */
-  --avatar-bg: 0.93 0.04;
-  --avatar-ink: 0.42 0.09;
-  --orb-shadow: oklch(0.5 0.2 262 / 0.6);
-  --orb-before-bg-1: oklch(0.52 0.22 266 / 0.85);
-  --orb-before-bg-2: oklch(0.9 0.1 172 / 0.45);
+  --avatar-bg: 0.9143 0.05;
+  --avatar-ink: 0.4725 0.1125;
+  --orb-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.4802 0.2601 253.7) 15%, color-mix(in oklab, var(--theme-accent) 95%, black)) 60%, transparent);
+  --orb-before-bg-1: color-mix(in oklab, color-mix(in oklab, oklch(0.4784 0.342 272.6) 15%, color-mix(in oklab, var(--theme-accent) 99.5%, black)) 85%, transparent);
+  --orb-before-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.882 0.125 171.5) 80%, var(--theme-page)) 45%, transparent);
   --orb-after-bg-1: oklch(1 0 0 / 0.78);
-  --orb-after-bg-2: oklch(0.3 0.15 268 / 0.45);
-  --orb-shadow-2: oklch(0.5 0.2 262 / 0.7);
+  --orb-after-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.228 0.3362 276) 15%, color-mix(in oklab, var(--theme-accent) 59%, black)) 45%, transparent);
+  --orb-shadow-2: color-mix(in oklab, color-mix(in oklab, oklch(0.4802 0.2601 253.7) 15%, color-mix(in oklab, var(--theme-accent) 95%, black)) 70%, transparent);
   --btn-danger-ink: oklch(0.99 0 0);
-  --switch-before-shadow: oklch(0.25 0.02 264 / 0.25);
+  --switch-before-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 82%, var(--theme-text-muted)) 25%, transparent);
   --logo-granola-bg: #b2c248;
-  --dir-btn-shadow: oklch(0.3 0.02 264 / 0.06);
-  --seg-item-true-shadow: oklch(0.3 0.02 264 / 0.08);
+  --dir-btn-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 59%, var(--theme-text-muted)) 6%, transparent);
+  --seg-item-true-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 59%, var(--theme-text-muted)) 8%, transparent);
   /* styles/context-menu.css */
   --cm-item-focus-ink: oklch(0.99 0 0);
   --cm-item-focus-ink-2: oklch(0.99 0 0 / 0.85);
   --cm-seg-opt-true-shadow: oklch(0 0 0 / 0.12);
   --cm-preview-shadow: oklch(0 0 0 / 0.35);
-  --cm-static-lift-shadow: oklch(0.2 0.02 264 / 0.4);
+  --cm-static-lift-shadow: color-mix(in oklab, var(--theme-text) 40%, transparent);
   /* styles/days-art.css */
-  --art-img-after-shadow: oklch(0.2 0.02 264 / 0.08);
+  --art-img-after-shadow: color-mix(in oklab, var(--theme-text) 8%, transparent);
   --art-img-loading-bg: oklch(1 0 0 / 0.14);
   --art-img-made-bg-1: oklch(1 0 0 / 0.16);
   --art-img-made-bg-2: oklch(0 0 0 / 0.08);
-  --daymap-frame-after-shadow: oklch(0.2 0.02 264 / 0.07);
-  --daymap-expand-shadow: oklch(0.2 0.02 264 / 0.12);
-  --daymap-invite-shadow-1: oklch(0.2 0.02 264 / 0.06);
-  --daymap-invite-shadow-2: oklch(0.2 0.02 264 / 0.18);
+  --daymap-frame-after-shadow: color-mix(in oklab, var(--theme-text) 7%, transparent);
+  --daymap-expand-shadow: color-mix(in oklab, var(--theme-text) 12%, transparent);
+  --daymap-invite-shadow-1: color-mix(in oklab, var(--theme-text) 6%, transparent);
+  --daymap-invite-shadow-2: color-mix(in oklab, var(--theme-text) 18%, transparent);
   --daymap-full-bg: oklch(0.25 0.012 264);
-  --ma-switch-item-true-shadow: oklch(0.2 0.02 264 / 0.1);
+  --ma-switch-item-true-shadow: color-mix(in oklab, var(--theme-text) 10%, transparent);
   /* styles/days.css */
   --art-shadow: oklch(0 0 0 / 0.06);
   --art-after-shadow: oklch(0 0 0 / 0.07);
   --photo-viewer-bg: oklch(0.12 0.01 264 / 0.96);
   --photo-viewer-ink: oklch(0.96 0.005 264);
   --icon-btn-bg: oklch(1 0 0 / 0.1);
-  --poster-art-shadow-1: oklch(0.2 0.02 264 / 0.08);
-  --poster-art-shadow-2: oklch(0.2 0.03 264 / 0.35);
-  --book-art-shadow-1: oklch(0.2 0.02 264 / 0.08);
-  --book-art-shadow-2: oklch(0.2 0.03 264 / 0.35);
+  --poster-art-shadow-1: color-mix(in oklab, var(--theme-text) 8%, transparent);
+  --poster-art-shadow-2: color-mix(in oklab, var(--theme-text) 35%, transparent);
+  --book-art-shadow-1: color-mix(in oklab, var(--theme-text) 8%, transparent);
+  --book-art-shadow-2: color-mix(in oklab, var(--theme-text) 35%, transparent);
   --cal-cell-ink: oklch(0.98 0 0);
   --cal-cell-after-bg: oklch(0.15 0.01 264 / 0.55);
   --mood-glyph-on: oklch(0.98 0 0);
   --mood-glyph-off: oklch(0.98 0 0 / 0.35);
-  --highlight-art-shadow-1: oklch(0.2 0.02 264 / 0.1);
-  --highlight-art-shadow-2: oklch(0.2 0.03 264 / 0.45);
+  --highlight-art-shadow-1: color-mix(in oklab, var(--theme-text) 10%, transparent);
+  --highlight-art-shadow-2: color-mix(in oklab, var(--theme-text) 45%, transparent);
   /* styles/health.css */
   --logo-bg: oklch(1 0 0);
   --hsrc-apple-bg: oklch(1 0 0);
@@ -615,14 +655,14 @@
   /* styles/home-ask.css */
   --team-report-badge-ink: white;
   /* styles/home-personal.css */
-  --moment-avatar-bg: 0.93 0.04;
-  --moment-avatar-ink: 0.42 0.09;
+  --moment-avatar-bg: 0.9143 0.05;
+  --moment-avatar-ink: 0.4725 0.1125;
   /* styles/music.css */
-  --mu-album-art-shadow: oklch(0.2 0.03 264 / 0.5);
-  --mu-sheet-art-shadow: oklch(0.2 0.03 264 / 0.5);
+  --mu-album-art-shadow: color-mix(in oklab, var(--theme-text) 50%, transparent);
+  --mu-sheet-art-shadow: color-mix(in oklab, var(--theme-text) 50%, transparent);
   /* styles/nav.css */
-  --lib-group-home-ink: oklch(0.45 0.09 170);
-  --lib-group-home-icon: oklch(0.45 0.09 170);
+  --lib-group-home-ink: color-mix(in oklab, oklch(0.51 0.1127 168.5) 80%, var(--theme-text));
+  --lib-group-home-icon: color-mix(in oklab, oklch(0.51 0.1127 168.5) 80%, var(--theme-text));
   /* styles/note-print.css */
   --print-page-bg: #fff;
   --print-body-bg: #fff;
@@ -637,32 +677,32 @@
   --print-note-accent: oklch(0.53 0.2 264);
   --print-note-accent-ink: oklch(0.45 0.19 264);
   /* styles/patterns.css */
-  --pcard-mood-p-accent: oklch(0.68 0.14 52);
+  --pcard-mood-p-accent: color-mix(in oklab, oklch(0.7975 0.1776 52.5) 80%, var(--theme-text));
   /* styles/record.css */
-  --avatar-hero-bg-1: 0.955 0.035;
-  --avatar-hero-bg-2: 0.87 0.075;
-  --avatar-hero-ink: 0.38 0.1;
+  --avatar-hero-bg-1: 0.9455 0.04375;
+  --avatar-hero-bg-2: 0.8392 0.09375;
+  --avatar-hero-ink: 0.4225 0.125;
   --avatar-hero-shadow-1: oklch(1 0 0 / 0.55);
   --avatar-hero-shadow-2: 0.45 0.12;
   --avatar-hero-shadow-2-a: 0.6;
   --avatar-ring-shadow: 0.45 0.12;
   --avatar-ring-shadow-a: 0.55;
-  --record-date-shadow: oklch(0.25 0.04 264 / 0.35);
-  --record-label-bg-1: 0.975 0.02;
-  --record-label-bg-2: 0.92 0.045;
-  --record-label-shadow-1: 0.975 0.02;
+  --record-date-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 87%, var(--theme-accent)) 35%, transparent);
+  --record-label-bg-1: 0.9705 0.025;
+  --record-label-bg-2: 0.9018 0.05625;
+  --record-label-shadow-1: 0.9705 0.025;
   --record-label-shadow-2: 0.6 0.08;
   --record-label-shadow-2-a: 0.35;
   --record-label-shadow-3: 0.4 0.1;
   --record-label-shadow-3-a: 0.6;
-  --record-label-ink: 0.42 0.1;
-  --story-card-hover-shadow: oklch(0.25 0.04 264 / 0.3);
+  --record-label-ink: 0.4725 0.125;
+  --story-card-hover-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-text) 87%, var(--theme-accent)) 30%, transparent);
   /* styles/rich-links.css */
   --rl-mark-default: #5a6170; /* a link's letter mark when its service has no colour of its own (editor/link-render.ts) */
   --rl-fav-ink: oklch(0.99 0 0);
   --rl-fav-shadow: oklch(0 0 0 / 0.08);
   --rl-media-shadow: black;
-  --rl-date-shadow: oklch(0.2 0.02 264 / 0.3);
+  --rl-date-shadow: color-mix(in oklab, var(--theme-text) 30%, transparent);
   --rl-date-m-ink: oklch(0.99 0 0);
   --rl-embed-stage-bg: oklch(0.18 0.01 264);
   --rl-embed-scrim-bg: oklch(0.1 0.01 264 / 0.55);
@@ -699,55 +739,55 @@
   --rl-menu-thumb-date-ink: oklch(0.99 0 0);
   --rl-menu-pin-shadow: oklch(1 0 0);
   /* styles/saved.css */
-  --sv-site-mark-bg: 0.93 0.04;
-  --sv-site-mark-ink: 0.42 0.1;
+  --sv-site-mark-bg: 0.9143 0.05;
+  --sv-site-mark-ink: 0.4725 0.125;
   /* styles/team-assign.css */
   --team-entry-count-ink: #fff;
   /* styles/todo-detail.css */
-  --tlink-tile-web-bg: 0.95 0.035;
-  --tlink-tile-web-ink: 0.45 0.1;
+  --tlink-tile-web-bg: 0.9392 0.04375;
+  --tlink-tile-web-ink: 0.51 0.125;
   /* styles/trips.css */
-  --booking-icon-ink: oklch(0.45 0.09 170);
+  --booking-icon-ink: color-mix(in oklab, oklch(0.51 0.1127 168.5) 80%, var(--theme-text));
   /* styles/voice.css */
   --logo-elevenlabs-bg: #0e0e10;
   --logo-elevenlabs-ink: #fff;
   --logo-elevenlabs-shadow: oklch(1 0 0 / 0.08);
   --talk-btn-wave-ink: oklch(1 0 0 / 0.94);
-  --talk-btn-wave-glow: oklch(0.3 0.16 266 / 0.55);
-  --orb-shadow-3: oklch(0.5 0.2 262 / 0.7);
-  --talk-bar-cool: oklch(0.6 0.11 200);
-  --talk-bar-cool-wash: oklch(0.95 0.035 195);
-  --talk-bar-cool-ink: oklch(0.47 0.09 210);
-  --talk-bar-glow-speak: oklch(0.72 0.16 258 / 0.5);
-  --talk-bar-glow-listen: oklch(0.82 0.09 192 / 0.55);
-  --talk-orb-listening-hi: oklch(0.94 0.06 188);
-  --talk-orb-listening-mid: oklch(0.68 0.12 210);
-  --talk-orb-listening-low: oklch(0.43 0.13 244);
-  --talk-orb-listening-sheen: oklch(0.95 0.07 172 / 0.8);
-  --talk-orb-speaking-hi: oklch(0.96 0.05 222);
-  --talk-orb-speaking-mid: oklch(0.63 0.21 258);
-  --talk-orb-speaking-low: oklch(0.4 0.2 266);
-  --talk-orb-speaking-sheen: oklch(0.96 0.08 205 / 0.95);
-  --talk-orb-paused-hi: oklch(0.94 0.012 250);
-  --talk-orb-paused-mid: oklch(0.72 0.03 256);
-  --talk-orb-paused-low: oklch(0.5 0.04 262);
-  --talk-orb-paused-sheen: oklch(0.97 0.01 230 / 0.55);
-  --talk-orb-paused-shadow: oklch(0.4 0.03 262 / 0.5);
+  --talk-btn-wave-glow: color-mix(in oklab, color-mix(in oklab, oklch(0.213 0.3934 269.4) 15%, color-mix(in oklab, var(--theme-accent) 59.5%, black)) 55%, transparent);
+  --orb-shadow-3: color-mix(in oklab, color-mix(in oklab, oklch(0.4802 0.2601 253.7) 15%, color-mix(in oklab, var(--theme-accent) 95%, black)) 70%, transparent);
+  --talk-bar-cool: color-mix(in oklab, oklch(0.6975 0.1362 198.9) 80%, var(--theme-text));
+  --talk-bar-cool-wash: color-mix(in oklab, oklch(0.9392 0.0436 194.4) 80%, var(--theme-surface));
+  --talk-bar-cool-ink: color-mix(in oklab, oklch(0.535 0.1108 208.7) 80%, var(--theme-text));
+  --talk-bar-glow-speak: color-mix(in oklab, color-mix(in oklab, oklch(0.7979 0.3697 246.4) 15%, color-mix(in oklab, var(--theme-accent) 62.5%, white)) 50%, transparent);
+  --talk-bar-glow-listen: color-mix(in oklab, color-mix(in oklab, oklch(0.9725 0.1116 190.5) 80%, var(--theme-text)) 55%, transparent);
+  --talk-orb-listening-hi: color-mix(in oklab, oklch(0.9784 0.063 187.4) 95%, var(--theme-text));
+  --talk-orb-listening-mid: color-mix(in oklab, oklch(0.7975 0.1483 209.1) 80%, var(--theme-text));
+  --talk-orb-listening-low: color-mix(in oklab, oklch(0.485 0.1597 243.6) 80%, var(--theme-text));
+  --talk-orb-listening-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.9889 0.0737 171.5) 95%, var(--theme-text)) 80%, transparent);
+  --talk-orb-speaking-hi: color-mix(in oklab, oklch(0.9997 0.2604 205.1) 15%, color-mix(in oklab, var(--theme-accent) 10%, white));
+  --talk-orb-speaking-mid: color-mix(in oklab, oklch(0.7306 0.4802 246.3) 15%, color-mix(in oklab, var(--theme-accent) 82.5%, white));
+  --talk-orb-speaking-low: color-mix(in oklab, oklch(0.309 0.4453 270) 15%, color-mix(in oklab, var(--theme-accent) 78.5%, black));
+  --talk-orb-speaking-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.9818 0.2451 195.1) 30%, color-mix(in oklab, var(--theme-accent) 10.5%, white)) 95%, transparent);
+  --talk-orb-paused-hi: color-mix(in oklab, var(--theme-accent) 3.5%, var(--theme-sunken));
+  --talk-orb-paused-mid: color-mix(in oklab, oklch(0.5531 0.3099 89.2) 15%, color-mix(in oklab, var(--theme-accent) 43%, var(--theme-border)));
+  --talk-orb-paused-low: color-mix(in oklab, oklch(0.7465 0.0926 89.8) 15%, color-mix(in oklab, var(--theme-accent) 26.5%, var(--theme-text-muted)));
+  --talk-orb-paused-sheen: color-mix(in oklab, color-mix(in oklab, var(--theme-accent) 0.5%, var(--theme-page)) 55%, transparent);
+  --talk-orb-paused-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.23 0.1207 260.7) 15%, var(--theme-text-muted)) 50%, transparent);
   /* styles/watch.css */
-  --watch-switch-item-true-shadow: oklch(0.2 0.02 264 / 0.1);
-  --art-img-shadow-1: oklch(0.2 0.02 264 / 0.1);
-  --art-img-shadow-2: oklch(0.2 0.02 264 / 0.28);
-  --watch-card-act-shadow-1: oklch(0.2 0.02 264 / 0.16);
-  --watch-card-act-shadow-2: oklch(0.2 0.02 264 / 0.35);
+  --watch-switch-item-true-shadow: color-mix(in oklab, var(--theme-text) 10%, transparent);
+  --art-img-shadow-1: color-mix(in oklab, var(--theme-text) 10%, transparent);
+  --art-img-shadow-2: color-mix(in oklab, var(--theme-text) 28%, transparent);
+  --watch-card-act-shadow-1: color-mix(in oklab, var(--theme-text) 16%, transparent);
+  --watch-card-act-shadow-2: color-mix(in oklab, var(--theme-text) 35%, transparent);
   --watch-card-len-bg: oklch(0.16 0.01 264 / 0.78);
   --watch-card-len-ink: oklch(0.98 0 0);
-  --watch-season: oklch(0.62 0.11 150);
-  --watch-season-halloween: oklch(0.7 0.14 55);
-  --watch-season-valentines: oklch(0.65 0.14 12);
-  --watch-season-summer: oklch(0.78 0.13 85);
+  --watch-season: color-mix(in oklab, oklch(0.7225 0.1387 148.9) 80%, var(--theme-text));
+  --watch-season-halloween: color-mix(in oklab, oklch(0.8225 0.1776 55.5) 80%, var(--theme-text));
+  --watch-season-valentines: color-mix(in oklab, oklch(0.76 0.176 12.9) 80%, var(--theme-text));
+  --watch-season-summer: color-mix(in oklab, oklch(0.9225 0.1655 85) 80%, var(--theme-text));
   /* styles/week-moment.css */
-  --wm-choice-art-shadow: oklch(0.2 0.03 264 / 0.5);
-  --wm-choice-art-shadow-2: oklch(0.2 0.05 264 / 0.55);
+  --wm-choice-art-shadow: color-mix(in oklab, var(--theme-text) 50%, transparent);
+  --wm-choice-art-shadow-2: color-mix(in oklab, color-mix(in oklab, black 64%, var(--theme-accent)) 55%, transparent);
   --cal-cell-ink-2: oklch(0.98 0 0);
   --cal-cell-after-bg-2: oklch(0.15 0.01 264 / 0.55);
   --cal-num-on: oklch(0.98 0 0);
@@ -758,11 +798,11 @@
   --wr-person-avatar-ink: oklch(0.99 0.004 264);
   --wr-tick-box-ink: oklch(0.99 0.004 160);
   --wr-strip-day-ink: oklch(0.99 0.004 170);
-  --wr-cover-art-shadow: oklch(0.2 0.03 264 / 0.5);
+  --wr-cover-art-shadow: color-mix(in oklab, var(--theme-text) 50%, transparent);
   --wr-open-mark-ink: oklch(0.99 0.004 160);
-  --wr-catchup-avatar-bg: 0.93 0.04;
-  --wr-catchup-avatar-shadow: 0.85 0.06;
-  --wr-catchup-avatar-ink: 0.42 0.09;
+  --wr-catchup-avatar-bg: 0.9143 0.05;
+  --wr-catchup-avatar-shadow: 0.8142 0.075;
+  --wr-catchup-avatar-ink: 0.4725 0.1125;
   /* team/kit/avatar.css */
   --kit-tile-line: #22262e;
   /* team/kit/wardrobe.css */
@@ -773,45 +813,99 @@
   /* styles/ask-picture.css */
   --pic-slot-frame-shine: oklch(1 0 0 / 0.06);
   /* styles/components.css */
-  --avatar-bg: 0.33 0.05;
-  --avatar-ink: 0.87 0.07;
+  --avatar-bg: 0.3613 0.0625;
+  --avatar-ink: 0.85 0.0875;
   /* styles/home-personal.css */
-  --moment-avatar-bg: 0.33 0.05;
-  --moment-avatar-ink: 0.87 0.07;
+  --moment-avatar-bg: 0.3613 0.0625;
+  --moment-avatar-ink: 0.85 0.0875;
   /* styles/nav.css */
-  --lib-group-home-ink: oklch(0.8 0.08 170);
-  --lib-group-home-icon: oklch(0.8 0.08 170);
+  --lib-group-home-ink: color-mix(in oklab, oklch(0.7625 0.1001 169.1) 80%, var(--theme-text));
+  --lib-group-home-icon: color-mix(in oklab, oklch(0.7625 0.1001 169.1) 80%, var(--theme-text));
   /* styles/patterns.css */
-  --pcard-mood-p-accent: oklch(0.74 0.13 58);
+  --pcard-mood-p-accent: color-mix(in oklab, oklch(0.6875 0.1638 58.2) 80%, var(--theme-text));
   /* styles/record.css */
-  --avatar-hero-bg-1: 0.42 0.07;
-  --avatar-hero-bg-2: 0.3 0.05;
-  --avatar-hero-ink: 0.92 0.05;
+  --avatar-hero-bg-1: 0.4738 0.0875;
+  --avatar-hero-bg-2: 0.3237 0.0625;
+  --avatar-hero-ink: 0.9125 0.0625;
   --avatar-hero-shadow-1: oklch(1 0 0 / 0.08);
   --avatar-ring-shadow-dark: oklch(0 0 0 / 0.7);
-  --record-label-bg-1: 0.36 0.05;
-  --record-label-bg-2: 0.27 0.04;
-  --record-label-shadow-1: 0.36 0.05;
+  --record-label-bg-1: 0.3987 0.0625;
+  --record-label-bg-2: 0.2863 0.05;
+  --record-label-shadow-1: 0.3987 0.0625;
   --record-label-shadow-2: 0.8 0.06;
   --record-label-shadow-2-a: 0.3;
   --record-label-shadow-3-dark: oklch(0 0 0 / 0.7);
-  --record-label-ink: 0.9 0.05;
+  --record-label-ink: 0.8875 0.0625;
   /* styles/saved.css */
-  --sv-site-mark-bg: 0.32 0.06;
-  --sv-site-mark-ink: 0.86 0.08;
+  --sv-site-mark-bg: 0.3488 0.075;
+  --sv-site-mark-ink: 0.8375 0.1;
   /* styles/todo-detail.css */
-  --tlink-tile-web-bg: 0.3 0.045;
-  --tlink-tile-web-ink: 0.86 0.08;
+  --tlink-tile-web-bg: 0.3237 0.05625;
+  --tlink-tile-web-ink: 0.8375 0.1;
   /* styles/trips.css */
-  --booking-icon-ink: oklch(0.82 0.08 170);
+  --booking-icon-ink: color-mix(in oklab, oklch(0.7875 0.1001 169.1) 80%, var(--theme-text));
   /* styles/voice.css */
-  --talk-bar-cool: oklch(0.78 0.1 195);
-  --talk-bar-cool-wash: oklch(0.3 0.05 200);
-  --talk-bar-cool-ink: oklch(0.84 0.08 195);
-  --talk-bar-glow-speak: oklch(0.6 0.18 262 / 0.5);
-  --talk-bar-glow-listen: oklch(0.62 0.1 195 / 0.42);
+  --talk-bar-cool: color-mix(in oklab, oklch(0.7375 0.1245 194.4) 80%, var(--theme-text));
+  --talk-bar-cool-wash: color-mix(in oklab, oklch(0.3237 0.0612 197.5) 80%, var(--theme-surface));
+  --talk-bar-cool-ink: color-mix(in oklab, oklch(0.8125 0.0995 194.2) 80%, var(--theme-text));
+  --talk-bar-glow-speak: color-mix(in oklab, color-mix(in oklab, oklch(0.549 0.4617 258.8) 15%, color-mix(in oklab, var(--theme-accent) 87%, black)) 50%, transparent);
+  --talk-bar-glow-listen: color-mix(in oklab, color-mix(in oklab, oklch(0.5375 0.1245 194.4) 80%, var(--theme-text)) 42%, transparent);
   /* styles/week-review.css */
-  --wr-catchup-avatar-bg: 0.33 0.05;
-  --wr-catchup-avatar-shadow: 0.45 0.07;
-  --wr-catchup-avatar-ink: 0.88 0.06;
+  --wr-catchup-avatar-bg: 0.3613 0.0625;
+  --wr-catchup-avatar-shadow: 0.5112 0.0875;
+  --wr-catchup-avatar-ink: 0.8625 0.075;
+  --art-img-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 14%, transparent);
+  --orb-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.398 0.7051 260.2) 15%, color-mix(in oklab, var(--theme-accent) 74%, black)) 60%, transparent);
+  --orb-before-bg-1: color-mix(in oklab, color-mix(in oklab, oklch(0.3925 0.8086 267.6) 15%, color-mix(in oklab, var(--theme-accent) 77.5%, black)) 85%, transparent);
+  --orb-before-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.9817 0.1112 171.4) 90%, var(--theme-page)) 45%, transparent);
+  --orb-after-bg-2: color-mix(in oklab, color-mix(in oklab, oklch(0.1952 0.6148 270.5) 15%, color-mix(in oklab, var(--theme-accent) 45.5%, black)) 45%, transparent);
+  --orb-shadow-2: color-mix(in oklab, color-mix(in oklab, oklch(0.398 0.7051 260.2) 15%, color-mix(in oklab, var(--theme-accent) 74%, black)) 70%, transparent);
+  --switch-before-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-surface) 47%, var(--theme-border)) 25%, transparent);
+  --dir-btn-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-border) 98%, var(--theme-text-muted)) 6%, transparent);
+  --seg-item-true-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-border) 98%, var(--theme-text-muted)) 8%, transparent);
+  --cm-static-lift-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 40%, transparent);
+  --art-img-after-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 8%, transparent);
+  --daymap-frame-after-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 7%, transparent);
+  --daymap-expand-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 12%, transparent);
+  --daymap-invite-shadow-1: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 6%, transparent);
+  --daymap-invite-shadow-2: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 18%, transparent);
+  --ma-switch-item-true-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 10%, transparent);
+  --poster-art-shadow-1: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 8%, transparent);
+  --poster-art-shadow-2: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 10%, var(--theme-surface)) 35%, transparent);
+  --book-art-shadow-1: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 8%, transparent);
+  --book-art-shadow-2: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 10%, var(--theme-surface)) 35%, transparent);
+  --highlight-art-shadow-1: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 10%, transparent);
+  --highlight-art-shadow-2: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 93%, var(--theme-accent)) 45%, transparent);
+  --mu-album-art-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 93%, var(--theme-accent)) 50%, transparent);
+  --mu-sheet-art-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 93%, var(--theme-accent)) 50%, transparent);
+  --record-date-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 84%, var(--theme-accent)) 35%, transparent);
+  --story-card-hover-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 84%, var(--theme-accent)) 30%, transparent);
+  --rl-date-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 30%, transparent);
+  --talk-btn-wave-glow: color-mix(in oklab, color-mix(in oklab, oklch(0.1952 0.6803 267.1) 15%, color-mix(in oklab, var(--theme-accent) 45.5%, black)) 55%, transparent);
+  --orb-shadow-3: color-mix(in oklab, color-mix(in oklab, oklch(0.398 0.7051 260.2) 15%, color-mix(in oklab, var(--theme-accent) 74%, black)) 70%, transparent);
+  --talk-orb-listening-hi: color-mix(in oklab, oklch(0.9375 0.0747 186.9) 80%, var(--theme-text));
+  --talk-orb-listening-mid: color-mix(in oklab, oklch(0.6125 0.1491 209.5) 80%, var(--theme-text));
+  --talk-orb-listening-low: color-mix(in oklab, oklch(0.3 0.1611 243.8) 80%, var(--theme-text));
+  --talk-orb-listening-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.95 0.0876 171) 80%, var(--theme-text)) 80%, transparent);
+  --talk-orb-speaking-hi: color-mix(in oklab, oklch(0.9968 0.2514 201.5) 15%, color-mix(in oklab, var(--theme-accent) 15.5%, white));
+  --talk-orb-speaking-mid: color-mix(in oklab, oklch(0.5507 0.6276 250.5) 15%, color-mix(in oklab, var(--theme-accent) 92%, black));
+  --talk-orb-speaking-low: color-mix(in oklab, oklch(0.2668 0.8196 267.3) 15%, color-mix(in oklab, var(--theme-accent) 60.5%, black));
+  --talk-orb-speaking-sheen: color-mix(in oklab, color-mix(in oklab, oklch(0.9787 0.2426 193.6) 30%, color-mix(in oklab, var(--theme-accent) 16%, white)) 95%, transparent);
+  --talk-orb-paused-hi: color-mix(in oklab, var(--theme-accent) 4%, var(--theme-text));
+  --talk-orb-paused-mid: color-mix(in oklab, oklch(0.4891 0.1197 97.4) 15%, color-mix(in oklab, var(--theme-accent) 32.5%, var(--theme-text-muted)));
+  --talk-orb-paused-low: color-mix(in oklab, oklch(0.5748 0.1771 87) 15%, color-mix(in oklab, var(--theme-accent) 48%, var(--theme-border)));
+  --talk-orb-paused-sheen: color-mix(in oklab, color-mix(in oklab, var(--theme-accent) 9%, white) 55%, transparent);
+  --talk-orb-paused-shadow: color-mix(in oklab, color-mix(in oklab, oklch(0.4309 0.0679 89.9) 15%, color-mix(in oklab, var(--theme-accent) 25.5%, var(--theme-border))) 50%, transparent);
+  --watch-switch-item-true-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 10%, transparent);
+  --art-img-shadow-1: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 10%, transparent);
+  --art-img-shadow-2: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 28%, transparent);
+  --watch-card-act-shadow-1: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 16%, transparent);
+  --watch-card-act-shadow-2: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 11.5%, var(--theme-surface)) 35%, transparent);
+  --watch-season: color-mix(in oklab, oklch(0.5375 0.1381 149.4) 80%, var(--theme-text));
+  --watch-season-halloween: color-mix(in oklab, oklch(0.6375 0.1763 55.2) 80%, var(--theme-text));
+  --watch-season-valentines: color-mix(in oklab, oklch(0.575 0.1755 12.5) 80%, var(--theme-text));
+  --watch-season-summer: color-mix(in oklab, oklch(0.7375 0.164 85) 80%, var(--theme-text));
+  --wm-choice-art-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 93%, var(--theme-accent)) 50%, transparent);
+  --wm-choice-art-shadow-2: color-mix(in oklab, color-mix(in oklab, black 71%, var(--theme-accent)) 55%, transparent);
+  --wr-cover-art-shadow: color-mix(in oklab, color-mix(in oklab, var(--theme-page) 93%, var(--theme-accent)) 50%, transparent);
 }

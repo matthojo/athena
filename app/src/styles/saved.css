@@ -60,7 +60,7 @@
 /* Masonry by columns: cards keep their own height, and read top to bottom in each column. */
 .sv-grid {
   columns: 2;
-  column-gap: 10px;
+  column-gap: var(--space-xs-sm);
 }
 
 @media (min-width: 560px) {
@@ -82,7 +82,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-xs-sm);
   break-inside: avoid;
   text-align: left;
   border-radius: var(--radius-md);
@@ -122,14 +122,14 @@
 .sv-card__body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: var(--space-sm) 13px 13px;
+  gap: var(--space-2xs-xs);
+  padding: var(--space-sm) calc(13 * var(--space-px)) calc(13 * var(--space-px));
   min-width: 0;
 }
 
 .sv-card__body--tight {
   gap: var(--space-2xs);
-  padding: 10px var(--space-sm) 11px;
+  padding: var(--space-xs-sm) var(--space-sm) calc(11 * var(--space-px));
 }
 
 .sv-card__title {
@@ -170,12 +170,12 @@
 
 .sv-card__note {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   align-items: flex-start;
   font-size: var(--text-meta);
   line-height: 1.45;
   color: var(--ink-2);
-  padding: 6px var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--sunken);
 }
@@ -200,7 +200,7 @@
   line-height: 1.5;
   color: var(--ink-2);
   border-left: 0;
-  padding: 6px var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--accent-wash);
 }
@@ -218,7 +218,7 @@
 .sv-site {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
@@ -235,8 +235,8 @@
   font-size: var(--text-micro);
   font-weight: var(--weight-semibold);
   line-height: 1;
-  background: oklch(var(--sv-site-mark-bg) var(--hue, 264));
-  color: oklch(var(--sv-site-mark-ink) var(--hue, 264));
+  background: color-mix(in oklab, oklch(var(--sv-site-mark-bg) var(--hue, 264)) 80%, var(--surface));
+  color: color-mix(in oklab, oklch(var(--sv-site-mark-ink) var(--hue, 264)) 80%, var(--ink));
 }
 
 .sv-site__name {
@@ -282,7 +282,7 @@
 /* Quotes: the words carry the card. */
 .sv-quote {
   gap: var(--space-xs);
-  padding: 14px 14px 13px;
+  padding: var(--space-sm-md) var(--space-sm-md) calc(13 * var(--space-px));
 }
 
 .sv-quote__mark {
@@ -317,7 +317,7 @@
   display: block;
   max-height: 9.5em;
   overflow: hidden;
-  padding: 9px 10px;
+  padding: calc(9 * var(--space-px)) var(--space-xs-sm);
   border-radius: var(--radius-xs);
   background: var(--sunken);
   font-family: var(--font-mono);
@@ -377,7 +377,7 @@
 }
 
 .sv-back {
-  margin-left: -6px;
+  margin-left: calc(-1 * var(--space-2xs-xs));
 }
 
 .sv-actions {
@@ -400,7 +400,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2xs);
-  padding: 10px 14px 6px;
+  padding: var(--space-xs-sm) var(--space-sm-md) var(--space-2xs-xs);
   border-radius: var(--radius-sm);
   background: var(--sunken);
 }
@@ -408,7 +408,7 @@
 .sv-note__label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
   color: var(--ink-2);
@@ -528,7 +528,7 @@
 
 .sv-reader__pre {
   overflow-x: auto;
-  padding: var(--space-sm) 14px;
+  padding: var(--space-sm) var(--space-sm-md);
   border-radius: var(--radius-sm);
   background: var(--sunken);
   font-family: var(--font-mono);
@@ -549,7 +549,7 @@
   line-height: var(--leading-body);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .sv-reader__none-sub {
@@ -645,7 +645,7 @@
 .sv-quote-card__by {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding-top: var(--space-xs);
   font-size: var(--text-small);
   color: var(--ink-2);
@@ -676,7 +676,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .sv-shared__title {
@@ -883,14 +883,14 @@
 
 .sv-card__filed {
   display: block;
-  padding: 0 13px var(--space-sm);
-  margin-top: -4px;
+  padding: 0 calc(13 * var(--space-px)) var(--space-sm);
+  margin-top: calc(-1 * var(--space-2xs));
 }
 
 .sva-filed {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
   font-size: var(--text-meta);
   color: var(--ink-3);
@@ -932,8 +932,8 @@ a.sva-filed__where:hover {
 
 .sva-quick {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: var(--space-xs);
+  right: var(--space-xs);
   display: grid;
   place-items: center;
   width: 34px;
@@ -979,7 +979,7 @@ a.sva-filed__where:hover {
 .sva-panel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 56px;
 }
 
@@ -996,7 +996,7 @@ a.sva-filed__where:hover {
   gap: var(--space-sm);
   width: 100%;
   min-height: 60px;
-  padding: 10px 14px 10px 10px;
+  padding: var(--space-xs-sm) var(--space-sm-md) var(--space-xs-sm) var(--space-xs-sm);
   text-align: left;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
@@ -1073,7 +1073,7 @@ a.sva-filed__where:hover {
 }
 
 .sva-more {
-  margin-left: -8px;
+  margin-left: calc(-1 * var(--space-xs));
   color: var(--ink-2);
 }
 
@@ -1084,8 +1084,8 @@ a.sva-filed__where:hover {
 
 /* Filed: where it went, and Put back. */
 .sva-panel.is-filed .sva-filed {
-  gap: 10px;
-  padding: 10px 10px 10px 14px;
+  gap: var(--space-xs-sm);
+  padding: var(--space-xs-sm) var(--space-xs-sm) var(--space-xs-sm) var(--space-sm-md);
   border-radius: var(--radius-md);
   background: var(--sunken);
   font-size: var(--text-small);
@@ -1167,8 +1167,8 @@ a.sva-filed__where:hover {
   align-items: center;
   gap: var(--space-sm);
   min-height: 52px;
-  padding: 6px 10px 6px 6px;
-  margin: 0 -6px;
+  padding: var(--space-2xs-xs) var(--space-xs-sm) var(--space-2xs-xs) var(--space-2xs-xs);
+  margin: 0 calc(-1 * var(--space-2xs-xs));
   text-align: left;
   border-radius: var(--radius-sm);
   color: var(--ink);
@@ -1235,7 +1235,7 @@ a.sva-filed__where:hover {
 .sva-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .sva-field__label {

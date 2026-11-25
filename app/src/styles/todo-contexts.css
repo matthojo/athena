@@ -26,7 +26,7 @@
 .ctx-tag {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5 * var(--space-px));
   white-space: nowrap;
   color: var(--ink-3);
 }
@@ -67,8 +67,8 @@
 
 .chip--menu {
   height: 30px;
-  padding: 0 var(--space-xs) 0 11px;
-  gap: 6px;
+  padding: 0 var(--space-xs) 0 calc(11 * var(--space-px));
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   color: var(--ink-2);
   background: transparent;
@@ -118,7 +118,7 @@
 .ctx-menu .menu__item .ctx-dot {
   width: 9px;
   height: 9px;
-  margin-inline: 4.5px;
+  margin-inline: calc(4.5 * var(--space-px));
 }
 
 .ctx-menu .menu__label {
@@ -135,13 +135,13 @@
 .ctx-group {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: calc(7 * var(--space-px));
 }
 
 /* ---------- the sheet's pickers ---------- */
 
 .ctx-picker {
-  margin-block: -4px;
+  margin-block: calc(-1 * var(--space-2xs));
 }
 
 .ctx-chip svg {
@@ -178,7 +178,7 @@
 .ctx-by-athena {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5 * var(--space-px));
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -205,7 +205,7 @@
   flex-wrap: wrap;
   overflow: visible;
   margin: 0;
-  padding: 3px 0;
+  padding: calc(3 * var(--space-px)) 0;
   -webkit-mask-image: none;
   mask-image: none;
 }
@@ -220,7 +220,7 @@
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
     min-height: 0;
-    gap: 6px;
+    gap: var(--space-2xs-xs);
     padding: var(--space-sm) var(--space-md) var(--space-md);
   }
 
@@ -267,7 +267,7 @@
 
 .ctx-settings__lede,
 .ctx-settings__empty {
-  margin: -4px 0 var(--space-2xs);
+  margin: calc(-1 * var(--space-2xs)) 0 var(--space-2xs);
   font-size: var(--text-small);
   color: var(--ink-3);
 }

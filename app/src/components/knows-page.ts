@@ -158,7 +158,7 @@ export function knowsSection(): { el: HTMLElement; destroy: () => void } {
   }
 
   list.replaceChildren(
-    h("div", { class: "card card--flush list" }, ...[0, 1, 2].map(() => h("div", { class: "row" }, h("span", { class: "row__body" }, h("span", { class: "skeleton", style: "height:12px;width:40%" }), h("span", { class: "skeleton", style: "height:14px;width:65%;margin-top:6px" })))))
+    h("div", { class: "card card--flush list" }, ...[0, 1, 2].map(() => h("div", { class: "row" }, h("span", { class: "row__body" }, h("span", { class: "skeleton", style: "height:12px;width:40%" }), h("span", { class: "skeleton", style: "height:14px;width:65%;margin-top:var(--space-2xs-xs)" })))))
   );
   void load();
   // Ask remembering something, or a change in About you, shows here too. Not while an edit is open.

@@ -12,7 +12,7 @@
   align-items: center;
   gap: var(--space-xs);
   min-height: 56px;
-  padding: 6px 6px 6px 10px;
+  padding: var(--space-2xs-xs) var(--space-2xs-xs) var(--space-2xs-xs) var(--space-xs-sm);
   border-radius: var(--radius-pill);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -63,9 +63,9 @@
 .home-ask__team {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 32px;
-  padding: 0 var(--space-xs) 0 10px;
+  padding: 0 var(--space-xs) 0 var(--space-xs-sm);
   border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: var(--surface);
@@ -83,7 +83,7 @@
 .home-ask__team::after {
   content: "";
   position: absolute;
-  inset: -6px 0;
+  inset: -6px 0; /* fixed: touch */
 }
 
 .home-ask__team svg {
@@ -125,7 +125,7 @@
 /* The chips scroll sideways on a phone rather than wrapping, so Home below doesn't move. */
 .home-ask__who {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   overflow-x: auto;
   scrollbar-width: none;
   margin-inline: calc(-1 * var(--space-md));
@@ -141,9 +141,9 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 44px;
-  padding: 0 14px 0 6px;
+  padding: 0 var(--space-sm-md) 0 var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: var(--surface);
@@ -194,8 +194,8 @@
 /* On a job: the breathing dot (styles/team-pulse.css), in its colour, on the chip's face. */
 .home-ask__busy {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
+  right: -2px; /* fixed: icon */
+  bottom: -2px; /* fixed: icon */
   --team-dot: 9px;
   box-shadow: 0 0 0 2px var(--surface);
 }
@@ -221,7 +221,7 @@
 }
 
 .home-ask__about-dot {
-  margin-right: 7px;
+  margin-right: calc(7 * var(--space-px));
   vertical-align: 1px;
 }
 
@@ -239,7 +239,7 @@
 
 @media (min-width: 640px) {
   .home-ask__who-wrap {
-    --edge: 8px;
+    --edge: var(--space-xs);
   }
 
   .home-ask__who {
@@ -264,7 +264,7 @@
 .new-note-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 44px;
   padding: 0 var(--space-md) 0 var(--space-sm);
   border-radius: var(--radius-pill);
@@ -337,7 +337,7 @@
   align-items: flex-start;
   gap: var(--space-sm);
   min-width: 0;
-  padding: 14px var(--space-2xs) 14px 14px;
+  padding: var(--space-sm-md) var(--space-2xs) var(--space-sm-md) var(--space-sm-md);
   text-align: start;
   color: inherit;
   text-decoration: none;
@@ -377,7 +377,7 @@
 .team-report__face.is-working::after {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: -3px; /* fixed: icon */
   border-radius: var(--kit-ring-r);
   border: 1.5px solid color-mix(in oklch, var(--who, var(--accent)) 70%, transparent);
   animation: team-ring var(--dur-pulse) var(--ease-in-out) infinite alternate;
@@ -431,20 +431,20 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-xs) 10px;
-  padding: 0 14px 14px calc(14px + 40px + 12px);
+  gap: var(--space-xs) var(--space-xs-sm);
+  padding: 0 var(--space-sm-md) var(--space-sm-md) calc(var(--space-sm-md) + 40px + var(--space-sm));
 }
 
 @media (max-width: 479px) {
   .team-report__foot {
-    padding-left: 14px;
+    padding-left: var(--space-sm-md);
   }
 }
 
 .team-report__waiting {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin-top: var(--space-2xs);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -470,7 +470,7 @@
 
 .team-report__line {
   align-items: center;
-  padding-block: 10px;
+  padding-block: var(--space-xs-sm);
 }
 
 .team-report__line .row__chevron {
@@ -485,7 +485,7 @@
 
 .team-report__line + .team-report__close,
 .team-report__row:not(.is-full) .team-report__close {
-  margin-top: 10px;
+  margin-top: var(--space-xs-sm);
 }
 
 .team-report__badge {
@@ -494,7 +494,7 @@
   place-items: center;
   min-width: 20px;
   height: 20px;
-  padding: 0 6px;
+  padding: 0 var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--team-report-badge-ink);
@@ -513,7 +513,7 @@
 
 .team-report__working {
   align-items: center;
-  padding: 10px 14px;
+  padding: var(--space-xs-sm) var(--space-sm-md);
   border-radius: 0;
 }
 
@@ -537,7 +537,7 @@
 
 /* The breathing dot, in the character's colour (styles/team-pulse.css), before what it's doing. */
 .team-report__dot {
-  margin-right: 7px;
+  margin-right: calc(7 * var(--space-px));
   vertical-align: 1px;
 }
 
@@ -646,7 +646,7 @@
 }
 
 .team-report__faces > * + * {
-  margin-left: -8px;
+  margin-left: -8px; /* fixed: icon */
 }
 
 .team-report__line-text {

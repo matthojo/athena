@@ -110,7 +110,7 @@
   inset: auto;
   margin: 0;
   width: 320px;
-  padding: 6px;
+  padding: var(--space-2xs-xs);
   animation: pop-in var(--dur-base) var(--ease-out-expo);
 }
 
@@ -124,7 +124,7 @@
   max-width: 100%;
   min-width: 0;
   min-height: 44px;
-  padding: var(--space-2xs) 10px var(--space-2xs) 6px;
+  padding: var(--space-2xs) var(--space-xs-sm) var(--space-2xs) var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   text-align: left;
   transition:
@@ -180,7 +180,7 @@
 }
 
 .ask-who__dot {
-  margin-right: 6px;
+  margin-right: var(--space-2xs-xs);
   vertical-align: 1px;
 }
 
@@ -212,7 +212,7 @@
   }
 
   .ask .ask-who {
-    margin-left: -6px;
+    margin-left: calc(-1 * var(--space-2xs-xs));
   }
 }
 
@@ -231,16 +231,16 @@
 .who-lead {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: var(--space-2xs-xs);
+  margin-bottom: var(--space-2xs-xs);
 }
 
 .who-pill {
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
-  padding: 3px 10px;
+  padding: calc(3 * var(--space-px)) var(--space-xs-sm);
   /* Round on one line; a soft card when a long step takes a second (it's never cut short). */
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -280,16 +280,16 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin: 0 0 var(--space-xs);
 }
 
 .checked-with__btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 32px;
-  padding: var(--space-2xs) 10px var(--space-2xs) 5px;
+  padding: var(--space-2xs) var(--space-xs-sm) var(--space-2xs) calc(5 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink-2);
@@ -306,7 +306,7 @@
 .checked-with__btn::before {
   content: "";
   position: absolute;
-  inset: -6px 0;
+  inset: -6px 0; /* fixed: touch */
 }
 
 .checked-with__btn:active {
@@ -352,7 +352,7 @@
 
 .who-filter {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   overflow-x: auto;
   scrollbar-width: none;
   padding: var(--space-3xs) var(--space-2xs) var(--space-xs);
@@ -367,9 +367,9 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 36px;
-  padding-left: 6px;
+  padding-left: var(--space-2xs-xs);
 }
 
 .who-filter__chip[aria-pressed="true"] {
@@ -453,7 +453,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
-  margin-top: 6px;
+  margin-top: var(--space-2xs-xs);
   min-height: 32px;
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -478,7 +478,7 @@
 .who-mark.is-working::after {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: -3px; /* fixed: icon */
   border-radius: var(--kit-ring-r, 50%);
   border: 1.5px solid color-mix(in oklch, var(--who, var(--accent)) 70%, transparent);
   animation: team-ring var(--dur-pulse) var(--ease-in-out) infinite alternate;
@@ -546,7 +546,7 @@
 }
 
 .who-recent__title {
-  margin: 0 0 6px var(--space-2xs);
+  margin: 0 0 var(--space-2xs-xs) var(--space-2xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
   color: var(--ink-3);
@@ -569,7 +569,7 @@
   gap: var(--space-sm);
   width: 100%;
   min-height: 44px;
-  padding: 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-sm);
   border-radius: var(--radius-md);
   text-align: start;
   color: var(--ink);
@@ -593,7 +593,7 @@
 .who-recent__item[data-working] .who-recent__when {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   align-self: start;
   color: var(--ink);
   font-weight: var(--weight-medium);

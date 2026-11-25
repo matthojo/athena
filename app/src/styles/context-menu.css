@@ -67,7 +67,7 @@
   max-height: calc(100dvh - 16px);
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 5px;
+  padding: calc(5 * var(--space-px));
   border-radius: var(--radius-sm);
   background: var(--cm-surface);
   -webkit-backdrop-filter: blur(24px) saturate(1.8);
@@ -98,7 +98,7 @@
 
 .cm-sep {
   height: 1px;
-  margin: 5px 9px;
+  margin: calc(5 * var(--space-px)) calc(9 * var(--space-px));
   background: var(--cm-hair);
 }
 
@@ -107,9 +107,9 @@
 .cm-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   min-height: 30px;
-  padding: 5px 10px 5px var(--space-xs);
+  padding: calc(5 * var(--space-px)) var(--space-xs-sm) calc(5 * var(--space-px)) var(--space-xs);
   border-radius: var(--radius-xs);
   cursor: default;
   outline: none;
@@ -150,7 +150,7 @@
   border: 0;
   background: none;
   box-shadow: none;
-  margin-left: 18px;
+  margin-left: calc(18 * var(--space-px));
   color: var(--ink-3);
   font: 400 var(--text-meta)/1 var(--font-ui);
   letter-spacing: 0.04em;
@@ -159,7 +159,7 @@
 .cm-item__chev {
   width: 14px;
   height: 14px;
-  margin-right: -3px;
+  margin-right: -3px; /* fixed: icon */
   color: var(--ink-3);
 }
 
@@ -211,11 +211,11 @@
 /* ---------- Segmented choice ---------- */
 
 .cm-choice {
-  padding: 3px 3px 5px;
+  padding: calc(3 * var(--space-px)) calc(3 * var(--space-px)) calc(5 * var(--space-px));
 }
 
 .cm-choice__label {
-  padding: 3px 6px 7px;
+  padding: calc(3 * var(--space-px)) var(--space-2xs-xs) calc(7 * var(--space-px));
   color: var(--ink-3);
   font-size: var(--text-meta);
   font-weight: 500;
@@ -224,7 +224,7 @@
 .cm-seg {
   display: flex;
   gap: var(--space-3xs);
-  padding: 3px;
+  padding: calc(3 * var(--space-px));
   border-radius: var(--radius-sm);
   background: var(--cm-wash);
 }
@@ -236,7 +236,7 @@
   align-items: center;
   gap: var(--space-2xs);
   min-width: 0;
-  padding: 7px var(--space-2xs) 6px;
+  padding: calc(7 * var(--space-px)) var(--space-2xs) var(--space-2xs-xs);
   border-radius: var(--radius-xs);
   color: var(--ink-2);
   font-size: var(--text-meta);
@@ -324,7 +324,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-xs-sm);
 }
 
 .cm-stack[data-align="end"] {
@@ -356,7 +356,7 @@
 :is(.cm-layer--lift, .cm-static--lift) .cm-item {
   gap: var(--space-sm);
   min-height: 44px;
-  padding: 10px var(--space-md);
+  padding: var(--space-xs-sm) var(--space-md);
   border-radius: 0;
 }
 
@@ -405,16 +405,16 @@
 }
 
 :is(.cm-layer--lift, .cm-static--lift) .cm-choice {
-  padding: 10px 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-xs-sm) var(--space-sm);
 }
 
 :is(.cm-layer--lift, .cm-static--lift) .cm-choice__label {
-  padding: 0 6px var(--space-xs);
+  padding: 0 var(--space-2xs-xs) var(--space-xs);
   font-size: var(--text-small);
 }
 
 :is(.cm-layer--lift, .cm-static--lift) .cm-seg__opt {
-  padding: 9px var(--space-2xs) var(--space-xs);
+  padding: calc(9 * var(--space-px)) var(--space-2xs) var(--space-xs);
   font-size: var(--text-meta);
 }
 
@@ -443,7 +443,7 @@
 
 .cm-static__menus .cm-menu--sub {
   z-index: 1;
-  margin-left: -6px;
+  margin-left: calc(-1 * var(--space-2xs-xs));
 }
 
 .cm-static--popover .cm-preview {
@@ -463,7 +463,7 @@
 .cm-static__behind {
   position: absolute;
   inset: 0;
-  padding: 56px 20px 20px;
+  padding: var(--space-2xl-3xl) var(--space-md-lg) var(--space-md-lg);
 }
 
 .cm-static--lift .cm-backdrop {
@@ -472,9 +472,9 @@
 }
 
 .cm-static--lift .cm-stack {
-  top: 92px;
-  right: 16px;
-  left: 16px;
+  top: calc(92 * var(--space-px));
+  right: var(--space-md);
+  left: var(--space-md);
 }
 
 /* ---------- Reduced motion: fades only ---------- */

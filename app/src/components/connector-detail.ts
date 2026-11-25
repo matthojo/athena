@@ -264,7 +264,7 @@ export function accountDetail(c: Connector, ctx: DetailContext): DetailView {
         changed ? statusLine("warn", "Changed, needs re-approval") : null,
         // A changed tool's new text is what's being approved: shown whole, not cut to one line.
         h("span", { class: "row__meta tool-row__desc", style: changed ? "white-space: normal; overflow: visible; display: block" : undefined }, t.description || t.name),
-        approve ? h("span", { style: "display: block; margin-top: 8px" }, approve) : null
+        approve ? h("span", { style: "display: block; margin-top:var(--space-xs)" }, approve) : null
       ),
       control
     );

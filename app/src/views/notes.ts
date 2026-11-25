@@ -305,7 +305,7 @@ export function renderNotes(ctx: NotesContext): { el: HTMLElement; destroy: () =
   });
   if (!notesSnapshot().loaded) {
     list.replaceChildren(
-      h("div", { class: "card card--flush list" }, ...[0, 1, 2, 3].map(() => h("div", { class: "row" }, h("span", { class: "tile tile--sm skeleton" }), h("span", { class: "row__body" }, h("span", { class: "skeleton", style: "height:12px;width:55%" }), h("span", { class: "skeleton", style: "height:10px;width:85%;margin-top:6px" })), h("span", {}))))
+      h("div", { class: "card card--flush list" }, ...[0, 1, 2, 3].map(() => h("div", { class: "row" }, h("span", { class: "tile tile--sm skeleton" }), h("span", { class: "row__body" }, h("span", { class: "skeleton", style: "height:12px;width:55%" }), h("span", { class: "skeleton", style: "height:10px;width:85%;margin-top:var(--space-2xs-xs)" })), h("span", {}))))
     );
   }
 

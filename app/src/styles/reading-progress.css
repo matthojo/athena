@@ -5,7 +5,7 @@
   gap: var(--space-3xs);
   flex: 1;
   min-width: 0;
-  margin-left: -6px;
+  margin-left: calc(-1 * var(--space-2xs-xs));
   white-space: nowrap;
 }
 
@@ -15,7 +15,7 @@
   box-sizing: content-box;
   width: calc(var(--ch, 2) * 1ch);
   min-width: 1ch;
-  padding: 0 6px;
+  padding: 0 var(--space-2xs-xs);
   font-variant-numeric: tabular-nums;
   appearance: textfield;
   -moz-appearance: textfield;

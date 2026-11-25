@@ -227,11 +227,11 @@
   content: "";
   position: absolute;
   z-index: -1;
-  left: 26px;
+  left: 26px; /* fixed: icon */
   top: 50%;
   width: 44px;
   height: 44px;
-  margin: -22px 0 0 -22px;
+  margin: -22px 0 0 -22px; /* fixed: icon */
   border-radius: 50%;
   pointer-events: none;
 }
@@ -243,7 +243,7 @@
   content: "";
   position: absolute;
   z-index: -1;
-  inset: -49px;
+  inset: -49px; /* fixed: icon */
   border-radius: 50%;
   background: radial-gradient(closest-side, var(--talk-glow), transparent);
   --talk-level: inherit;
@@ -312,7 +312,7 @@
 .ask.is-talking .ask__intro::before {
   content: "";
   position: absolute;
-  inset: 4px;
+  inset: 4px; /* fixed: icon */
   border-radius: 50%;
   border: 1.5px solid var(--talk-ring);
   --talk-level: inherit;
@@ -346,7 +346,7 @@
 .talk-bar::before {
   width: 52px;
   height: 52px;
-  margin: -26px 0 0 -26px;
+  margin: -26px 0 0 -26px; /* fixed: icon */
   background: conic-gradient(from 0deg, transparent 0deg, transparent 150deg, var(--talk-ring) 360deg);
   -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
   mask: radial-gradient(closest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
@@ -540,8 +540,8 @@
 }
 
 .talk-bar__end {
-  gap: 6px;
-  padding: 0 14px 0 10px;
+  gap: var(--space-2xs-xs);
+  padding: 0 var(--space-sm-md) 0 var(--space-xs-sm);
 }
 
 .talk-bar__end svg {
@@ -587,7 +587,7 @@
   top: calc(8vh + 56px);
   width: 112px;
   height: 112px;
-  margin: -56px 0 0 -56px;
+  margin: -56px 0 0 -56px; /* fixed: icon */
   border-radius: 50%;
   pointer-events: none;
   /* Rings stay clear of the title below. */
@@ -850,7 +850,7 @@
 }
 
 .ask.talk-staged .composer-bar.talk-active {
-  padding-left: 18px;
+  padding-left: calc(18 * var(--space-px));
 }
 
 .ask.talk-staged .talk-bar {
@@ -982,7 +982,7 @@
 .voice-step {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
-  gap: 10px;
+  gap: var(--space-xs-sm);
   align-items: start;
   font-size: var(--text-small);
   line-height: 1.5;
@@ -1034,7 +1034,7 @@
 .voice-usage .prop__value {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: calc(7 * var(--space-px));
   padding-block: var(--space-2xs);
 }
 
@@ -1086,7 +1086,7 @@
 .voice-row {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  padding: 6px var(--space-sm) 6px var(--space-md);
+  padding: var(--space-2xs-xs) var(--space-sm) var(--space-2xs-xs) var(--space-md);
 }
 
 .voice-row:active {
@@ -1120,7 +1120,7 @@
 .voice-play::after {
   content: "";
   position: absolute;
-  inset: -4px;
+  inset: -4px; /* fixed: touch */
 }
 
 .voice-play svg {

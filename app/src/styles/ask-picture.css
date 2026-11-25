@@ -149,7 +149,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 34px;
   min-width: 34px;
   padding: 0 var(--space-sm);
@@ -170,7 +170,7 @@
 .pic__btn::after {
   content: "";
   position: absolute;
-  inset: -5px -2px;
+  inset: -5px -2px; /* fixed: touch */
 }
 
 .pic__btn svg {
@@ -523,8 +523,8 @@
 .answer__model {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 6px 0 0;
+  gap: var(--space-2xs-xs);
+  margin: var(--space-2xs-xs) 0 0;
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -542,8 +542,8 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: start;
-  column-gap: 10px;
-  row-gap: 10px;
+  column-gap: var(--space-xs-sm);
+  row-gap: var(--space-xs-sm);
   flex: 1 1 100%;
   width: 100%;
   padding: var(--space-sm) var(--space-xs) var(--space-sm) var(--space-sm);
@@ -591,7 +591,7 @@
 }
 
 .vision-warn__close {
-  margin: -4px 0 0;
+  margin: calc(-1 * var(--space-2xs)) 0 0;
 }
 
 .vision-warn__actions {

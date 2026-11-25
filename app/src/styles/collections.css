@@ -89,7 +89,7 @@
   gap: var(--space-sm);
   align-items: start;
   width: 100%;
-  padding: 14px var(--space-md);
+  padding: var(--space-sm-md) var(--space-md);
   text-align: left;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -201,9 +201,9 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
   min-height: 34px;
-  padding: 0 var(--space-xs) 0 10px;
+  padding: 0 var(--space-xs) 0 var(--space-xs-sm);
   margin-block: var(--space-3xs);
   vertical-align: middle;
   border-radius: var(--radius-xs);
@@ -221,7 +221,7 @@
 .cl-pick::after {
   content: "";
   position: absolute;
-  inset: -5px -2px;
+  inset: -5px -2px; /* fixed: touch */
 }
 
 @media (hover: hover) {
@@ -282,7 +282,7 @@
 .cl-pick--input input {
   min-width: 4ch;
   height: 34px;
-  padding: 0 10px;
+  padding: 0 var(--space-xs-sm);
   border: 0;
   border-radius: inherit;
   background: transparent;
@@ -400,8 +400,8 @@
 .cl-check::after {
   content: "";
   position: absolute;
-  left: 7px;
-  top: 3.5px;
+  left: 7px; /* fixed: icon */
+  top: 3.5px; /* fixed: icon */
   width: 6px;
   height: 11px;
   border: solid var(--on-ink);
@@ -706,7 +706,7 @@
 .cl-state {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin-top: var(--space-2xs);
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -750,7 +750,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
-  padding: 14px var(--space-md);
+  padding: var(--space-sm-md) var(--space-md);
   border-radius: var(--radius-md);
   animation: cl-drop var(--dur-base) var(--ease-out-expo);
 }
@@ -870,7 +870,7 @@
 }
 
 .cl-entry {
-  padding-block: 6px;
+  padding-block: var(--space-2xs-xs);
 }
 
 .cl-entry--saved {
@@ -880,7 +880,7 @@
 .cl-entry__toggle {
   width: 100%;
   min-height: 44px;
-  padding-block: 6px;
+  padding-block: var(--space-2xs-xs);
   margin-inline: calc(-1 * var(--space-xs));
   padding-inline: var(--space-xs);
   width: calc(100% + 2 * var(--space-xs));
@@ -918,7 +918,7 @@
   align-self: start;
   width: 8px;
   height: 8px;
-  margin-top: 7px;
+  margin-top: calc(7 * var(--space-px));
   border-radius: 50%;
 }
 
@@ -1042,7 +1042,7 @@
 }
 
 .cl-item__title {
-  padding-block: 6px;
+  padding-block: var(--space-2xs-xs);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1074,7 +1074,7 @@
 .cl-items__loading {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   padding-block: var(--space-xs);
 }
 

@@ -54,7 +54,7 @@
 
 .days-tabs {
   display: inline-flex;
-  padding: 3px;
+  padding: calc(3 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--sunken);
 }
@@ -63,7 +63,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 36px;
   padding: 0 var(--space-sm);
   border-radius: var(--radius-pill);
@@ -76,7 +76,7 @@
 .days-tab::after {
   content: "";
   position: absolute;
-  inset: -4px 0;
+  inset: -4px 0; /* fixed: touch */
 }
 
 .days-tab svg {
@@ -113,7 +113,7 @@
 
 .mood-glyph {
   --bar: 2px;
-  --gap: 1.5px;
+  --gap: 1.5px; /* fixed: chart */
   --tall: 12px;
   --on: var(--mood-ink);
   --off: var(--line-strong);
@@ -148,7 +148,7 @@
 
 .mood-glyph--md {
   --bar: 4px;
-  --gap: 2.5px;
+  --gap: 2.5px; /* fixed: chart */
   --tall: 22px;
   --on: var(--ink-3);
 }
@@ -214,16 +214,16 @@
 .mood-picker {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .mood-step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 64px;
-  padding: var(--space-xs) 0 6px;
+  padding: var(--space-xs) 0 var(--space-2xs-xs);
   border-radius: var(--radius-sm);
   color: var(--ink-3);
   transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
@@ -276,7 +276,7 @@
 .mood-row {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5 * var(--space-px));
 }
 
 .mood-row--labelled {
@@ -503,7 +503,7 @@
 .today__art {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin-top: var(--space-2xs);
 }
 
@@ -530,7 +530,7 @@
 .today__ahead {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -690,7 +690,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas: "when line" "when art";
   column-gap: var(--space-sm);
-  row-gap: 6px;
+  row-gap: var(--space-2xs-xs);
   padding: var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -778,7 +778,7 @@
 .days-month__recap::after {
   content: "";
   position: absolute;
-  inset: -12px -8px;
+  inset: -12px -8px; /* fixed: touch */
 }
 
 .days-month__recap svg {
@@ -847,7 +847,7 @@
 .day-card__body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
 }
 
@@ -943,7 +943,7 @@
 .week-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding: var(--space-sm) var(--space-2xs) var(--space-md);
   border-bottom: 1px solid var(--line);
   transition: opacity var(--dur-fast) var(--ease-out);
@@ -1046,7 +1046,7 @@
 a.day-top__week::after {
   content: "";
   position: absolute;
-  inset: -12px -6px;
+  inset: -12px -6px; /* fixed: touch */
 }
 
 @media (hover: hover) {
@@ -1146,7 +1146,7 @@ a.day-top__week::after {
 .day-hero__weather {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-small);
   color: var(--ink-2);
 }
@@ -1271,7 +1271,7 @@ a.day-top__week::after {
 
 .ribbon__hour {
   position: absolute;
-  bottom: -18px;
+  bottom: -18px; /* fixed: chart */
   transform: translateX(-50%);
   font-size: var(--text-micro);
   color: var(--ink-3);
@@ -1304,7 +1304,7 @@ a.day-top__week::after {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2xs) var(--space-md);
-  margin-top: 20px;
+  margin-top: var(--space-md-lg);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -1312,7 +1312,7 @@ a.day-top__week::after {
 .ribbon__key-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .ribbon__key-item::before {
@@ -1518,7 +1518,7 @@ a.day-top__week::after {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 64px;
   background: var(--sunken);
   color: var(--ink-2);
@@ -1541,7 +1541,7 @@ a.day-top__week::after {
   bottom: var(--space-sm);
   min-height: 0;
   height: 40px;
-  padding: 0 14px 0 var(--space-sm);
+  padding: 0 var(--space-sm-md) 0 var(--space-sm);
   flex-direction: row;
   border-radius: var(--radius-pill);
   background: color-mix(in oklch, var(--surface) 88%, transparent);
@@ -1728,9 +1728,9 @@ a.day-top__week::after {
 .stop:not(:last-child)::before {
   content: "";
   position: absolute;
-  left: 6px;
-  top: 22px;
-  bottom: -12px;
+  left: 6px; /* fixed: icon */
+  top: 22px; /* fixed: icon */
+  bottom: -12px; /* fixed: icon */
   width: 1.5px;
   background: var(--line);
 }
@@ -1807,7 +1807,7 @@ a.day-top__week::after {
 .day-health__icon--route {
   width: 40px;
   height: 40px;
-  margin: -2px;
+  margin: -2px; /* fixed: icon */
 }
 
 .day-health__icon--route svg {
@@ -2170,7 +2170,7 @@ a.day-top__week::after {
 .quote {
   position: relative;
   margin: 0;
-  padding: var(--space-sm) var(--space-md) var(--space-sm) 40px;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-xl-2xl);
   border-radius: var(--radius-sm);
   background: var(--sunken);
 }
@@ -2184,8 +2184,8 @@ a.day-top__week::after {
 
 .quote__mark {
   position: absolute;
-  left: 12px;
-  top: 12px;
+  left: var(--space-sm);
+  top: var(--space-sm);
   color: var(--ink-3);
 }
 
@@ -2326,7 +2326,7 @@ a.day-top__week::after {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding: var(--space-lg) var(--space-md);
   text-align: center;
   border-radius: var(--radius-lg);
@@ -2336,7 +2336,7 @@ a.day-top__week::after {
 .day-empty .tile {
   width: 48px;
   height: 48px;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2xs-xs);
 }
 
 .day-empty .tile svg {
@@ -2519,7 +2519,7 @@ a.day-top__week::after {
   justify-content: space-between;
   aspect-ratio: 1 / 1.08;
   min-height: 44px;
-  padding: 6px 0 7px;
+  padding: var(--space-2xs-xs) 0 calc(7 * var(--space-px));
   border-radius: var(--radius-sm);
   background: var(--heat-0);
   color: var(--ink);
@@ -2589,14 +2589,14 @@ a.cal__cell:active {
 
 @media (min-width: 1024px) {
   .cal {
-    gap: 6px;
+    gap: var(--space-2xs-xs);
   }
   .cal__row {
-    gap: 6px;
+    gap: var(--space-2xs-xs);
   }
   .cal__dow {
     text-align: left;
-    padding-left: 10px;
+    padding-left: var(--space-xs-sm);
   }
   .cal__dow-rest {
     display: inline;
@@ -2604,7 +2604,7 @@ a.cal__cell:active {
   .cal__cell {
     align-items: flex-start;
     aspect-ratio: 1 / 0.86;
-    padding: 10px;
+    padding: var(--space-xs-sm);
     border-radius: var(--radius-sm);
   }
   .cal__num {
@@ -2612,11 +2612,11 @@ a.cal__cell:active {
   }
   .cal__cell .mood-glyph {
     --bar: 2px;
-    --gap: 1.5px;
+    --gap: 1.5px; /* fixed: chart */
     --tall: 11px;
     position: absolute;
-    top: 11px;
-    right: 10px;
+    top: 11px; /* fixed: cell */
+    right: 10px; /* fixed: cell */
   }
   /* The day's artwork fills its cell; the number sits on a soft scrim. */
   .cal__art {
@@ -2757,7 +2757,7 @@ a.cal-mini:active {
 .cal-mini__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
 }
 
 .cal-mini__cell {
@@ -2830,7 +2830,7 @@ a.cal-mini:active {
 .mosaic {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .mosaic__item {
@@ -3003,9 +3003,9 @@ a.cal-mini:active {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 36px;
-  padding: 0 30px 0 14px;
+  padding: 0 calc(30 * var(--space-px)) 0 var(--space-sm-md);
   border-radius: var(--radius-pill);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -3018,12 +3018,12 @@ a.cal-mini:active {
 .days-select::after {
   content: "";
   position: absolute;
-  inset: -4px -2px;
+  inset: -4px -2px; /* fixed: touch */
 }
 
 .days-select > svg {
   position: absolute;
-  right: 10px;
+  right: var(--space-xs-sm);
   width: 14px;
   height: 14px;
   pointer-events: none;
@@ -3097,7 +3097,7 @@ a.cal-mini:active {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   padding: var(--space-2xl) var(--space-md);
   text-align: center;
 }
@@ -3160,7 +3160,7 @@ a.cal-mini:active {
 .result__entries {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .result__entry {
@@ -3258,7 +3258,7 @@ a.cal-mini:active {
 
 .day-sec__edit {
   position: absolute;
-  top: -4px;
+  top: calc(-1 * var(--space-2xs));
   right: 0;
   color: var(--ink-2);
   font-size: var(--text-small);
@@ -3270,14 +3270,14 @@ a.cal-mini:active {
 
 .hide-btn {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: var(--space-2xs-xs);
+  right: var(--space-2xs-xs);
   z-index: 1;
   display: none;
   align-items: center;
   gap: var(--space-2xs);
   height: 30px;
-  padding: 0 10px 0 var(--space-xs);
+  padding: 0 var(--space-xs-sm) 0 var(--space-xs);
   border-radius: var(--radius-pill);
   background: var(--ink);
   color: var(--on-ink);
@@ -3289,7 +3289,7 @@ a.cal-mini:active {
 .hide-btn::after {
   content: "";
   position: absolute;
-  inset: -7px;
+  inset: -7px; /* fixed: touch */
 }
 
 .hide-btn svg {
@@ -3339,7 +3339,7 @@ a.cal-mini:active {
 .highlight__body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .highlight__label {
@@ -3407,7 +3407,7 @@ a.cal-mini:active {
 .mosaic {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .mosaic__item {
@@ -3445,7 +3445,7 @@ a.cal-mini:active {
 @media (min-width: 1024px) {
   /* Calendar: the day's art sits inside its cell, below the number; empty days are just an outline. */
   .cal__art {
-    inset: 36px 10px 10px;
+    inset: 36px 10px 10px; /* fixed: cell */
   }
   .cal__art .art {
     border-radius: var(--radius-xs);
@@ -3478,7 +3478,7 @@ a.cal-mini:active {
 .ribbon__rows {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
-  row-gap: 10px;
+  row-gap: var(--space-xs-sm);
   align-items: center;
 }
 
@@ -3666,7 +3666,7 @@ a.cal-mini:active {
 .mosaic {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 128px;
   overflow: hidden;
 }
@@ -3701,8 +3701,8 @@ a.cal-mini:active {
 @media (min-width: 1024px) {
   .cal__cell .cal__mood {
     position: absolute;
-    top: 14px;
-    right: 12px;
+    top: 14px; /* fixed: cell */
+    right: 12px; /* fixed: cell */
     z-index: 1;
   }
 }
@@ -3802,7 +3802,7 @@ a.cal-mini:active {
   grid-template-rows: auto;
   grid-auto-rows: 0;
   row-gap: 0;
-  column-gap: 6px;
+  column-gap: var(--space-2xs-xs);
   height: auto;
   overflow: hidden;
 }
@@ -3990,7 +3990,7 @@ a.cal-mini:active {
 .day-card__mood {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5 * var(--space-px));
 }
 
 .day-card__mood .mood-glyph {
@@ -4109,7 +4109,7 @@ a.cal-mini:active {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   color: var(--ink-2);
 }
 
@@ -4152,7 +4152,7 @@ a.cal-mini:active {
   align-items: center;
   gap: var(--space-2xs) var(--space-xs);
   min-width: 0;
-  margin-top: -4px;
+  margin-top: calc(-1 * var(--space-2xs));
 }
 
 .day-health__stages > .stagebar__track {
@@ -4184,7 +4184,7 @@ a.cal-mini:active {
 .journal__start {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-height: 36px;
   margin-left: calc(var(--space-xs) * -1);
   padding: 0 var(--space-xs);

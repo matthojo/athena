@@ -74,7 +74,7 @@
 .house-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .house-legend__swatch {
@@ -259,7 +259,7 @@
 .hc-scale {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
   align-self: flex-end;
   color: var(--ink-3);
   font-size: var(--text-meta);
@@ -289,7 +289,7 @@
   flex-direction: column;
   gap: var(--space-3xs);
   pointer-events: none;
-  padding: 6px var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--ink);
   color: var(--on-ink);
@@ -311,7 +311,7 @@
 .hc__tip-row {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-variant-numeric: tabular-nums;
 }
 
@@ -411,7 +411,7 @@
 .house-mini__name {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   color: var(--ink-2);
   font-weight: var(--weight-semibold);
 }
@@ -589,7 +589,7 @@
 .tc-fuels .seg__item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 32px;
   padding: 0 var(--space-sm);
 }
@@ -774,7 +774,7 @@
 .tc-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .tc-key {
@@ -885,7 +885,7 @@
 }
 
 .tc-cmp__sub {
-  margin-top: -4px;
+  margin-top: calc(-1 * var(--space-2xs));
 }
 
 .tc-cmp__cost {
@@ -895,7 +895,7 @@
 .tc-cmp__bars {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .tc-bar {
@@ -1141,7 +1141,7 @@
 .house-share {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .house-share__label {
@@ -1209,7 +1209,7 @@
 .house-rate__name {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-weight: var(--weight-semibold);
 }
 
@@ -1432,7 +1432,7 @@
 .hc-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .hc-legend__key {

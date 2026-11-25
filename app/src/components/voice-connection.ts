@@ -522,7 +522,7 @@ export function voiceDetail(ctx: VoiceDetailContext): VoiceDetailView {
 export function openVoicePicker(currentId: string | null, chosen: (s: VoiceStatus) => void): void {
   let selected = currentId;
   let voices: Voice[] = [];
-  const list = h("div", { class: "voice-picker__list" }, h("div", { class: "card card--flush list" }, ...[0, 1, 2, 3].map(() => h("div", { class: "row" }, h("span", { class: "skeleton", style: "height:36px;width:36px;border-radius:50%" }), h("span", { class: "row__body" }, h("span", { class: "skeleton", style: "height:12px;width:40%" }), h("span", { class: "skeleton", style: "height:10px;width:60%;margin-top:6px" })), h("span", {})))));
+  const list = h("div", { class: "voice-picker__list" }, h("div", { class: "card card--flush list" }, ...[0, 1, 2, 3].map(() => h("div", { class: "row" }, h("span", { class: "skeleton", style: "height:36px;width:36px;border-radius:50%" }), h("span", { class: "row__body" }, h("span", { class: "skeleton", style: "height:12px;width:40%" }), h("span", { class: "skeleton", style: "height:10px;width:60%;margin-top:var(--space-2xs-xs)" })), h("span", {})))));
   const search = h("input", { type: "search", placeholder: "Search voices", autocomplete: "off", "aria-label": "Search voices", enterkeyhint: "search" }) as HTMLInputElement;
   const searchBox = h("label", { class: "search voice-picker__search", hidden: true }, icons.search(), search);
   const body = h("div", { class: "voice-picker" }, h("p", { class: "form__hint voice-picker__hint" }, "Play a voice to hear it, then tap its name to use it."), searchBox, list);

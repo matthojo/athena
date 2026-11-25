@@ -30,7 +30,7 @@
   align-items: flex-start;
   gap: var(--space-sm);
   padding: 0;
-  padding-right: 36px;
+  padding-right: calc(36 * var(--space-px));
   border: 0;
   background: none;
   color: inherit;

@@ -94,8 +94,8 @@
 .mu-pl-artist {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: var(--space-2xs) 10px;
+  gap: var(--space-2xs-xs);
+  padding: var(--space-2xs) var(--space-xs-sm);
   border-radius: var(--radius-pill);
   background: var(--sunken);
   font-size: var(--text-small);
@@ -119,7 +119,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-sm);
-  padding: 6px 0;
+  padding: var(--space-2xs-xs) 0;
 }
 
 .mu-pl-track + .mu-pl-track {
@@ -215,7 +215,7 @@
   align-items: center;
   align-self: center;
   gap: var(--space-2xs);
-  padding: var(--space-3xs) 9px;
+  padding: var(--space-3xs) calc(9 * var(--space-px));
   border-radius: var(--radius-pill);
   background: color-mix(in oklch, var(--chart-1) 12%, var(--surface));
   color: color-mix(in oklch, var(--chart-1) 78%, var(--ink));
@@ -247,7 +247,7 @@
   gap: var(--space-sm);
   width: 100%;
   min-height: 52px;
-  padding: 6px var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-sm);
   text-align: left;
   color: inherit;
@@ -282,7 +282,7 @@
 .mu-rank__body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
 }
 
@@ -365,7 +365,7 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
 .mu-album__art,
 .mu-sheet__album-art {
   width: 100%;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2xs-xs);
   border-radius: var(--radius-sm);
   box-shadow: 0 0 0 1px var(--line), 0 10px 22px -14px var(--mu-album-art-shadow);
   transition: transform var(--dur-fast) var(--ease-out);
@@ -438,7 +438,7 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
   gap: var(--space-sm);
   width: 100%;
   min-height: 52px;
-  padding: 6px var(--space-xs);
+  padding: var(--space-2xs-xs) var(--space-xs);
   border-radius: var(--radius-sm);
   color: inherit;
   text-align: left;

@@ -143,8 +143,8 @@ ol {
 .aurora span:nth-child(1) {
   width: 340px;
   height: 260px;
-  top: -140px;
-  left: -60px;
+  top: -140px; /* fixed: art */
+  left: -60px; /* fixed: art */
   background: var(--aurora-a);
   animation: aurora-drift-a calc(var(--dur-drift) * 0.85) var(--ease-in-out) infinite alternate;
 }
@@ -152,7 +152,7 @@ ol {
 .aurora span:nth-child(2) {
   width: 300px;
   height: 240px;
-  top: -120px;
+  top: -120px; /* fixed: art */
   left: 42%;
   background: var(--aurora-b);
   animation: aurora-drift-b calc(var(--dur-drift) * 1.05) var(--ease-in-out) infinite alternate;

@@ -68,7 +68,7 @@ const bar = (w: string, hgt = "12px") => h("div", { class: "skeleton", style: `w
 const headingIcon = (name: IconName) => h("span", { class: "heading-icon", "aria-hidden": "true" }, icons[name]());
 
 function stack(...children: (Node | null)[]) {
-  return h("div", { style: "display:flex;flex-direction:column;gap:8px" }, ...children);
+  return h("div", { style: "display:flex;flex-direction:column;gap:var(--space-xs)" }, ...children);
 }
 
 /** At most this many rows of dates in Coming up, before catch-ups. */

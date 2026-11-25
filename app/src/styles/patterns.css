@@ -65,7 +65,7 @@
   gap: var(--space-2xs);
   min-width: 0;
   margin-left: auto;
-  padding: var(--space-3xs) var(--space-xs) var(--space-3xs) 6px;
+  padding: var(--space-3xs) var(--space-xs) var(--space-3xs) var(--space-2xs-xs);
   border-radius: var(--radius-pill);
   background: color-mix(in oklch, var(--surface) 70%, transparent);
   border: 1px solid color-mix(in oklch, var(--p-accent) 14%, var(--line));
@@ -119,7 +119,7 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 6px var(--space-sm);
+  gap: var(--space-2xs-xs) var(--space-sm);
   margin-top: var(--space-2xs);
   font-size: var(--text-meta);
   color: var(--ink-2);
@@ -154,7 +154,7 @@
 .pcmp__track::before {
   content: "";
   position: absolute;
-  inset: 6px 0;
+  inset: 6px 0; /* fixed: chart */
   border-radius: var(--radius-3xs);
   background: color-mix(in oklch, var(--p-accent) 20%, var(--line));
 }
@@ -177,13 +177,13 @@
 }
 
 .pcmp__track--bar::before {
-  inset: 3px 0;
+  inset: 3px 0; /* fixed: chart */
   border-radius: var(--radius-pill);
 }
 
 .pcmp__fill {
   position: absolute;
-  inset: 3px auto 3px 0;
+  inset: 3px auto 3px 0; /* fixed: chart */
   border-radius: var(--radius-pill);
   background: var(--ink-3);
 }
@@ -220,7 +220,7 @@
 .ptally__dots {
   display: inline-grid;
   grid-template-columns: repeat(10, 7px);
-  gap: 3px;
+  gap: calc(3 * var(--space-px));
 }
 
 .ptally__dot {
@@ -245,7 +245,7 @@
 .psure {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
   white-space: nowrap;
@@ -276,7 +276,7 @@
   display: grid;
   grid-template-columns: auto 1fr;
   column-gap: var(--space-sm);
-  row-gap: 6px;
+  row-gap: var(--space-2xs-xs);
   padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
   border-radius: var(--radius-sm);
 }
@@ -340,7 +340,7 @@
 
 .pcard--compact .ptally {
   flex-shrink: 1;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .pcard--compact .ptally__dots {

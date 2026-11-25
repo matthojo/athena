@@ -32,7 +32,7 @@
 .stage-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2xs) 14px;
+  gap: var(--space-2xs) var(--space-sm-md);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -43,7 +43,7 @@
 .stage-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
 }
 
 .stage-legend__swatch {

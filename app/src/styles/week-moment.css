@@ -274,14 +274,14 @@
 .week-card__main {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   min-width: 0;
 }
 
 /* A small print of the moment, set down a little crooked. */
 .week-card__cover {
   display: block;
-  padding: 3px;
+  padding: calc(3 * var(--space-px));
   border-radius: var(--radius-sm);
   background: var(--wm-print);
   box-shadow: var(--wm-print-shadow);
@@ -398,14 +398,14 @@
 /* A kept line: a quote mark in the corner of its day, above any art. */
 .cal__kept-line {
   position: absolute;
-  right: 3px;
-  bottom: 3px;
+  right: 3px; /* fixed: cell */
+  bottom: 3px; /* fixed: cell */
   z-index: 1;
   display: grid;
   place-items: center;
   width: 16px;
   height: 16px;
-  padding-top: 5px;
+  padding-top: calc(5 * var(--space-px));
   border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--accent);
@@ -416,8 +416,8 @@
 
 @media (min-width: 1024px) {
   .cal__kept-line {
-    right: 16px;
-    bottom: 16px;
+    right: 16px; /* fixed: cell */
+    bottom: 16px; /* fixed: cell */
     width: 24px;
     height: 24px;
     padding-top: var(--space-xs);

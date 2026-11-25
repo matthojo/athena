@@ -58,9 +58,9 @@
 .ask__chats-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   height: 44px;
-  padding: 0 14px 0 var(--space-sm);
+  padding: 0 var(--space-sm-md) 0 var(--space-sm);
   border-radius: var(--radius-pill);
   color: var(--ink-2);
   font-size: var(--text-small);
@@ -109,7 +109,7 @@
 .thread__day {
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   margin-top: var(--space-xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
@@ -142,7 +142,7 @@
 .bubble--loading {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-xs-sm);
   padding-block: var(--space-md);
 }
 
@@ -306,8 +306,8 @@
   flex: 1;
   min-width: 0;
   height: 32px;
-  margin: -6px 0;
-  padding: 0 10px;
+  margin: calc(-1 * var(--space-2xs-xs)) 0;
+  padding: 0 var(--space-xs-sm);
   border: 1px solid var(--line-strong, var(--line));
   border-radius: var(--radius-xs);
   background: var(--surface);
@@ -451,7 +451,7 @@
     align-items: stretch;
     gap: var(--space-3xs);
     min-height: 40px;
-    padding-block: 9px;
+    padding-block: calc(9 * var(--space-px));
   }
 
   .ask__rail .chat-row__title {

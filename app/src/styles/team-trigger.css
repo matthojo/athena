@@ -26,7 +26,7 @@
   flex: 1;
   min-width: 0;
   margin: 0;
-  padding-top: 6px;
+  padding-top: var(--space-2xs-xs);
   font-family: var(--font-display);
   font-size: var(--text-title);
   font-weight: var(--weight-medium);
@@ -38,7 +38,7 @@
 
 .trg__remove {
   flex: none;
-  margin: -2px -6px 0 0;
+  margin: calc(-1 * var(--space-3xs)) calc(-1 * var(--space-2xs-xs)) 0 0;
   color: var(--ink-3);
 }
 
@@ -90,7 +90,7 @@
 
 /* How it starts: a quiet two-way switch above the controls. */
 .trg-kind {
-  padding: 3px;
+  padding: calc(3 * var(--space-px));
   gap: var(--space-3xs);
   border-radius: var(--radius-pill);
   background: var(--sunken);
@@ -120,7 +120,7 @@
 .trg-days {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   max-width: 400px;
 }
 
@@ -172,7 +172,7 @@
 .trg-time,
 .trg-input {
   height: 40px;
-  padding: 0 14px;
+  padding: 0 var(--space-sm-md);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--surface);
@@ -199,7 +199,7 @@
 }
 
 .trg-hash {
-  margin-right: -6px;
+  margin-right: calc(-1 * var(--space-2xs-xs));
   color: var(--ink-3);
 }
 

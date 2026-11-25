@@ -18,8 +18,8 @@
 .avatar--hero {
   width: 72px;
   height: 72px;
-  background: linear-gradient(150deg, oklch(var(--avatar-hero-bg-1) var(--h)), oklch(var(--avatar-hero-bg-2) var(--h)));
-  color: oklch(var(--avatar-hero-ink) var(--h));
+  background: linear-gradient(150deg, color-mix(in oklab, oklch(var(--avatar-hero-bg-1) var(--h)) 80%, var(--surface)), color-mix(in oklab, oklch(var(--avatar-hero-bg-2) var(--h)) 80%, var(--surface)));
+  color: color-mix(in oklab, oklch(var(--avatar-hero-ink) var(--h)) 80%, var(--ink));
   font-family: var(--font-display);
   font-size: var(--text-heading);
   font-weight: var(--weight-medium);
@@ -46,7 +46,7 @@
     0 0 0 6px var(--surface),
     0 0 0 10px var(--accent-wash),
     0 18px 36px -20px oklch(var(--avatar-ring-shadow) var(--h) / var(--avatar-ring-shadow-a));
-  margin: 10px 0 0 10px;
+  margin: var(--space-xs-sm) 0 0 var(--space-xs-sm);
 }
 
 :where([data-scheme="dark"]) .avatar--ring {
@@ -94,7 +94,7 @@
 
 .record-date__month {
   align-self: stretch;
-  padding: 5px 0 var(--space-2xs);
+  padding: calc(5 * var(--space-px)) 0 var(--space-2xs);
   background: var(--accent-wash);
   color: var(--accent-ink);
   font: var(--weight-semibold) var(--text-meta) / 1 var(--font-ui);
@@ -104,7 +104,7 @@
 }
 
 .record-date__day {
-  padding-bottom: 6px;
+  padding-bottom: var(--space-2xs-xs);
   font: var(--weight-medium) var(--text-heading) / 1 var(--font-display);
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -117,12 +117,12 @@
   width: 72px;
   height: 96px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(170deg, oklch(var(--record-label-bg-1) var(--h, 60)), oklch(var(--record-label-bg-2) var(--h, 60)));
+  background: linear-gradient(170deg, color-mix(in oklab, oklch(var(--record-label-bg-1) var(--h, 60)) 80%, var(--surface)), color-mix(in oklab, oklch(var(--record-label-bg-2) var(--h, 60)) 80%, var(--surface)));
   box-shadow:
-    inset 0 0 0 5px oklch(var(--record-label-shadow-1) var(--h, 60)),
+    inset 0 0 0 5px color-mix(in oklab, oklch(var(--record-label-shadow-1) var(--h, 60)) 80%, var(--surface)),
     inset 0 0 0 6px oklch(var(--record-label-shadow-2) var(--h, 60) / var(--record-label-shadow-2-a)),
     0 14px 28px -18px oklch(var(--record-label-shadow-3) var(--h, 60) / var(--record-label-shadow-3-a));
-  color: oklch(var(--record-label-ink) var(--h, 60));
+  color: color-mix(in oklab, oklch(var(--record-label-ink) var(--h, 60)) 80%, var(--ink));
 }
 
 .record-label svg {
@@ -132,7 +132,7 @@
 
 :where([data-scheme="dark"]) .record-label {
   box-shadow:
-    inset 0 0 0 5px oklch(var(--record-label-shadow-1) var(--h, 60)),
+    inset 0 0 0 5px color-mix(in oklab, oklch(var(--record-label-shadow-1) var(--h, 60)) 80%, var(--surface)),
     inset 0 0 0 6px oklch(var(--record-label-shadow-2) var(--h, 60) / var(--record-label-shadow-2-a)),
     0 14px 28px -18px var(--record-label-shadow-3-dark);
 }
@@ -191,8 +191,8 @@
 
 .profile--mapped .profile__top {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: var(--space-xs-sm);
+  right: var(--space-xs-sm);
   margin: 0;
 }
 
@@ -370,7 +370,7 @@ button.story__line:focus-visible {
   align-items: baseline;
   gap: var(--space-sm);
   min-height: 40px;
-  padding: 6px 0;
+  padding: var(--space-2xs-xs) 0;
   border-radius: var(--radius-xs);
   cursor: pointer;
   list-style: none;
@@ -510,7 +510,7 @@ button.story__line:focus-visible {
 }
 
 .prop--add .prop__key {
-  margin-left: -10px;
+  margin-left: calc(-1 * var(--space-xs-sm));
   width: calc(100% + 10px);
   font-size: var(--text-small);
 }
@@ -569,7 +569,7 @@ button.story__line:focus-visible {
 .log-composer__text {
   width: 100%;
   min-height: 64px;
-  padding: 10px var(--space-sm);
+  padding: var(--space-xs-sm) var(--space-sm);
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--canvas);
@@ -594,7 +594,7 @@ button.story__line:focus-visible {
 .log-composer__date {
   flex: none;
   width: auto;
-  margin-left: -10px;
+  margin-left: calc(-1 * var(--space-xs-sm));
   font-size: var(--text-small);
   color: var(--ink-2);
 }
@@ -610,7 +610,7 @@ button.story__line:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs-xs);
   width: 100%;
 }
 
@@ -619,7 +619,7 @@ button.story__line:focus-visible {
 }
 
 .aka__chip {
-  padding-left: 10px;
+  padding-left: var(--space-xs-sm);
 }
 
 .aka__icon {
@@ -634,7 +634,7 @@ button.story__line:focus-visible {
 
 .aka__input {
   flex: 1 1 200px;
-  margin-left: -10px;
+  margin-left: calc(-1 * var(--space-xs-sm));
 }
 
 .merge {
