@@ -74,6 +74,7 @@ import { handleCustomKindRoutes } from "../lib/custom-kinds-routes";
 import { handleTodoContextRoutes } from "../lib/todo-contexts-routes";
 import { handleTodoPeopleRoutes } from "../lib/todo-people-routes";
 import { handleDocumentRoutes } from "../lib/documents-routes";
+import { handleThemeRoutes } from "../lib/theme-routes";
 import { handleRecipeRoutes } from "../lib/recipes-routes";
 import { handleWeekMomentRoutes } from "../lib/week-moments-routes";
 import { handleSpendRoutes } from "../lib/spend-routes";
@@ -2289,6 +2290,11 @@ export default async (req: Request, _context: Context) => {
     // Templates and notes sent to Google Docs or Notion (netlify/lib/documents-routes.ts).
     if (first === "templates" || first === "documents") {
       const handled = await handleDocumentRoutes(req, url, segments, (data, status) => json(req, data, status));
+      if (handled) return handled;
+    }
+    // Sharing one of the owner's themes as a file (netlify/lib/theme-routes.ts).
+    if (first === "themes") {
+      const handled = await handleThemeRoutes(req, segments, (data, status) => json(req, data, status));
       if (handled) return handled;
     }
     // AI spend: today, the week, the budget and Allow more (netlify/lib/spend-routes.ts).

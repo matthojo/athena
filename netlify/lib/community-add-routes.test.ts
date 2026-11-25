@@ -9,6 +9,7 @@ import { bundleHash, type CatalogueBundle, type CatalogueItem } from "../../lib/
 import { itemFiles, NEWER_FORMAT_STATUS } from "../../lib/community-add";
 import { ShareFormatError } from "../../lib/team-share";
 import type { AddPreview } from "../../lib/community-api";
+import { addThemeTo, replaceThemeIn, type ThemeList } from "../../lib/theme-share";
 
 const utf8 = new TextEncoder();
 const entries = (files: Record<string, string>) => Object.entries(files).map(([path, text]) => ({ path, bytes: utf8.encode(text) }));
@@ -44,10 +45,15 @@ interface Calls {
   replaced: unknown[];
   checkin: unknown[];
   template: unknown[];
+  theme: unknown[];
 }
 
 function fakes(over: Partial<CommunityAddDeps> = {}): { deps: CommunityAddDeps; calls: Calls } {
-  const calls: Calls = { assistant: [], skill: [], flow: [], marked: [], replaced: [], checkin: [], template: [] };
+  const calls: Calls = { assistant: [], skill: [], flow: [], marked: [], replaced: [], checkin: [], template: [], theme: [] };
+  // Themes go through the same pure rules the server's store uses, over a list kept here.
+  let themes: ThemeList = { choice: "athena", themes: [] };
+  let n = 0;
+  const ids = () => `theme${String(++n).padStart(4, "0")}`;
   const deps: CommunityAddDeps = {
     loadBundle: async () => {
       throw new Error("no catalogue in this test");
@@ -65,6 +71,18 @@ function fakes(over: Partial<CommunityAddDeps> = {}): { deps: CommunityAddDeps; 
     replaceCheckins: async (id, shared, catalogue) => (calls.replaced.push({ kind: "checkin", id, shared, catalogue }), { id, added: 3, skipped: [], off: [], full: [] }),
     addTemplate: async (shared, catalogue) => (calls.template.push({ shared, catalogue }), { id: "55555555-5555-4555-8555-555555555555", name: `${shared.name} (2)`, renamed: true, beside: false }),
     replaceTemplate: async (id, shared, catalogue) => (calls.replaced.push({ kind: "template", id, shared, catalogue }), { id, name: shared.name, renamed: false, beside: false }),
+    addTheme: async (shared, catalogue, opts) => {
+      calls.theme.push({ shared, catalogue, opts });
+      const got = addThemeTo(themes, shared, catalogue, { use: opts?.use, builtIn: ["Athena", "Clay"], id: ids });
+      themes = got.list;
+      return { ...got.added, prefs: themes };
+    },
+    replaceTheme: async (id, shared, catalogue) => {
+      calls.replaced.push({ kind: "theme", id, shared, catalogue });
+      const got = replaceThemeIn(themes, id, shared, catalogue, { id: ids });
+      themes = got.list;
+      return { ...got.added, prefs: themes };
+    },
     markCatalogue: async (kind, id, listing) => void calls.marked.push({ kind, id, listing }),
     now: () => new Date("2026-11-24T10:00:00Z"),
     ...over,
@@ -94,7 +112,7 @@ test("itemFiles: the item's own folder, text files only, the rest listed as not 
 });
 
 test("itemFiles: nothing to read, two side by side, or a flow beside a skill are refused in words", () => {
-  assert.throws(() => itemFiles(entries({ "a.md": "x" })), /no assistant\.json, SKILL\.md, flow\.json, checkin\.json or template\.json/);
+  assert.throws(() => itemFiles(entries({ "a.md": "x" })), /no assistant\.json, SKILL\.md, flow\.json, checkin\.json, template\.json or theme\.json/);
   assert.throws(() => itemFiles(entries({ "a/flow.json": "{}", "b/flow.json": "{}" })), /more than one flow/);
   assert.throws(() => itemFiles(entries({ "flow.json": "{}", "SKILL.md": SKILL })), /side by side/);
 });
@@ -233,10 +251,12 @@ test("a flow from the catalogue passes its listing to the flow's own import", as
 
 test("readChoices: only the shapes, nothing else", () => {
   const c = readChoices({ answers: { a: "b", n: 3 }, accounts: ["not an id", "44444444-4444-4444-8444-444444444444"], allow: ["add_todo", 7], web: "yes", money: true, assistant_id: 9 });
-  assert.deepEqual(c, { answers: { a: "b" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: false, money: true, assistant_id: null, replace: null, start: true });
+  assert.deepEqual(c, { answers: { a: "b" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: false, money: true, assistant_id: null, replace: null, start: true, use: false });
   // Only an explicit false adds check-in questions switched off.
   assert.equal(readChoices({ start: false }).start, false);
   assert.equal(readChoices({ start: "no" }).start, true);
+  assert.equal(readChoices({ use: true }).use, true);
+  assert.equal(readChoices({ use: "yes" }).use, false, "only true is Add and use");
 });
 
 // ---------- the routes ----------
@@ -315,7 +335,7 @@ test("a lone file renamed on the way is read by what it holds", async () => {
   assert.equal((await previewOf({ files: entries({ "flow (1).json": JSON.stringify(FLOW) }) }, deps)).kind, "flow");
   assert.equal((await previewOf({ files: entries({ "tidy.json": JSON.stringify(ASSISTANT) }) }, deps)).kind, "assistant");
   assert.equal((await previewOf({ files: entries({ "packing.md": SKILL }) }, deps)).kind, "skill");
-  await assert.rejects(previewOf({ files: entries({ "notes.md": "Just some notes" }) }, deps), /no assistant\.json, SKILL\.md, flow\.json, checkin\.json or template\.json/);
+  await assert.rejects(previewOf({ files: entries({ "notes.md": "Just some notes" }) }, deps), /no assistant\.json, SKILL\.md, flow\.json, checkin\.json, template\.json or theme\.json/);
 });
 
 // ---------- check-in questions ----------
@@ -437,4 +457,103 @@ test("templates: a body that isn't text is refused with words, and nothing is ad
   const { deps, calls } = fakes();
   await assert.rejects(previewOf({ files: entries({ "template.json": JSON.stringify({ ...TEMPLATE, body: { html: "<p>" } }) }) }, deps), (e: Error) => e instanceof ShareFormatError && /body: should be text/.test(e.message));
   assert.equal(calls.template.length, 0);
+});
+
+// ---------- themes ----------
+
+const THEME = {
+  format: 1,
+  name: "Ember",
+  summary: "Warm charcoal and a glowing orange accent.",
+  author: "night-owl-studio",
+  version: "1.0",
+  colours: { dark: { page: "#1b1714", surface: "#241f1b", text: "#f3e9df", accent: "#ff7a3d" } },
+  shape: { radius: 1.2, density: 1 },
+  text: { scale: 1 },
+};
+
+test("themes: a link to theme.json previews as its folder, read by readTheme(), always tier 1, with what it dropped said", async () => {
+  assert.deepEqual(parseAddLink("https://github.com/sample-author/athena-items/blob/main/ember/theme.json"), parseAddLink("https://github.com/sample-author/athena-items/tree/main/ember"));
+  const hostile = { ...THEME, reach: { tier: 3 }, font: "Comic Sans MS", css: "body{display:none}", colours: { dark: { ...THEME.colours.dark, border: "url(https://tracker.example.com/x.png)" } } };
+  const { deps } = fakes({ fetchLink: async () => entries({ "ember/theme.json": JSON.stringify(hostile) }) });
+  const p = await previewOf({ link: "https://github.com/sample-author/athena-items/tree/main/ember" }, deps);
+  assert.equal(p.kind, "theme");
+  assert.deepEqual(p.reach, { tier: 1, model: false, web: false, lookups: [], needs: [] });
+  assert.ok(p.item.kind === "theme");
+  const t = p.item.theme;
+  assert.deepEqual(p.header, { version: "1.0", author: "night-owl-studio" });
+  assert.equal(JSON.stringify(t.theme).includes("url("), false);
+  assert.deepEqual(t.problems.map((x) => x.path).sort(), ["colours.dark.border", "css", "font", "reach"]);
+});
+
+test("themes: a lone renamed file is read by what it holds, and a theme for a newer Athena says so", async () => {
+  const { deps } = fakes();
+  const p = await previewOf({ files: entries({ "ember (1).json": JSON.stringify(THEME) }) }, deps);
+  assert.equal(p.kind, "theme");
+  const old = await previewOf({ files: entries({ "clay.json": JSON.stringify({ format: "athena-theme", version: 1, name: "Old clay", colours: { light: { accent: "#b0502a" } } }) }) }, deps);
+  assert.equal(old.kind, "theme");
+  await assert.rejects(previewOf({ files: entries({ "theme.json": JSON.stringify({ ...THEME, format: 2 }) }) }, deps), (e: Error & { newer?: boolean }) => e.newer === true);
+  await assert.rejects(previewOf({ files: entries({ "theme.json": JSON.stringify({ format: "athena-theme", version: 3, name: "x", colours: {} }) }) }, deps), (e: Error & { newer?: boolean }) => e.newer === true);
+});
+
+test("themes: Add puts it among the owner's themes under a free name and doesn't switch to it, unless Add and use", async () => {
+  const { deps, calls } = fakes();
+  const preview = await previewOf({ files: entries({ "ember/theme.json": JSON.stringify({ ...THEME, name: "Clay" }) }) }, deps);
+  const { result } = await addFrom({ preview, choices: {} }, deps);
+  assert.equal(result.kind, "theme");
+  assert.equal(result.href, `#/settings/appearance/${result.id}`);
+  assert.equal(result.theme?.name, "Clay (2)", "a built-in's name is taken too");
+  assert.equal(result.theme?.renamed, true);
+  assert.equal(result.theme?.used, false);
+  assert.equal(result.theme?.prefs.choice, "athena");
+  assert.deepEqual(result.theme?.prefs.themes[0].origin, { catalogue_id: null, hash: null, version: "1.0", author: "night-owl-studio", changed: false });
+  assert.deepEqual((calls.theme[0] as { opts: unknown }).opts, { use: false });
+  const again = await addFrom({ preview, choices: { use: true } }, deps);
+  assert.equal(again.result.theme?.name, "Clay (3)");
+  assert.equal(again.result.theme?.used, true);
+  assert.equal(again.result.theme?.prefs.choice, `own:${again.result.id}`);
+});
+
+test("themes from the catalogue: Update replaces one the owner hasn't changed and goes beside one they have", async () => {
+  const listed = await catalogue([{ path: "theme.json", text: JSON.stringify(THEME) }], "theme");
+  const { deps } = fakes({ loadBundle: async () => listed });
+  const first = await addFrom({ preview: await previewOf({ catalogue: listed.item.id }, deps), choices: {} }, deps);
+  const id = first.result.id;
+  const origin = first.result.theme!.prefs.themes[0].origin!;
+  assert.deepEqual(origin, { catalogue_id: listed.item.id, hash: listed.item.hash, version: "1.0.0", author: "night-owl-studio", changed: false });
+  // A newer listing: unchanged here, so it's replaced in place and keeps its name.
+  const v2 = await catalogue([{ path: "theme.json", text: JSON.stringify({ ...THEME, name: "Ember 2", colours: { dark: { ...THEME.colours.dark, accent: "#ff5a1f" } } }) }], "theme");
+  const { deps: d2 } = fakes({ loadBundle: async () => v2, existing: async () => ({ id, version: "1.0.0", hash: origin.hash, changed: false }), replaceTheme: deps.replaceTheme, addTheme: deps.addTheme });
+  const p2 = await previewOf({ catalogue: v2.item.id }, d2);
+  assert.equal(p2.existing?.newer, true);
+  assert.equal(p2.existing?.href, `#/settings/appearance/${id}`);
+  const up = await addFrom({ preview: p2, choices: { replace: id } }, d2);
+  assert.equal(up.result.id, id);
+  assert.equal(up.result.theme?.beside, false);
+  assert.equal(up.result.theme?.name, "Ember", "its name stays");
+  assert.equal(up.result.theme?.prefs.themes.length, 1);
+});
+
+test("themes: the pure rules for update, changed copies and the 40-theme limit", async () => {
+  const { readSharedTheme, THEMES_FULL, markChanged } = await import("../../lib/theme-share");
+  const shared = readSharedTheme(THEME);
+  const listing = { id: "0123456789abcdef", hash: `sha256-${"a".repeat(64)}`, version: "1.0" };
+  let list: ThemeList = { choice: "builtin:clay", themes: [] };
+  const added = addThemeTo(list, shared, listing, { id: () => "aaaaaa01" });
+  list = added.list;
+  assert.equal(list.choice, "builtin:clay", "adding never switches");
+  // The owner changes it: it's theirs from then on.
+  const changed = markChanged(list.themes[0], { ...list.themes[0].theme, colours: { dark: { accent: "oklch(0.5 0.1 30)" } } });
+  assert.equal(changed?.changed, true);
+  assert.equal(markChanged(list.themes[0], list.themes[0].theme)?.changed, false, "saving without a change changes nothing");
+  list = { ...list, themes: [{ ...list.themes[0], origin: changed }] };
+  const next = replaceThemeIn(list, "aaaaaa01", shared, { ...listing, hash: `sha256-${"b".repeat(64)}`, version: "1.1" }, { id: () => "aaaaaa02" });
+  assert.equal(next.added.beside, true);
+  assert.equal(next.added.id, "aaaaaa02");
+  assert.equal(next.list.themes[0].origin?.hash, null, "the changed one stops following the listing");
+  assert.equal(next.list.themes[0].origin?.changed, true);
+  assert.equal(next.list.themes[1].origin?.version, "1.1");
+  // At 40, adding is refused with words; an in-place update still works.
+  const full: ThemeList = { choice: "athena", themes: Array.from({ length: 40 }, (_, i) => ({ id: `full${String(i).padStart(4, "0")}`, theme: { ...shared.theme, name: `T${i}` } })) };
+  assert.throws(() => addThemeTo(full, shared, listing), (e: Error) => e.message === THEMES_FULL);
 });

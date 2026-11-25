@@ -8,9 +8,13 @@ import { ASSISTANT_FILE } from "./team-share";
 import { FLOW_FILE } from "./flow-share";
 import { CHECKIN_FILE } from "./checkin-share";
 import { TEMPLATE_FILE } from "./template-share";
+import { THEME_FILE } from "./theme-share";
 
 test("each kind has its own file, matching the readers' names", () => {
-  assert.deepEqual([...SHARE_KINDS], ["assistant", "skill", "flow", "checkin", "template"]);
+  assert.deepEqual([...SHARE_KINDS], ["assistant", "skill", "flow", "checkin", "template", "theme"]);
+  assert.equal(KIND_FILES.theme, THEME_FILE);
+  assert.equal(kindOfFile("ember/theme.json"), "theme");
+  assert.equal(detectKind(["ember/theme.json", "ember/README.md"]), "theme");
   assert.equal(KIND_FILES.checkin, CHECKIN_FILE);
   assert.equal(KIND_FILES.template, TEMPLATE_FILE);
   assert.equal(kindOfFile("gratitude-page/template.json"), "template");

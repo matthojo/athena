@@ -890,3 +890,63 @@
   background: var(--paper-wash);
   color: var(--paper-ink);
 }
+
+/* Themes: the plain tile (no colours to show) in the accent's wash. */
+.cm-row__tile--theme {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+/*
+ * A theme's own colours, read from its files by readTheme() and set as custom properties and background colours only:
+ * the tile is its page with a card, a line of its text and its accent; the palette is each colour as a dot.
+ */
+.cm-swatch {
+  position: relative;
+  overflow: hidden;
+  background: var(--sw-page);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 14%, transparent);
+}
+
+.cm-swatch__card {
+  position: absolute;
+  inset: 8px 5px 5px 9px; /* fixed: icon */
+  display: grid;
+  align-content: end;
+  gap: 3px; /* fixed: icon */
+  padding: 4px; /* fixed: icon */
+  border-radius: calc(var(--radius-sm) * 0.55);
+  background: var(--sw-surface);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--sw-text) 12%, transparent);
+}
+
+.cm-swatch__line {
+  height: 3px;
+  width: 85%;
+  border-radius: var(--radius-pill);
+  background: var(--sw-text);
+}
+
+.cm-swatch__accent {
+  height: 6px;
+  width: 60%;
+  border-radius: var(--radius-3xs);
+  background: var(--sw-accent);
+}
+
+.cm-palette {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: var(--space-2xs);
+}
+
+.cm-palette__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--surface), inset 0 0 0 1px color-mix(in oklab, var(--ink) 16%, transparent);
+}
+
+.cm-palette__dot + .cm-palette__dot {
+  margin-inline-start: -3px; /* fixed: icon */
+}

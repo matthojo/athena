@@ -12,7 +12,7 @@ import type { ShareKind } from "../../../lib/share-kinds";
 import { ownMirror, type CheckinKind, type QuestionType } from "../../../lib/checkin-types";
 import { FLOW_DRAFT_TOOLS, FLOW_LOOK_TOOLS, FLOW_SHARE_TOOLS, type FlowPick, type SharedFlowStep } from "../../../lib/flow-share";
 
-export const KIND_LABEL: Record<ShareKind, string> = { assistant: "Assistant", skill: "Skill", flow: "Flow", checkin: "Check-in questions", template: "Template" };
+export const KIND_LABEL: Record<ShareKind, string> = { assistant: "Assistant", skill: "Skill", flow: "Flow", checkin: "Check-in questions", template: "Template", theme: "Theme" };
 
 /** "From Community", with how often it was downloaded when the catalogue says; or "Not from Community" with where it did come from. */
 export function originWords(p: Pick<AddPreview, "from" | "listing">): { community: boolean; title: string; detail: string } {
@@ -55,6 +55,7 @@ export function reachWords(r: Reach, kind: ShareKind): { title: string; lines: s
   const lines: string[] = [];
   if (kind === "checkin") return { title: tierWords(r), lines: ["Its questions stay in your Athena, and so do your answers"] };
   if (kind === "template") return { title: tierWords(r), lines: ["Its fields fill in from your own records, inside your Athena. Nothing in it loads anything by itself"] };
+  if (kind === "theme") return { title: tierWords(r), lines: ["It only changes how Athena looks: colours, corners, spacing and text size. It has no fonts or pictures, and nothing in it loads anything"] };
   if (r.tier === 1) return { title: tierWords(r), lines: ["Every step stays inside your Athena. Nothing is sent anywhere"] };
   if (r.model) lines.push(kind === "flow" ? "Some of its steps send what they work on to the AI model you chose" : "It sends what it works on to the AI model you chose");
   for (const tool of r.lookups) {
@@ -70,17 +71,18 @@ export function addedWords(kind: ShareKind, name: string): { title: string; body
   if (kind === "assistant") return { title: `${name} joined your team, paused`, body: "Nothing runs until you switch it on from its page. Its accounts and what it may do alone are there too.", open: `Open ${name}` };
   if (kind === "skill") return { title: `${name} is in your skills, off`, body: "Ask won't use it until you switch it on from its page.", open: "Open the skill" };
   if (kind === "template") return templateAddedWords(name, { name, renamed: false });
+  if (kind === "theme") return themeAddedWords(name, { name, renamed: false, used: false });
   return { title: `${name} is in your flows, off`, body: "It won't run until you switch it on. You can try it first from its page.", open: "Open the flow" };
 }
 
-const NOUN: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "check-in questions", template: "template" };
+const NOUN: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "check-in questions", template: "template", theme: "theme" };
 
 /** "You already have this": what's here, which version, and the button that opens it. */
 export function haveWords(kind: ShareKind, had: NonNullable<AddPreview["existing"]>, listed: string | null): { title: string; detail: string; open: string } {
   const open = kind === "assistant" ? "Open yours" : kind === "checkin" ? "Open check-in settings" : `Open your ${NOUN[kind]}`;
   if (!had.newer) return { title: "You already have this", detail: had.version ? `You added version ${had.version}, the same as this one.` : "You added it from Community, and it hasn't changed since.", open };
   const yours = had.version ? `You have version ${had.version}` : "You have an earlier version";
-  if (kind === "template" && had.changed) return { title: "You already have this", detail: `${yours}, and you've changed it since. ${listed ? `Version ${listed}` : "The new version"} can go beside it, and yours stays as you left it.`, open };
+  if ((kind === "template" || kind === "theme") && had.changed) return { title: "You already have this", detail: `${yours}, and you've changed it since. ${listed ? `Version ${listed}` : "The new version"} can go beside it, and yours stays as you left it.`, open };
   return { title: "You already have this", detail: `${yours}. ${listed ? `This is version ${listed}` : "This one is newer"}: look it over, then update yours.`, open };
 }
 
@@ -88,6 +90,8 @@ export function haveWords(kind: ShareKind, had: NonNullable<AddPreview["existing
 export function updatedWords(kind: ShareKind, name: string, beside = false): { title: string; body: string; open: string } {
   if (kind === "template" && beside) return { title: `The new ${name} is beside yours`, body: "Yours stays as you left it and no longer gets updates. The new one is in your templates too.", open: "Open the new one" };
   if (kind === "template") return { title: `${name} is updated`, body: "Its words are the new version's and its name stays. Notes and journal pages you started from it don't change.", open: "Open the template" };
+  if (kind === "theme" && beside) return { title: `The new ${name} is beside yours`, body: "Yours stays as you left it and no longer gets updates. The new one is in Appearance too, and your theme in use hasn't changed.", open: "Open the new one" };
+  if (kind === "theme") return { title: `${name} is updated`, body: "Its colours and shape are the new version's, and its name stays. If you were using it, you're using the new version now.", open: "Open the theme" };
   if (kind === "checkin") return { title: `${name} is updated`, body: "Its old questions came out and the new ones joined at the end. Answers you've already given stay on their days.", open: "Open check-in settings" };
   const open = kind === "assistant" ? `Open ${name}` : kind === "skill" ? "Open the skill" : "Open the flow";
   const off = kind === "assistant" ? "paused" : "off";
@@ -97,6 +101,7 @@ export function updatedWords(kind: ShareKind, name: string, beside = false): { t
 /** Under the Update button: what it changes. */
 export function updateLandsWords(kind: ShareKind, changed = false): string {
   if (kind === "template") return changed ? "Yours stays as you left it. The new version is added beside it." : "Its words become the new version's. Its name stays.";
+  if (kind === "theme") return changed ? "Yours stays as you left it. The new version is added beside it." : "Its colours and shape become the new version's. Its name stays.";
   if (kind === "checkin") return "Its questions are swapped for the new ones. Your answers stay on their days.";
   return `Yours ${kind === "assistant" ? "pauses" : "goes off"} until you switch it back on. Its name and history stay.`;
 }
@@ -107,6 +112,7 @@ export const addLabel = (kind: ShareKind, name: string): string => (kind === "as
 /** Under the Add button: how it lands. */
 export function landsWords(kind: ShareKind): string {
   if (kind === "template") return "It joins your templates. Nothing of yours changes, and you can remove it later.";
+  if (kind === "theme") return "It joins your themes in Appearance. Add keeps the theme you have now; Add and use switches to it.";
   if (kind === "checkin") return "They join your own questions, after the ones you have. Nothing you have moves, and you can remove them later.";
   if (kind === "assistant") return "It joins paused. Nothing runs until you switch it on.";
   if (kind === "skill") return "It starts off. Ask won't use it until you switch it on.";
@@ -214,6 +220,82 @@ export function madePlainWords(changed: boolean): string | null {
 export function templateAddedWords(asked: string, got: { name: string; renamed: boolean }): { title: string; body: string; open: string } {
   const parts = [got.renamed ? `You already had a template called “${asked}”, so this one is “${got.name}”.` : null, "Use it from Notes, under “From template”. On a day whose journal is empty, it's under “Start from a template” too."];
   return { title: `${got.name} is in your templates`, body: parts.filter(Boolean).join(" "), open: "Open the template" };
+}
+
+// ---------- a theme ----------
+
+/** "Light", "Dark": a preview's caption. */
+export const SCHEME_WORDS = { light: "Light", dark: "Dark" } as const;
+
+/**
+ * The line under the previews when a theme sets colours for one mode only, or none: the other keeps Athena's own.
+ * Null when it sets both. Pure.
+ */
+export function themeModesWords(schemes: readonly ("light" | "dark")[]): string | null {
+  if (schemes.length === 2) return null;
+  if (!schemes.length) return "It keeps Athena's own colours in light and dark. Only its corners, spacing and text size can differ.";
+  return schemes[0] === "light" ? "It has light colours only. In dark mode Athena keeps its own." : "It has dark colours only. In light mode Athena keeps its own.";
+}
+
+/** "Try it on Athena": the button, what it does, and the button once it's on. */
+export const TRY_WORDS = {
+  label: "Try it on Athena",
+  line: "See it on the whole app first. Nothing is kept unless you add it.",
+  on: "Put yours back",
+  onLine: "You're seeing it on the whole app now. Leaving this page puts yours back too.",
+  /** Trying it in a mode it has no colours for: only its shape and text size show. */
+  onLineOther: (mode: "light" | "dark") => `It has no ${mode} colours, so in ${mode} mode you see only its corners, spacing and text size. Leaving this page puts yours back.`,
+} as const;
+
+/**
+ * "Where it goes" for a theme: into the person's themes under a free name, beside theirs; what Add and Add and use do;
+ * and that their own font and text size stay. `free`: the name it will have. Pure.
+ */
+export function themeGoesWords(name: string, free: string): string[] {
+  return [
+    free === name ? `It joins your themes in Appearance as “${name}”. Its editor says who made it.` : `You have a theme called “${name}” already, so this one joins as “${free}”. Yours stays as it is.`,
+    "Your own font and text size stay as you set them, whatever the theme.",
+    "You can change it once it's added. Updates from Community never overwrite your changes.",
+  ];
+}
+
+/** The note when there's no room for another theme. Null when there is. Pure. */
+export const themeRoomWords = (room: boolean): string | null => (room ? null : "You have 40 themes, the most Athena keeps. Delete one in Settings → Appearance to make room.");
+
+/** The second button on a theme's preview. */
+export const ADD_AND_USE = "Add and use";
+
+/** The confirmation once a theme is added, with its free name when it needed one, and whether it's in use. Pure. */
+export function themeAddedWords(asked: string, got: { name: string; renamed: boolean; used: boolean }): { title: string; body: string; open: string } {
+  const parts = [got.renamed ? `You already had a theme called “${asked}”, so this one is “${got.name}”.` : null, got.used ? "To switch back, pick another theme in Settings → Appearance." : "Your theme hasn't changed. To use this one, pick it in Settings → Appearance."];
+  return { title: got.used ? `You're using ${got.name}` : `${got.name} is in your themes`, body: parts.filter(Boolean).join(" "), open: got.used ? "Open Appearance" : "Open the theme" };
+}
+
+/**
+ * What reading the file dropped or changed, in plain words, one line per kind of thing: a key Athena doesn't know, a
+ * value that isn't a colour, a number brought into range, chart colours too alike. Empty when nothing was. Pure.
+ */
+export function themeProblemWords(problems: ReadonlyArray<{ path: string; why: string }>): string[] {
+  const by = (why: string) => problems.filter((p) => p.why === why).map((p) => p.path);
+  const list = (xs: string[]) => {
+    const shown = xs.slice(0, 4).map((x) => `“${x}”`);
+    const more = xs.length - shown.length;
+    return more > 0 ? `${shown.join(", ")} and ${more} more` : shown.length > 1 ? `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}` : shown.join("");
+  };
+  const lines: string[] = [];
+  const unknown = by("unknown");
+  if (unknown.length) lines.push(`Left out ${list(unknown)}: a theme can't have ${unknown.length === 1 ? "that" : "those"}.`);
+  const colours = by("not-a-colour");
+  if (colours.length) lines.push(`Used Athena's own colour for ${list(colours)}, which ${colours.length === 1 ? "wasn't a plain colour" : "weren't plain colours"}.`);
+  const clamped = by("clamped").concat(by("not-a-number"));
+  if (clamped.length) lines.push(`Brought ${list(clamped)} into the range Athena allows.`);
+  const close = by("chart-close");
+  if (close.length) lines.push(`Kept Athena's chart colours for ${close.map((p) => (p.endsWith("dark") ? "dark mode" : "light mode")).join(" and ")}: some of its own were too alike to tell apart.`);
+  const size = by("chart-size");
+  if (size.length) lines.push(`Kept Athena's chart colours for ${size.map((p) => (p.endsWith("dark") ? "dark mode" : "light mode")).join(" and ")}: a chart needs exactly five.`);
+  const text = by("too-long").concat(by("not-text"), by("not-a-handle"));
+  if (text.length) lines.push(`Shortened or left out ${list(text)}.`);
+  return lines;
 }
 
 // ---------- a flow's steps ----------

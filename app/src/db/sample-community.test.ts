@@ -7,11 +7,11 @@ import { catalogueIndexSchema, catalogueBundleSchema, verifyBundle } from "../..
 import { reachOf } from "../../../lib/reach";
 import { sampleBundle, sampleCatalogue, sampleUpdates } from "./sample-community";
 
-test("the sample index passes the catalogue's own checks, with all five kinds and tiers", async () => {
+test("the sample index passes the catalogue's own checks, with all six kinds and tiers", async () => {
   const index = await sampleCatalogue();
   assert.ok(catalogueIndexSchema.safeParse(index).success, JSON.stringify(catalogueIndexSchema.safeParse(index).error?.issues[0]));
   assert.ok(index.items.length >= 12);
-  assert.deepEqual(new Set(index.items.map((i) => i.kind)), new Set(["assistant", "skill", "flow", "checkin", "template"]));
+  assert.deepEqual(new Set(index.items.map((i) => i.kind)), new Set(["assistant", "skill", "flow", "checkin", "template", "theme"]));
   assert.deepEqual(new Set(index.items.map((i) => i.reach.tier)), new Set([1, 2, 3]));
   assert.ok(index.items.some((i) => i.featured));
 });
@@ -149,4 +149,29 @@ test("sample templates already added: Gratitude page has a newer version listed,
   const listed = index.items.find((i) => i.id === gratitude.catalogue_id)!;
   const after = await sampleUpdates([{ id: SAMPLE_TEMPLATE_IDS.gratitude, catalogue_id: listed.id, hash: listed.hash, version: "1.1", changed: false }]);
   assert.equal(after.filter((u) => u.kind === "template").length, 0);
+});
+
+test("sample themes: three with their own look, one with a single mode, each read whole; Paper lantern added at 1.0 shows an update", async () => {
+  const { readSharedTheme, themeSchemes } = await import("../../../lib/theme-share");
+  const { SAMPLE_ADDED_THEME } = await import("./sample-themes");
+  const { readOwnThemes } = await import("../../../lib/theme");
+  const index = await sampleCatalogue();
+  const themes = index.items.filter((i) => i.kind === "theme");
+  assert.deepEqual(themes.map((t) => t.name), ["Paper lantern", "Night garden", "Risograph"]);
+  const modes: string[][] = [];
+  for (const t of themes) {
+    const file = (await sampleBundle(t.id))!.bundle.files.find((f) => f.path === "theme.json")!;
+    const s = readSharedTheme(JSON.parse(file.text));
+    assert.deepEqual(s.problems, [], `${t.name} reads with nothing left out`);
+    assert.ok(s.theme.chart, `${t.name} keeps its own chart colours`);
+    assert.equal(s.author, t.author);
+    modes.push(themeSchemes(s.theme));
+  }
+  assert.deepEqual(modes, [["light", "dark"], ["dark"], ["light"]]);
+  const here = readOwnThemes([SAMPLE_ADDED_THEME]);
+  const updates = await sampleUpdates(undefined, here);
+  const lantern = updates.find((u) => u.kind === "theme");
+  assert.equal(lantern?.id, SAMPLE_ADDED_THEME.id);
+  assert.equal(lantern?.version, "1.0");
+  assert.equal(lantern?.newer?.version, "1.1");
 });

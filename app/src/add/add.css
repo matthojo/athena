@@ -1244,3 +1244,290 @@
     justify-self: start;
   }
 }
+
+/* ---------- Themes (add/theme-preview.ts): a small Athena screen in the theme's own tokens, per mode ---------- */
+
+/* The hero's tile is the theme itself: its page, a card, a line of text and its accent. */
+.add-hero__tile--theme {
+  position: relative;
+  overflow: hidden;
+  background: var(--pv-page);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pv-border) 90%, transparent);
+}
+
+.add-hero__swatch-card {
+  position: absolute;
+  inset: 16px 10px 10px 18px; /* fixed: icon */
+  display: grid;
+  align-content: end;
+  gap: 6px; /* fixed: icon */
+  padding: 9px; /* fixed: icon */
+  border-radius: calc(var(--radius-sm) * var(--pv-radius, 1));
+  background: var(--pv-surface);
+  box-shadow: inset 0 0 0 1px var(--pv-border);
+}
+
+.add-hero__swatch-line {
+  height: 5px;
+  width: 80%;
+  border-radius: var(--radius-pill);
+  background: var(--pv-text);
+}
+
+.add-hero__swatch-accent {
+  height: 11px;
+  width: 55%;
+  border-radius: calc(var(--radius-2xs) * var(--pv-radius, 1));
+  background: var(--pv-accent);
+}
+
+.add--theme .add-kind--theme {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.add-theme {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.add-theme__screens {
+  display: grid;
+  gap: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .add-theme--both .add-theme__screens {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .add-theme--one .add-theme__screens {
+    max-width: 420px;
+  }
+}
+
+.add-theme__fig {
+  margin: 0;
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.add-theme__caption {
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+
+/* The screen: every size is Athena's own times the theme's density, radius and text size, relative to the page now. */
+.add-theme__screen {
+  display: grid;
+  gap: calc(var(--space-sm) * var(--pv-density, 1));
+  padding: calc(var(--space-md) * var(--pv-density, 1));
+  border-radius: calc(var(--radius-lg) * var(--pv-radius, 1));
+  background: var(--pv-page);
+  color: var(--pv-text);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--pv-border) 85%, transparent),
+    var(--shadow-card);
+  font-size: calc(var(--text-ui) * var(--pv-scale, 1));
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.add-theme__head {
+  display: grid;
+  gap: calc(var(--space-3xs) * var(--pv-density, 1));
+  padding-block-end: calc(var(--space-3xs) * var(--pv-density, 1));
+}
+
+.add-theme__eyebrow {
+  margin: 0;
+  font-size: calc(var(--text-meta) * var(--pv-scale, 1));
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  color: var(--pv-muted);
+}
+
+.add-theme__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: calc(var(--text-heading) * var(--pv-scale, 1));
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+  line-height: var(--leading-tight);
+}
+
+.add-theme__muted {
+  margin: 0;
+  font-size: calc(var(--text-small) * var(--pv-scale, 1));
+  color: var(--pv-muted);
+}
+
+.add-theme__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: calc(var(--space-xs) * var(--pv-density, 1));
+  row-gap: calc(var(--space-2xs) * var(--pv-density, 1));
+  padding: calc(var(--space-sm) * var(--pv-density, 1)) calc(var(--space-sm-md, var(--space-sm)) * var(--pv-density, 1));
+  border-radius: calc(var(--radius-md) * var(--pv-radius, 1));
+  background: var(--pv-surface);
+  box-shadow: inset 0 0 0 1px var(--pv-border);
+  min-width: 0;
+}
+
+.add-theme__tick {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--pv-muted);
+}
+
+.add-theme__task {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--weight-medium);
+}
+
+.add-theme__chip {
+  padding: calc(var(--space-3xs) * var(--pv-density, 1)) calc(var(--space-xs) * var(--pv-density, 1));
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--pv-accent) 14%, var(--pv-surface));
+  color: color-mix(in oklab, var(--pv-accent) 78%, var(--pv-text));
+  font-size: calc(var(--text-meta) * var(--pv-scale, 1));
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.add-theme__note {
+  grid-column: 2 / -1;
+  padding-block-start: calc(var(--space-2xs) * var(--pv-density, 1));
+  border-top: 1px solid var(--pv-border);
+  font-size: calc(var(--text-small) * var(--pv-scale, 1));
+  color: var(--pv-muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-theme__card--chart {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.add-theme__label {
+  font-size: calc(var(--text-small) * var(--pv-scale, 1));
+  font-weight: var(--weight-medium);
+  color: var(--pv-muted);
+}
+
+.add-theme__chart {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: calc(var(--space-xs) * var(--pv-density, 1));
+  align-items: end;
+  height: 84px;
+}
+
+.add-theme__col {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: var(--space-3xs);
+  height: 100%;
+  min-width: 0;
+}
+
+.add-theme__bar {
+  align-self: end;
+  height: calc(var(--v) * 20%);
+  border-radius: calc(var(--radius-xs) * var(--pv-radius, 1)) calc(var(--radius-xs) * var(--pv-radius, 1)) calc(var(--radius-3xs) * var(--pv-radius, 1)) calc(var(--radius-3xs) * var(--pv-radius, 1));
+}
+
+.add-theme__bar--1 {
+  background: var(--pv-chart-1);
+}
+
+.add-theme__bar--2 {
+  background: var(--pv-chart-2);
+}
+
+.add-theme__bar--3 {
+  background: var(--pv-chart-3);
+}
+
+.add-theme__bar--4 {
+  background: var(--pv-chart-4);
+}
+
+.add-theme__bar--5 {
+  background: var(--pv-chart-5);
+}
+
+.add-theme__day {
+  text-align: center;
+  font-size: calc(var(--text-meta) * var(--pv-scale, 1));
+  color: var(--pv-muted);
+}
+
+.add-theme__ask {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-xs) * var(--pv-density, 1));
+  padding: calc(var(--space-2xs) * var(--pv-density, 1));
+  padding-inline-start: calc(var(--space-sm) * var(--pv-density, 1));
+  border-radius: calc(var(--radius-md) * var(--pv-radius, 1));
+  background: var(--pv-sunken);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pv-border) 70%, transparent);
+}
+
+.add-theme__field {
+  flex: 1;
+  min-width: 0;
+  color: var(--pv-muted);
+  font-size: calc(var(--text-small) * var(--pv-scale, 1));
+}
+
+.add-theme__button {
+  padding: calc(var(--space-2xs-xs, var(--space-2xs)) * var(--pv-density, 1)) calc(var(--space-md) * var(--pv-density, 1));
+  border-radius: calc(var(--radius-sm) * var(--pv-radius, 1));
+  background: var(--pv-accent);
+  color: var(--pv-on-accent);
+  font-weight: var(--weight-semibold);
+  font-size: calc(var(--text-small) * var(--pv-scale, 1));
+}
+
+.add-theme__modes {
+  margin: 0;
+}
+
+/* Try it on: a quiet bar under the previews, the button and its one line. */
+.add-try {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.add-try__line {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.add-try.is-on {
+  background: var(--accent-wash);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+.add-foot__row .add-foot__use {
+  white-space: nowrap;
+}

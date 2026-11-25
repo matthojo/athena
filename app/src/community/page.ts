@@ -1,6 +1,7 @@
 /**
  * #/community (and #/community?kind=flow&sort=downloads): the reviewed catalogue of assistants, skills, flows,
- * check-in questions and note templates other people shared. A filter by kind, a search, and an order: featured picks first and then the newest, or the
+ * check-in questions, note templates and themes other people shared. A theme's row shows its colours, read by the
+ * server from its files (CatalogueView `swatches`), in the mode the app is in when it has that mode. A filter by kind, a search, and an order: featured picks first and then the newest, or the
  * most downloaded (offered once the index carries counts). Each row says what it is, who made it, how often it was
  * downloaded when the index says, what it reaches in plain words, and the accounts it needs, marked connected or
  * not; tapping one opens its preview at #/add?catalogue=<id>, where nothing is kept until the owner says Add.
@@ -25,8 +26,8 @@ import type { CatalogueItem } from "../../../lib/catalogue-types";
 import type { ShareKind } from "../../../lib/share-kinds";
 import { communityHash, downloadWords, filtered, hasDownloads, KIND_WORDS, readKind, readSort, tierDetail, tierIcon, tierWords, type CommunitySort, type KindFilter } from "./words";
 
-const KIND_ICON: Record<ShareKind, IconName> = { assistant: "person", skill: "book", flow: "loop", checkin: "chat", template: "copy" };
-const FILTERS: KindFilter[] = ["all", "assistant", "skill", "flow", "checkin", "template"];
+const KIND_ICON: Record<ShareKind, IconName> = { assistant: "person", skill: "book", flow: "loop", checkin: "chat", template: "copy", theme: "contrast" };
+const FILTERS: KindFilter[] = ["all", "assistant", "skill", "flow", "checkin", "template", "theme"];
 const filterLabel = (k: KindFilter) => (k === "all" ? "All" : KIND_WORDS[k].many);
 
 const SORTS: ReadonlyArray<{ sort: CommunitySort; label: string }> = [
@@ -46,7 +47,7 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
 
   // ---------- the head ----------
   const fromFile = h("a", { class: "btn btn--soft btn--sm", href: ADD_ROUTE }, icons.plus(), h("span", {}, "From a file or link"));
-  const head = pageHead({ segments: ctx.go ? librarySegments("community", ctx.go) : undefined, title: "Community", lede: "Assistants, skills, flows, check-in questions and templates other people made. Each one is reviewed before it's listed, and nothing is added until you say so.", actions: [fromFile] });
+  const head = pageHead({ segments: ctx.go ? librarySegments("community", ctx.go) : undefined, title: "Community", lede: "Assistants, skills, flows, check-in questions, templates and themes other people made. Each one is reviewed before it's listed, and nothing is added until you say so.", actions: [fromFile] });
 
   // The plain line: what's read, from where, and the switch.
   const swId = "community-check";
@@ -158,6 +159,33 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
 
   // ---------- the list ----------
 
+  /** A theme's colours in the app's mode when it has that mode, else its other one: page, card, text, accent, then chart colours. */
+  function themeColours(item: CatalogueItem): string[] | null {
+    const sw = view?.swatches?.[item.id];
+    const dark = document.documentElement.dataset.scheme === "dark";
+    const list = (dark ? (sw?.dark ?? sw?.light) : (sw?.light ?? sw?.dark)) ?? null;
+    return list?.length ? list : null;
+  }
+
+  /** A theme's tile: its page with a card on it, a line of its text and its accent. Its icon when its colours didn't load. */
+  function themeTile(item: CatalogueItem): HTMLElement | null {
+    const list = themeColours(item);
+    if (!list) return null;
+    const [page, surface, text, accent] = list;
+    const tile = h("span", { class: "tile tile--sm cm-row__tile cm-swatch", "aria-hidden": "true" }, h("span", { class: "cm-swatch__card" }, h("span", { class: "cm-swatch__line" }), h("span", { class: "cm-swatch__accent" })));
+    tile.style.setProperty("--sw-page", page);
+    tile.style.setProperty("--sw-surface", surface ?? page);
+    tile.style.setProperty("--sw-text", text ?? "currentColor");
+    tile.style.setProperty("--sw-accent", accent ?? text ?? "currentColor");
+    return tile;
+  }
+
+  /** A theme's palette beside its reach: each of its colours as a dot. */
+  function palette(item: CatalogueItem): HTMLElement | null {
+    const list = themeColours(item);
+    return list ? h("li", { class: "cm-palette" }, ...list.map((c) => h("span", { class: "cm-palette__dot", style: `background:${c}` }))) : null;
+  }
+
   function row(item: CatalogueItem, added: boolean): HTMLElement {
     const tier = tierWords(item.reach);
     const needs = item.needs.map((p) => {
@@ -177,14 +205,14 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
     return h(
       "a",
       { class: `cm-row cm-row--${item.kind}`, href: addHash({ catalogue: item.id }), "data-id": item.id, "aria-label": label },
-      h("span", { class: `tile tile--sm cm-row__tile cm-row__tile--${item.kind}`, "aria-hidden": "true" }, icons[KIND_ICON[item.kind]]()),
+      (item.kind === "theme" ? themeTile(item) : null) ?? h("span", { class: `tile tile--sm cm-row__tile cm-row__tile--${item.kind}`, "aria-hidden": "true" }, icons[KIND_ICON[item.kind]]()),
       h(
         "span",
         { class: "cm-row__body" },
         h("span", { class: "cm-row__top" }, h("span", { class: "cm-row__name" }, item.name), added ? h("span", { class: "badge cm-row__added" }, "Added") : null),
         h("span", { class: "cm-row__summary" }, item.summary),
         h("span", { class: "cm-row__meta" }, h("span", { class: "cm-row__kind" }, KIND_WORDS[item.kind].one), h("span", { class: "cm-row__by" }, by), downloads ? h("span", { class: "cm-row__downloads" }, downloads) : null),
-        h("ul", { class: "cm-needs", "aria-hidden": "true" }, h("li", { class: `cm-tier cm-tier--${item.reach.tier}`, title: tierDetail(item.reach.tier) }, icons[tierIcon(item.reach)](), h("span", {}, tier)), ...needs)
+        h("ul", { class: "cm-needs", "aria-hidden": "true" }, h("li", { class: `cm-tier cm-tier--${item.reach.tier}`, title: tierDetail(item.reach.tier) }, icons[tierIcon(item.reach)](), h("span", {}, tier)), item.kind === "theme" ? palette(item) : null, ...needs)
       ),
       h("span", { class: "cm-row__chevron", "aria-hidden": "true" }, icons.chevronRight())
     );
@@ -208,7 +236,7 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
     sw.disabled = false;
     lineText.replaceChildren(
       v.on
-        ? h("span", {}, "Athena's server reads this list from ", h("strong", {}, v.host ?? "the catalogue"), " once a day, and an item when you open it. Nothing about you is sent.")
+        ? h("span", {}, "Athena's server reads this list from ", h("strong", {}, v.host ?? "the catalogue"), " once a day, a theme's colours once for each version, and an item when you open it. Nothing about you is sent.")
         : h("span", {}, "Athena doesn't contact ", h("strong", {}, v.host ?? "the catalogue"), " while this is off.")
     );
     const browsing = v.configured && v.on && v.items.length > 0;

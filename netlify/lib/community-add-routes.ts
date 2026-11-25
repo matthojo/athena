@@ -25,6 +25,10 @@
  * - a note template: lib/templates-db.ts addSharedTemplate: a new template marked as someone else's, its body made
  *   plain; one of the owner's with the same name is never replaced (the new one gets a number on the end). Update
  *   goes beside a copy the owner has changed, never over it.
+ * - a theme: lib/theme-prefs.ts addSharedTheme: it joins the owner's own themes (the `theme` settings row), marked by
+ *   where it came from, under a free name. The theme in use changes only with `choices.use` ("Add and use"). Update
+ *   replaces one the owner hasn't changed and goes beside one they have. The owner's own font and text size are
+ *   never in a theme, so nothing here touches them.
  *
  * Add never overwrites by itself: the preview says "You already have this" when an item came from the same listing,
  * and only an explicit `replace` naming that item updates it (its name and history stay, its content becomes the new
@@ -42,6 +46,8 @@ import type { SharedCheckins } from "../../lib/checkin-share";
 import type { AddedCheckins } from "../../lib/checkin-sets";
 import type { SharedTemplate } from "../../lib/template-share";
 import type { AddedTemplate } from "../../lib/templates-db";
+import type { AddedTheme, SharedTheme } from "../../lib/theme-share";
+import type { OwnTheme, ThemeChoice } from "../../lib/theme";
 import { cleanAccountIds } from "../../lib/shared-limits";
 
 type Json = (data: unknown, status?: number) => Response;
@@ -73,14 +79,17 @@ export interface CommunityAddDeps {
   replaceCheckins: (id: string, shared: SharedCheckins, catalogue: { id: string; hash: string; version?: string }) => Promise<AddedCheckins>;
   addTemplate: (shared: SharedTemplate, catalogue?: { id: string; hash: string; version?: string }) => Promise<AddedTemplate>;
   replaceTemplate: (id: string, shared: SharedTemplate, catalogue: { id: string; hash: string; version?: string }) => Promise<AddedTemplate>;
-  /** Record the listing an assistant or skill came from (migration 0089). Flows, check-in questions and templates record their own. */
+  /** A theme among the owner's own themes; with `use`, the one in use too. Returns what was saved. */
+  addTheme: (shared: SharedTheme, catalogue?: { id: string; hash: string; version?: string }, opts?: { use?: boolean }) => Promise<AddedTheme & { prefs: { choice: ThemeChoice; themes: OwnTheme[] } }>;
+  replaceTheme: (id: string, shared: SharedTheme, catalogue: { id: string; hash: string; version?: string }) => Promise<AddedTheme & { prefs: { choice: ThemeChoice; themes: OwnTheme[] } }>;
+  /** Record the listing an assistant or skill came from (migration 0089). Flows, check-in questions, templates and themes record their own. */
   markCatalogue: (kind: "assistant" | "skill", id: string, listing: { id: string; hash: string; version: string | null }) => Promise<void>;
   now: () => Date;
 }
 
 /** The server's own: the stores, the catalogue and the link guard. Loaded on first use, so tests never touch them. */
 export async function liveDeps(): Promise<CommunityAddDeps> {
-  const [{ loadBundle }, { fetchGithubFolder }, { catalogueUrl }, { q }, { importAssistant, updateImportedAssistant }, { createSkill, updateSkill, listSkills, freeName }, { addSharedFlow, replaceSharedFlow }, { addSharedCheckins, replaceSharedCheckins }, { addSharedTemplate, replaceSharedTemplate }] = await Promise.all([
+  const [{ loadBundle }, { fetchGithubFolder }, { catalogueUrl }, { q }, { importAssistant, updateImportedAssistant }, { createSkill, updateSkill, listSkills, freeName }, { addSharedFlow, replaceSharedFlow }, { addSharedCheckins, replaceSharedCheckins }, { addSharedTemplate, replaceSharedTemplate }, themePrefs] = await Promise.all([
     import("./community-catalogue"),
     import("../../lib/skill-fetch"),
     import("../../lib/community-config"),
@@ -90,6 +99,7 @@ export async function liveDeps(): Promise<CommunityAddDeps> {
     import("../../lib/flow-share-store"),
     import("../../lib/checkin-sets"),
     import("../../lib/templates-db"),
+    import("../../lib/theme-prefs"),
   ]);
   const TABLE = { assistant: "team_assistants", skill: "ask_skills", flow: "flows", checkin: "checkin_sets", template: "note_templates" } as const;
   return {
@@ -97,6 +107,8 @@ export async function liveDeps(): Promise<CommunityAddDeps> {
     fetchLink: (url) => fetchGithubFolder(parseAddLink(url)),
     catalogueAddress: () => catalogueUrl() || null,
     existing: async (kind, catalogueId) => {
+      // Themes ride in the `theme` settings row with the owner's own, not a table of their own.
+      if (kind === "theme") return themePrefs.themeListingHere(catalogueId);
       const only = kind === "skill" ? " AND assistant_id IS NULL" : kind === "template" ? " AND archived_at IS NULL AND origin = 'shared'" : "";
       const changed = kind === "template" ? ", changed_at IS NOT NULL AS changed" : "";
       const [row] = await q<{ id: string; catalogue_version: string | null; catalogue_hash: string | null; changed?: boolean }>(`SELECT id::text AS id, catalogue_version, catalogue_hash${changed} FROM ${TABLE[kind]} WHERE catalogue_id = $1${only} ORDER BY created_at DESC LIMIT 1`, [catalogueId]);
@@ -119,6 +131,8 @@ export async function liveDeps(): Promise<CommunityAddDeps> {
     replaceCheckins: replaceSharedCheckins,
     addTemplate: addSharedTemplate,
     replaceTemplate: replaceSharedTemplate,
+    addTheme: themePrefs.addSharedTheme,
+    replaceTheme: themePrefs.replaceSharedTheme,
     markCatalogue: async (kind, id, l) => {
       await q(`UPDATE ${TABLE[kind]} SET catalogue_id = $2, catalogue_hash = $3, catalogue_version = $4 WHERE id = $1::uuid`, [id, l.id, l.hash, l.version]);
     },
@@ -129,13 +143,13 @@ export async function liveDeps(): Promise<CommunityAddDeps> {
 // ---------- links ----------
 
 /**
- * A link to something shared: a GitHub folder, or a file in it (assistant.json, SKILL.md, flow.json, checkin.json or template.json, read as its
+ * A link to something shared: a GitHub folder, or a file in it (assistant.json, SKILL.md, flow.json, checkin.json, template.json or theme.json, read as its
  * folder), on github.com or raw.githubusercontent.com. Anything else is refused, so a shared item can't point
  * Athena at someone's own site. Throws ShareFormatError. Pure.
  */
 export function parseAddLink(raw: string) {
-  // lib/team-share.ts reads a link to assistant.json or SKILL.md as its folder; a flow.json, checkin.json or template.json is read the same way.
-  const asFolder = raw.trim().replace(/\/(?:flow|checkin|template)\.json(?=$|[?#])/i, "/SKILL.md");
+  // lib/team-share.ts reads a link to assistant.json or SKILL.md as its folder; a flow.json, checkin.json, template.json or theme.json is read the same way.
+  const asFolder = raw.trim().replace(/\/(?:flow|checkin|template|theme)\.json(?=$|[?#])/i, "/SKILL.md");
   try {
     return parseShareLink(asFolder);
   } catch (error) {
@@ -147,7 +161,7 @@ export function parseAddLink(raw: string) {
       // not a link at all: the reader's words say so
     }
     if (host && host !== "github.com" && host !== "www.github.com" && host !== "raw.githubusercontent.com") throw new ShareFormatError("Athena adds things from GitHub links only. For anything else, download it and add the file.");
-    throw new ShareFormatError(error.message.replace("Link to the assistant's folder on GitHub, or to its assistant.json.", "Link to its folder on GitHub, or to the assistant.json, SKILL.md, flow.json, checkin.json or template.json in it.").replace("an assistant on GitHub", "anything on GitHub"));
+    throw new ShareFormatError(error.message.replace("Link to the assistant's folder on GitHub, or to its assistant.json.", "Link to its folder on GitHub, or to the assistant.json, SKILL.md, flow.json, checkin.json, template.json or theme.json in it.").replace("an assistant on GitHub", "anything on GitHub"));
   }
 }
 
@@ -161,11 +175,13 @@ const HREF: Record<ShareKind, (id: string) => string> = {
   checkin: () => "#/settings/checkins",
   // A template opens in its editor, over Notes (app/src/components/templates.ts).
   template: (id) => `#/notes?template=${encodeURIComponent(id)}`,
+  // A theme opens in its editor, in Settings → Appearance.
+  theme: (id) => `#/settings/appearance/${encodeURIComponent(id)}`,
 };
 
 const fromCatalogue = (bundle: CatalogueBundle): ItemFiles => {
   const kind = detectKind(bundle.files.map((f) => f.path));
-  if (!kind) throw new ShareFormatError("That listing's files aren't an assistant, a skill, a flow, check-in questions or a template.");
+  if (!kind) throw new ShareFormatError("That listing's files aren't an assistant, a skill, a flow, check-in questions, a template or a theme.");
   return { kind, files: bundle.files, skipped: [], folder: null };
 };
 
@@ -221,6 +237,7 @@ export function readChoices(raw: unknown): AddChoices {
     assistant_id: typeof c.assistant_id === "string" ? c.assistant_id.slice(0, 64) : null,
     replace: typeof c.replace === "string" ? c.replace.slice(0, 64) : null,
     start: c.start !== false,
+    use: c.use === true,
   };
 }
 
@@ -287,6 +304,10 @@ export async function addFrom(body: unknown, deps: CommunityAddDeps): Promise<{ 
     const got = await deps.addTemplate(item.template, listed);
     return { result: { kind: "template", id: got.id, href: HREF.template(got.id), template: { name: got.name, renamed: got.renamed, beside: false } }, writing: null };
   }
+  if (item.kind === "theme") {
+    const got = await deps.addTheme(item.theme, listed, { use: choices.use === true });
+    return { result: { kind: "theme", id: got.id, href: HREF.theme(got.id), theme: { name: got.name, renamed: got.renamed, beside: false, used: got.used, prefs: got.prefs } }, writing: null };
+  }
   const { id } = await deps.addFlow(item.flow, flowAnswers(item.flow, choices), listed);
   return { result: { kind: "flow", id, href: HREF.flow(id) }, writing: null };
 }
@@ -332,6 +353,11 @@ async function replaceFrom(id: string, preview: AddPreview, choices: AddChoices,
     const got = await deps.replaceTemplate(id, item.template, listed);
     // Beside the owner's changed copy: a new template, with its own id and address.
     return { result: { kind: "template", id: got.id, href: HREF.template(got.id), updated: true, template: { name: got.name, renamed: got.renamed, beside: got.beside } }, writing: null };
+  }
+  if (item.kind === "theme") {
+    const got = await deps.replaceTheme(id, item.theme, listed);
+    // Beside the owner's changed copy: a new theme, with its own id.
+    return { result: { kind: "theme", id: got.id, href: HREF.theme(got.id), updated: true, theme: { name: got.name, renamed: got.renamed, beside: got.beside, used: got.used, prefs: got.prefs } }, writing: null };
   }
   await deps.replaceFlow(id, item.flow, flowAnswers(item.flow, choices), listed);
   return done(null);

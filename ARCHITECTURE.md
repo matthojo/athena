@@ -491,16 +491,17 @@ element, so it gets the mix worked out.
 ### Themes
 
 A theme is a small, versioned piece of JSON (`lib/theme.ts`), the same shape
-built in, made in Settings → Appearance, or later shared through Community as
-a `theme.json`:
+built in, made in Settings → Appearance, or shared through Community as a
+`theme.json` (`lib/theme-share.ts`):
 
 ```json
 {
-  "format": "athena-theme",
-  "version": 1,
+  "format": 1,
   "name": "Clay",
-  "author": "optional",
   "summary": "optional, one line",
+  "version": "optional, its author's own, like 1.2",
+  "author": "optional, a GitHub username",
+  "based_on": "optional, a github.com link or a Community listing",
   "colours": {
     "light": { "page": "#f5efe6", "surface": "#fcf8f2", "sunken": "#efe7db", "border": "#e3d7c6", "text": "#2a1e16",
                "textMuted": "#67584b", "accent": "#b0502a", "onAccent": "#fff8f1", "focus": "optional" },
@@ -512,6 +513,14 @@ a `theme.json`:
 }
 ```
 
+- **One shape for own and shared themes.** A theme's JSON and a shared
+  file's header are one shape: `format` is the file format as a whole number,
+  as it is for every shared kind, and `version`, `author` and `based_on` mean
+  what they mean in every shared file. The first spelling
+  (`"format": "athena-theme"`, `"version": 1` as the format's number, a
+  free-text author) still reads; `themeJson()` writes the shape above. With
+  the number in `format`, `readTheme()` also needs one of `colours`, `shape`,
+  `text` or `chart`, so another kind's file is never read as a theme.
 - **What it carries.** The nine public colours, for light, dark or both (and
   any subset within one), the corner radius (0 to 2), the density (0.8 to
   1.25), the text scale (0.9 to 1.25), and optionally five data colours per
@@ -593,6 +602,20 @@ a `theme.json`:
   own": a name, which modes it sets, colour pickers for the nine colours per
   mode, sliders for corners, spacing and text size, optional chart colours,
   and a live preview. Saved themes can be edited, and deleted with Undo.
+  `#/settings/appearance/<id>` opens one in its editor.
+- **Themes someone else shared** (owner, 25 Nov 2026). A theme is a sixth
+  kind of shared item (Community, below). Added ones ride in the same
+  `theme` row as the owner's own, each with a plain `origin`
+  (`catalogue_id`, `hash`, `version`, `author`, `changed`), and count towards
+  the same 40: at 40, Add is refused with words and the preview says so
+  first. No migration. Their tile says where they came from ("From
+  Community", "From a file", never a bare "Shared") with a dot when Community
+  has a newer version; their editor says "From Community · by @handle ·
+  version 1.0", what changing it means, and carries Community's update or
+  take-down banner. Saving one that differs from what was added marks it
+  `changed`, and an Update then goes beside it. Removing one is Delete, with
+  Undo; removing the theme in use falls back to Athena's own. A theme the
+  owner made has Share in its editor; built-in and added ones don't.
 
 ### The Library: people, places, organisations, events
 
@@ -2229,7 +2252,7 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
 
 ### Community
 
-People share assistants, skills, flows, check-in questions and note templates as folders of plain files: data,
+People share assistants, skills, flows, check-in questions, note templates and themes as folders of plain files: data,
 never code. The Community site (a separate repository and a directory people
 sign in to and submit through) reviews items and serves the catalogue as
 static files. Every way in, a listing, a link or files, ends at one preview,
@@ -2239,8 +2262,8 @@ permission.
 **The files.**
 
 - **`lib/share-kinds.ts`.** The kinds (`assistant`, `skill`, `flow`,
-  `checkin`, `template`), the file that names each (assistant.json, SKILL.md,
-  flow.json, checkin.json, template.json), the optional header
+  `checkin`, `template`, `theme`), the file that names each (assistant.json, SKILL.md,
+  flow.json, checkin.json, template.json, theme.json), the optional header
   (`version`, `author`, `based_on`) and `detectKind(paths)`. `based_on` is a
   github.com link or a listing on the Community site (`basedOnLink`).
 - **`lib/community-site.ts`.** `COMMUNITY_SITE`, the one constant naming the
@@ -2273,12 +2296,24 @@ permission.
   words). `exportTemplate` and `freeTemplateName` are pure and shared with
   sample mode; the store is `lib/templates-db.ts` (`addSharedTemplate`,
   `replaceSharedTemplate`, `exportTemplateFor`). An Update that goes beside a changed copy clears only that copy's `catalogue_hash`, so it still says it came from Community but gets no more update checks.
+- **`lib/theme-share.ts`.** theme.json, format 1: what `themeJson()` writes
+  (above). `readSharedTheme` is `readTheme()` and the shared header's rules,
+  nothing else: no second parser. Unknown keys are dropped, numbers clamped,
+  colours taken only in the safe syntax, and everything it dropped or changed
+  is listed (`problems`) for the Add screen to say in words. There's no
+  contrast check and no warning about colours; the one check is that chart
+  colours can be told apart. `exportTheme`, `freeThemeName` (built-in names
+  count as taken), `addThemeTo`, `replaceThemeIn`, `markChanged` and
+  `themeSwatches` are pure and shared by the server
+  (`lib/theme-prefs.ts` `addSharedTheme`, `replaceSharedTheme`,
+  `exportThemeFor`; `POST /api/themes/:id/share` in
+  `netlify/lib/theme-routes.ts`) and sample mode.
 - **`lib/reach.ts`.** `reachOf(files)`: tier 1 stays inside Athena, tier 2
   uses AI or an outside lookup (each named), tier 3 asks for the web. A set
   of check-in questions is always tier 1: Go deeper reaches a model only when
   the owner taps it, as for their own questions. A template is always tier 1
   too: its fields fill from the owner's own records, and nothing in it
-  fetches. Worked
+  fetches. So is a theme: colours, numbers and a name. Worked
   out from the files, never declared. Every screen names a tier the same way
   (`app/src/community/words.ts` `tierWords`, `tierIcon`).
 - **`lib/catalogue-types.ts`.** index.json, a bundle and listing.json, with
@@ -2335,7 +2370,14 @@ permission.
   and "Taken down from Community" under the item's title on the assistant,
   skill and flow pages and in an added template's editor, and `updateDot`
   puts a small dot beside an item with an update on the Team, Flows and
-  Skills lists and the template picker (one check serves a list).
+  Skills lists, the template picker and Appearance's theme tiles (one check
+  serves a list). A theme's row shows its colours: a tile of its page, card,
+  text and accent, and a palette beside its reach, in the app's mode when the
+  theme has it. The server reads them from each listed theme's bundle,
+  checked like any bundle and read by `readTheme()`, and keeps a few colours
+  in the `community` store under the bundle's hash, so each version is read
+  once (`themeSwatchesFor`, CatalogueView `swatches`). The catalogue's word
+  for them is never used.
 - **Submit to Community** (`app/src/community/submit.ts`), at the foot of the
   assistant and flow share sheets and beside a skill's downloads. Athena
   publishes nothing: it says the two steps (the downloaded folder in a public
@@ -2353,7 +2395,7 @@ permission.
   (a listing, a link, or multipart files) and `POST /api/community/add`. Add
   reads the files again and hands each kind to its own import
   (`importAssistant`, `createSkill`, `addSharedFlow`, `addSharedCheckins`,
-  `addSharedTemplate`), switched off where there's a switch,
+  `addSharedTemplate`, `addSharedTheme`), switched off where there's a switch,
   recording the listing for a catalogue item. The preview's `existing` names
   an item already added from the same listing, with `newer` when the files
   differ. `choices.replace` updates that one instead of adding a copy
@@ -2361,7 +2403,10 @@ permission.
   and history stay, its content becomes the new version's, and it goes off.
   The server only replaces the item it finds came from that listing. A
   template the owner changed since adding it (`existing.changed`) is never
-  replaced: Update adds the new version beside it. The old
+  replaced: Update adds the new version beside it. The same holds for a
+  theme the owner changed. A theme joins the owner's themes without becoming
+  the one in use; `choices.use` ("Add and use") switches to it. The result
+  carries the saved `theme` row, which the app takes as its own copy. The old
   `/api/team/import*` and `/api/skills/preview` routes are gone.
 - **`app/src/add/`.** The screen (`view.ts`) and its words (`words.ts`). One
   layout for every kind: who made it and where from (with the
@@ -2373,7 +2418,15 @@ permission.
   (`toolStepFields`). A template (`template-preview.ts`) is drawn as a note
   from it would look, by the note editor read-only, with its blanks marked,
   then its fields and where each fills in from, and "Where it goes" (the
-  name it will take, and where to use it). Add or Update sits in a sticky
+  name it will take, and where to use it). A theme (`theme-preview.ts`) is a
+  small Athena screen per mode it has (a heading, a card with a to-do and a
+  chip, a chart in its five colours, the Ask bar and its button), drawn only
+  from its tokens; a mode it leaves out is named as Athena's own. "Try it on
+  Athena" draws it on the whole app without keeping it anywhere, and "Put
+  yours back", or leaving the screen, puts the theme in use back
+  (`tryTheme`, `stopTrying` in `app/src/lib/theme.ts`). "What Athena left
+  out" says in words what reading the file dropped or changed. The foot has
+  Add and "Add and use". Add or Update sits in a sticky
   foot shared with the flow page (`styles/flows.css`, "Sticky foot"): solid,
   at the bottom of the content column, above the phone's dock.
 - **A flow, added** (`importSharedFlow`). New step ids; steps that change
@@ -2405,6 +2458,14 @@ Athena's starters and templates added from someone else can't be shared. The
 download is a zip with `<slug>/template.json`; sample mode saves
 template.json alone.
 
+**Sharing a theme** (`exportThemeFor`, `POST /api/themes/:id/share`,
+`app/src/components/theme-share-sheet.ts`, Share in the editor of a theme the
+owner made). The same scrub and personal-data check over the name and
+summary; colours and numbers go as `readTheme()` wrote them. Never the
+owner's own font or text size, their choice or any other theme. A change
+made offline is sent first. The download is a zip with `<slug>/theme.json`;
+sample mode saves theme.json alone. Submit to Community sits at its foot.
+
 **Sample mode.** `app/src/db/sample-community.ts` is a dozen made-up listings
 across the kinds and tiers, real files whose hashes and reach the tests
 check; `app/src/add/sample-items.ts` answers `#/add?link=` for its made-up
@@ -2412,7 +2473,13 @@ links. Gift price watch is added at an older version and Dot was taken down.
 Three journaling templates are listed (Gentle weekly review, Gratitude page,
 Year-end reflection); Gratitude page is added at an older version and an
 added Morning pages was taken down (`SAMPLE_ADDED_TEMPLATE_ROWS`, kept by
-`app/src/db/documents.ts`).
+`app/src/db/documents.ts`). Three themes are listed: Paper lantern (light
+and dark, by lamplight-co), Night garden (dark only) and Risograph (light
+only, square corners). Paper lantern is added at version 1.0 while the
+listing is 1.1 (`app/src/db/sample-themes.ts`, seeded once into the device's
+themes), so its tile has a dot and its preview offers Update. The made-up
+link `sea-glass` is a theme with a font and a picture in it, to show "What
+Athena left out".
 Most listings carry made-up download counts; the two newest have none.
 localStorage `athena.sample.catalogue` (`none`, `down`, `offline`, `slow`)
 shows each state of the Community screen.

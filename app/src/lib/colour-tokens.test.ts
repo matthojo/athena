@@ -25,6 +25,7 @@ export const ALLOWED: { path: string; ext?: string; match?: RegExp; why: string 
   { path: "app/src/components/brand-logo.ts", why: "Other companies' logos, drawn in their own colours." },
   { path: "app/src/components/backfill-marks.ts", why: "The logos of apps you can import from, in their own colours." },
   { path: "app/src/editor/link-render.ts", match: /^\s*"?[\w-]+"?: \{ action: "[^"]+", mark: "#/, why: "Each service's own brand colour, for the letter mark on a link to it." },
+  { path: "app/src/add/sample-items.ts", why: "Sample mode's made-up theme.json: a shared theme is colours, written as its author would write them." },
   { path: "app/src/db/sample-", why: "Sample mode's made-up content, standing in for pictures and colours the server would send." },
   { path: "app/src/editor/link-data.ts", why: "Sample mode's made-up link previews, standing in for what the server would send." },
   { path: "app/src/team/kit/", ext: ".ts", why: "The avatar kit's palette: the coats, outfits and features a person picks for an assistant, each with its own dark value. Content, like a photo." },

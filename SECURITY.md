@@ -2179,15 +2179,23 @@ words. They reach only what the owner ticked for them, enforced in code.
   the owner rewrites it. The one-time notice stays a Home card, and sample
   mode's Dot keeps its extra asks.
 - **Tested** (`lib/shared-limits.test.ts`, `lib/ask-plans.test.ts`, `lib/shared-items.db.test.ts`).
+- **A theme someone else shared** can't reach anything to tick. It's
+  colours, corner radius, density, text size and chart colours, read by
+  `readTheme()`: no typeface, nothing that loads, no selector or property of
+  its own. It never overrides the owner's own font or text size, and adding
+  it doesn't change the theme in use unless they choose "Add and use". It
+  rides in the owner's `theme` settings row, marked with where it came from
+  (Community, "Shared themes").
 
 ### Community (migrations `0089`, `0090`, `0091`, `lib/community-*.ts`, `lib/flow-share*.ts`, `lib/checkin-share.ts`, `lib/checkin-sets.ts`, `lib/template-share.ts`, `lib/templates-db.ts`, `netlify/lib/community-*.ts`)
 
-Shared assistants, skills, flows, check-in questions and note templates are
-someone else's words. They reach Athena through one screen (`#/add`) and two
-routes, behind the bearer token. Assistants, skills and flows start switched
-off; check-in questions join the owner's own but never switch a check-in on;
-a template joins the owner's templates and does nothing by itself. Nothing in
-a file is a permission.
+Shared assistants, skills, flows, check-in questions, note templates and
+themes are someone else's words. They reach Athena through one screen
+(`#/add`) and two routes, behind the bearer token. Assistants, skills and
+flows start switched off; check-in questions join the owner's own but never
+switch a check-in on; a template joins the owner's templates and does nothing
+by itself; a theme joins the owner's themes and is used only when they choose
+it. Nothing in a file is a permission.
 
 **Reading the catalogue: what leaves the site.**
 
@@ -2244,6 +2252,12 @@ a file is a permission.
   so switching it back on sticks. Nothing is deleted or updated by itself. A
   template does nothing by itself, so nothing is paused: it stays as it is,
   with the catalogue's reason shown in its editor, until the owner removes it.
+- **A listed theme's colours.** To draw a theme's row, the server fetches
+  that theme's bundle (the same `publicFetch`, `verifyBundle` and caps as
+  opening an item), reads it with `readTheme()`, and keeps a few colours in
+  the `community` blob store under the bundle's hash, so each version is
+  fetched once. At most 60 themes per list. Nothing about the owner goes
+  with the request; Community's line says so.
 - **Plain columns.** `catalogue_id`, `catalogue_hash` and `catalogue_version`
   on `team_assistants`, `ask_skills`, `flows`, `checkin_sets` and
   `note_templates` hold the catalogue's public id, a SHA-256 of the item's
@@ -2465,6 +2479,57 @@ migration `0091`).
 - **Tested** (`lib/template-share.test.ts`, `lib/template-share.db.test.ts`,
   `lib/templates.test.ts`, `netlify/lib/community-add-routes.test.ts`,
   `app/src/db/sample-community.test.ts`).
+
+**Shared themes** (`lib/theme-share.ts`, `lib/theme-prefs.ts`,
+`netlify/lib/theme-routes.ts`, no migration).
+
+- **What a theme carries.** theme.json, format 1: what `themeJson()` writes
+  (a name, a one-line summary, the nine public colours for light, dark or
+  both, corner radius, density, the theme's own text size and optional chart
+  colours) and the shared header (`version`, `author` as a GitHub username,
+  `based_on`). Never a typeface, a URL, a selector or anything that loads.
+  The first spelling (`"format": "athena-theme"`) reads too.
+- **Read by the one reader.** `readSharedTheme` is `readTheme()` plus the
+  header's rules: unknown keys dropped (a `font`, `css` or `reach` included),
+  colours only in the safe syntax and written back as `oklch()`, numbers
+  clamped, text cut to plain one-line text, 16 KB at most, a newer format
+  refused with 426. What it dropped or changed is listed on the Add screen.
+  No contrast audit and no colour warning (owner, 25 Nov 2026); the one check
+  is that a chart's five colours can be told apart, or Athena's are kept.
+  The name and summary are shown as text, never as HTML.
+- **Reach: always tier 1** (`reachOfTheme`), worked out from the file.
+- **On the page only through the paint.** Trying one on ("Try it on Athena")
+  and using one go through `compileTheme` and `paintCss`, which allow only
+  `--theme-*`, `--chart-*`, `--aurora-*` and `--accent-tint` with safe values
+  (§17). Trying one keeps nothing: not the choice, not the server row, not
+  the first-paint copy. The previews set `--pv-*` custom properties from the
+  reader's output and nothing else. The owner's own font and text size sit
+  above any theme, and a shared file can't carry them.
+- **Adding grants nothing and replaces nothing.** `addSharedTheme` reads the
+  file again and adds it to the plain `theme` settings row beside the
+  owner's own, with a plain `origin` (the listing's public id and hash, the
+  author's username and version, `changed`). It never replaces or renames
+  one of the owner's themes: a name in use, theirs or a built-in one, gets a
+  number. The theme in use changes only with `choices.use`. Added themes
+  count towards the same 40; at 40 Add is refused. An Update
+  (`replaceSharedTheme`) replaces only an added theme the owner hasn't
+  changed; once they have, theirs stays as it is and stops following the
+  listing, and the new version goes beside it. A taken-down theme stays
+  usable, with the catalogue's reason in its editor. Nothing is paused,
+  because a theme does nothing by itself. Before Add, a change made offline
+  is sent first, and a database read that fails stops the add rather than
+  saving over the row.
+- **Checked before it leaves.** `POST /api/themes/:id/share` takes only a
+  theme the owner made (not a built-in one, not one they added), takes links
+  into the site and `athena://` links out of the name and summary
+  (`scrubText`) and flags the owner's people, places, contact details and
+  private links there (`findPersonal`). Nothing downloads until each finding
+  is edited out or marked fine; the server checks again on download (409).
+- **Removed like any theme.** Delete, with Undo. Removing the theme in use
+  goes back to Athena's own.
+- **Tested** (`lib/theme-share.test.ts` with a hostile theme.json,
+  `lib/theme.test.ts`, `netlify/lib/community-add-routes.test.ts`,
+  `app/src/lib/theme.test.ts`, `app/src/db/sample-community.test.ts`).
 
 ### Ask's read tools, today's context and memory
 
@@ -3574,7 +3639,8 @@ No collection or Claude reads them, and they offer no tools.
 
 A theme changes how Athena looks and nothing else. Every theme is treated as
 untrusted, the owner's own and the built-in ones included, because themes
-shared through Community will go through the same reader.
+shared through Community go through the same reader (`readTheme()`; there's
+no second parser).
 
 - **What a theme can do.** Set the nine public `--theme-*` colours for light,
   dark or both, the corner radius, the density and the text scale (each
@@ -3601,7 +3667,8 @@ shared through Community will go through the same reader.
   names the owner gave their themes. Each device keeps a copy in
   `localStorage`, cleared by Sign out like everything else.
 - **What leaves the site.** Nothing. There's no contrast service, no font
-  service and no telemetry.
+  service and no telemetry. Sharing one is the owner's own download
+  (Community, "Shared themes").
 - **Your font and text size** stay on the device (`athena.personal`). The
   font name is checked before it's written into a stylesheet (no quotes,
   backslashes, braces, semicolons, angle brackets or control characters).

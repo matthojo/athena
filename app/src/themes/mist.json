@@ -1,6 +1,5 @@
 {
-  "format": "athena-theme",
-  "version": 1,
+  "format": 1,
   "name": "Mist",
   "summary": "Soft greys and lavender, rounder and roomier",
   "colours": {

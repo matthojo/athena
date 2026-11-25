@@ -1,5 +1,5 @@
 /**
- * Community: the five kinds of thing people share, and what every shared file has in common. Pure and shared by
+ * Community: the six kinds of thing people share, and what every shared file has in common. Pure and shared by
  * the server and the app.
  *
  * A shared item is a folder of plain files: data, never code. One file names its kind:
@@ -9,6 +9,7 @@
  *   flow.json        a flow (lib/flow-share.ts)
  *   checkin.json     a set of check-in questions (lib/checkin-share.ts)
  *   template.json    a note template (lib/template-share.ts)
+ *   theme.json       a theme: colours, shape, text size and chart colours (lib/theme-share.ts)
  *
  * The JSON files carry the same optional header: `format` (the file format, a whole number), `version` (the
  * author's own, free text like 1.2.0), `author` (a GitHub username) and `based_on` (the item it was made from: a
@@ -16,7 +17,7 @@
  */
 import { basedOnLink } from "./team-share";
 
-export const SHARE_KINDS = ["assistant", "skill", "flow", "checkin", "template"] as const;
+export const SHARE_KINDS = ["assistant", "skill", "flow", "checkin", "template", "theme"] as const;
 export type ShareKind = (typeof SHARE_KINDS)[number];
 
 /** The file that says what a folder is. */
@@ -26,6 +27,7 @@ export const KIND_FILES: Readonly<Record<ShareKind, string>> = {
   flow: "flow.json",
   checkin: "checkin.json",
   template: "template.json",
+  theme: "theme.json",
 };
 
 export const isShareKind = (v: unknown): v is ShareKind => typeof v === "string" && (SHARE_KINDS as readonly string[]).includes(v);

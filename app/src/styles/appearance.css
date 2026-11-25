@@ -680,3 +680,58 @@
   width: 24px;
   height: 24px;
 }
+
+/* ---------- Themes added from someone else ---------- */
+
+.theme-tile__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-tile__name .cm-dot {
+  align-self: center;
+  flex: none;
+}
+
+/* Where an added theme came from, under its name: "From Community", "From a file". */
+.theme-tile__from {
+  margin-top: calc(-1 * var(--space-2xs));
+  padding-inline: var(--space-3xs);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.theme-editor__origin {
+  display: grid;
+  gap: var(--space-2xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.theme-editor__from {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.theme-editor__from svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.theme-editor__origin .cm-status:empty {
+  display: none;
+}
+
+.theme-editor__share {
+  margin-inline-start: auto;
+}

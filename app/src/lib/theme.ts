@@ -11,12 +11,20 @@
  * and goes up the next time the app opens online; otherwise the server's
  * copy wins when the app loads. Sample mode keeps all of it on the device.
  *
+ * Themes added from someone else (lib/theme-share.ts) are among the person's
+ * own, each with its `origin`. Saving one from the editor marks it changed
+ * once it differs, so an Update from Community goes beside it from then on.
+ * Sample mode starts with one added from its made-up catalogue, at an older
+ * version (db/sample-themes.ts).
+ *
  * A person's own font and text size are this device's alone
  * (athena.personal): a font is installed on one device and not another, and
  * a phone and a laptop can want different sizes. They sit above any theme.
  */
 
 import { readTheme, readOwnThemes, readThemeChoice, newThemeId, type OwnTheme, type Theme, type ThemeChoice } from "../../../lib/theme";
+import { markChanged } from "../../../lib/theme-share";
+import { SAMPLE_ADDED_THEME, SAMPLE_THEMES_KEY } from "../db/sample-themes";
 import { isSampleMode, fetchSettings, saveThemeSetting } from "../db/api";
 import { repaint } from "./appearance";
 import { ATHENA, compileTheme, paintCss, personalCss, readPersonal, type Paint, type Personal } from "./theme-paint";
@@ -81,7 +89,15 @@ let state: ThemeState | null = null;
 export function themeState(): ThemeState {
   if (state) return state;
   const raw = json(store.get(THEME_KEY)) as Partial<ThemeState> | null;
-  const themes = readOwnThemes(raw?.themes);
+  let themes = readOwnThemes(raw?.themes);
+  // Sample mode starts with a theme added from its catalogue at an older version, once, so Update shows.
+  if (isSampleMode() && !store.get(SAMPLE_THEMES_KEY)) {
+    store.set(SAMPLE_THEMES_KEY, "1");
+    if (!themes.some((t) => t.id === SAMPLE_ADDED_THEME.id)) {
+      themes = readOwnThemes([...themes, SAMPLE_ADDED_THEME]);
+      store.set(THEME_KEY, JSON.stringify({ choice: raw?.choice ?? "athena", themes }));
+    }
+  }
   return (state = { choice: valid(readThemeChoice(raw?.choice), themes), themes });
 }
 
@@ -148,8 +164,9 @@ export function cutOver(doc: Document, change: () => void): void {
 }
 export const REPAINTING = "data-repainting";
 
-/** Draw the chosen theme, and keep it worked out for the next first paint. */
+/** Draw the chosen theme, and keep it worked out for the next first paint. Ends any theme being tried. */
 function apply(s: ThemeState): void {
+  trying = false;
   const paint = compileTheme(themeFor(s.choice, s));
   store.set(PAINT_KEY, Object.keys(paint.blocks).length || Object.keys(paint.meta).length ? JSON.stringify(paint) : null);
   if (typeof document === "undefined") return;
@@ -181,14 +198,61 @@ export function chooseTheme(choice: ThemeChoice): void {
   commit({ ...themeState(), choice }, { send: true });
 }
 
-/** Keep one of the person's own themes, new or changed, and use it. Returns its id. */
+/**
+ * Keep one of the person's own themes, new or changed, and use it. Returns its id. One they added keeps where it came
+ * from, and is marked changed once it differs from what was added.
+ */
 export function saveOwnTheme(theme: Theme, id?: string): string {
   const s = themeState();
   const key = id && s.themes.some((t) => t.id === id) ? id : newThemeId();
-  const themes = s.themes.some((t) => t.id === key) ? s.themes.map((t) => (t.id === key ? { id: key, theme } : t)) : [...s.themes, { id: key, theme }];
+  const before = s.themes.find((t) => t.id === key);
+  const origin = markChanged(before, theme);
+  const kept: OwnTheme = origin ? { id: key, theme: { ...theme, ...(before?.theme.author ? { author: before.theme.author } : {}) }, origin } : { id: key, theme };
+  const themes = before ? s.themes.map((t) => (t.id === key ? kept : t)) : [...s.themes, kept];
   commit({ themes, choice: `own:${key}` }, { send: true });
   return key;
 }
+
+/** Take the server's copy as this device's after it changed there (a theme added through Community). Nothing is sent back. */
+export function adoptThemeState(next: { choice: ThemeChoice; themes: unknown }): void {
+  const themes = readOwnThemes(next.themes);
+  commit({ themes, choice: readThemeChoice(next.choice) }, { send: false });
+}
+
+/** Keep a new list of themes and a choice (sample mode's Add, which has no server). Sent like any change. */
+export function setThemeState(next: ThemeState): void {
+  commit(next, { send: true });
+}
+
+/** Send a change made offline now, before the server changes the row itself (Add, Share). Quietly does nothing when there's none. */
+export async function flushTheme(): Promise<void> {
+  if (isSampleMode() || !store.get(UNSENT_KEY)) return;
+  await send(themeState());
+}
+
+// ---------- Trying a theme on the whole app ----------
+
+let trying = false;
+
+/**
+ * Draw a theme on the whole app for a look, without choosing it or keeping it anywhere: not on this device, not on
+ * the server, not in the first-paint copy. stopTrying() puts the theme in use back.
+ */
+export function tryTheme(theme: Theme | null): void {
+  if (typeof document === "undefined") return;
+  trying = true;
+  cutOver(document, () => applyPaint(document, compileTheme(theme)));
+  repaint();
+}
+
+/** Put the theme in use back after tryTheme(). Does nothing when nothing is being tried. */
+export function stopTrying(): void {
+  if (!trying) return;
+  trying = false;
+  apply(themeState());
+}
+
+export const isTrying = (): boolean => trying;
 
 /** Delete one of the person's own themes. Returns an undo that puts it back where it was, chosen again if it was. */
 export function deleteOwnTheme(id: string): () => void {

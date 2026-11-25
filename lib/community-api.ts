@@ -20,6 +20,8 @@ import type { CatalogueFile, CatalogueItem } from "./catalogue-types";
 import type { SharedFlow } from "./flow-share";
 import type { SharedCheckins } from "./checkin-share";
 import type { SharedTemplate } from "./template-share";
+import type { SharedTheme, ThemeSwatches } from "./theme-share";
+import type { OwnTheme, ThemeChoice } from "./theme";
 import type { CheckinKind } from "./checkin-types";
 import type { Reach } from "./reach";
 import type { ShareHeader, ShareKind } from "./share-kinds";
@@ -50,6 +52,11 @@ export interface CatalogueView {
   added: string[];
   /** In words, when the catalogue couldn't be read. */
   error: string | null;
+  /**
+   * A few colours of each listed theme, by listing id, read from its files by readTheme() (the catalogue's word for
+   * them is never used). A theme whose files couldn't be read is left out, and its row shows its icon alone.
+   */
+  swatches?: Record<string, ThemeSwatches>;
 }
 
 /** A preview request as the server takes it as JSON. Files go as multipart instead. */
@@ -61,7 +68,8 @@ export type AddPreviewItem =
   | { kind: "skill"; skill: SkillPreview }
   | { kind: "flow"; flow: SharedFlow }
   | { kind: "checkin"; checkins: SharedCheckins }
-  | { kind: "template"; template: SharedTemplate };
+  | { kind: "template"; template: SharedTemplate }
+  | { kind: "theme"; theme: SharedTheme };
 
 /** Everything the `#/add` screen shows before anything is kept. */
 export interface AddPreview {
@@ -112,6 +120,8 @@ export interface AddChoices {
   replace?: string | null;
   /** Check-in questions only: start asking them now. False adds the set switched off. Missing means true. */
   start?: boolean;
+  /** A theme only: "Add and use" switches to it once it's added. Missing or false leaves the theme in use as it is. */
+  use?: boolean;
 }
 
 export interface AddResult {
@@ -132,6 +142,11 @@ export interface AddResult {
    * whether an Update went beside the owner's changed copy instead of replacing it.
    */
   template?: { name: string; renamed: boolean; beside: boolean };
+  /**
+   * A theme only: the name it was added under, whether an Update went beside the person's changed copy, whether it's
+   * in use now, and the person's themes and choice as saved, for the app to take as its own copy.
+   */
+  theme?: { name: string; renamed: boolean; beside: boolean; used: boolean; prefs: { choice: ThemeChoice; themes: OwnTheme[] } };
 }
 
 /** An item added from the catalogue, against the index now. */
