@@ -5,8 +5,10 @@
  * hold all of, and only it can reach Google or Notion.
  *
  * Sample mode keeps its own: the six starters (and any edits) on the device,
- * a fill made from the sample people, catch-ups and to-dos, and a pretend
- * Google Docs and Notion account whose sends are kept here.
+ * templates added from someone else (as the server keeps them: marked as
+ * shared, never over one of the owner's), a fill made from the sample people,
+ * catch-ups and to-dos, and a pretend Google Docs and Notion account whose
+ * sends are kept here.
  */
 import { request, isSampleMode } from "./api";
 import { getMeta, setMeta } from "./idb";
@@ -15,6 +17,7 @@ import { SAMPLE_IDS, samplePeople, sampleEvents } from "./sample-data";
 import { sampleCommitments, sampleFacts, sampleInteractions } from "./sample-memory";
 import { addDays } from "../../../lib/dates";
 import { localToday } from "../lib/time";
+import { freeTemplateName, readSharedTemplate, type SharedTemplate } from "../../../lib/template-share";
 
 export type FieldContext = "meeting" | "person" | "trip" | "project" | "week" | "none";
 
@@ -28,6 +31,27 @@ export interface NoteTemplate {
   needs: FieldContext[];
   edited: boolean;
   updated_at: string | null;
+  /** Added from someone else (lib/templates-db.ts SharedInfo): who made it, their summary, the listing. Null for Athena's and the owner's own. */
+  shared?: SharedInfo | null;
+}
+
+export interface SharedInfo {
+  author: string | null;
+  version: string | null;
+  summary: string;
+  catalogue_id: string | null;
+  /** The owner has changed it since adding it. */
+  changed: boolean;
+}
+
+/** Lists that show templates (the picker, a day's "Start from a template") hear when one is added, changed or removed. */
+const listeners = new Set<() => void>();
+export function onTemplatesChange(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+export function templatesChanged(): void {
+  for (const fn of listeners) fn();
 }
 
 export interface FillInput {
@@ -103,21 +127,80 @@ async function sampleJson<T>(key: string, fallback: T): Promise<T> {
 }
 const saveSample = (key: string, value: unknown) => setMeta(key, JSON.stringify(value));
 
-type SampleRow = { id: string; starter: string | null; name: string; body: string; updated_at: string; archived?: boolean };
+type SampleRow = {
+  id: string;
+  starter: string | null;
+  name: string;
+  body: string;
+  updated_at: string;
+  archived?: boolean;
+  /** Added from someone else, with the listing's hash as the catalogue_* columns keep it. */
+  shared?: SharedInfo & { catalogue_hash: string | null };
+};
 
 function shape(t: Omit<NoteTemplate, "blurb" | "fields" | "needs">): NoteTemplate {
   const starter = STARTERS.find((s) => s.key === t.starter);
   const fields = parseTemplate(t.body).map((f) => f.name);
-  return { ...t, blurb: starter?.blurb ?? (fields.length ? `Fills ${fields.slice(0, 3).join(", ")}${fields.length > 3 ? "…" : ""}` : "Your own"), fields, needs: templateNeeds(t.body) };
+  const shared = t.shared ? { author: t.shared.author, version: t.shared.version, summary: t.shared.summary, catalogue_id: t.shared.catalogue_id, changed: t.shared.changed } : null;
+  return { ...t, shared, blurb: starter?.blurb ?? (shared?.summary || (fields.length ? `Fills ${fields.slice(0, 3).join(", ")}${fields.length > 3 ? "…" : ""}` : "Your own")), fields, needs: templateNeeds(t.body) };
+}
+
+/**
+ * Sample mode's templates, as the server lists them. Until the sample's own list is first saved, it holds two
+ * templates added from Community (db/sample-community.ts): one with a newer version listed, one taken down since.
+ */
+async function sampleRows(): Promise<SampleRow[]> {
+  const { SAMPLE_ADDED_TEMPLATE_ROWS } = await import("./sample-community");
+  return sampleJson<SampleRow[]>(SAMPLE_TEMPLATES, structuredClone(SAMPLE_ADDED_TEMPLATE_ROWS));
 }
 
 async function sampleTemplates(): Promise<NoteTemplate[]> {
-  const rows = (await sampleJson<SampleRow[]>(SAMPLE_TEMPLATES, [])).filter((r) => !r.archived);
+  const rows = (await sampleRows()).filter((r) => !r.archived);
   const starters = STARTERS.map((s) => {
-    const e = rows.find((r) => r.starter === s.key);
+    const e = rows.find((r) => r.starter === s.key && !r.shared);
     return shape(e ? { ...e, edited: true } : { id: `starter:${s.key}`, starter: s.key, name: s.name, body: s.body, edited: false, updated_at: null });
   });
-  return [...starters, ...rows.filter((r) => !r.starter).map((r) => shape({ ...r, edited: true }))];
+  return [...starters, ...rows.filter((r) => !r.starter || r.shared).map((r) => shape({ ...r, edited: true }))];
+}
+
+/** Sample mode's Add for a template, as the server's: a new one marked as someone else's, never over one of the owner's. */
+export async function sampleAddTemplate(raw: SharedTemplate, listing?: { id: string; hash: string; version: string | null }): Promise<{ id: string; name: string; renamed: boolean; beside: boolean }> {
+  const shared = readSharedTemplate(raw);
+  const rows = await sampleRows();
+  const name = freeTemplateName(shared.name, (await sampleTemplates()).map((t) => t.name));
+  const row: SampleRow = {
+    id: crypto.randomUUID(),
+    starter: null,
+    name,
+    body: shared.body,
+    updated_at: new Date().toISOString(),
+    shared: { author: shared.author ?? null, version: shared.version ?? null, summary: shared.summary, catalogue_id: listing?.id ?? null, catalogue_hash: listing?.hash ?? null, changed: false },
+  };
+  await saveSample(SAMPLE_TEMPLATES, [...rows, row]);
+  templatesChanged();
+  return { id: row.id, name, renamed: name !== shared.name, beside: false };
+}
+
+/** Sample mode's Update for a template, as the server's: over it while unchanged, beside it once the owner changed it. */
+export async function sampleReplaceTemplate(id: string, raw: SharedTemplate, listing: { id: string; hash: string; version: string | null }): Promise<{ id: string; name: string; renamed: boolean; beside: boolean }> {
+  const shared = readSharedTemplate(raw);
+  const rows = await sampleRows();
+  const row = rows.find((r) => r.id === id && r.shared && !r.archived);
+  if (!row?.shared) throw new Error("That template isn't there any more");
+  if (row.shared.changed) {
+    row.shared = { ...row.shared, catalogue_hash: null };
+    await saveSample(SAMPLE_TEMPLATES, rows);
+    return { ...(await sampleAddTemplate(shared, listing)), beside: true };
+  }
+  Object.assign(row, { body: shared.body, updated_at: new Date().toISOString(), shared: { ...row.shared, author: shared.author ?? null, version: shared.version ?? null, summary: shared.summary, catalogue_id: listing.id, catalogue_hash: listing.hash } });
+  await saveSample(SAMPLE_TEMPLATES, rows);
+  templatesChanged();
+  return { id, name: row.name, renamed: false, beside: false };
+}
+
+/** Sample templates that came from a listing, as the catalogue_* columns would say: for "You already have this" and updates. */
+export async function sampleTemplateListings(): Promise<Array<{ id: string; catalogue_id: string; hash: string; version: string | null; changed: boolean }>> {
+  return (await sampleRows()).flatMap((r) => (r.shared?.catalogue_id && r.shared.catalogue_hash && !r.archived ? [{ id: r.id, catalogue_id: r.shared.catalogue_id, hash: r.shared.catalogue_hash, version: r.shared.version, changed: r.shared.changed }] : []));
 }
 
 const short = (d: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(d));
@@ -175,41 +258,51 @@ export async function loadTemplates(): Promise<NoteTemplate[]> {
 
 export async function createTemplate(input: { name: string; body: string }): Promise<NoteTemplate> {
   if (isSampleMode()) {
-    const rows = await sampleJson<SampleRow[]>(SAMPLE_TEMPLATES, []);
+    const rows = await sampleRows();
     const row: SampleRow = { id: crypto.randomUUID(), starter: null, name: input.name.trim() || "Untitled", body: input.body, updated_at: new Date().toISOString() };
     await saveSample(SAMPLE_TEMPLATES, [...rows, row]);
+    templatesChanged();
     return shape({ ...row, edited: true });
   }
-  return request("/templates", { method: "POST", body: JSON.stringify(input) });
+  const made = await request<NoteTemplate>("/templates", { method: "POST", body: JSON.stringify(input) });
+  templatesChanged();
+  return made;
 }
 
 export async function updateTemplate(id: string, input: { name?: string; body?: string }): Promise<NoteTemplate> {
   if (isSampleMode()) {
-    const rows = await sampleJson<SampleRow[]>(SAMPLE_TEMPLATES, []);
+    const rows = await sampleRows();
     const key = id.startsWith("starter:") ? id.slice(8) : null;
     const starter = STARTERS.find((s) => s.key === key);
-    let row = rows.find((r) => r.id === id || (key && r.starter === key && !r.archived));
+    let row = rows.find((r) => r.id === id || (key && r.starter === key && !r.shared && !r.archived));
     if (!row) {
       row = { id: crypto.randomUUID(), starter: key, name: starter?.name ?? "Untitled", body: starter?.body ?? "", updated_at: "" };
       rows.push(row);
     }
+    // An added template the owner changes is theirs from then on (lib/templates-db.ts updateTemplate).
+    if (row.shared && ((input.name !== undefined && input.name.trim() !== row.name) || (input.body !== undefined && input.body !== row.body))) row.shared = { ...row.shared, changed: true };
     Object.assign(row, { ...input, updated_at: new Date().toISOString() });
     await saveSample(SAMPLE_TEMPLATES, rows);
+    templatesChanged();
     return shape({ ...row, edited: true });
   }
-  return request(`/templates/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(input) });
+  const saved = await request<NoteTemplate>(`/templates/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(input) });
+  templatesChanged();
+  return saved;
 }
 
 /** Remove one of the owner's own, or put a starter back as it was. */
 export async function archiveTemplate(id: string, archived = true): Promise<void> {
   if (isSampleMode()) {
-    const rows = await sampleJson<SampleRow[]>(SAMPLE_TEMPLATES, []);
+    const rows = await sampleRows();
     const row = rows.find((r) => r.id === id);
     if (row) row.archived = archived;
     await saveSample(SAMPLE_TEMPLATES, rows);
+    templatesChanged();
     return;
   }
   await request(`/templates/${encodeURIComponent(id)}/${archived ? "archive" : "restore"}`, { method: "POST", body: "{}" });
+  templatesChanged();
 }
 
 export async function fillFromTemplate(t: NoteTemplate, input: FillInput): Promise<Filled> {

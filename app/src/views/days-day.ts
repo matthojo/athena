@@ -21,7 +21,8 @@ import { earlierCard } from "../components/day-card";
 import { healthSection } from "../components/day-health";
 import { moneyHomeSection } from "../components/day-money";
 import { foodRow, foodSection, mindStrip } from "../components/day-food";
-import { journalEditor, lineEditor } from "../components/day-journal";
+import { journalEditor, lineEditor, type JournalHandle } from "../components/day-journal";
+import { journalStart } from "../components/journal-start";
 import { dayMapSlot } from "../components/day-map-slot";
 import { dayRibbon } from "../components/day-ribbon";
 import { loadPatterns } from "../db/patterns";
@@ -176,12 +177,19 @@ export function renderDay(date: string, nav: DaysNav, opts: { write?: boolean; m
         });
       },
     });
+    // On an empty page, a quiet "Start from a template" in the journal's foot (components/journal-start.ts). It goes as soon as there are words.
+    let journalRef: JournalHandle | null = null;
+    const start = journalStart({ date, today, journal: () => journalRef });
     const journal = journalEditor({
       value: day.journal ?? "",
       label: "Journal",
       placeholder: date === today ? "What's on your mind today?" : "A few words about the day",
       save: (text) => save({ journal: text }),
+      aside: start.el,
+      onInput: start.update,
     });
+    journalRef = journal;
+    start.update(day.journal ?? "");
     flush = journal.flush;
 
     // Mindful minutes, and State of Mind on a day with no mood of the owner's (labelled "from Health").

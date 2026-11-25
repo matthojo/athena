@@ -5,7 +5,8 @@
  *
  * - `itemFiles`: a folder's, zip's or link's files, cut down to the item's own: the folder holding the file that
  *   names its kind, text files only, within the catalogue's caps. Everything else is listed as not used.
- * - `buildPreview`: those files read by the reader for their kind (readShared, intakeEntries, readSharedFlow), with
+ * - `buildPreview`: those files read by the reader for their kind (readShared, intakeEntries, readSharedFlow,
+ *   readSharedCheckins, readSharedTemplate), with
  *   their reach and hash worked out here. Nothing is kept, and nothing in a file is a permission.
  *
  * A file made for a newer Athena throws NewerFormatError, so the screen can say "Update Athena to add this".
@@ -13,6 +14,8 @@
 import { bundleHash, CATALOGUE_LIMITS, KIND_FORMATS, type CatalogueFile, type CatalogueItem } from "./catalogue-types";
 import type { AddPreview, AddPreviewItem } from "./community-api";
 import { checkSharedFlowSteps, readSharedFlow } from "./flow-share";
+import { readSharedCheckins } from "./checkin-share";
+import { readSharedTemplate } from "./template-share";
 import { reachOf } from "./reach";
 import { detectKind, KIND_FILES, kindOfFile, readHeader, type ShareHeader, type ShareKind } from "./share-kinds";
 import { cleanPath, intakeEntries, NOT_USED_BIG, NOT_USED_FULL, NOT_USED_SCRIPT, NOT_USED_UNREAD, SKILL_LIMITS, SkillFormatError, skillTitle, textOf, TEXT_EXTENSIONS, type IntakeEntry, type SkillSource } from "./skills";
@@ -31,7 +34,7 @@ export class NewerFormatError extends ShareFormatError {
   }
 }
 
-const KIND_WORDS: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow" };
+const KIND_WORDS: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "set of check-in questions", template: "template" };
 const hidden = (path: string) => path.split("/").some((p) => p.startsWith(".") || p === "__MACOSX");
 const depthOf = (path: string) => path.split("/").length;
 const extOf = (path: string) => {
@@ -69,8 +72,8 @@ export function itemFiles(entries: readonly IntakeEntry[]): ItemFiles {
   }
   const kind = detectKind(clean.map((e) => e.path));
   if (!kind) {
-    if (clean.some((e) => kindOfFile(e.path))) throw new ShareFormatError("That holds a flow and a skill side by side. Add them one at a time, from their own folders.");
-    throw new ShareFormatError("There's no assistant.json, SKILL.md or flow.json in that.");
+    if (clean.some((e) => kindOfFile(e.path))) throw new ShareFormatError("That holds two kinds of thing side by side. Add them one at a time, from their own folders.");
+    throw new ShareFormatError("There's no assistant.json, SKILL.md, flow.json, checkin.json or template.json in that.");
   }
   const mains = clean.filter((e) => kindOfFile(e.path) === kind).sort((a, b) => depthOf(a.path) - depthOf(b.path));
   const top = depthOf(mains[0].path);
@@ -101,7 +104,7 @@ export function itemFiles(entries: readonly IntakeEntry[]): ItemFiles {
   return { kind, files, skipped, folder: folder ? folder.split("/").pop()! : null };
 }
 
-/** What a lone file is, by what it holds: flow.json (a trigger and steps), assistant.json (a job), SKILL.md (front matter). */
+/** What a lone file is, by what it holds: flow.json (a trigger and steps), assistant.json (a job), checkin.json (questions), template.json (a body), SKILL.md (front matter). */
 function loneFileName(e: IntakeEntry): string | null {
   const ext = extOf(e.path);
   if (e.bytes.byteLength > CATALOGUE_LIMITS.fileBytes || (ext !== ".json" && ext !== ".md")) return null;
@@ -113,6 +116,8 @@ function loneFileName(e: IntakeEntry): string | null {
     if (!o || typeof o !== "object") return null;
     if ("steps" in o && "trigger" in o) return KIND_FILES.flow;
     if ("job" in o) return KIND_FILES.assistant;
+    if (Array.isArray(o.questions) && !("steps" in o)) return KIND_FILES.checkin;
+    if (typeof o.body === "string" && !("steps" in o) && !("job" in o) && !("questions" in o)) return KIND_FILES.template;
   } catch {
     // not JSON: the usual words say so
   }
@@ -161,6 +166,8 @@ export function readItem(kind: ShareKind, files: readonly CatalogueFile[], sourc
       return { kind, shared: b.shared, skill: b.skill };
     }
     if (kind === "skill") return { kind, skill: intakeEntries(entriesOf(files), source) };
+    if (kind === "checkin") return { kind, checkins: readSharedCheckins(parseJson(mainText(kind, files), KIND_FILES.checkin)) };
+    if (kind === "template") return { kind, template: readSharedTemplate(parseJson(mainText(kind, files), KIND_FILES.template)) };
     const flow = readSharedFlow(parseJson(mainText(kind, files), KIND_FILES.flow));
     checkSharedFlowSteps(flow);
     return { kind, flow };
@@ -177,6 +184,8 @@ export function describe(item: AddPreviewItem): { name: string; summary: string;
     return { name: w.name || w.job, summary: w.summary || (w.name ? w.job : ""), header: readHeader(w as unknown as Record<string, unknown>) };
   }
   if (item.kind === "skill") return { name: skillTitle(item.skill.name), summary: item.skill.description, header: {} };
+  if (item.kind === "checkin") return { name: item.checkins.name, summary: item.checkins.summary, header: readHeader(item.checkins as unknown as Record<string, unknown>) };
+  if (item.kind === "template") return { name: item.template.name, summary: item.template.summary, header: readHeader(item.template as unknown as Record<string, unknown>) };
   return { name: item.flow.name, summary: item.flow.summary, header: readHeader(item.flow as unknown as Record<string, unknown>) };
 }
 

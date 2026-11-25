@@ -42,10 +42,12 @@ interface Calls {
   flow: unknown[];
   marked: unknown[];
   replaced: unknown[];
+  checkin: unknown[];
+  template: unknown[];
 }
 
 function fakes(over: Partial<CommunityAddDeps> = {}): { deps: CommunityAddDeps; calls: Calls } {
-  const calls: Calls = { assistant: [], skill: [], flow: [], marked: [], replaced: [] };
+  const calls: Calls = { assistant: [], skill: [], flow: [], marked: [], replaced: [], checkin: [], template: [] };
   const deps: CommunityAddDeps = {
     loadBundle: async () => {
       throw new Error("no catalogue in this test");
@@ -59,6 +61,10 @@ function fakes(over: Partial<CommunityAddDeps> = {}): { deps: CommunityAddDeps; 
     replaceAssistant: async (id, input) => (calls.replaced.push({ kind: "assistant", id, input }), { writing: null }),
     replaceSkill: async (id, input) => void calls.replaced.push({ kind: "skill", id, input }),
     replaceFlow: async (id, shared, answers, catalogue) => void calls.replaced.push({ kind: "flow", id, shared, answers, catalogue }),
+    addCheckins: async (shared, catalogue, opts) => (calls.checkin.push({ shared, catalogue, opts }), { id: "44444444-4444-4444-8444-444444444444", added: 2, skipped: ["What went well today?"], off: ["evening"], full: [] }),
+    replaceCheckins: async (id, shared, catalogue) => (calls.replaced.push({ kind: "checkin", id, shared, catalogue }), { id, added: 3, skipped: [], off: [], full: [] }),
+    addTemplate: async (shared, catalogue) => (calls.template.push({ shared, catalogue }), { id: "55555555-5555-4555-8555-555555555555", name: `${shared.name} (2)`, renamed: true, beside: false }),
+    replaceTemplate: async (id, shared, catalogue) => (calls.replaced.push({ kind: "template", id, shared, catalogue }), { id, name: shared.name, renamed: false, beside: false }),
     markCatalogue: async (kind, id, listing) => void calls.marked.push({ kind, id, listing }),
     now: () => new Date("2026-11-24T10:00:00Z"),
     ...over,
@@ -88,7 +94,7 @@ test("itemFiles: the item's own folder, text files only, the rest listed as not 
 });
 
 test("itemFiles: nothing to read, two side by side, or a flow beside a skill are refused in words", () => {
-  assert.throws(() => itemFiles(entries({ "a.md": "x" })), /no assistant\.json, SKILL\.md or flow\.json/);
+  assert.throws(() => itemFiles(entries({ "a.md": "x" })), /no assistant\.json, SKILL\.md, flow\.json, checkin\.json or template\.json/);
   assert.throws(() => itemFiles(entries({ "a/flow.json": "{}", "b/flow.json": "{}" })), /more than one flow/);
   assert.throws(() => itemFiles(entries({ "flow.json": "{}", "SKILL.md": SKILL })), /side by side/);
 });
@@ -227,7 +233,10 @@ test("a flow from the catalogue passes its listing to the flow's own import", as
 
 test("readChoices: only the shapes, nothing else", () => {
   const c = readChoices({ answers: { a: "b", n: 3 }, accounts: ["not an id", "44444444-4444-4444-8444-444444444444"], allow: ["add_todo", 7], web: "yes", money: true, assistant_id: 9 });
-  assert.deepEqual(c, { answers: { a: "b" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: false, money: true, assistant_id: null, replace: null });
+  assert.deepEqual(c, { answers: { a: "b" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: false, money: true, assistant_id: null, replace: null, start: true });
+  // Only an explicit false adds check-in questions switched off.
+  assert.equal(readChoices({ start: false }).start, false);
+  assert.equal(readChoices({ start: "no" }).start, true);
 });
 
 // ---------- the routes ----------
@@ -306,5 +315,126 @@ test("a lone file renamed on the way is read by what it holds", async () => {
   assert.equal((await previewOf({ files: entries({ "flow (1).json": JSON.stringify(FLOW) }) }, deps)).kind, "flow");
   assert.equal((await previewOf({ files: entries({ "tidy.json": JSON.stringify(ASSISTANT) }) }, deps)).kind, "assistant");
   assert.equal((await previewOf({ files: entries({ "packing.md": SKILL }) }, deps)).kind, "skill");
-  await assert.rejects(previewOf({ files: entries({ "notes.md": "Just some notes" }) }, deps), /no assistant\.json, SKILL\.md or flow\.json/);
+  await assert.rejects(previewOf({ files: entries({ "notes.md": "Just some notes" }) }, deps), /no assistant\.json, SKILL\.md, flow\.json, checkin\.json or template\.json/);
+});
+
+// ---------- check-in questions ----------
+
+const CHECKINS = {
+  format: 1,
+  name: "Small joys",
+  summary: "Three gentle questions for the end of the day.",
+  author: "sample-author",
+  questions: [
+    { prompt: "What made you smile today?", kinds: ["evening"], type: "text", placeholder: "Something small counts.", deeper: false },
+    { prompt: "What went well today?", kinds: ["evening"], type: "text" },
+    { prompt: "How calm do you feel?", kinds: ["evening"], type: "scale", lead: "Right now I feel", levels: ["tense", "a bit tense", "steady", "calm", "very calm"], id: "own_x", mirror: "health_stress", pinned: true },
+  ],
+};
+
+test("check-in questions: a link to checkin.json previews as its folder, read by its own reader, always tier 1", async () => {
+  assert.deepEqual(parseAddLink("https://github.com/sample-author/athena-items/blob/main/small-joys/checkin.json").path, "small-joys");
+  const { deps } = fakes({ fetchLink: async () => entries({ "small-joys/checkin.json": JSON.stringify(CHECKINS) }) });
+  const p = await previewOf({ link: "https://github.com/sample-author/athena-items/tree/main/small-joys" }, deps);
+  assert.equal(p.kind, "checkin");
+  assert.equal(p.name, "Small joys");
+  assert.equal(p.reach.tier, 1);
+  assert.ok(p.item.kind === "checkin");
+  if (p.item.kind === "checkin") {
+    // The owner's own fields in the file (an id, a mirror, a pin) are dropped.
+    assert.deepEqual(Object.keys(p.item.checkins.questions[2]).sort(), ["kinds", "lead", "levels", "prompt", "type"]);
+  }
+});
+
+test("check-in questions: Add hands them to their own import and says what joined, what was skipped and what's off", async () => {
+  const { deps, calls } = fakes();
+  const preview = await previewOf({ files: entries({ "small-joys/checkin.json": JSON.stringify(CHECKINS) }) }, deps);
+  const { result } = await addFrom({ preview, choices: {} }, deps);
+  assert.equal(result.kind, "checkin");
+  assert.equal(result.href, "#/settings/checkins");
+  assert.deepEqual(result.checkins, { added: 2, skipped: ["What went well today?"], off: ["evening"], full: [] });
+  assert.equal(calls.checkin.length, 1);
+  assert.equal(calls.marked.length, 0);
+  // "Start asking them" is the default; "Add them switched off" sends start: false.
+  assert.deepEqual((calls.checkin[0] as { opts: unknown }).opts, { start: true });
+  await addFrom({ preview, choices: { start: false } }, deps);
+  assert.deepEqual((calls.checkin[1] as { opts: unknown }).opts, { start: false });
+});
+
+test("check-in questions from the catalogue: the listing goes with them, and Update replaces only that set", async () => {
+  const files = [{ path: "checkin.json", text: JSON.stringify(CHECKINS) }];
+  const got = await catalogue(files, "checkin");
+  const setId = "44444444-4444-4444-8444-444444444444";
+  const { deps, calls } = fakes({ loadBundle: async () => got, existing: async () => ({ id: setId, version: "0.9", hash: `sha256-${"0".repeat(64)}` }) });
+  const preview = await previewOf({ catalogue: got.item.id }, deps);
+  assert.equal(preview.existing?.newer, true);
+  assert.equal(preview.existing?.href, "#/settings/checkins");
+  const added = await addFrom({ preview, choices: {} }, deps);
+  assert.deepEqual((calls.checkin[0] as { catalogue: unknown }).catalogue, { id: got.item.id, hash: got.item.hash, version: "1.0.0" });
+  assert.equal(added.result.updated, undefined);
+  const updated = await addFrom({ preview, choices: { replace: setId } }, deps);
+  assert.equal(updated.result.updated, true);
+  assert.deepEqual(updated.result.checkins, { added: 3, skipped: [], off: [], full: [] });
+  assert.equal((calls.replaced[0] as { kind: string }).kind, "checkin");
+});
+
+test("check-in questions: an unknown kind of answer is refused with words, and nothing is added", async () => {
+  const bad = { ...CHECKINS, questions: [{ prompt: "Draw your day", kinds: ["evening"], type: "sketch" }] };
+  const { deps, calls } = fakes();
+  await assert.rejects(previewOf({ files: entries({ "checkin.json": JSON.stringify(bad) }) }, deps), (e: Error) => e instanceof ShareFormatError && /“sketch”, which this Athena doesn't know/.test(e.message));
+  assert.equal(calls.checkin.length, 0);
+});
+
+// ---------- note templates ----------
+
+const TEMPLATE = {
+  format: 1,
+  name: "Weekly review",
+  summary: "A soft look back at the week.",
+  author: "slow-sundays",
+  version: "1.2",
+  body: '# A gentle look back at {{week}}\n\n## What I\'m glad happened\n\n[A song](https://music.example.com/x "embed")\n\n## One kind thing for next week',
+};
+
+test("templates: a link to template.json previews as its folder, read by its own reader and made plain, always tier 1", async () => {
+  assert.deepEqual(parseAddLink("https://github.com/sample-author/athena-items/blob/main/weekly-review/template.json"), parseAddLink("https://github.com/sample-author/athena-items/tree/main/weekly-review"));
+  const { deps } = fakes({ fetchLink: async () => entries({ "weekly-review/template.json": JSON.stringify({ ...TEMPLATE, reach: { tier: 3 }, extra: "dropped" }) }) });
+  const p = await previewOf({ link: "https://github.com/sample-author/athena-items/tree/main/weekly-review" }, deps);
+  assert.equal(p.kind, "template");
+  assert.equal(p.reach.tier, 1);
+  assert.ok(p.item.kind === "template" && !p.item.template.body.includes('"embed"'));
+  assert.ok(p.item.kind === "template" && !("extra" in p.item.template));
+});
+
+test("templates: Add hands them to their own import, which says the name it took", async () => {
+  const { deps, calls } = fakes();
+  const preview = await previewOf({ files: entries({ "weekly-review/template.json": JSON.stringify(TEMPLATE) }) }, deps);
+  const { result } = await addFrom({ preview, choices: {} }, deps);
+  assert.deepEqual(result, { kind: "template", id: "55555555-5555-4555-8555-555555555555", href: "#/notes?template=55555555-5555-4555-8555-555555555555", template: { name: "Weekly review (2)", renamed: true, beside: false } });
+  assert.equal(calls.template.length, 1);
+  // A file or a link records no listing.
+  assert.equal((calls.template[0] as { catalogue?: unknown }).catalogue, undefined);
+});
+
+test("templates from the catalogue: the listing goes with them; Update replaces only that one, and says when it went beside a changed copy", async () => {
+  const listed = await catalogue([{ path: "template.json", text: JSON.stringify(TEMPLATE) }], "template");
+  const mine = "66666666-6666-4666-8666-666666666666";
+  const { deps, calls } = fakes({ loadBundle: async () => listed, existing: async () => ({ id: mine, version: "1.0", hash: `sha256-${"0".repeat(64)}`, changed: true }) });
+  const preview = await previewOf({ catalogue: listed.item.id }, deps);
+  assert.deepEqual(preview.existing, { id: mine, version: "1.0", href: `#/notes?template=${mine}`, newer: true, changed: true });
+  await addFrom({ preview, choices: { replace: null } }, deps);
+  assert.deepEqual((calls.template[0] as { catalogue: unknown }).catalogue, { id: listed.item.id, hash: listed.item.hash, version: "1.0.0" });
+  const beside = "77777777-7777-4777-8777-777777777777";
+  const { deps: d2, calls: c2 } = fakes({ loadBundle: async () => listed, existing: async () => ({ id: mine, version: "1.0", hash: "x", changed: true }), replaceTemplate: async () => ({ id: beside, name: "Weekly review (2)", renamed: true, beside: true }) });
+  const { result } = await addFrom({ preview, choices: { replace: mine } }, d2);
+  assert.deepEqual(result, { kind: "template", id: beside, href: `#/notes?template=${beside}`, updated: true, template: { name: "Weekly review (2)", renamed: true, beside: true } });
+  assert.equal(c2.template.length, 0);
+  // Not the one from this listing: refused.
+  await assert.rejects(addFrom({ preview, choices: { replace: "88888888-8888-4888-8888-888888888888" } }, d2), (e: Error) => e instanceof ShareFormatError);
+});
+
+test("templates: a body that isn't text is refused with words, and nothing is added", async () => {
+  const { deps, calls } = fakes();
+  await assert.rejects(previewOf({ files: entries({ "template.json": JSON.stringify({ ...TEMPLATE, body: { html: "<p>" } }) }) }, deps), (e: Error) => e instanceof ShareFormatError && /body: should be text/.test(e.message));
+  assert.equal(calls.template.length, 0);
 });

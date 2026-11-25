@@ -17,10 +17,16 @@
  * entry, a bundle, a bundle's file or a listing, is dropped, never kept or passed on. So the directory site can add a
  * field without every older copy refusing the whole catalogue. A change older copies must not read past goes in
  * `format` or an item's `min_format`, never in a new key. The bundle hash covers each file's path and text only.
+ *
+ * An item of a kind this Athena doesn't know is skipped and the rest of the index is read, so the directory can list
+ * a new kind before every copy has updated. Only a kind that's a word (`kind` a string) is skipped: anything else
+ * about the item that doesn't fit still refuses the index, and so does a known kind that doesn't fit.
  */
 import { z } from "zod";
 import { SHARE_FORMAT } from "./team-share";
 import { FLOW_SHARE_FORMAT } from "./flow-share";
+import { CHECKIN_SHARE_FORMAT } from "./checkin-share";
+import { TEMPLATE_SHARE_FORMAT } from "./template-share";
 import { detectKind, KIND_FILES, SHARE_KINDS, type ShareKind } from "./share-kinds";
 import type { Reach } from "./reach";
 import { CATALOGUE_ID } from "./community-site";
@@ -60,6 +66,8 @@ export const KIND_FORMATS: Readonly<Record<ShareKind, number>> = {
   assistant: SHARE_FORMAT,
   skill: 1,
   flow: FLOW_SHARE_FORMAT,
+  checkin: CHECKIN_SHARE_FORMAT,
+  template: TEMPLATE_SHARE_FORMAT,
 };
 
 /** Can this Athena read an item of this kind and format? Pure. */
@@ -187,11 +195,20 @@ const unique = <T>(key: (t: T) => string, what: string) => (list: T[], ctx: z.Re
   }
 };
 
-export const catalogueIndexSchema: z.ZodType<CatalogueIndex> = z
+/** An item whose kind is a word this Athena doesn't know: a kind added after it was built. Pure. */
+export const isUnknownKind = (raw: unknown): boolean => !!raw && typeof raw === "object" && typeof (raw as { kind?: unknown }).kind === "string" && !(SHARE_KINDS as readonly string[]).includes((raw as { kind: string }).kind);
+
+/** The listed items as served: counted first, then those of a kind this Athena doesn't know left out. */
+const knownItems = z
+  .array(z.unknown())
+  .max(CATALOGUE_LIMITS.items)
+  .transform((list) => list.filter((raw) => !isUnknownKind(raw)));
+
+export const catalogueIndexSchema: z.ZodType<CatalogueIndex, z.ZodTypeDef, unknown> = z
   .object({
     format: z.literal(CATALOGUE_FORMAT),
     generated_at: when,
-    items: z.array(catalogueItemSchema).max(CATALOGUE_LIMITS.items).superRefine(unique((i) => i.id, "item")).superRefine(unique((i) => `${i.kind}/${i.slug}`, "slug")),
+    items: knownItems.pipe(z.array(catalogueItemSchema)).superRefine(unique((i) => i.id, "item")).superRefine(unique((i) => `${i.kind}/${i.slug}`, "slug")),
     withdrawn: z.array(withdrawnSchema).max(CATALOGUE_LIMITS.withdrawn).superRefine(unique((w) => w.id, "withdrawn id")),
   })
   .superRefine((index, ctx) => {
@@ -250,7 +267,7 @@ export const listingSchema: z.ZodType<Listing> = z
 
 // ---------- reading them ----------
 
-function parse<T>(schema: z.ZodType<T>, text: string, maxBytes: number, file: string): T {
+function parse<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, text: string, maxBytes: number, file: string): T {
   if (text.length > maxBytes || byteLength(text) > maxBytes) throw new CatalogueError(`${file} is over ${maxBytes.toLocaleString("en-GB")} bytes.`);
   let raw: unknown;
   try {
@@ -261,7 +278,7 @@ function parse<T>(schema: z.ZodType<T>, text: string, maxBytes: number, file: st
   return check(schema, raw, file);
 }
 
-function check<T>(schema: z.ZodType<T>, raw: unknown, file: string): T {
+function check<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, raw: unknown, file: string): T {
   const r = schema.safeParse(raw);
   if (r.success) return r.data;
   const issue = r.error.issues[0];

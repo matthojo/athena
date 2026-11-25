@@ -6,6 +6,13 @@
  *
  * Fields are shown with where they come from, and a field nothing can fill
  * is said to stay a blank, so nothing about a template is a surprise.
+ *
+ * A template added from someone else (lib/template-share.ts) carries no
+ * badge in the picker (owner, 25 Nov 2026: "Shared" could read as shared
+ * out), only a dot when Community has a newer version; its editor says where
+ * it came from and who made it, and Community's word on it (an update, or
+ * taken down). A template the owner wrote has Share in its editor
+ * (components/template-share-sheet.ts).
  */
 import "../styles/documents.css";
 import { h } from "../lib/dom";
@@ -19,16 +26,10 @@ import { loadTrips } from "../db/trips";
 import { hueFor, initials } from "../lib/format";
 import type { EntityKind } from "../types";
 import { clockTime } from "../lib/clock";
+import { catalogueStatus, updateDot } from "../community/status";
+import { sharedByWords, sharedChangeWords, templateIcon } from "./template-share-words";
 
-const STARTER_ICON: Record<string, IconName> = {
-  meeting: "calendar",
-  "one-on-one": "people",
-  trip: "suitcase",
-  "weekly-review": "week",
-  letter: "mail",
-  "project-brief": "project",
-};
-const iconFor = (t: NoteTemplate): IconName => (t.starter ? (STARTER_ICON[t.starter] ?? "note") : "note");
+const iconFor = (t: NoteTemplate): IconName => templateIcon(t);
 
 /** Where a field's value comes from, grouped for the editor's palette. */
 const GROUPS: Array<{ label: string; keys: string[] }> = [
@@ -89,7 +90,12 @@ export function openTemplatePicker(ctx: TemplateOpenContext, opts: { forMeeting?
         "button",
         { class: "tpl-card__main", type: "button" },
         h("span", { class: "tile tile--sm", "aria-hidden": "true" }, icons[iconFor(t)]()),
-        h("span", { class: "tpl-card__text" }, h("span", { class: "tpl-card__name" }, t.name, t.edited && t.starter ? h("span", { class: "tpl-card__tag" }, "Edited") : null), h("span", { class: "tpl-card__blurb" }, t.blurb))
+        h(
+          "span",
+          { class: "tpl-card__text" },
+          h("span", { class: "tpl-card__name" }, h("span", { class: "tpl-card__label" }, t.name), t.edited && t.starter ? h("span", { class: "tpl-card__tag" }, "Edited") : null, t.shared?.catalogue_id ? updateDot("template", t.id) : null),
+          h("span", { class: "tpl-card__blurb" }, t.blurb)
+        )
       );
       pick.addEventListener("click", () => void choose(t));
       const edit = h("button", { class: "icon-btn icon-btn--sm icon-btn--ghost tpl-card__edit", type: "button", "aria-label": `Edit ${t.name}` }, icons.pen());
@@ -270,6 +276,15 @@ export function openTemplateEditor(t: NoteTemplate | null, opts: { from?: { name
   const error = h("p", { class: "tpl-ed__error", role: "alert", hidden: true });
   const save = h("button", { class: "btn btn--primary", type: "submit" }, isNew ? "Save template" : "Save") as HTMLButtonElement;
   const extra: HTMLElement[] = [];
+  // One the owner wrote can be shared; Athena's starters and ones added from someone else can't.
+  if (t && !t.starter && !t.shared) {
+    const share = h("button", { class: "btn btn--ghost", type: "button" }, icons.send(), "Share");
+    share.addEventListener("click", () => {
+      sheet.close();
+      setTimeout(() => void import("./template-share-sheet").then((m) => m.openShareTemplate(t)), 260);
+    });
+    extra.push(share);
+  }
   if (t && t.starter && t.edited) {
     const reset = h("button", { class: "btn btn--ghost", type: "button" }, icons.restore(), "Put back the original");
     reset.addEventListener("click", async () => {
@@ -289,9 +304,29 @@ export function openTemplateEditor(t: NoteTemplate | null, opts: { from?: { name
     extra.push(remove);
   }
 
+  // Someone else's: who made it, what they said it's for, and Community's word on it.
+  const origin = t?.shared
+    ? h(
+        "section",
+        { class: "tpl-ed__origin", "aria-label": "Where this template came from" },
+        h("span", { class: "tpl-ed__origin-icon", "aria-hidden": "true" }, icons.copy()),
+        h(
+          "div",
+          { class: "tpl-ed__origin-text" },
+          h("p", { class: "tpl-ed__origin-title" }, sharedByWords(t.shared)),
+          t.shared.summary ? h("p", { class: "tpl-ed__origin-sub" }, t.shared.summary) : null,
+          h("p", { class: "tpl-ed__origin-sub" }, sharedChangeWords(t.shared.changed))
+        )
+      )
+    : null;
+  // The editor has its own Remove, so the taken-down banner only says why.
+  const status = t?.shared?.catalogue_id ? catalogueStatus("template", t.id, { actions: false }) : null;
+
   const form = h(
     "form",
     { class: "tpl-ed", novalidate: true },
+    origin,
+    status,
     h("label", { class: "tpl-ed__label" }, h("span", {}, "Name"), name),
     h("label", { class: "tpl-ed__label" }, h("span", {}, "Template"), text),
     h("section", { class: "tpl-ed__section", "aria-label": "Fields in this template" }, h("p", { class: "tpl-ed__heading" }, "Fields in this template"), found),

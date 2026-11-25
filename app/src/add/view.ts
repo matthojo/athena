@@ -7,7 +7,9 @@
  * it; where it came from ("Not from Community" unless it did); what it can reach, in plain words worked out from
  * its files; the accounts it needs and whether they're connected; its questions; which accounts it may open (all
  * unticked); what it may do alone (all unticked; "Always asks first" for what it can't be given); then the whole
- * of it, readable. Nothing is kept until Add, and what's added starts switched off.
+ * of it, readable. Nothing is kept until Add, and what's added starts switched off, except check-in questions:
+ * there the owner chooses under "When to start", and asking them is the default. A note template does nothing by
+ * itself, so it's simply added to the owner's templates: the screen draws it as a note from it would look.
  */
 import "./add.css";
 // The sticky foot is shared with the flow page (styles/flows.css, "Sticky foot").
@@ -41,7 +43,16 @@ import { sharedFlowSteps } from "./flow-steps";
 import { tierIcon } from "../community/words";
 import { entriesOf, filesFromDrop, takeHeldFiles, takeSharedFile } from "./hold";
 import { SAMPLE_LINKS } from "./sample-items";
-import { addedWords, addLabel, basedOnWords, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, originWords, reachWords, updatedWords, updateLandsWords } from "./words";
+import { addedWords, addLabel, answersGoWords, basedOnWords, checkinAddedWords, DEEPER_WORDS, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, offWords, originWords, reachWords, roomWords, startWords, updatedWords, updateLandsWords } from "./words";
+import { checkinPreview } from "./checkin-preview";
+import { loadCheckinSettings, type CheckinSettingsView } from "../db/checkins";
+import { offersDeeper, promptsHere, samePrompt } from "../../../lib/checkin-share";
+import { CHECKIN_KINDS, MAX_OWN_QUESTIONS, type CheckinKind } from "../../../lib/checkin-types";
+import type { AddResult } from "../../../lib/community-api";
+import { templatePreview } from "./template-preview";
+import { loadTemplates, type NoteTemplate } from "../db/documents";
+import { freeTemplateName, plainTemplateBody, TEMPLATE_FILE } from "../../../lib/template-share";
+import { madePlainWords, templateAddedWords, templateGoesWords } from "./words";
 
 type Go = (view: ViewId, opts?: { source?: string | null; noteId?: string | null }) => void;
 
@@ -51,7 +62,7 @@ export interface AddViewContext {
 
 const errorText = (error: unknown) => (error instanceof Error && error.message && !/fetch|network|Failed|^\d{3} /i.test(error.message) ? error.message : "That didn't work. Check you're online and try again.");
 
-const KIND_ICON: Record<ShareKind, keyof typeof icons> = { assistant: "team", skill: "book", flow: "loop" };
+const KIND_ICON: Record<ShareKind, keyof typeof icons> = { assistant: "team", skill: "book", flow: "loop", checkin: "chat", template: "copy" };
 
 const size = (text: string) => {
   const n = new TextEncoder().encode(text).byteLength;
@@ -60,6 +71,8 @@ const size = (text: string) => {
 
 export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () => void } {
   let alive = true;
+  /** Undoes what the current preview mounted (a template's read-only editor). */
+  let unmount = () => undefined as void;
   const body = h("div", { class: "add__body" });
   const el = h("div", { class: "view add" }, body);
   /** Moves focus to the new state's heading, so a screen reader hears where it is. */
@@ -69,6 +82,8 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
   back.addEventListener("click", () => (history.length > 1 ? history.back() : ctx.go("home")));
   const show = (...kids: Array<Node | null>) => {
     if (!alive) return;
+    unmount();
+    unmount = () => undefined;
     body.replaceChildren(h("div", { class: "add-top" }, back), ...kids.filter((k): k is Node => !!k));
     window.scrollTo({ top: 0 });
   };
@@ -93,7 +108,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
   function choose(problem?: string) {
     const url = h("input", { class: "field add-link__field", type: "url", inputmode: "url", placeholder: "https://github.com/…", "aria-label": "GitHub link", "aria-describedby": "add-link-hint", autocomplete: "off", spellcheck: false, required: true }) as HTMLInputElement;
     const look = h("button", { class: "btn btn--primary", type: "submit" }, "Look at it");
-    const form = h("form", { class: "add-link" }, h("label", { class: "add-link__label", for: "add-link-url" }, "Or paste a link"), h("div", { class: "add-link__row" }, url, look), h("p", { class: "form__hint", id: "add-link-hint" }, "A public GitHub folder, or the assistant.json, SKILL.md or flow.json in it."));
+    const form = h("form", { class: "add-link" }, h("label", { class: "add-link__label", for: "add-link-url" }, "Or paste a link"), h("div", { class: "add-link__row" }, url, look), h("p", { class: "form__hint", id: "add-link-hint" }, "A public GitHub folder, or the assistant.json, SKILL.md, flow.json, checkin.json or template.json in it."));
     url.id = "add-link-url";
     form.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -112,7 +127,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       { class: "add-drop" },
       h("span", { class: "add-drop__icon", "aria-hidden": "true" }, icons.arrowUp()),
       h("p", { class: "add-drop__title" }, "Drop a file or folder here"),
-      h("p", { class: "add-drop__sub" }, "A .zip, an assistant.json, a SKILL.md or a flow.json, or the folder that holds one"),
+      h("p", { class: "add-drop__sub" }, "A .zip, an assistant.json, a SKILL.md, a flow.json, a checkin.json or a template.json, or the folder that holds one"),
       h("div", { class: "add-drop__actions" }, pickFile, pickFolder)
     );
 
@@ -133,7 +148,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       : null;
 
     show(
-      pageHead({ title: "Add something shared", lede: "An assistant, a skill or a flow someone shared. You'll see all of it before anything is added, and it starts switched off." }),
+      pageHead({ title: "Add something shared", lede: "An assistant, a skill, a flow, some check-in questions or a template someone shared. You'll see all of it before anything is added." }),
       problem ? h("p", { class: "add-problem", role: "alert" }, icons.flag(), h("span", {}, problem)) : null,
       drop,
       form,
@@ -194,6 +209,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
   }
 
   function startOver() {
+    el.classList.remove("add--checkin", "add--template");
     history.replaceState(history.state, "", "#/add");
     choose();
     focusHeading();
@@ -203,12 +219,16 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
 
   async function previewScreen(p: AddPreview) {
     const needs = p.reach.needs;
-    const [accounts, team, catalog] = await Promise.all([
-      p.kind === "flow" && !needs.length ? Promise.resolve([] as AccountRow[]) : itemAccounts(needs).catch(() => null),
+    const [accounts, team, catalog, checkinSettings] = await Promise.all([
+      (p.kind === "flow" || p.kind === "checkin") && !needs.length ? Promise.resolve([] as AccountRow[]) : itemAccounts(needs).catch(() => null),
       p.kind === "assistant" ? listTeam().catch(() => null) : Promise.resolve(null),
       // A flow's steps are named as the flow editor names them.
       p.kind === "flow" ? loadCatalog().catch(() => [] as CatalogEntry[]) : Promise.resolve([] as CatalogEntry[]),
+      // Check-in questions are marked when the owner already has their words, and a routine that's off is named.
+      p.kind === "checkin" ? loadCheckinSettings().catch(() => null) : Promise.resolve(null as CheckinSettingsView | null),
     ]);
+    // A template's name is checked against the owner's: one already in use means this one gets a number on the end.
+    const ownTemplates: NoteTemplate[] | null = p.kind === "template" ? await loadTemplates().catch(() => null) : null;
     if (!alive) return;
     const room = p.kind !== "assistant" || !team || team.length < MAX_ASSISTANTS;
     const item = p.item;
@@ -366,10 +386,54 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       questionsSec = section("questions", "Its questions", h("p", { class: "form__hint add-sec__lede" }, "Each answer fills a gap in its steps. You'll see where below."), h("div", { class: "add-questions" }, ...rows));
     }
 
+    // Check-in questions: every one, grouped by routine, as it would be asked; one the owner has already is marked.
+    let joinsKinds: CheckinKind[] = [];
+    let offNote: HTMLElement | null = null;
+    let starting: () => boolean = () => true;
+    let startSec: HTMLElement | null = null;
+    if (item.kind === "checkin") {
+      const have = checkinSettings ? promptsHere(checkinSettings) : new Set<string>();
+      const fresh = item.checkins.questions.filter((q) => !have.has(samePrompt(q.prompt)));
+      joinsKinds = CHECKIN_KINDS.filter((k) => fresh.some((q) => q.kinds.includes(k)));
+      const off = checkinSettings ? joinsKinds.filter((k) => !checkinSettings[k].enabled) : [];
+      const offText = offWords(off);
+      const roomText = checkinSettings ? roomWords(fresh.length, MAX_OWN_QUESTIONS - checkinSettings.own.length) : null;
+      offNote = offText || roomText ? h("div", { class: "add-notes" }, ...[roomText, offText].filter((t): t is string => !!t).map((t) => h("p", { class: "add-note add-note--calm" }, icons.toggle(), h("span", {}, t)))) : null;
+      // Start asking them, or add the set switched off (owner, 25 Nov 2026): asking is the default. Neither switches a
+      // routine on; the note above keeps saying so.
+      const sw = startWords(off, joinsKinds);
+      const choice = (value: "on" | "off", o: { label: string; line: string }) => {
+        const input = h("input", { class: "add-start__input", type: "radio", name: "add-start", value, id: `add-start-${value}`, checked: value === "on", "aria-describedby": `add-start-${value}-line` }) as HTMLInputElement;
+        return { input, el: h("label", { class: "add-start__choice", for: `add-start-${value}` }, input, h("span", { class: "add-start__text" }, h("span", { class: "add-start__label" }, o.label), h("span", { class: "add-start__line", id: `add-start-${value}-line` }, o.line))) };
+      };
+      const on = choice("on", sw.on);
+      const offChoice = choice("off", sw.off);
+      starting = () => !offChoice.input.checked;
+      startSec = section("start", sw.legend, h("div", { class: "add-start", role: "radiogroup", "aria-labelledby": "add-start" }, on.el, offChoice.el));
+      const repeated = item.checkins.questions.length - fresh.length;
+      questionsSec = section(
+        "questions",
+        item.checkins.questions.length === 1 ? "Its question" : `Its ${item.checkins.questions.length} questions`,
+        h("p", { class: "form__hint add-sec__lede" }, repeated ? `Each one as it would be asked. ${repeated === 1 ? "You already have one of them" : `You already have ${repeated} of them`}, so ${repeated === 1 ? "it's" : "they're"} marked and won't be added twice.` : "Each one as it would be asked, one to a screen."),
+        offersDeeper(item.checkins.questions) ? h("p", { class: "form__hint add-sec__lede" }, DEEPER_WORDS) : null,
+        checkinPreview(item.checkins.questions, (q) => have.has(samePrompt(q.prompt)))
+      );
+    }
+
+    // A template: drawn as a note from it would look, then its fields and where each fills in from.
+    let tplNote: HTMLElement | null = null;
+    let tplDestroy: (() => void) | null = null;
+    if (item.kind === "template") {
+      const tp = templatePreview(item.template);
+      tplDestroy = tp.destroy;
+      questionsSec = section("questions", "How it looks", tp.el);
+      if (tp.fields) tplNote = section("fields", "Its fields", h("p", { class: "form__hint add-sec__lede" }, "Each fills in from your own records when you use it. Anything Athena can't fill stays for you."), tp.fields);
+    }
+
     // Accounts it may open: assistants and skills, all unticked, the ones it needs first.
     let accountsValue: () => string[] = () => [];
     let accountsSec: HTMLElement | null = null;
-    if (item.kind !== "flow") {
+    if (item.kind === "assistant" || item.kind === "skill") {
       const who = item.kind === "assistant" ? name : "Ask";
       if (accounts) {
         const cantWork = cantWorkNote({ name, needs, accounts, nameOf: accountName });
@@ -420,6 +484,22 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
         );
     } else if (item.kind === "skill") {
       aloneSec = section("alone", "What it may do alone", h("p", { class: "form__hint" }, "Nothing. A skill only changes how Ask goes about a request: changes still wait for your approval, and nothing is sent."));
+    } else if (item.kind === "checkin") {
+      const lines = answersGoWords(item.checkins.questions.map((q) => q.type));
+      aloneSec = section("alone", "Where your answers go", h("ul", { class: "add-bullets" }, ...lines.map((l) => h("li", {}, l))));
+    } else if (item.kind === "template") {
+      const free = ownTemplates ? freeTemplateName(name, ownTemplates.map((t) => t.name)) : name;
+      const lines = templateGoesWords(name, free);
+      // Was anything in the file made plain as it was read? Said once, so the owner knows what's missing and why.
+      let plain: string | null = null;
+      try {
+        const raw = (JSON.parse(p.files.find((f) => f.path === TEMPLATE_FILE)?.text ?? "{}") as { body?: unknown }).body;
+        const before = typeof raw === "string" ? raw.replace(/\r\n?/g, "\n").trim() : "";
+        plain = madePlainWords(!!before && plainTemplateBody(before).trim() !== before);
+      } catch {
+        plain = null;
+      }
+      aloneSec = section("alone", "Where it goes", h("ul", { class: "add-bullets" }, ...[...lines, ...(plain ? [plain] : [])].map((l) => h("li", {}, l))));
     } else {
       const lines: string[] = ["Every step that changes something waits for your approval, even if the flow asked to run on its own."];
       if (item.flow.steps.length && JSON.stringify(item.flow.steps).includes('"kind":"think"')) lines.push("Its thinking steps need an assistant. Choose one on the flow's page once it's added.");
@@ -429,7 +509,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     }
 
     // Notes: sites its words link to, an earlier copy, a full team.
-    const texts = item.kind === "assistant" ? [item.shared.instructions, item.shared.summary, item.skill?.body ?? "", ...(item.skill?.files.map((f) => f.text) ?? [])] : item.kind === "skill" ? [item.skill.body, ...item.skill.files.map((f) => f.text)] : [];
+    const texts = item.kind === "assistant" ? [item.shared.instructions, item.shared.summary, item.skill?.body ?? "", ...(item.skill?.files.map((f) => f.text) ?? [])] : item.kind === "skill" ? [item.skill.body, ...item.skill.files.map((f) => f.text)] : item.kind === "checkin" ? [item.checkins.summary, ...item.checkins.questions.map((q) => q.prompt)] : item.kind === "template" ? [item.template.summary, item.template.body] : [];
     const links = linkedHosts(texts);
     const notes = [
       links.length ? h("p", { class: "add-note" }, icons.globe(), h("span", {}, `Its words link to ${links.join(", ")}. Athena didn't check ${links.length === 1 ? "that site" : "those sites"}.`)) : null,
@@ -442,6 +522,8 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       const fileDetails = (files: Array<{ path: string; text: string }>) => files.map((f) => h("details", { class: "skill-file" }, h("summary", {}, icons.note(), h("span", { class: "skill-file__name" }, f.path), h("span", { class: "skill-file__size" }, size(f.text))), pre(f.text)));
       const skipped = p.skipped.length ? h("div", { class: "add-skipped" }, h("p", { class: "add-sub" }, "Not used"), h("ul", { class: "skill-skipped", "aria-label": "Files not used" }, ...p.skipped.map((s) => h("li", {}, h("span", { class: "skill-file__name" }, s.path), h("span", { class: "skill-skipped__why" }, s.reason))))) : null;
       if (item.kind === "flow") return section("content", "Its steps", sharedFlowSteps(item.flow, catalog), skipped);
+      // Its questions (or a template's page) above are all of it; only files left out are listed.
+      if (item.kind === "checkin" || item.kind === "template") return skipped ? section("content", "Not used", skipped) : null;
       if (item.kind === "skill") {
         const s = item.skill;
         return section("content", "All of it", h("p", { class: "add-sub" }, "Use when"), h("p", { class: "add-usewhen" }, s.description), h("p", { class: "add-sub" }, "Instructions"), pre(s.body, " skill-pre--body"), s.files.length ? h("p", { class: "add-sub" }, s.files.length === 1 ? "1 file" : `${s.files.length} files`) : null, ...fileDetails(s.files), skipped);
@@ -488,6 +570,8 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       addBtn.replaceChildren(copying ? icons.plus() : had?.newer ? icons.refresh() : icons.arrowRight(), label());
       addBtn.disabled = copying && !room;
       if (copyBtn) copyBtn.hidden = copying;
+      // Only a new set gets the switch: an Update keeps the set's own.
+      if (startSec) startSec.hidden = !copying;
     };
     copyBtn?.addEventListener("click", () => {
       copying = true;
@@ -511,10 +595,10 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       addBtn.disabled = true;
       addBtn.classList.add("is-busy");
       addBtn.lastChild!.textContent = copying ? "Adding…" : "Updating…";
-      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null, replace: copying ? null : had!.id };
+      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null, replace: copying ? null : had!.id, start: starting() };
       try {
         const result = await addItem(p, choices);
-        added(p.kind, name, result.href, !!result.updated);
+        added(p.kind, name, result.href, !!result.updated, result, joinsKinds, starting());
       } catch (error) {
         if (!alive) return;
         addBtn.disabled = false;
@@ -525,19 +609,29 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       }
     });
     const footNote = h("p", { class: "add-foot__note" });
-    const paintNote = () => (footNote.textContent = copying ? landsWords(p.kind) : had?.newer ? updateLandsWords(p.kind) : "");
+    const paintNote = () => (footNote.textContent = copying ? landsWords(p.kind) : had?.newer ? updateLandsWords(p.kind, !!had.changed) : "");
     paintFoot();
     paintNote();
     const foot = h("div", { class: "add-foot" }, problem, h("div", { class: "add-foot__row" }, cancel, addBtn), footNote);
 
-    show(hero, haveCard, facts, reachCard, ...notes, needsSec, questionsSec, accountsSec, aloneSec, asksFirstSec, content, foot);
+    if (p.kind === "checkin") el.classList.add("add--checkin");
+    if (p.kind === "template") el.classList.add("add--template");
+    show(hero, haveCard, facts, reachCard, ...notes, offNote, needsSec, questionsSec, tplNote, accountsSec, aloneSec, asksFirstSec, content, startSec, foot);
+    if (tplDestroy) unmount = tplDestroy;
     focusHeading();
   }
 
   // ---------- added ----------
 
-  function added(kind: ShareKind, name: string, href: string, updated = false) {
-    const w = updated ? updatedWords(kind, name) : addedWords(kind, name);
+  function added(kind: ShareKind, name: string, href: string, updated = false, result?: AddResult, joins: CheckinKind[] = [], started = true) {
+    const w =
+      kind === "checkin" && result?.checkins && !updated
+        ? checkinAddedWords(name, result.checkins, joins, started)
+        : kind === "template" && result?.template && !updated
+          ? templateAddedWords(name, result.template)
+          : updated
+            ? updatedWords(kind, name, !!result?.template?.beside)
+            : addedWords(kind, name);
     const open = h("a", { class: "btn btn--primary", href }, w.open, icons.arrowRight());
     const more = h("button", { class: "btn btn--soft", type: "button" }, "Add something else");
     more.addEventListener("click", startOver);
@@ -592,6 +686,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     el,
     destroy: () => {
       alive = false;
+      unmount();
     },
   };
 }

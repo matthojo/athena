@@ -18,7 +18,7 @@ export type { FlowExport };
 export type FlowShareEdits = NonNullable<FlowExportContext["edits"]>;
 
 /** Sample mode's own people, places and organisations, as the server would gather them. */
-function sampleKnown(): KnownTerm[] {
+export function sampleKnown(): KnownTerm[] {
   const out: KnownTerm[] = [];
   for (const p of samplePeople()) {
     out.push({ term: p.name, kind: "person" });

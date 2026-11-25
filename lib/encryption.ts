@@ -183,8 +183,8 @@ export const ENCRYPTED: EncryptedTable[] = [
       compute: (p, row, s) => ({ ext_key: s.index("other", `day\u0000${row.source as string}\u0000${p.external_id}`) ?? p.external_id }),
     },
   },
-  // Templates and documents Athena wrote (0047): template names and bodies, and each doc's title.
-  { table: "note_templates", key: ID, text: ["name", "body"] },
+  // Templates and documents Athena wrote (0047): template names and bodies, an added template's summary (0091), and each doc's title.
+  { table: "note_templates", key: ID, text: ["name", "body", "summary"] },
   { table: "document_exports", key: ID, text: ["title"] },
   // Recipes (0053): a recipe's title, address, body and tags; each grocery line's text. The address is matched by blind index.
   {

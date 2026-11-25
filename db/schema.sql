@@ -1676,3 +1676,34 @@ ALTER TABLE ask_skills ADD COLUMN IF NOT EXISTS catalogue_version TEXT;
 ALTER TABLE flows ADD COLUMN IF NOT EXISTS catalogue_id TEXT;
 ALTER TABLE flows ADD COLUMN IF NOT EXISTS catalogue_hash TEXT;
 ALTER TABLE flows ADD COLUMN IF NOT EXISTS catalogue_version TEXT;
+
+-- Sets of check-in questions (0090, lib/checkin-sets.ts): one row per set added from a file or Community. Its
+-- questions are among the owner's own in the settings row 'checkins', each naming the set in `set`. `paused`: its
+-- questions aren't asked. catalogue_* as for 0089; NULL for a file or a link.
+CREATE TABLE IF NOT EXISTS checkin_sets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  summary TEXT NOT NULL DEFAULT '',
+  author TEXT,
+  version TEXT,
+  paused BOOLEAN NOT NULL DEFAULT false,
+  catalogue_id TEXT,
+  catalogue_hash TEXT,
+  catalogue_version TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS checkin_sets_catalogue_idx ON checkin_sets (catalogue_id) WHERE catalogue_id IS NOT NULL;
+
+-- Note templates shared and added (0091, lib/template-share.ts, lib/templates-db.ts): an added template is a
+-- note_templates row marked origin 'shared', with its author's summary (sealed), name and version. catalogue_* as
+-- for 0089; NULL for a file or a link. changed_at: the owner changed it after adding it.
+ALTER TABLE note_templates ADD COLUMN IF NOT EXISTS origin TEXT;
+ALTER TABLE note_templates ADD COLUMN IF NOT EXISTS summary TEXT NOT NULL DEFAULT '';
+ALTER TABLE note_templates ADD COLUMN IF NOT EXISTS author TEXT;
+ALTER TABLE note_templates ADD COLUMN IF NOT EXISTS version TEXT;
+ALTER TABLE note_templates ADD COLUMN IF NOT EXISTS catalogue_id TEXT;
+ALTER TABLE note_templates ADD COLUMN IF NOT EXISTS catalogue_hash TEXT;
+ALTER TABLE note_templates ADD COLUMN IF NOT EXISTS catalogue_version TEXT;
+ALTER TABLE note_templates ADD COLUMN IF NOT EXISTS changed_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS note_templates_catalogue_idx ON note_templates (catalogue_id) WHERE catalogue_id IS NOT NULL;

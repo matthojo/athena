@@ -130,7 +130,6 @@ test("settings: the defaults, every refusal, and a save that comes back with the
   await refused({ ...base, morning: { ...base.morning, per_day: 11 } }, /per_day: 1 to 10/);
   await refused({ ...base, own: [{ ...base.own[0], id: "walk" }] }, /own\[0\]\.id: "own_"/);
   await refused({ ...base, own: Array.from({ length: 41 }, (_, i) => ({ ...base.own[0], id: `own_${i}` })) }, /at most 40/);
-  await refused({ ...base, own: [{ ...base.own[0], mirror: "day_journal" }] }, /mirror: for a scale question/);
   await refused({ ...base, own: [{ ...base.own[0], options: ["a"] }] }, /options: not for a scale question/);
   // A routine still naming an own question that's been taken out.
   await refused({ ...base, own: [] }, /there's no question "own_walk"/);
@@ -140,6 +139,82 @@ test("settings: the defaults, every refusal, and a save that comes back with the
   assert.equal(r.json.library.at(-1).id, "own_walk");
   assert.equal(r.json.library.at(-1).preset, false);
   assert.deepEqual((await call("GET", "/settings")).json, r.json);
+});
+
+test("settings: Athena says where the owner's own answers go, by type, whatever the request sends", { skip }, async () => {
+  await clean();
+  const base = ON();
+  const own = [
+    { ...base.own[0], mirror: "day_mood" },
+    { id: "own_heard", type: "text", prompt: "What did you hear today?", kinds: ["evening"], deeper: false, mirror: "briefing", preset: false },
+    { id: "own_words", type: "choices", prompt: "Which words fit the weather?", kinds: ["evening"], options: ["Grey", "Bright"], mirror: "health_mood_labels", preset: false },
+    { id: "own_where", type: "areas", prompt: "Where did the day go?", kinds: ["evening"], options: ["Work", "Rest"], preset: false },
+  ];
+  const r = await call("PUT", "/settings", { ...base, own });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.json.own.map((q: Json) => [q.id, q.mirror]), [["own_walk", null], ["own_heard", "day_journal"], ["own_words", null], ["own_where", null]]);
+  assert.deepEqual((await call("GET", "/settings")).json.own.map((q: Json) => q.mirror), [null, "day_journal", null, null]);
+});
+
+test("mirror day_journal: the owner's own written answer joins the section, changes and undoes with it; their own scale doesn't", { skip }, async () => {
+  await clean();
+  const { getDay, patchDay } = await import("./days");
+  const { d } = await days();
+  const base = ON();
+  const heard = { id: "own_heard", type: "text", prompt: "What did you hear today?", kinds: ["evening"], deeper: false, mirror: null, preset: false };
+  await call("PUT", "/settings", { ...base, evening: { ...base.evening, per_day: 4, questions: [{ id: "went_well", pinned: true }, { id: "own_heard", pinned: true }, { id: "own_walk", pinned: true }, { id: "mood", pinned: false }] }, own: [base.own[0], heard] });
+  const date = d(24);
+  await patchDay(date, { journal: "Mine first." });
+  const journal = async () => (await getDay(date, { health: false, places: false }))?.journal;
+  const mine = (await journal())!;
+  const plan = (await day(date, "evening")).json.plan as Json[];
+  assert.deepEqual(plan.map((q) => [q.id, q.mirror]).slice(0, 3), [["went_well", "day_journal"], ["own_heard", "day_journal"], ["own_walk", null]]);
+
+  await call("PUT", `/${date}/evening/answers/went_well`, { text: "Fixed the tap." });
+  await call("PUT", `/${date}/evening/answers/own_heard`, { text: "An owl, late." });
+  await call("PUT", `/${date}/evening/answers/own_walk`, { scale: 4 });
+  assert.equal(await journal(), `${mine}\n\nEvening reflection\nWhat went well today?\nFixed the tap.\n\nWhat did you hear today?\nAn owl, late.`);
+  assert.equal((await getDay(date, { health: false, places: false }))?.mood, undefined);
+
+  await call("PUT", `/${date}/evening/answers/own_heard`, { text: "Two owls." });
+  assert.equal(await journal(), `${mine}\n\nEvening reflection\nWhat went well today?\nFixed the tap.\n\nWhat did you hear today?\nTwo owls.`);
+
+  await call("DELETE", `/${date}/evening/answers/own_heard`);
+  assert.equal(await journal(), `${mine}\n\nEvening reflection\nWhat went well today?\nFixed the tap.`);
+  await call("DELETE", `/${date}/evening/answers/went_well`);
+  assert.equal(await journal(), mine);
+});
+
+test("mirror day_journal: a day planned before the rule is left exactly as it is", { skip }, async () => {
+  await clean();
+  const { qRaw } = await import("./db");
+  const { sealText } = await import("./data-box");
+  const { getDay, patchDay } = await import("./days");
+  const { PRESET_QUESTIONS } = await import("./checkin-types");
+  const { d } = await days();
+  const base = ON();
+  const heard = { id: "own_heard", type: "text", prompt: "What did you hear today?", kinds: ["evening"], deeper: false, mirror: null, preset: false };
+  await call("PUT", "/settings", { ...base, own: [base.own[0], heard], evening: { ...base.evening, questions: [...base.evening.questions, { id: "own_heard", pinned: true }] } });
+  // As a plan made before 25 Nov 2026 stored it: the owner's own written question with no mirror, answered, and
+  // Athena's own section already in the journal.
+  const date = d(26);
+  const grateful = PRESET_QUESTIONS.find((q) => q.id === "grateful")!;
+  const at = `${date}T21:00:00.000Z`;
+  const section = "Evening reflection\nWhat are you grateful for?\nA warm kitchen.";
+  const stored = { plan: [grateful, heard], answers: { grateful: { question_id: "grateful", value: { text: "A warm kitchen." }, answered_at: at }, own_heard: { question_id: "own_heard", value: { text: "Rain." }, answered_at: at } }, journal: section };
+  await qRaw(`INSERT INTO checkins (date, kind, sealed) VALUES ($1::date, 'evening', $2)`, [date, sealText(JSON.stringify(stored))]);
+  await patchDay(date, { journal: `Mine.\n\n${section}` });
+  const before = (await getDay(date, { health: false, places: false }))?.journal;
+
+  // Reading it plans nothing new and changes nothing: no back-fill.
+  const read = await call("GET", `/${date}/evening`);
+  assert.deepEqual(read.json.plan.map((q: Json) => [q.id, q.mirror]), [["grateful", "day_journal"], ["own_heard", null]]);
+  assert.equal((await getDay(date, { health: false, places: false }))?.journal, before);
+  // Changing or undoing the old answer leaves the journal alone, as it did then.
+  await call("PUT", `/${date}/evening/answers/own_heard`, { text: "Rain, then wind." });
+  assert.equal((await getDay(date, { health: false, places: false }))?.journal, before);
+  await call("DELETE", `/${date}/evening/answers/own_heard`);
+  assert.equal((await getDay(date, { health: false, places: false }))?.journal, before);
 });
 
 test("plans: off gives nothing and stores nothing; on, the plan is made once and kept, and turns are taken", { skip }, async () => {
@@ -402,6 +477,51 @@ test("done, the range, and Go deeper", { skip }, async () => {
   assert.deepEqual(await deeperFor(d(31), "evening", { question_id: "why", text: "Tired from the trip." }, { client }), { question: "What made the trip tiring?" });
   // A deeper answer is only taken on a question that offers it.
   assert.equal((await call("PUT", `/${d(31)}/evening/answers/emotions`, { text: "x", deeper: { question: "q" } })).status, 400);
+});
+
+test("trends: scale answers and picks over a range, written answers left out, nothing planned; refused without the key", { skip }, async () => {
+  await clean();
+  const { qRaw } = await import("./db");
+  const { d } = await days();
+  await call("PUT", "/settings", ON());
+  // Morning: mood and focus pinned, then rested and intention.
+  await day(d(20), "morning");
+  await call("PUT", `/${d(20)}/morning/answers/mood`, { scale: 4 });
+  await call("PUT", `/${d(20)}/morning/answers/focus`, { picks: ["Work", "Family"] });
+  await call("PUT", `/${d(20)}/morning/answers/intention`, { text: "A long walk" });
+  await call("PUT", `/${d(20)}/morning/answers/rested`, { skipped: true });
+  await day(d(21), "evening");
+  await call("PUT", `/${d(21)}/evening/answers/mood`, { scale: 2 });
+  await call("PUT", `/${d(21)}/evening/answers/own_walk`, { scale: 5 });
+  // Planned, nothing answered: left out.
+  await day(d(22), "morning");
+  const rows = async () => (await qRaw<{ n: string }>(`SELECT count(*) AS n FROM checkins WHERE date BETWEEN $1::date AND $2::date`, [d(19), d(23)]))[0].n;
+  const before = await rows();
+
+  const r = await call("GET", `/trends?from=${d(19)}&to=${d(23)}`);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.json.days, [
+    { date: d(20), kind: "morning", status: "open", scales: { mood: 4 }, picks: { focus: ["Work", "Family"] } },
+    { date: d(21), kind: "evening", status: "open", scales: { mood: 2, own_walk: 5 }, picks: {} },
+  ]);
+  assert.deepEqual(r.json.questions.map((q: Json) => q.id).sort(), ["focus", "mood", "own_walk"]);
+  assert.ok(!JSON.stringify(r.json).includes("A long walk"), "written answers never leave through trends");
+  assert.equal(await rows(), before, "reading trends plans nothing");
+
+  // Two years at most; the edges are checked.
+  assert.equal((await call("GET", `/trends?from=${d(0)}&to=${d(730)}`)).status, 200);
+  assert.equal((await call("GET", `/trends?from=${d(0)}&to=${d(731)}`)).status, 400);
+  assert.equal((await call("GET", `/trends?from=${d(5)}&to=${d(4)}`)).status, 400);
+  assert.equal((await call("GET", "/trends")).status, 400);
+  assert.equal((await call("POST", `/trends?from=${d(19)}&to=${d(23)}`)).status, 405);
+
+  const key = process.env.ATHENA_DATA_KEY;
+  delete process.env.ATHENA_DATA_KEY;
+  try {
+    assert.equal((await call("GET", `/trends?from=${d(19)}&to=${d(23)}`)).status, 503);
+  } finally {
+    process.env.ATHENA_DATA_KEY = key;
+  }
 });
 
 test("loadCheckin and the MCP tools read without planning", { skip }, async () => {

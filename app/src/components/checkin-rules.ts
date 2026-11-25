@@ -12,6 +12,19 @@ export const ROUTINE_NAME: Record<CheckinKind, string> = { morning: "Morning pre
 
 export const TYPE_NAME: Record<QuestionType, string> = { scale: "Scale", choices: "Words", areas: "Areas", text: "Written" };
 
+/** Settings, under "Your questions": where their answers go (lib/checkin-types.ts ownMirror). */
+export const OWN_ANSWERS_WORDS = "Written answers to your questions go into that day's journal, like answers to Athena's written questions. The rest stay in your check-ins.";
+
+/** Writing a question: where its answers go, for the kind of answer picked (lib/checkin-types.ts ownMirror). */
+export function ownAnswersWords(type: QuestionType): string {
+  return type === "text"
+    ? "What you write goes into that day's journal, under the check-in's heading. Change or undo it and the journal follows."
+    : "Answers stay in your check-ins. Only written answers go into your journal.";
+}
+
+/** The Delete dialog for one of the owner's own questions. */
+export const DELETE_OWN_BODY = "It comes out of both check-ins. Answers you've already given stay on their days, and so does anything already copied into your journal.";
+
 /** "Right now I feel" + "energised". Falls back to the ends when a question has no levels. */
 export function scaleWords(q: CheckinQuestion, v: ScaleValue): { lead: string; level: string } {
   const level = q.levels?.[v - 1] ?? (v <= 2 ? q.low ?? String(v) : v >= 4 ? q.high ?? String(v) : String(v));

@@ -4196,3 +4196,48 @@ a.cal-mini:active {
   outline-offset: 6px;
   transition: outline-color var(--dur-fast) var(--ease-out);
 }
+
+/* "Start from a template" (components/journal-start.ts): a quiet line in the journal's foot, only on an empty page. */
+.journal__foot--aside {
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.journal__start {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  margin-left: calc(var(--space-xs) * -1);
+  padding: 0 var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.journal__start svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+.journal__start:hover {
+  color: var(--ink);
+  background: var(--paper-wash);
+}
+
+.journal__start:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  color: var(--ink);
+}
+
+.journal__start[hidden] {
+  display: none;
+}

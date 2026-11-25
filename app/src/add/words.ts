@@ -9,9 +9,10 @@ import { listingIdOf } from "../../../lib/community-site";
 import { downloadWords, tierWords } from "../community/words";
 import type { Reach } from "../../../lib/reach";
 import type { ShareKind } from "../../../lib/share-kinds";
+import { ownMirror, type CheckinKind, type QuestionType } from "../../../lib/checkin-types";
 import { FLOW_DRAFT_TOOLS, FLOW_LOOK_TOOLS, FLOW_SHARE_TOOLS, type FlowPick, type SharedFlowStep } from "../../../lib/flow-share";
 
-export const KIND_LABEL: Record<ShareKind, string> = { assistant: "Assistant", skill: "Skill", flow: "Flow" };
+export const KIND_LABEL: Record<ShareKind, string> = { assistant: "Assistant", skill: "Skill", flow: "Flow", checkin: "Check-in questions", template: "Template" };
 
 /** "From Community", with how often it was downloaded when the catalogue says; or "Not from Community" with where it did come from. */
 export function originWords(p: Pick<AddPreview, "from" | "listing">): { community: boolean; title: string; detail: string } {
@@ -52,6 +53,8 @@ const list = (xs: readonly string[]) => (xs.length <= 1 ? xs.join("") : `${xs.sl
 /** Its reach in plain words: the tier's name, as Community and the share sheet name it, and a line for each thing it uses. */
 export function reachWords(r: Reach, kind: ShareKind): { title: string; lines: string[] } {
   const lines: string[] = [];
+  if (kind === "checkin") return { title: tierWords(r), lines: ["Its questions stay in your Athena, and so do your answers"] };
+  if (kind === "template") return { title: tierWords(r), lines: ["Its fields fill in from your own records, inside your Athena. Nothing in it loads anything by itself"] };
   if (r.tier === 1) return { title: tierWords(r), lines: ["Every step stays inside your Athena. Nothing is sent anywhere"] };
   if (r.model) lines.push(kind === "flow" ? "Some of its steps send what they work on to the AI model you chose" : "It sends what it works on to the AI model you chose");
   for (const tool of r.lookups) {
@@ -66,28 +69,35 @@ export function reachWords(r: Reach, kind: ShareKind): { title: string; lines: s
 export function addedWords(kind: ShareKind, name: string): { title: string; body: string; open: string } {
   if (kind === "assistant") return { title: `${name} joined your team, paused`, body: "Nothing runs until you switch it on from its page. Its accounts and what it may do alone are there too.", open: `Open ${name}` };
   if (kind === "skill") return { title: `${name} is in your skills, off`, body: "Ask won't use it until you switch it on from its page.", open: "Open the skill" };
+  if (kind === "template") return templateAddedWords(name, { name, renamed: false });
   return { title: `${name} is in your flows, off`, body: "It won't run until you switch it on. You can try it first from its page.", open: "Open the flow" };
 }
 
-const NOUN: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow" };
+const NOUN: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "check-in questions", template: "template" };
 
 /** "You already have this": what's here, which version, and the button that opens it. */
 export function haveWords(kind: ShareKind, had: NonNullable<AddPreview["existing"]>, listed: string | null): { title: string; detail: string; open: string } {
-  const open = kind === "assistant" ? "Open yours" : `Open your ${NOUN[kind]}`;
+  const open = kind === "assistant" ? "Open yours" : kind === "checkin" ? "Open check-in settings" : `Open your ${NOUN[kind]}`;
   if (!had.newer) return { title: "You already have this", detail: had.version ? `You added version ${had.version}, the same as this one.` : "You added it from Community, and it hasn't changed since.", open };
   const yours = had.version ? `You have version ${had.version}` : "You have an earlier version";
+  if (kind === "template" && had.changed) return { title: "You already have this", detail: `${yours}, and you've changed it since. ${listed ? `Version ${listed}` : "The new version"} can go beside it, and yours stays as you left it.`, open };
   return { title: "You already have this", detail: `${yours}. ${listed ? `This is version ${listed}` : "This one is newer"}: look it over, then update yours.`, open };
 }
 
 /** The confirmation once an Update is done. */
-export function updatedWords(kind: ShareKind, name: string): { title: string; body: string; open: string } {
+export function updatedWords(kind: ShareKind, name: string, beside = false): { title: string; body: string; open: string } {
+  if (kind === "template" && beside) return { title: `The new ${name} is beside yours`, body: "Yours stays as you left it and no longer gets updates. The new one is in your templates too.", open: "Open the new one" };
+  if (kind === "template") return { title: `${name} is updated`, body: "Its words are the new version's and its name stays. Notes and journal pages you started from it don't change.", open: "Open the template" };
+  if (kind === "checkin") return { title: `${name} is updated`, body: "Its old questions came out and the new ones joined at the end. Answers you've already given stay on their days.", open: "Open check-in settings" };
   const open = kind === "assistant" ? `Open ${name}` : kind === "skill" ? "Open the skill" : "Open the flow";
   const off = kind === "assistant" ? "paused" : "off";
   return { title: `${name} is updated, and ${off}`, body: `Its name and history stay. Look it over on its page, then switch it back on.`, open };
 }
 
 /** Under the Update button: what it changes. */
-export function updateLandsWords(kind: ShareKind): string {
+export function updateLandsWords(kind: ShareKind, changed = false): string {
+  if (kind === "template") return changed ? "Yours stays as you left it. The new version is added beside it." : "Its words become the new version's. Its name stays.";
+  if (kind === "checkin") return "Its questions are swapped for the new ones. Your answers stay on their days.";
   return `Yours ${kind === "assistant" ? "pauses" : "goes off"} until you switch it back on. Its name and history stay.`;
 }
 
@@ -96,9 +106,114 @@ export const addLabel = (kind: ShareKind, name: string): string => (kind === "as
 
 /** Under the Add button: how it lands. */
 export function landsWords(kind: ShareKind): string {
+  if (kind === "template") return "It joins your templates. Nothing of yours changes, and you can remove it later.";
+  if (kind === "checkin") return "They join your own questions, after the ones you have. Nothing you have moves, and you can remove them later.";
   if (kind === "assistant") return "It joins paused. Nothing runs until you switch it on.";
   if (kind === "skill") return "It starts off. Ask won't use it until you switch it on.";
   return "It starts off. Nothing runs until you switch it on.";
+}
+
+// ---------- check-in questions ----------
+
+const ROUTINE: Record<CheckinKind, string> = { morning: "morning preparation", evening: "evening reflection" };
+
+/** "Morning", "Evening", "Morning and evening": a group on the preview. Pure. */
+export const routinesWords = (kinds: readonly CheckinKind[]): string => (kinds.length > 1 ? "Morning and evening" : kinds[0] === "morning" ? "Morning" : "Evening");
+
+/** The note when a routine the questions join is switched off: it stays off. Null when none is. Pure. */
+export function offWords(off: readonly CheckinKind[]): string | null {
+  if (!off.length) return null;
+  const both = off.length > 1;
+  const which = both ? "Your morning preparation and evening reflection are" : `Your ${ROUTINE[off[0]]} is`;
+  return `${which} switched off. Adding these won't switch ${both ? "them" : "it"} on: ${both ? "they stay" : "it stays"} off until you do, in Settings.`;
+}
+
+/** Under a question the owner already has. */
+export const HAVE_QUESTION = "You already have this one, so it won't be added again";
+
+/** Go deeper on a shared question: the line the preview shows when one of its questions offers it. */
+export const DEEPER_WORDS = "Like your own questions, any that offer Go deeper send the question and what you wrote to the AI model you chose, but only when you tap it.";
+
+/**
+ * "Where your answers go" for a set, from the kinds of answer in it and Athena's rule (lib/checkin-types.ts
+ * ownMirror, the same for the owner's own questions): written answers go to that day's journal, the rest stay in the
+ * check-ins. Pure.
+ */
+export function answersGoWords(types: readonly QuestionType[]): string[] {
+  const journal = types.some((t) => ownMirror(t) === "day_journal");
+  const rest = types.some((t) => ownMirror(t) !== "day_journal");
+  const lines: string[] = [];
+  if (journal) lines.push("Written answers go into that day's journal, like your other written answers. Change or undo one and the journal follows.");
+  lines.push(journal ? (rest ? "Your other answers stay in your check-ins." : "") : "Your answers stay in your check-ins.");
+  lines.push("Athena decides where answers go, whatever the file says. They never set your mood or go to Health.");
+  lines.push("How many questions you're asked each day stays as you set it.");
+  return lines.filter(Boolean);
+}
+
+/** The Add screen's two ways to start, each with its one-line consequence. `off`: routines they join that are off. Pure. */
+export function startWords(off: readonly CheckinKind[], joins: readonly CheckinKind[]): { legend: string; on: { label: string; line: string }; off: { label: string; line: string } } {
+  const allOff = joins.length > 0 && joins.every((k) => off.includes(k));
+  const routines = off.length > 1 ? "your morning preparation and evening reflection" : `your ${ROUTINE[off[0] ?? "evening"]}`;
+  return {
+    legend: "When to start",
+    on: { label: "Start asking them", line: allOff ? `They take turns with your other questions once you switch ${routines} on.` : "They take turns with your other questions from your next check-in." },
+    off: { label: "Add them switched off", line: "They wait in Settings until you switch the set on." },
+  };
+}
+
+/** The note when a set is bigger than the room left among the owner's own questions. Null when it fits. Pure. */
+export function roomWords(fresh: number, room: number): string | null {
+  if (fresh <= room) return null;
+  if (room <= 0) return "You have 40 questions of your own, the most Athena keeps, so none of these can be added. Remove some in Settings first.";
+  return `There's room for ${room === 1 ? "one more question" : `${room} more questions`} of your own, so the first ${room === 1 ? "one is" : `${room} are`} added and the other ${fresh - room === 1 ? "one is" : `${fresh - room} are`} left out.`;
+}
+
+/** The confirmation once check-in questions are added: how many joined which routines, what was skipped, what's off. Pure. */
+export function checkinAddedWords(name: string, got: { added: number; skipped: readonly string[]; off: readonly CheckinKind[]; full?: readonly string[] }, joined: readonly CheckinKind[], started = true): { title: string; body: string; open: string } {
+  const open = "Open check-in settings";
+  const full = got.full ?? [];
+  if (!got.added && full.length) return { title: `There wasn't room for ${name}`, body: "You have 40 questions of your own, the most Athena keeps. Remove some in Settings, then add these again.", open };
+  if (!got.added) return { title: `You already have every question in ${name}`, body: "Nothing new was added. It's listed in Settings, where you can remove it.", open };
+  const where = joined.length > 1 ? "your morning preparation and evening reflection" : `your ${ROUTINE[joined[0] ?? "evening"]}`;
+  const parts = [`${got.added === 1 ? "One question" : `${got.added} questions`} joined ${where}, after the ones you have.`];
+  if (got.skipped.length === 1) parts.push(`You already had “${got.skipped[0]}”, so it was left out.`);
+  else if (got.skipped.length > 1) parts.push(`You already had ${got.skipped.length} of them, so those were left out.`);
+  if (full.length === 1) parts.push(`There wasn't room for “${full[0]}”: you have 40 questions of your own, the most Athena keeps.`);
+  else if (full.length > 1) parts.push(`There wasn't room for the other ${full.length}: you have 40 questions of your own, the most Athena keeps.`);
+  if (!started) parts.push("The set is switched off, so they won't be asked until you switch it on in Settings.");
+  // A routine that's off stays off either way, and is named either way.
+  const off = offWords(got.off);
+  if (off) parts.push(off);
+  return { title: `${name} joined your check-ins`, body: parts.join(" "), open };
+}
+
+// ---------- a note template ----------
+
+/**
+ * "Where it goes" for a template: into the owner's templates beside their own, under a free name, and where it can be
+ * used. `free`: the name it will have, which differs from `name` when one of the owner's templates has that name. Pure.
+ */
+export function templateGoesWords(name: string, free: string): string[] {
+  const lines = [free === name ? `It joins your templates as “${name}”. Its editor says who made it.` : `You have a template called “${name}” already, so this one joins as “${free}”. Yours stays as it is.`];
+  lines.push("Use it from Notes, under “From template”, or to start a day's journal when the page is empty.");
+  lines.push("You can change it once it's added. Updates from Community never overwrite your changes.");
+  return lines;
+}
+
+/** Under "Its fields": how a field fills in, as the template editor says. Pure. */
+export function fieldLine(info: { source: string } | null): string {
+  return info ? info.source : "Athena doesn't know this one, so it stays a blank for you";
+}
+
+/** The note when reading a template made something in it plain. Null when nothing changed. Pure. */
+export function madePlainWords(changed: boolean): string | null {
+  return changed ? "Athena made its links plain and left out any pictures or embedded pages, so nothing in it loads by itself." : null;
+}
+
+/** The confirmation once a template is added, with its free name when it needed one. Pure. */
+export function templateAddedWords(asked: string, got: { name: string; renamed: boolean }): { title: string; body: string; open: string } {
+  const parts = [got.renamed ? `You already had a template called “${asked}”, so this one is “${got.name}”.` : null, "Use it from Notes, under “From template”. On a day whose journal is empty, it's under “Start from a template” too."];
+  return { title: `${got.name} is in your templates`, body: parts.filter(Boolean).join(" "), open: "Open the template" };
 }
 
 // ---------- a flow's steps ----------

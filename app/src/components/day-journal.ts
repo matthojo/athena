@@ -4,6 +4,10 @@
  * (tap to change it). "Saving…" and "Saved" are the only feedback; a failed
  * save keeps the words and says so, and tries again on the next change or
  * when the connection comes back.
+ *
+ * A page can put one quiet thing in the journal's foot (`aside`: a day's
+ * "Start from a template", components/journal-start.ts), and set the words
+ * itself (`set`), which saves at once.
  */
 
 import { h } from "../lib/dom";
@@ -70,9 +74,23 @@ export interface JournalOptions {
   line?: { maxLength: number };
   /** Told the owner's words once they leave the box (or press Enter on a line) and the save lands: the "Kept" toast. */
   onKept?: (text: string) => void;
+  /** Told the words whenever they change, typed or set. */
+  onInput?: (text: string) => void;
+  /** One quiet control at the start of the foot, beside "Saved". */
+  aside?: HTMLElement;
 }
 
-export function journalEditor(opts: JournalOptions): { el: HTMLElement; flush: () => void; focus: () => void } {
+export interface JournalHandle {
+  el: HTMLElement;
+  flush: () => void;
+  focus: () => void;
+  /** The words as they are now. */
+  value: () => string;
+  /** Put these words in and save them now. */
+  set: (text: string) => void;
+}
+
+export function journalEditor(opts: JournalOptions): JournalHandle {
   const area = h("textarea", {
     class: `journal__text${opts.line ? " journal__text--line" : ""}`,
     rows: opts.line ? 1 : 3,
@@ -104,6 +122,7 @@ export function journalEditor(opts: JournalOptions): { el: HTMLElement; flush: (
   area.addEventListener("input", () => {
     grow();
     s.change(area.value);
+    opts.onInput?.(area.value);
   });
   area.addEventListener("blur", () => {
     leaving = true;
@@ -121,8 +140,19 @@ export function journalEditor(opts: JournalOptions): { el: HTMLElement; flush: (
     });
   }
   requestAnimationFrame(grow);
-  const el = h("div", { class: "journal" }, area, h("div", { class: "journal__foot" }, status));
-  return { el, flush: () => s.flush(area.value), focus: () => area.focus() };
+  const el = h("div", { class: "journal" }, area, h("div", { class: `journal__foot${opts.aside ? " journal__foot--aside" : ""}` }, opts.aside ?? null, status));
+  return {
+    el,
+    flush: () => s.flush(area.value),
+    focus: () => area.focus(),
+    value: () => area.value,
+    set(text: string) {
+      area.value = text;
+      grow();
+      s.flush(text);
+      opts.onInput?.(text);
+    },
+  };
 }
 
 /**

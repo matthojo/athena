@@ -15,9 +15,9 @@
 import { ApiError, isSampleMode, request } from "./api";
 import { getMeta, setMeta } from "./idb";
 import { withAnswer } from "../components/checkin-rules";
-import type { Checkin, CheckinKind, CheckinSettings, CheckinSettingsView, CheckinSummary, CheckinValue, DeeperReply } from "../../../lib/checkin-types";
+import type { Checkin, CheckinKind, CheckinSet, CheckinSettings, CheckinSettingsView, CheckinSummary, CheckinTrends, CheckinValue, DeeperReply } from "../../../lib/checkin-types";
 
-export type { Checkin, CheckinKind, CheckinSettings, CheckinSettingsView, CheckinSummary, CheckinValue };
+export type { Checkin, CheckinKind, CheckinSet, CheckinSettings, CheckinSettingsView, CheckinSummary, CheckinTrends, CheckinValue };
 
 const sample = () => import("./sample-checkins");
 const OUTBOX = "checkin-outbox";
@@ -76,6 +76,22 @@ export async function saveCheckinSettings(next: CheckinSettings): Promise<Checki
   return view;
 }
 
+/** Switch a set of questions added from a file or Community off (its questions wait) or back on. Needs a connection. */
+export async function setCheckinSetPaused(id: string, paused: boolean): Promise<CheckinSettingsView> {
+  const view = isSampleMode() ? await (await sample()).sampleSetPaused(id, paused) : await request<CheckinSettingsView>(`/checkins/sets/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify({ paused }) });
+  if (!isSampleMode()) void setMeta(SETTINGS_KEY, JSON.stringify(view)).catch(() => undefined);
+  changed();
+  return view;
+}
+
+/** Remove a set and its questions. Answers already given stay on their days. Needs a connection. */
+export async function removeCheckinSet(id: string): Promise<CheckinSettingsView> {
+  const view = isSampleMode() ? await (await sample()).sampleRemoveSet(id) : await request<CheckinSettingsView>(`/checkins/sets/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!isSampleMode()) void setMeta(SETTINGS_KEY, JSON.stringify(view)).catch(() => undefined);
+  changed();
+  return view;
+}
+
 // ---------- A day's check-in ----------
 
 export async function loadCheckin(date: string, kind: CheckinKind): Promise<Checkin> {
@@ -95,6 +111,15 @@ export async function loadCheckin(date: string, kind: CheckinKind): Promise<Chec
 export async function loadCheckinRange(from: string, to: string): Promise<CheckinSummary[]> {
   if (isSampleMode()) return (await sample()).sampleCheckinRange(from, to);
   return request<CheckinSummary[]>(`/checkins?${new URLSearchParams({ from, to })}`);
+}
+
+/**
+ * The scale answers and picks over a range, for Health → Wellness (at most two years). Not kept on
+ * the device, like Health's figures; throws when there's no connection.
+ */
+export async function loadCheckinTrends(from: string, to: string): Promise<CheckinTrends> {
+  if (isSampleMode()) return (await sample()).sampleCheckinTrends(from, to);
+  return request<CheckinTrends>(`/checkins/trends?${new URLSearchParams({ from, to })}`);
 }
 
 /** Keep the cached copy in step with a change made here, so an offline reopen shows it. */

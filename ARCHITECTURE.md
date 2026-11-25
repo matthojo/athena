@@ -519,10 +519,23 @@ screen. The contract (types, the question library, the routes) is
   they've set one since. `day_journal`: one section per check-in ("Morning
   preparation", "Evening reflection"), swapped by exact text, never touching
   the owner's words; if the owner edited Athena's section, a fresh one goes
-  at the end. `health_energy`, `health_stress`, `health_mood_labels`: Health
+  at the end. Building and swapping the section is pure
+  (`lib/checkin-journal.ts`), shared with sample mode. `health_energy`, `health_stress`, `health_mood_labels`: Health
   source `athena_checkin` ("Check-ins").
+- **Where the owner's own answers go** (owner, 25 Nov 2026). Athena decides,
+  by type (`ownMirror` in `lib/checkin-types.ts`), for questions the owner
+  wrote and questions from a set alike: a written answer goes to the day's
+  journal like Athena's own written questions; scale, choices and areas
+  answers stay in the check-in. `readOwnQuestion` sets it on every save and
+  read and reads past any `mirror` sent, so no request points an own
+  question at the mood, Health or the briefing. A day's plan keeps its
+  questions as they were asked, so days planned before the rule keep their
+  answers out of the journal: nothing is back-filled or rewritten.
 - **Routes** (`netlify/lib/checkins/routes.ts`, from `api.ts`): settings GET
-  and PUT, a range of statuses (no key needed), a day's check-in, PUT and
+  and PUT, a range of statuses (no key needed), trends (`GET
+  /api/checkins/trends`, up to two years of scale answers and picks, opened
+  with the key, written answers left out, never plans; `lib/checkin-trends.ts`),
+  a day's check-in, PUT and
   DELETE an answer, POST done (keeps the first time), POST deeper (one
   follow-up question from `lib/checkin-deeper.ts`, a 12-second budget,
   `{ question: null }` on any failure, nothing saved). MCP
@@ -533,6 +546,16 @@ screen. The contract (types, the question library, the routes) is
   `checkin-entry.ts` on Today (a card per routine that's on, side by side,
   at any hour, with what's left or done), `checkin-day.ts` on the day page,
   `checkin-settings.ts` (Settings → Check-ins; needs a connection).
+  Health → Wellness (`#/health/wellness`, `views/health-wellness.ts`, words
+  in `components/wellness-words.ts`) shows the answers over four weeks, six
+  months or a year. Each scale question gets a card with its average in the
+  question's words, the change since the range before, mornings against
+  evenings and a chart. Mood, Energy, Rest and Stress draw a coloured dot a
+  day, week or month (`components/scale-dots.ts`, colours `--scale-1` for
+  the worst answer to `--scale-5` for the best, reversed for Stress); the
+  rest draw bars. Each word or area question gets a card with the ones
+  picked most, and the Mind card moved here from Body. Nothing is kept on
+  the device. The day page and Settings → Check-ins link to it.
   `db/checkins.ts` caches settings and each check-in in `meta`.
 - **Pushes** (`lib/checkin-push.ts`, `reminders.ts` sections 4 and 4a). The
   morning push (`morning`, `morning_at`, default 07:00) goes out once a day
@@ -541,6 +564,26 @@ screen. The contract (types, the question library, the routes) is
   done. With the evening routine on, the evening push becomes "Evening
   reflection" and opens `/#/checkin/evening`; only a finished reflection
   skips it. With it off, the evening prompt is as before.
+- **Sets from other people** (`lib/checkin-share.ts`, `lib/checkin-sets.ts`,
+  migration `0090_checkin-sets`). A set of check-in questions someone shared
+  (checkin.json, a Community kind) is added through `#/add`. Its questions
+  join the owner's own (`own`, each with `set` naming the `checkin_sets`
+  row) and the end of each routine they're asked in, unpinned
+  (`joinSharedCheckins`); words already here are skipped, a routine that's
+  off stays off, and past 40 of the owner's own the rest are left out and
+  named. "When to start" on `#/add` adds the set asking ("Start asking
+  them", the default) or switched off; an Update keeps the set's state.
+  Where answers go is Athena's (`ownMirror`, as for the owner's own
+  questions): a written answer goes to the day's journal, other types stay
+  in the check-in. A set switched off (`paused`) is left out of new plans
+  (`askable` in `getCheckin`). `PUT`/`DELETE /api/checkins/sets/:id` switch
+  one off or on and remove one with its questions; `POST
+  /api/checkins/share` makes a file from questions the owner wrote, with
+  the personal-data check. Settings → Check-ins lists sets under "From other
+  people" with their questions, a switch, Remove and Community's word on
+  them, has Share under "Your questions", and "Browse Community" opens
+  `#/community?kind=checkin`. Go deeper frames a shared question as
+  someone else's words (`SHARED_QUESTION_RULE`).
 - **Briefing.** `lib/briefing-run.ts` reads today's morning check-in
   (`loadCheckin`, never plans) and passes answers to questions whose mirror
   is `briefing` to the writer as `morning_checkin` ("Focus: Work, Family",
@@ -1487,6 +1530,8 @@ Recipes, the week's dinners and the grocery list (migration `0053`; contract and
 
 Templates and documents (migration `0047`, notes in `docs/notes/documents.md`). A template is Markdown with `{{fields}}` (`lib/templates.ts`, pure, shared with the app). Each known field names one source (`FIELDS`). The six starters live in code, and an edited starter or one of the owner's own is a sealed row in `note_templates` (`lib/templates-db.ts`). `lib/template-fill.ts` fills a template from records, never from a model: the event and its people, catch-ups, details, open to-dos, an Email digest note, a trip's bookings, each day's line, a project's links. Every filled part is cited under Sources with `athena://` links, so the new note links to what it came from. A field with nothing behind it stays `{{as written}}`, and the editor highlights it (`editor/template-blanks.ts`). Its opening heading becomes the note's title. A note can be sent to Google Docs (a direct, tool-less account, `drive.file` only, `netlify/lib/connectors/google-docs.ts`) or Notion (`callNotionWrite` in `mcp-client.ts`, opt-in with a parent page in `connectors.write_parent_*`), through `lib/documents.ts` and its ports. `document_exports` lists everything Athena made: sending again updates it, and Undo trashes the doc, or moves the page under a "Removed by Athena" page Athena makes beside it. `lib/documents-rules.ts` holds the Markdown-to-Docs conversion and both write gates. Routes: `/api/templates*`, `/api/documents*` (`netlify/lib/documents-routes.ts`). Ask: `fill_template`, `send_note` (`lib/assistant-documents.ts`). App: "From template" in Notes, "Start from a template" on a new note, the note menu's Send and Save as template, the sent strip, Home's Prepare notes, and the Notion account's Pages group.
 
+A template can be shared and added through Community (migration `0091`, `lib/template-share.ts`; Community, below): an added one is a `note_templates` row marked `origin = 'shared'`, with its author's summary, name and version, listed with the owner's own. The picker gives it no badge ("Shared" could read as shared out; owner, 25 Nov 2026), only Community's update dot; its editor says where it came from ("From Community · by @handle"). The owner's own templates have Share in their editor (`components/template-share-sheet.ts`, `POST /api/templates/:id/share`), and `#/notes?template=<id>` opens a template's editor. A day's journal can start from one: on an empty page, a quiet "Start from a template" sits in the journal's foot (`components/journal-start.ts`), lists every template (the owner's own and added ones first, under "Yours", then Athena's starters), and fills the page with the chosen one (`journalFromTemplate`: the opening heading left out, the others as plain lines, `{{date}}`, `{{today}}` and `{{week}}` as that day's, every other field left as written), with Undo. It never replaces words: it goes as soon as the page has any, and a pick made after the owner started typing changes nothing.
+
 ### Rich links in notes
 
 A link in a note can show four ways: Mention (a pill), Link (text), Card or
@@ -1957,7 +2002,7 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
 
 ### Community
 
-People share assistants, skills and flows as folders of plain files: data,
+People share assistants, skills, flows, check-in questions and note templates as folders of plain files: data,
 never code. The Community site (a separate repository and a directory people
 sign in to and submit through) reviews items and serves the catalogue as
 static files. Every way in, a listing, a link or files, ends at one preview,
@@ -1966,8 +2011,9 @@ permission.
 
 **The files.**
 
-- **`lib/share-kinds.ts`.** The kinds (`assistant`, `skill`, `flow`), the file
-  that names each (assistant.json, SKILL.md, flow.json), the optional header
+- **`lib/share-kinds.ts`.** The kinds (`assistant`, `skill`, `flow`,
+  `checkin`, `template`), the file that names each (assistant.json, SKILL.md,
+  flow.json, checkin.json, template.json), the optional header
   (`version`, `author`, `based_on`) and `detectKind(paths)`. `based_on` is a
   github.com link or a listing on the Community site (`basedOnLink`).
 - **`lib/community-site.ts`.** `COMMUNITY_SITE`, the one constant naming the
@@ -1986,8 +2032,26 @@ permission.
   or an earlier step) without the database, from `FLOW_TOOL_SHAPES`, which a
   test keeps in step with `lib/flow-catalog.ts`. Reach, the preview, import,
   export and the catalogue's own CI all run it.
+- **`lib/checkin-share.ts`.** checkin.json, format 1: a name, a summary, the
+  header and up to 40 questions, each its words (`prompt`), `kinds`, `type`
+  and that type's fields, nothing of the owner's. `readSharedCheckins` uses
+  the own-question limits, drops unknown keys and refuses an unknown type of
+  answer. `exportCheckins`, `joinSharedCheckins`, `removeSetFrom` and
+  `askable` are pure and shared with sample mode.
+- **`lib/template-share.ts`.** template.json, format 1: a name, a summary,
+  the header and the body (Markdown with `{{fields}}`, as a template is
+  today). `readSharedTemplate` uses the template limits, drops unknown keys
+  and makes the body plain (`plainTemplateBody`: link modes dropped,
+  pictures as plain links, raw HTML out, `athena://` links cut to their
+  words). `exportTemplate` and `freeTemplateName` are pure and shared with
+  sample mode; the store is `lib/templates-db.ts` (`addSharedTemplate`,
+  `replaceSharedTemplate`, `exportTemplateFor`). An Update that goes beside a changed copy clears only that copy's `catalogue_hash`, so it still says it came from Community but gets no more update checks.
 - **`lib/reach.ts`.** `reachOf(files)`: tier 1 stays inside Athena, tier 2
-  uses AI or an outside lookup (each named), tier 3 asks for the web. Worked
+  uses AI or an outside lookup (each named), tier 3 asks for the web. A set
+  of check-in questions is always tier 1: Go deeper reaches a model only when
+  the owner taps it, as for their own questions. A template is always tier 1
+  too: its fields fill from the owner's own records, and nothing in it
+  fetches. Worked
   out from the files, never declared. Every screen names a tier the same way
   (`app/src/community/words.ts` `tierWords`, `tierIcon`).
 - **`lib/catalogue-types.ts`.** index.json, a bundle and listing.json, with
@@ -2002,10 +2066,16 @@ permission.
   Athena knows keeps its type, size and count checks, and a bad one still
   refuses the file whole. The bundle hash is unchanged and covers each file's
   path and text. A change older copies must not read past bumps `format` or
-  an item's `min_format`; it is never a new key.
+  an item's `min_format`; it is never a new key. An item of a kind this copy
+  doesn't know is skipped and the rest of the index is read
+  (`isUnknownKind`), so the directory can list a new kind before every copy
+  has updated.
 - **Migration 0089.** Nullable `catalogue_id`, `catalogue_hash` and
   `catalogue_version` on `team_assistants`, `ask_skills` and `flows`: which
   listing an item came from, for "You already have this" and update checks.
+  Migration 0090 adds `checkin_sets` with the same three columns, and 0091
+  adds them to `note_templates`, with `origin`, `summary`, `author`,
+  `version` and `changed_at` for an added template.
 
 **The catalogue.**
 
@@ -2036,8 +2106,9 @@ permission.
   Skills' Add sheet each offer "Or add one someone shared" (`#/add`) and
   "Browse Community". `app/src/community/status.ts` draws "Update available"
   and "Taken down from Community" under the item's title on the assistant,
-  skill and flow pages, and `updateDot` puts a small dot beside an item with
-  an update on the Team, Flows and Skills lists (one check serves a list).
+  skill and flow pages and in an added template's editor, and `updateDot`
+  puts a small dot beside an item with an update on the Team, Flows and
+  Skills lists and the template picker (one check serves a list).
 - **Submit to Community** (`app/src/community/submit.ts`), at the foot of the
   assistant and flow share sheets and beside a skill's downloads. Athena
   publishes nothing: it says the two steps (the downloaded folder in a public
@@ -2054,24 +2125,30 @@ permission.
 - **`netlify/lib/community-add-routes.ts`.** `POST /api/community/preview`
   (a listing, a link, or multipart files) and `POST /api/community/add`. Add
   reads the files again and hands each kind to its own import
-  (`importAssistant`, `createSkill`, `addSharedFlow`), switched off,
+  (`importAssistant`, `createSkill`, `addSharedFlow`, `addSharedCheckins`,
+  `addSharedTemplate`), switched off where there's a switch,
   recording the listing for a catalogue item. The preview's `existing` names
   an item already added from the same listing, with `newer` when the files
   differ. `choices.replace` updates that one instead of adding a copy
   (`updateImportedAssistant`, `updateSkill`, `replaceSharedFlow`): its name
   and history stay, its content becomes the new version's, and it goes off.
-  The server only replaces the item it finds came from that listing. The old
+  The server only replaces the item it finds came from that listing. A
+  template the owner changed since adding it (`existing.changed`) is never
+  replaced: Update adds the new version beside it. The old
   `/api/team/import*` and `/api/skills/preview` routes are gone.
 - **`app/src/add/`.** The screen (`view.ts`) and its words (`words.ts`). One
-  layout for all three kinds: who made it and where from (with the
+  layout for every kind: who made it and where from (with the
   listing's download count), "You already have this" with Open and Update (a
   second copy is a separate tap), its reach, what it needs, its questions,
   account ticks, what it may do alone, then all of it. A flow's steps
   (`flow-steps.ts`) are titled from the step catalogue as the editor titles
   them, with the first field as the body and the others under it by name
-  (`toolStepFields`). Add or Update sits in a sticky foot shared with the
-  flow page (`styles/flows.css`, "Sticky foot"): solid, at the bottom of the
-  content column, above the phone's dock.
+  (`toolStepFields`). A template (`template-preview.ts`) is drawn as a note
+  from it would look, by the note editor read-only, with its blanks marked,
+  then its fields and where each fills in from, and "Where it goes" (the
+  name it will take, and where to use it). Add or Update sits in a sticky
+  foot shared with the flow page (`styles/flows.css`, "Sticky foot"): solid,
+  at the bottom of the content column, above the phone's dock.
 - **A flow, added** (`importSharedFlow`). New step ids; steps that change
   something wait for approval and steps that only look run; thinking steps off the
   web; money off; paused, origin `shared`. Unanswered blanks are kept in the
@@ -2091,10 +2168,24 @@ was made from. A step that leans on the owner's own types or
 fields is named in `blocked` and nothing downloads. The download is a zip
 with `<slug>/flow.json`; sample mode saves flow.json alone.
 
+**Sharing a template** (`exportTemplateFor`, `POST /api/templates/:id/share`,
+`app/src/components/template-share-sheet.ts`, Share in the editor of a
+template the owner wrote). Links into the site and `athena://` links come out
+of every word (a line at a time, so a nested list keeps its indent), the body
+is made plain as a reader would make it, and the personal-data check runs
+over the name, summary and body; findings wait for an edit or "It's fine".
+Athena's starters and templates added from someone else can't be shared. The
+download is a zip with `<slug>/template.json`; sample mode saves
+template.json alone.
+
 **Sample mode.** `app/src/db/sample-community.ts` is a dozen made-up listings
 across the kinds and tiers, real files whose hashes and reach the tests
 check; `app/src/add/sample-items.ts` answers `#/add?link=` for its made-up
 links. Gift price watch is added at an older version and Dot was taken down.
+Three journaling templates are listed (Gentle weekly review, Gratitude page,
+Year-end reflection); Gratitude page is added at an older version and an
+added Morning pages was taken down (`SAMPLE_ADDED_TEMPLATE_ROWS`, kept by
+`app/src/db/documents.ts`).
 Most listings carry made-up download counts; the two newest have none.
 localStorage `athena.sample.catalogue` (`none`, `down`, `offline`, `slow`)
 shows each state of the Community screen.
@@ -2586,7 +2677,8 @@ day gets the line put back from the stored figures (`keepHealthLine`, beside
 `keepImported`). With no Life log yet, the save makes the day note itself
 under the plain `life-log` source; a Life log with its own source adopts it
 (`adoptHealthDay`), so a day stays one note. Charts read `GET
-/api/health/series?field=` and the Library's Health page reads `GET
+/api/health/series?field=` and the Library's Health page (tabs Body and
+Wellness; Wellness also reads `GET /api/checkins/trends`) reads `GET
 /api/health/days` (merged days, opened in the Function); `GET/PUT
 /api/health/sources` holds the choices and rewrites the last 30 days' lines;
 `GET /api/health/status` says which days arrived, no figures. Settings →

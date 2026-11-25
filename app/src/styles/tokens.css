@@ -138,6 +138,12 @@
   --accent-wash: oklch(0.95 0.03 264);
   --accent-ink: oklch(0.45 0.19 264);
   --mint-wash: oklch(0.955 0.035 170);
+  /* Check-in questions shared through Community: a soft dusk, quieter than the other kinds. */
+  --dusk-wash: oklch(0.955 0.028 40);
+  --dusk-ink: oklch(0.47 0.1 40);
+  /* Note templates shared through Community: warm paper, for journaling rather than work. */
+  --paper-wash: oklch(0.962 0.024 88);
+  --paper-ink: oklch(0.47 0.075 75);
 
   /* ---------- Status (reserved; always paired with an icon or label) ---------- */
   --good: oklch(0.5 0.12 158); /* 4.5:1 on sunken panels too */
@@ -161,6 +167,15 @@
   --stage-rem: #019d7e;
   --stage-core: #6da7ec;
   --stage-awake: #eb6834;
+  /* How a check-in answer felt, worst → best, on Health → Wellness (a diverging pair: rust for the worst, cobalt for the best,
+     a neutral grey at okay). Validator, all pairs, both modes: CVD and normal-vision pass; the
+     grey reads grey on purpose; three steps are under 3:1, so the dots carry a labelled legend,
+     a tooltip and a table. */
+  --scale-1: #c25d27;
+  --scale-2: #fc8c45;
+  --scale-3: #b2b4b8;
+  --scale-4: #729afb;
+  --scale-5: #3266e4;
   --stage-none: oklch(0.8 0.01 264);
 
   /* To-do contexts (lib/todo-context.ts CONTEXT_COLOURS): small dots, so mid-tone */
@@ -252,6 +267,10 @@
     --accent-wash: oklch(0.29 0.06 264);
     --accent-ink: oklch(0.82 0.1 264);
     --mint-wash: oklch(0.28 0.04 170);
+    --dusk-wash: oklch(0.29 0.04 40);
+    --dusk-ink: oklch(0.84 0.07 40);
+    --paper-wash: oklch(0.29 0.03 80);
+    --paper-ink: oklch(0.86 0.06 85);
 
     --good: oklch(0.72 0.14 158);
     --warn: oklch(0.78 0.12 80);
@@ -268,6 +287,11 @@
     --stage-rem: #23aa8a;
     --stage-core: #3557c0;
     --stage-awake: #d95926;
+    --scale-1: #e88d5a;
+    --scale-2: #ac5107;
+    --scale-3: #494a4e;
+    --scale-4: #2649c0;
+    --scale-5: #7ba0f6;
     --stage-none: oklch(0.42 0.012 264);
     --ctx-grey: oklch(0.6 0.012 264);
     --ctx-blue: oklch(0.7 0.14 264);

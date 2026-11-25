@@ -140,7 +140,7 @@ test("a download count is optional, a whole number and kept as given", () => {
 test("an index is refused whole when something doesn't fit", () => {
   refusesIndex({ format: 2 }, /format/);
   refusesIndex({ items: [item({ id: "NOT-AN-ID" })] }, /items\.0\.id/);
-  refusesIndex({ items: [item({ kind: "routine" as never })] }, /kind/);
+  refusesIndex({ items: [item({ kind: 7 as never })] }, /kind/);
   refusesIndex({ items: [item({ hash: "md5-abc" })] }, /hash/);
   refusesIndex({ items: [item({ bundle: "../secrets.json" })] }, /bundle/);
   refusesIndex({ items: [item({ bundle: "https://example.com/b.json" })] }, /bundle/);
@@ -165,6 +165,26 @@ test("an index from a newer site reads: keys this Athena doesn't know are droppe
   assert.equal("mirrors" in i, false);
   assert.deepEqual(i.items[0], item());
   assert.deepEqual(i.withdrawn[0], { id: ID2, at: "2026-11-21T08:00:00Z", reason: "It stopped working." });
+});
+
+test("an item of a kind this Athena doesn't know is skipped, and the rest of the index is read", () => {
+  // A directory that lists a kind added after this Athena was built: "journal-prompt" here.
+  const newer = JSON.stringify({
+    format: 1,
+    generated_at: "2026-11-24T09:00:00Z",
+    items: [{ ...item({ id: ID2, slug: "evening-prompts" }), kind: "journal-prompt", bundle: `bundles/${ID2}.json`, anything: { else: true } }, item()],
+    withdrawn: [],
+  });
+  const i = parseCatalogueIndex(newer);
+  assert.deepEqual(i.items, [item()]);
+  // Only a kind that's a word is skipped: a known kind that's wrong still refuses the whole index.
+  refusesIndex({ items: [item({ kind: "checkin", bundle: "../x.json" })] }, /bundle/);
+  // Check-in questions are a kind this Athena knows.
+  assert.equal(parseCatalogueIndex(index({ items: [item({ kind: "checkin" })] })).items[0].kind, "checkin");
+  assert.equal(KIND_FORMATS.checkin, 1);
+  // So are note templates.
+  assert.equal(parseCatalogueIndex(index({ items: [item({ kind: "template" })] })).items[0].kind, "template");
+  assert.equal(KIND_FORMATS.template, 1);
 });
 
 test("an index from a newer site is still refused when a field this Athena knows is wrong", () => {

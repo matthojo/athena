@@ -1,5 +1,5 @@
 /**
- * Sample mode's Community catalogue: a dozen made-up items across the three kinds and the three reach tiers, each
+ * Sample mode's Community catalogue: made-up items across the five kinds and the three reach tiers, each
  * with real files, so the `#/community` list and the `#/add` preview work with no server. The hashes are worked out
  * from the files (bundleHash), as the catalogue's build does, and each item's reach is the one its files give
  * (sample-community.test.ts checks both). Authors are made-up GitHub-style names.
@@ -7,6 +7,10 @@
  *   sampleCatalogue()   the index
  *   sampleBundle(id)    one item and its files, as netlify/lib/community-catalogue.ts loadBundle gives them
  *   sampleUpdates()     what sample mode's own items would hear from the daily check
+ *
+ * Templates are a gentle, journaling corner: a weekly look back, a gratitude page and a year-end reflection. Sample
+ * mode starts with two added already (SAMPLE_ADDED_TEMPLATE_ROWS, kept by db/documents.ts): Gratitude page at an
+ * older version, and Morning pages, taken down since.
  */
 import { bundleHash, type CatalogueBundle, type CatalogueFile, type CatalogueIndex, type CatalogueItem } from "../../../lib/catalogue-types";
 import type { Reach } from "../../../lib/reach";
@@ -14,6 +18,7 @@ import type { ShareKind } from "../../../lib/share-kinds";
 import type { UpdateCheck } from "../../../lib/community-api";
 import { SAMPLE_FLOW_IDS } from "./sample-flows";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
+import { SAMPLE_SET_ID, sampleSetOf } from "./sample-checkins";
 
 interface Seed {
   id: string;
@@ -37,9 +42,188 @@ const skillMd = (name: string, description: string, body: string) => `---\nname:
 
 const assistant = (o: Record<string, unknown>) => json({ format: 1, ...o });
 const flow = (o: Record<string, unknown>) => json({ format: 1, asks: [], needs: [], money: false, web: false, ...o });
+const checkins = (o: Record<string, unknown>) => json({ format: 1, ...o });
+const template = (o: Record<string, unknown>) => json({ format: 1, ...o });
+
+/** The sample templates' bodies, so the listing and an older copy added here can share words. */
+const GRATITUDE_BODY = `# Gratitude, {{date}}
+
+Three things I'm grateful for:
+1. 
+2. 
+3. 
+
+## A small moment I want to remember
+
+
+## Someone who made today easier
+`;
+/** Gratitude page as version 1.0 had it, before "Someone who made today easier". */
+const GRATITUDE_BODY_1_0 = GRATITUDE_BODY.replace(/\n## Someone who made today easier\n$/, "");
+
+const DAY = 24 * 60 * 60 * 1000;
+const at = (days: number) => new Date(Date.UTC(2026, 10, 24, 9) - days * DAY).toISOString();
 
 /** Every item, newest first by `days` ago. Ids are made up, in the catalogue's alphabet. */
 const SEEDS: Seed[] = [
+  {
+    id: "t4v8w2x6y1z5a9b3",
+    kind: "template",
+    slug: "gentle-weekly-review",
+    name: "Gentle weekly review",
+    summary: "A soft look back at the week, ending with one kind thing for next week.",
+    author: "slow-sundays",
+    version: "1.2",
+    reach: reach(1),
+    featured: true,
+    days: 0,
+    files: [
+      {
+        path: "template.json",
+        text: template({
+          name: "Gentle weekly review",
+          summary: "A soft look back at the week, ending with one kind thing for next week.",
+          version: "1.2",
+          author: "slow-sundays",
+          body: `# A gentle look back at {{week}}
+
+## What I'm glad happened
+
+
+## What felt heavy
+
+
+## Someone I'd like to thank
+
+
+## What I'm leaving behind
+
+
+## One kind thing for next week
+`,
+        }),
+      },
+    ],
+  },
+  {
+    id: "g7h2j6k1m5n9p4q8",
+    kind: "template",
+    slug: "gratitude-page",
+    name: "Gratitude page",
+    summary: "Three things you're grateful for, one small moment to keep, and someone who made the day easier.",
+    author: "kind-margins",
+    version: "1.1",
+    reach: reach(1),
+    featured: false,
+    days: 3,
+    downloads: 540,
+    files: [{ path: "template.json", text: template({ name: "Gratitude page", summary: "Three things you're grateful for, one small moment to keep, and someone who made the day easier.", version: "1.1", author: "kind-margins", body: GRATITUDE_BODY }) }],
+  },
+  {
+    id: "y3z7a2b6c1d5f9g4",
+    kind: "template",
+    slug: "year-end-reflection",
+    name: "Year-end reflection",
+    summary: "Unhurried questions for the last days of December, about the year you had and the one you'd like.",
+    author: "lantern-notes",
+    version: "1.0",
+    reach: reach(1),
+    featured: false,
+    days: 9,
+    downloads: 1300,
+    files: [
+      {
+        path: "template.json",
+        text: template({
+          name: "Year-end reflection",
+          summary: "Unhurried questions for the last days of December, about the year you had and the one you'd like.",
+          version: "1.0",
+          author: "lantern-notes",
+          body: `# Looking back on the year
+
+## The moments I keep coming back to
+
+
+## What surprised me
+
+
+## What I learned slowly
+
+
+## Who walked alongside me
+
+
+## What I'm ready to set down
+
+
+## What I'd like more of next year
+
+
+## A word for the year ahead
+`,
+        }),
+      },
+    ],
+  },
+  {
+    id: "j6k1m5n9p3q8r2s7",
+    kind: "checkin",
+    slug: "small-joys",
+    name: "Small joys",
+    summary: "Four questions for the end of the day, about the good bits that are easy to miss.",
+    author: "quiet-desk",
+    version: "1.0",
+    reach: reach(1),
+    featured: true,
+    days: 1,
+    files: [
+      {
+        path: "checkin.json",
+        text: checkins({
+          name: "Small joys",
+          summary: "Four questions for the end of the day, about the good bits that are easy to miss.",
+          version: "1.0",
+          author: "quiet-desk",
+          questions: [
+            { prompt: "What made you smile today?", kinds: ["evening"], type: "text", placeholder: "Something small counts.", deeper: false },
+            { prompt: "Who did you feel close to today?", kinds: ["evening"], type: "choices", options: ["Family", "A friend", "A neighbour", "A colleague", "Someone new"], more: ["A pet", "Nobody today", "Myself"] },
+            { prompt: "How kind were you to yourself?", kinds: ["evening"], type: "scale", lead: "Today I was", levels: ["hard on myself", "a bit harsh", "fair to myself", "kind to myself", "very kind to myself"], low: "Harsh", high: "Kind" },
+            { prompt: "What went well today?", kinds: ["evening"], type: "text", placeholder: "A few words is enough." },
+          ],
+        }),
+      },
+    ],
+  },
+  {
+    id: "b8c3d7f2g6h1j5k9",
+    kind: "checkin",
+    slug: "slow-mornings",
+    name: "Slow mornings",
+    summary: "Four questions for a slower start to the day.",
+    author: "early-light",
+    version: "2.1",
+    reach: reach(1),
+    featured: false,
+    days: 5,
+    downloads: 860,
+    files: [
+      {
+        path: "checkin.json",
+        text: checkins({
+          name: "Slow mornings",
+          summary: "Four questions for a slower start to the day.",
+          version: "2.1",
+          author: "early-light",
+          questions: [
+            { prompt: "How did you sleep?", kinds: ["morning"], type: "scale", lead: "Last night I slept", levels: ["badly", "on and off", "well enough", "well", "deeply"], low: "Badly", high: "Deeply" },
+            { prompt: "What are you looking forward to?", kinds: ["morning"], type: "text", placeholder: "However small.", deeper: true },
+            { prompt: "What's one thing you'll do slowly today?", kinds: ["morning"], type: "text", placeholder: "A cup of tea, a walk, a meal.", deeper: false },
+            { prompt: "Where would you like your attention to go?", kinds: ["morning"], type: "areas", options: ["Rest", "Family", "Friends", "Nature", "Creativity", "Health"], more: ["Home", "Learning", "Music", "Food"] },
+          ],
+        }),
+      },
+    ],
+  },
   {
     id: "k3m9p2q7r4s8t1v6",
     kind: "flow",
@@ -332,10 +516,53 @@ const SEEDS: Seed[] = [
 ];
 
 /** Taken down, with the catalogue's reasons. */
-const WITHDRAWN = [{ id: "z2a6b1c5d9f4g8h3", reason: "It stopped working after Linear changed how issues are labelled." }];
+const WITHDRAWN = [
+  { id: "z2a6b1c5d9f4g8h3", reason: "It stopped working after Linear changed how issues are labelled." },
+  // Sunday reset, which sample check-ins added before it was taken down (db/sample-checkins.ts SAMPLE_SET_ID).
+  { id: "m4n8p2q6r1s5t9v3", reason: "Its author asked for it to come down while they rewrite it." },
+  // Morning pages, a template sample mode added before it was taken down (SAMPLE_ADDED_TEMPLATE_ROWS).
+  { id: "p5q9r3s7t2v6w1x4", reason: "Its author is folding it into a longer set of morning prompts." },
+];
 
-const DAY = 24 * 60 * 60 * 1000;
-const at = (days: number) => new Date(Date.UTC(2026, 10, 24, 9) - days * DAY).toISOString();
+const GRATITUDE = "g7h2j6k1m5n9p4q8";
+
+/** Sample mode's added templates' ids. */
+export const SAMPLE_TEMPLATE_IDS = { gratitude: "5a3e0000-0000-4000-8000-000000000a01", morning: "5a3e0000-0000-4000-8000-000000000a02" } as const;
+
+/**
+ * Templates sample mode has already added, as db/documents.ts keeps them: Gratitude page at version 1.0 (the listing
+ * is at 1.1 now), and Morning pages, taken down from Community since. The hashes stand for files that were added.
+ */
+export const SAMPLE_ADDED_TEMPLATE_ROWS = [
+  {
+    id: SAMPLE_TEMPLATE_IDS.gratitude,
+    starter: null,
+    name: "Gratitude page",
+    body: GRATITUDE_BODY_1_0.replace(/\n+$/, ""),
+    updated_at: at(20),
+    shared: { author: "kind-margins", version: "1.0", summary: "Three things you're grateful for, and one small moment to keep.", catalogue_id: GRATITUDE, catalogue_hash: `sha256-${"4".repeat(64)}`, changed: false },
+  },
+  {
+    id: SAMPLE_TEMPLATE_IDS.morning,
+    starter: null,
+    name: "Morning pages",
+    body: "Three pages, by hand if you can, before you look at your phone. Nothing here is for anyone else.\n\n## Today I woke up feeling\n\n\n## What's already on my mind\n\n\n## What I'd like to notice today",
+    updated_at: at(30),
+    shared: { author: "paper-lantern", version: "1.0", summary: "Unedited pages first thing in the morning, before the day starts asking things of you.", catalogue_id: "p5q9r3s7t2v6w1x4", catalogue_hash: `sha256-${"5".repeat(64)}`, changed: false },
+  },
+];
+
+/** A template here that came from a listing, as the catalogue_* columns say. */
+export interface SampleTemplateListing {
+  id: string;
+  catalogue_id: string;
+  hash: string;
+  version: string | null;
+  changed: boolean;
+}
+
+const seededListings: SampleTemplateListing[] = SAMPLE_ADDED_TEMPLATE_ROWS.map((r) => ({ id: r.id, catalogue_id: r.shared.catalogue_id, hash: r.shared.catalogue_hash, version: r.shared.version, changed: r.shared.changed }));
+
 
 let built: Promise<Array<{ item: CatalogueItem; bundle: CatalogueBundle }>> | null = null;
 
@@ -377,8 +604,8 @@ export async function sampleBundle(id: string): Promise<{ item: CatalogueItem; b
   return found ? { item: { ...found.item }, bundle: { ...found.bundle, files: found.bundle.files.map((f) => ({ ...f })) } } : null;
 }
 
-/** Sample items already added: Gift price watch (an older version) and Dot (taken down since). */
-export const SAMPLE_ADDED = ["q8r3s7t2v6w1x5y9", "z2a6b1c5d9f4g8h3"];
+/** Sample items already added: Gift price watch (an older version), Dot and Sunday reset (both taken down since). */
+export const SAMPLE_ADDED = ["q8r3s7t2v6w1x5y9", "z2a6b1c5d9f4g8h3", "m4n8p2q6r1s5t9v3"];
 const GIFT = "q8r3s7t2v6w1x5y9";
 
 /** One item here that came from a sample listing: what Add or Update made, and the files' hash it was made from. */
@@ -401,8 +628,12 @@ export const rememberSampleAdd = (catalogueId: string, item: SampleAdded): void 
 /** Every listing something here came from, for the list's "Added" marks: Dot's too, though it was taken down. */
 export const sampleAddedIds = (): string[] => [...new Set([...SAMPLE_ADDED, ...added.keys()])];
 
-/** What sample mode's own flow and assistant would hear from the daily check. */
-export async function sampleUpdates(): Promise<UpdateCheck[]> {
+/**
+ * What sample mode's own flow, assistant, set of check-in questions and templates would hear from the daily check.
+ * `templates`: the added templates as they are now (db/documents.ts sampleTemplateListings); the two it starts with
+ * when not given.
+ */
+export async function sampleUpdates(templates: readonly SampleTemplateListing[] = seededListings): Promise<UpdateCheck[]> {
   const gift = (await build()).find((a) => a.item.id === GIFT)!.item;
   const here = added.get(GIFT)!;
   const newer: UpdateCheck[] =
@@ -423,5 +654,20 @@ export async function sampleUpdates(): Promise<UpdateCheck[]> {
   return [
     ...newer,
     { kind: "assistant", id: SAMPLE_TEAM_IDS.dot, catalogue_id: WITHDRAWN[0].id, version: "1.0", hash: `sha256-${"2".repeat(64)}`, newer: null, withdrawn: { at: at(3), reason: WITHDRAWN[0].reason } },
+    // Until it's removed in Settings this visit.
+    ...(sampleSetOf(SAMPLE_SET_ID) ? [{ kind: "checkin" as const, id: SAMPLE_SET_ID, catalogue_id: WITHDRAWN[1].id, version: "1.1", hash: `sha256-${"3".repeat(64)}`, newer: null, withdrawn: { at: at(3), reason: WITHDRAWN[1].reason } }] : []),
+    ...(await templateChecks(templates)),
   ];
+}
+
+/** Updates and withdrawals for the templates here, against the sample index, as the server's compareInstalled works them out. */
+async function templateChecks(templates: readonly SampleTemplateListing[]): Promise<UpdateCheck[]> {
+  const items = new Map((await build()).map((a) => [a.item.id, a.item]));
+  return templates.flatMap((t) => {
+    const listed = items.get(t.catalogue_id);
+    const gone = WITHDRAWN.find((w) => w.id === t.catalogue_id);
+    const newer = listed && listed.kind === "template" && listed.hash !== t.hash ? { version: listed.version, hash: listed.hash, summary: listed.summary, reach: listed.reach } : null;
+    if (!newer && !gone) return [];
+    return [{ kind: "template" as const, id: t.id, catalogue_id: t.catalogue_id, version: t.version, hash: t.hash, newer, tier_here: newer ? 1 : undefined, withdrawn: gone ? { at: at(3), reason: gone.reason } : null }];
+  });
 }

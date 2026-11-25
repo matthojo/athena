@@ -18,6 +18,7 @@ import type { Change } from "./assistant";
 import { WAITING, type ConfirmCard } from "./assistant-confirm";
 import { AthenaInputError, createNote, getNote } from "./db";
 import { findTemplate, listTemplates } from "./templates-db";
+import { fieldInfo } from "./templates";
 import { fillFromAthena } from "./template-fill";
 import { DOCUMENT_FORMATS } from "./assignment-types";
 import { deleteDocument, makeNoteDocument, stageMaking } from "./document-make-db";
@@ -126,6 +127,14 @@ export async function runDocumentTool(name: string, raw: unknown, ctx: { record:
       undo: { op: "archive", kind: "note", id: note.id },
     });
     // Names only: the model says what was filled and what's left, never the content.
+    if (template.shared) {
+      // Someone else's template (lib/template-share.ts): its heading and its own field names are their words, so the
+      // model gets only Athena's: the fields Athena knows, by their own names, and a count of the rest.
+      const known = (names: string[]) => names.flatMap((n) => (fieldInfo(n) ? [fieldInfo(n)!.key] : []));
+      const blanks = known(filled.blanks);
+      const detail = `${plural(filled.filled.length, "part")} filled${left}`;
+      return JSON.stringify({ ...JSON.parse(receipt), done: `Made a note from a template someone shared: ${detail}`, title: "A note from a template someone shared", detail, filled: known(filled.filled.map((f) => f.name)), left_blank: blanks, other_blanks: filled.blanks.length - blanks.length });
+    }
     return JSON.stringify({ ...JSON.parse(receipt), filled: filled.filled.map((f) => f.name), left_blank: filled.blanks });
   }
   if (name === "send_note") {

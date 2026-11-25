@@ -770,6 +770,21 @@ button.checkin-card:active {
   gap: var(--space-md);
 }
 
+/* Where a written question's answers go, under its fields. */
+.checkin-edit__goes {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.checkin-edit__goes svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
 .checkin-edit__pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -822,4 +837,94 @@ button.checkin-card:active {
   padding: var(--space-sm) var(--space-md);
   border-top: 1px solid var(--line);
   background: var(--surface);
+}
+
+/* ---------- Settings → Check-ins: sets from other people ---------- */
+
+.checkin-set__set {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.checkin-set__set-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.checkin-set__set-head .row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkin-set__set-head .row__title {
+  white-space: normal;
+}
+
+.checkin-set__set-tile {
+  background: var(--dusk-wash);
+  color: var(--dusk-ink);
+}
+
+.checkin-set__set-summary {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink);
+  line-height: var(--leading-snug);
+}
+
+.checkin-set__set.is-off .checkin-set__set-tile,
+.checkin-set__set.is-off .checkin-set__set-summary,
+.checkin-set__set.is-off .checkin-set__qs {
+  opacity: 0.6;
+}
+
+.checkin-set__qs > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 40px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  cursor: pointer;
+  list-style: none;
+}
+
+.checkin-set__qs > summary::-webkit-details-marker {
+  display: none;
+}
+
+.checkin-set__qs > summary svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.checkin-set__qs[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.checkin-set__row.is-waiting .row__title {
+  color: var(--ink-2);
+}
+
+/* The share sheet's ticks: each question with its type. */
+.cs-ticks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.cs-tick {
+  align-items: center;
+}
+
+.cs-tick .tile {
+  flex: none;
+}
+
+.cs-problem:empty {
+  display: none;
 }
