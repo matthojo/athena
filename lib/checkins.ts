@@ -32,6 +32,7 @@ import { mirrorCheckinDay, readDate, type Mood } from "./days";
 import { setCheckinHealthDay } from "./health";
 import { askedHistory, planFor } from "./checkin-plan";
 import { askDeeper } from "./checkin-deeper";
+import { askable } from "./checkin-share";
 import type { Anthropic } from "./ai";
 import {
   CHECKIN_KINDS,
@@ -45,6 +46,7 @@ import {
   type CheckinKind,
   type CheckinMirror,
   type CheckinQuestion,
+  type CheckinSet,
   type CheckinSettings,
   type CheckinSettingsView,
   type CheckinSummary,
@@ -95,7 +97,8 @@ const MIRRORS: Record<QuestionType, CheckinMirror[]> = {
   areas: [null, "briefing"],
   text: [null, "day_journal", "briefing"],
 };
-const OWN_FIELDS = ["id", "type", "prompt", "kinds", "low", "high", "lead", "levels", "options", "more", "placeholder", "deeper", "mirror", "preset"];
+const OWN_FIELDS = ["id", "type", "prompt", "kinds", "low", "high", "lead", "levels", "options", "more", "placeholder", "deeper", "mirror", "preset", "set"];
+const SET_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const OWN_ID = /^own_[A-Za-z0-9_-]{1,40}$/;
 
 const oneLine = (v: string) => v.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
@@ -137,7 +140,8 @@ function readOwnQuestion(raw: unknown, i: number): CheckinQuestion {
   if (!Array.isArray(o.kinds) || !o.kinds.length || !o.kinds.every(isKind) || new Set(o.kinds).size !== o.kinds.length) throw new AthenaInputError(`${at}.kinds: morning, evening or both`);
   const mirror = (o.mirror ?? null) as CheckinMirror;
   if (!MIRRORS[type].includes(mirror)) throw new AthenaInputError(`${at}.mirror: for a ${type} question, one of ${MIRRORS[type].map(String).join(", ")}`);
-  const q: CheckinQuestion = { id: o.id, type, prompt: words(o.prompt, `${at}.prompt`, 200, { required: true })!, kinds: CHECKIN_KINDS.filter((k) => (o.kinds as string[]).includes(k)), mirror, preset: false };
+  if (o.set !== undefined && o.set !== null && (typeof o.set !== "string" || !SET_ID.test(o.set))) throw new AthenaInputError(`${at}.set: the id of the set it was added from`);
+  const q: CheckinQuestion = { id: o.id, type, prompt: words(o.prompt, `${at}.prompt`, 200, { required: true })!, kinds: CHECKIN_KINDS.filter((k) => (o.kinds as string[]).includes(k)), mirror, preset: false, ...(typeof o.set === "string" ? { set: o.set.toLowerCase() } : {}) };
   const extra = (fields: string[]) => {
     for (const f of OWN_FIELDS.slice(4, 12)) if (!fields.includes(f) && o[f] !== undefined && o[f] !== null) throw new AthenaInputError(`${at}.${f}: not for a ${type} question`);
   };
@@ -190,7 +194,7 @@ function readRoutine(raw: unknown, kind: CheckinKind, library: Map<string, Check
 export function checkSettings(raw: unknown): CheckinSettings {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new AthenaInputError("Send the settings as JSON: morning, evening and own");
   const o = raw as Record<string, unknown>;
-  for (const k of Object.keys(o)) if (!["morning", "evening", "own", "library"].includes(k)) throw new AthenaInputError(`Unknown field ${k}. Fields: morning, evening, own`);
+  for (const k of Object.keys(o)) if (!["morning", "evening", "own", "library", "sets"].includes(k)) throw new AthenaInputError(`Unknown field ${k}. Fields: morning, evening, own`);
   const ownRaw = o.own ?? [];
   if (!Array.isArray(ownRaw)) throw new AthenaInputError("own: a list of questions");
   if (ownRaw.length > MAX_OWN_QUESTIONS) throw new AthenaInputError(`own: at most ${MAX_OWN_QUESTIONS} questions of your own`);
@@ -209,8 +213,9 @@ export function libraryOf(s: Pick<CheckinSettings, "own">): CheckinQuestion[] {
   return [...PRESET_QUESTIONS, ...s.own];
 }
 
-export function settingsView(s: CheckinSettings): CheckinSettingsView {
-  return { ...structuredClone(s), library: structuredClone(libraryOf(s)) };
+/** The settings as the app reads them, with the sets added (lib/checkin-sets.ts listSets). */
+export function settingsView(s: CheckinSettings, sets: CheckinSet[] = []): CheckinSettingsView {
+  return { ...structuredClone(s), library: structuredClone(libraryOf(s)), sets: structuredClone(sets) };
 }
 
 export async function loadCheckinSettings(): Promise<CheckinSettings> {
@@ -228,7 +233,32 @@ export async function loadCheckinSettings(): Promise<CheckinSettings> {
 export async function saveCheckinSettings(raw: unknown): Promise<CheckinSettingsView> {
   const s = checkSettings(raw);
   await qRaw(`INSERT INTO settings (key, value) VALUES ($1, $2::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`, [SETTINGS_KEY, JSON.stringify(s)]);
-  return settingsView(s);
+  return settingsView(s, await listSets());
+}
+
+// ---------- Sets added from a file or Community (lib/checkin-share.ts, lib/checkin-sets.ts) ----------
+
+interface SetRow {
+  id: string;
+  name: string;
+  summary: string;
+  author: string | null;
+  version: string | null;
+  paused: boolean;
+  catalogue_id: string | null;
+  created_at: string | Date;
+}
+
+/** The sets added, oldest first. Plain rows (migration 0090): a name, a summary and where it came from. */
+export async function listSets(): Promise<CheckinSet[]> {
+  const rows = await qRaw<SetRow>(`SELECT id::text AS id, name, summary, author, version, paused, catalogue_id, created_at FROM checkin_sets ORDER BY created_at, id`);
+  return rows.map((r) => ({ id: r.id, name: r.name, summary: r.summary, author: r.author, version: r.version, paused: r.paused, catalogue_id: r.catalogue_id, added_at: new Date(r.created_at).toISOString() }));
+}
+
+/** The settings view, sets and all: GET /api/checkins/settings. */
+export async function loadSettingsView(): Promise<CheckinSettingsView> {
+  const [s, sets] = await Promise.all([loadCheckinSettings(), listSets()]);
+  return settingsView(s, sets);
 }
 
 // ---------- Answers ----------
@@ -371,7 +401,9 @@ export async function getCheckin(date: string, kind: CheckinKind, opts: { now?: 
   // A past day nobody opened stays unplanned: today's settings say nothing about what was asked then.
   if (date < today) return { date, kind, plan: [], answers: {}, status: "open" };
   needKey();
-  const plan = planFor(settings[kind], libraryOf(settings), await historyBefore(date, kind), kind);
+  // A switched-off set's questions wait until it's back on.
+  const paused = new Set((await listSets()).filter((x) => x.paused).map((x) => x.id));
+  const plan = planFor(settings[kind], askable(libraryOf(settings), paused), await historyBefore(date, kind), kind);
   const stored: Stored = { plan, answers: {} };
   // Two devices opening the day at once agree: the first plan in wins.
   await qRaw(`INSERT INTO checkins (date, kind, sealed) VALUES ($1::date, $2, $3) ON CONFLICT (date, kind) DO NOTHING`, [date, kind, sealText(JSON.stringify(stored))]);
@@ -506,5 +538,6 @@ export async function deeperFor(date: string, kind: CheckinKind, raw: unknown, d
   const text = cleanText(o.text);
   if (!text) throw new AthenaInputError("text: write something first");
   if (text.length > MAX_ANSWER_CHARS) throw new AthenaInputError(`text: at most ${MAX_ANSWER_CHARS} characters`);
-  return askDeeper({ prompt: q.prompt, text }, deps);
+  // A question from a set someone else shared is their words: askDeeper frames it so.
+  return askDeeper({ prompt: q.prompt, text, shared: !!q.set }, deps);
 }

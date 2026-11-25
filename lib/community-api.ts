@@ -18,6 +18,8 @@
  */
 import type { CatalogueFile, CatalogueItem } from "./catalogue-types";
 import type { SharedFlow } from "./flow-share";
+import type { SharedCheckins } from "./checkin-share";
+import type { CheckinKind } from "./checkin-types";
 import type { Reach } from "./reach";
 import type { ShareHeader, ShareKind } from "./share-kinds";
 import type { SkillPreview } from "./skills";
@@ -56,7 +58,8 @@ export type AddRequest = { catalogue: string } | { link: string };
 export type AddPreviewItem =
   | { kind: "assistant"; shared: SharedAssistant; skill: SharedSkill | null }
   | { kind: "skill"; skill: SkillPreview }
-  | { kind: "flow"; flow: SharedFlow };
+  | { kind: "flow"; flow: SharedFlow }
+  | { kind: "checkin"; checkins: SharedCheckins };
 
 /** Everything the `#/add` screen shows before anything is kept. */
 export interface AddPreview {
@@ -109,10 +112,15 @@ export interface AddResult {
   kind: ShareKind;
   /** The new (or updated) assistant, skill or flow. */
   id: string;
-  /** Where to open it in the app: "#/team/<id>", "#/settings/skills/<id>", "#/flows/<id>". */
+  /** Where to open it in the app: "#/team/<id>", "#/settings/skills/<id>", "#/flows/<id>", "#/settings/checkins". */
   href: string;
   /** It was an update of one already here, not a new one. */
   updated?: boolean;
+  /**
+   * Check-in questions only: how many joined, the questions skipped because the owner already had their words, and
+   * the routines they joined that are switched off (they stay off).
+   */
+  checkins?: { added: number; skipped: string[]; off: CheckinKind[] };
 }
 
 /** An item added from the catalogue, against the index now. */
