@@ -14,32 +14,32 @@
 }
 
 .profile-q .form__hint {
-  padding-inline: 2px;
+  padding-inline: var(--space-3xs);
 }
 
 /* Region: what Athena reads in the answer, live under the field (components/profile-inputs.ts regionControl). */
 .profile-q__with-reading {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .profile-q__reading {
   margin: 0;
-  padding-inline: 2px;
+  padding-inline: var(--space-3xs);
   text-wrap: pretty;
 }
 
 .profile-q__area {
   height: auto;
   min-height: 48px;
-  padding: 12px 14px;
+  padding: var(--space-sm) 14px;
   line-height: var(--leading-body);
   resize: none;
 }
 
 .profile-q .form-chips {
-  padding-block: 2px;
+  padding-block: var(--space-3xs);
 }
 
 /* Several people: their chips, then a picker for the next one, in a field-like box. */
@@ -67,7 +67,7 @@
 
 .profile-people .picker__chip {
   background: var(--surface);
-  padding-left: 4px;
+  padding-left: var(--space-2xs);
 }
 
 .profile-people__pick {
@@ -79,7 +79,7 @@
 .profile-people__picker .picker__input {
   height: 34px;
   margin-left: 0;
-  padding: 0 4px;
+  padding: 0 var(--space-2xs);
   background: transparent;
 }
 
@@ -119,7 +119,7 @@
 .profile-wiz__head {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .profile-wiz__steps {
@@ -290,7 +290,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 .profile-row .row__chevron svg {

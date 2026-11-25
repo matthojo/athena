@@ -25,6 +25,7 @@ import { initials } from "../lib/format";
 import { prefersReducedMotion } from "../lib/motion";
 import { colorVar, isDetail, labelFor, radiusFor } from "./kinds";
 import type { GraphLink, GraphNode } from "../types";
+import { onSchemeChange } from "../lib/appearance";
 
 interface SimNode extends SimulationNodeDatum {
   id: string;
@@ -410,12 +411,10 @@ export function createRenderer(opts: RendererOptions): GraphRenderer {
   }
   const colorOf = (n: SimNode) => colors[colorVar(n.data.kind)];
 
-  const dark = window.matchMedia("(prefers-color-scheme: dark)");
-  const onScheme = () => {
+  const stopScheme = onSchemeChange(() => {
     readColors();
     requestFrame();
-  };
-  dark.addEventListener("change", onScheme);
+  });
 
   // ---------- drawing ----------
 
@@ -903,7 +902,7 @@ export function createRenderer(opts: RendererOptions): GraphRenderer {
       dead = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
-      dark.removeEventListener("change", onScheme);
+      stopScheme();
       sim.stop();
     },
   };

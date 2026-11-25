@@ -20,7 +20,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px oklch(0.2 0.02 264 / 0.08);
+  box-shadow: inset 0 0 0 1px var(--art-img-after-shadow);
   pointer-events: none;
 }
 
@@ -39,7 +39,7 @@
 }
 
 .art-img--loading {
-  background-image: linear-gradient(100deg, transparent 30%, oklch(1 0 0 / 0.14) 50%, transparent 70%);
+  background-image: linear-gradient(100deg, transparent 30%, var(--art-img-loading-bg) 50%, transparent 70%);
   background-size: 250% 100%;
   animation: art-img-wait calc(var(--dur-pulse) * 1.125) var(--ease-in-out) infinite;
 }
@@ -82,8 +82,8 @@
   justify-content: space-between;
   padding: 10% 9% 11%;
   background:
-    radial-gradient(120% 70% at 20% 0%, oklch(1 0 0 / 0.16), transparent 60%),
-    linear-gradient(180deg, transparent 55%, oklch(0 0 0 / 0.08)),
+    radial-gradient(120% 70% at 20% 0%, var(--art-img-made-bg-1), transparent 60%),
+    linear-gradient(180deg, transparent 55%, var(--art-img-made-bg-2)),
     var(--art-fill);
   container-type: inline-size;
 }
@@ -97,11 +97,9 @@
 }
 
 /* The two text tokens swap in dark, so "dark text" is --on-ink there. */
-@media (prefers-color-scheme: dark) {
-  .art-img--made {
-    --cover-dark: var(--on-ink);
-    --cover-light: var(--ink);
-  }
+:where([data-scheme="dark"]) .art-img--made {
+  --cover-dark: var(--on-ink);
+  --cover-light: var(--ink);
 }
 
 .art-img--made .art-img__icon {
@@ -233,7 +231,7 @@ a.album__link:active > .art {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px oklch(0.2 0.02 264 / 0.07);
+  box-shadow: inset 0 0 0 1px var(--daymap-frame-after-shadow);
   pointer-events: none;
 }
 
@@ -249,7 +247,7 @@ a.album__link:active > .art {
 }
 
 .daymap__open:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 
@@ -283,7 +281,7 @@ a.album__link:active > .art {
   border-radius: 50%;
   background: color-mix(in oklch, var(--surface) 88%, transparent);
   color: var(--ink);
-  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.12);
+  box-shadow: 0 1px 2px var(--daymap-expand-shadow);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   transition: transform var(--dur-fast) var(--ease-out);
@@ -297,7 +295,7 @@ a.album__link:active > .art {
 
 /* The map's credit, small, under the map: on the map it covered a stop in narrow columns. */
 .daymap__credit {
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
   overflow: hidden;
   color: var(--ink-3);
   font-size: var(--text-meta);
@@ -363,12 +361,12 @@ a.album__link:active > .art {
   z-index: 1;
   display: grid;
   justify-items: start;
-  gap: 2px;
+  gap: var(--space-3xs);
   margin: var(--space-sm);
   padding: var(--space-sm) var(--space-md) var(--space-md);
   border-radius: var(--radius-sm);
   background: color-mix(in oklch, var(--surface) 94%, transparent);
-  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.06), 0 6px 18px -8px oklch(0.2 0.02 264 / 0.18);
+  box-shadow: 0 1px 2px var(--daymap-invite-shadow-1), 0 6px 18px -8px var(--daymap-invite-shadow-2);
 }
 
 .daymap__title {
@@ -420,7 +418,7 @@ a.album__link:active > .art {
   max-height: 100%;
   object-fit: contain;
   border-radius: var(--radius-sm);
-  background: oklch(0.25 0.012 264);
+  background: var(--daymap-full-bg);
   filter: blur(0.6px);
   transition: filter var(--dur-base) var(--ease-out);
 }
@@ -478,7 +476,7 @@ a.album__link:active > .art {
 }
 
 .ma-card__sub {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   font-size: var(--text-small);
   line-height: var(--leading-snug);
   color: var(--ink-2);
@@ -570,7 +568,7 @@ a.album__link:active > .art {
 .ma-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px;
+  gap: var(--space-3xs);
   padding: 3px;
   border-radius: var(--radius-pill);
   background: var(--sunken);
@@ -597,11 +595,11 @@ a.album__link:active > .art {
 .ma-switch__item[aria-checked="true"] {
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 1px 2px oklch(0.2 0.02 264 / 0.1);
+  box-shadow: 0 1px 2px var(--ma-switch-item-true-shadow);
 }
 
 .ma-switch__item:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -665,7 +663,7 @@ a.album__link:active > .art {
   color: var(--ink);
   font: inherit;
   font-size: var(--text-body);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   letter-spacing: 0.01em;
 }
 
@@ -721,7 +719,7 @@ a.album__link:active > .art {
   flex: none;
   width: 18px;
   height: 18px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   color: var(--ink-3);
 }
 

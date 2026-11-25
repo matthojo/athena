@@ -40,6 +40,7 @@ import { kindsSnapshot, loadKinds, onKindsChange } from "../db/custom-kinds";
 import { KIND_WORD } from "../../../lib/custom-kind-words";
 import { healthSourcesPanel } from "../components/health-sources";
 import { draftSettingsSection } from "../components/draft-settings";
+import { appearanceSection, APPEARANCE_COPY } from "../components/appearance-settings";
 import { connectorSection, SOURCES_SECTION, TALK_SECTIONS, type ConnectorSection } from "../components/connector-settings";
 import { healthTime, onSourcesStatus, sourcesStatus } from "../components/status";
 import { showToast } from "../components/toast";
@@ -246,7 +247,7 @@ function fieldsSection(ctx: { go: (view: ViewId) => void }): { el: HTMLElement; 
   };
 }
 
-export type SettingsSection = "about" | "fields" | typeof KIND_WORD.slug | ConnectorSection | "health" | "maps" | "days" | "checkins" | "todo" | "drafts" | "recipes" | "notifications" | "reminders" | "knows" | "api-keys" | "ask" | "ask-activity" | "skills" | "models" | "spend" | "athena";
+export type SettingsSection = "about" | "appearance" | "fields" | typeof KIND_WORD.slug | ConnectorSection | "health" | "maps" | "days" | "checkins" | "todo" | "drafts" | "recipes" | "notifications" | "reminders" | "knows" | "api-keys" | "ask" | "ask-activity" | "skills" | "models" | "spend" | "athena";
 
 interface SectionInfo {
   id: SettingsSection;
@@ -271,6 +272,7 @@ const GROUPS: Array<{ label: string | null; sections: SectionInfo[] }> = [
       { id: "ask", label: "Ask", detail: "Skills, routines, and what Ask did", icon: "sparkle" },
       { id: "models", label: "AI models", detail: "Which model does each job", icon: "sliders" },
       { id: "spend", label: "AI spend", detail: "What Athena's AI cost, and a daily budget", icon: "wallet" },
+      { id: "appearance", label: APPEARANCE_COPY.heading, detail: APPEARANCE_COPY.detail, icon: "contrast" },
       { id: "notifications", label: "Notifications", detail: "What reaches your phone, and when", icon: "bell" },
     ],
   },
@@ -332,6 +334,7 @@ function section(id: SettingsSection, ctx: { go: (view: ViewId) => void; open: (
   if (id === "todo") return todoContextsSection();
   if (id === "maps") return mapsArtSection();
   if (id === "drafts") return draftSettingsSection();
+  if (id === "appearance") return appearanceSection();
   if (id === "recipes") {
     // Loaded with the Recipes code, so Settings stays light.
     const slot = h("div", { style: "display:contents" });

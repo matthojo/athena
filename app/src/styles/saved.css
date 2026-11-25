@@ -115,7 +115,7 @@
 }
 
 .sv-card:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -123,13 +123,13 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 12px 13px 13px;
+  padding: var(--space-sm) 13px 13px;
   min-width: 0;
 }
 
 .sv-card__body--tight {
-  gap: 4px;
-  padding: 10px 12px 11px;
+  gap: var(--space-2xs);
+  padding: 10px var(--space-sm) 11px;
 }
 
 .sv-card__title {
@@ -175,7 +175,7 @@
   font-size: var(--text-meta);
   line-height: 1.45;
   color: var(--ink-2);
-  padding: 6px 8px;
+  padding: 6px var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--sunken);
 }
@@ -184,7 +184,7 @@
   flex: none;
   width: 12px;
   height: 12px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   color: var(--ink-3);
 }
 
@@ -200,7 +200,7 @@
   line-height: 1.5;
   color: var(--ink-2);
   border-left: 0;
-  padding: 6px 8px;
+  padding: 6px var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--accent-wash);
 }
@@ -235,8 +235,8 @@
   font-size: var(--text-micro);
   font-weight: var(--weight-semibold);
   line-height: 1;
-  background: oklch(0.93 0.04 var(--hue, 264));
-  color: oklch(0.42 0.1 var(--hue, 264));
+  background: oklch(var(--sv-site-mark-bg) var(--hue, 264));
+  color: oklch(var(--sv-site-mark-ink) var(--hue, 264));
 }
 
 .sv-site__name {
@@ -281,7 +281,7 @@
 
 /* Quotes: the words carry the card. */
 .sv-quote {
-  gap: 8px;
+  gap: var(--space-xs);
   padding: 14px 14px 13px;
 }
 
@@ -320,7 +320,7 @@
   padding: 9px 10px;
   border-radius: var(--radius-xs);
   background: var(--sunken);
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: var(--text-meta);
   line-height: 1.55;
   color: var(--ink);
@@ -399,7 +399,7 @@
 .sv-note {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
   padding: 10px 14px 6px;
   border-radius: var(--radius-sm);
   background: var(--sunken);
@@ -528,10 +528,10 @@
 
 .sv-reader__pre {
   overflow-x: auto;
-  padding: 12px 14px;
+  padding: var(--space-sm) 14px;
   border-radius: var(--radius-sm);
   background: var(--sunken);
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: var(--text-meta);
   line-height: 1.6;
 }
@@ -790,7 +790,7 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  padding: 8px;
+  padding: var(--space-xs);
   text-align: left;
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -831,7 +831,7 @@
 .day-saved__body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -865,14 +865,8 @@
 
 /* ---------- Dark ---------- */
 
-@media (prefers-color-scheme: dark) {
-  .sv-site__mark {
-    background: oklch(0.32 0.06 var(--hue, 264));
-    color: oklch(0.86 0.08 var(--hue, 264));
-  }
-  .sv-card {
-    box-shadow: none;
-  }
+:where([data-scheme="dark"]) .sv-card {
+  box-shadow: none;
 }
 
 /* ---------- Actions (components/saved-actions.ts) ---------- */
@@ -889,7 +883,7 @@
 
 .sv-card__filed {
   display: block;
-  padding: 0 13px 12px;
+  padding: 0 13px var(--space-sm);
   margin-top: -4px;
 }
 
@@ -999,7 +993,7 @@ a.sva-filed__where:hover {
 .sva-suggest {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   width: 100%;
   min-height: 60px;
   padding: 10px 14px 10px 10px;
@@ -1025,7 +1019,7 @@ a.sva-filed__where:hover {
 }
 
 .sva-suggest:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -1049,7 +1043,7 @@ a.sva-filed__where:hover {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -1116,7 +1110,7 @@ a.sva-filed__where:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -1124,7 +1118,7 @@ a.sva-filed__where:hover {
 .sva-links svg {
   width: 12px;
   height: 12px;
-  margin-right: 2px;
+  margin-right: var(--space-3xs);
 }
 
 .sva-links a {
@@ -1143,8 +1137,8 @@ a.sva-filed__where:hover {
 .sva-lede {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin: 0 0 2px;
+  gap: var(--space-3xs);
+  margin: 0 0 var(--space-3xs);
 }
 
 .sva-lede__name {
@@ -1161,7 +1155,7 @@ a.sva-filed__where:hover {
 .sva-rows {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .sva-rows[aria-busy="true"] {
@@ -1171,7 +1165,7 @@ a.sva-filed__where:hover {
 .sva-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   min-height: 52px;
   padding: 6px 10px 6px 6px;
   margin: 0 -6px;
@@ -1265,7 +1259,7 @@ a.sva-filed__where:hover {
 }
 
 .sv-card__filed .sva-filed > svg {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 .sv-card__filed .sva-filed__text {

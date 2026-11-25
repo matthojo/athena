@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { BOOT_MARKER, BOOT_SCRIPT } from "./src/lib/appearance-boot";
 
 const { version } = JSON.parse(readFileSync(resolve(__dirname, "../package.json"), "utf8")) as { version: string };
 
@@ -9,6 +10,8 @@ const { version } = JSON.parse(readFileSync(resolve(__dirname, "../package.json"
 // servers already expect.
 export default defineConfig({
   root: resolve(__dirname),
+  // The appearance (Light, Dark or the system's) is applied before the first paint (src/lib/appearance-boot.ts).
+  plugins: [{ name: "athena-appearance", transformIndexHtml: (html) => html.replace(BOOT_MARKER, `<script>${BOOT_SCRIPT}</script>`) }],
   publicDir: resolve(__dirname, "public"),
   // Shown in Settings → About (components/about-settings.ts).
   define: {

@@ -43,7 +43,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 12px var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   background: var(--sunken);
 }
@@ -80,7 +80,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: var(--space-sm);
-  row-gap: 2px;
+  row-gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -149,14 +149,14 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-sm);
-  padding: 12px var(--space-sm) 12px var(--space-md);
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md);
   min-height: 68px;
 }
 
 .src-problem__body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -331,7 +331,7 @@
 /* Meta wraps to a second line rather than cut a name off. */
 .src-row .row__meta {
   display: -webkit-box;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -345,7 +345,7 @@
 /* "Nothing new for 2 weeks": a quiet second line, not a problem. */
 .src-row__quiet {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
   font-style: italic;
@@ -463,7 +463,7 @@
 .src-card--empty {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
   padding: var(--space-md) 0 0;
   overflow: hidden;
 }
@@ -527,7 +527,7 @@
 .src-starter__body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -639,7 +639,7 @@
 .status-card__needs {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   margin-inline: -4px;
   padding: 10px;
   border-radius: var(--radius-sm);
@@ -666,14 +666,14 @@
 .status-card__needs-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   font-size: var(--text-small);
   font-weight: var(--weight-semibold);
 }
 
 .status-card__needs-sub,
 .status-card__needs-link {
-  padding-left: 16px;
+  padding-left: var(--space-md);
   font-size: var(--text-meta);
 }
 
@@ -690,7 +690,7 @@
   align-items: flex-start;
   height: auto;
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 10px var(--space-sm);
   background: var(--warn-wash);
   text-align: left;
 }
@@ -721,7 +721,7 @@
 }
 
 .menu__needs-link {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-semibold);
   color: var(--accent-ink);

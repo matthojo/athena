@@ -34,7 +34,7 @@
 }
 
 .acct-link:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
   border-radius: var(--radius-2xs);
 }
@@ -109,7 +109,7 @@
 }
 
 .acct-whose__name .acct-link {
-  margin-left: 4px;
+  margin-left: var(--space-2xs);
 }
 
 .acct-whose [hidden] {
@@ -200,7 +200,7 @@
 }
 
 .steps__sub {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   font-size: var(--text-small);
   line-height: var(--leading-body);
   color: var(--ink-2);
@@ -236,7 +236,7 @@
 .steps__code {
   flex: 1;
   min-width: 0;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: var(--text-meta);
   line-height: var(--leading-snug);
   color: var(--ink);
@@ -528,7 +528,7 @@
   flex: none;
   width: 18px;
   height: 18px;
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   border-radius: 50%;
   background: color-mix(in oklch, var(--good) 16%, transparent);
   color: var(--good);
@@ -559,7 +559,7 @@
 /* ---------- Account detail ---------- */
 
 .acct-detail .conn-hero .conn-status {
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
 }
 
 /* The problem, with its fix. Amber, never red: nothing is lost. */
@@ -608,7 +608,7 @@
 }
 
 .acct-problem__line {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   font-size: var(--text-small);
   line-height: var(--leading-body);
   color: var(--ink-2);
@@ -675,7 +675,7 @@
 .acct-perms__choose {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
   flex: none;
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
@@ -849,7 +849,7 @@
 .cal-pick__bar--short {
   width: 64%;
   height: 10px;
-  margin-top: 8px;
+  margin-top: var(--space-xs);
 }
 .cal-pick__knob {
   flex: none;
@@ -944,7 +944,7 @@
 }
 
 .af-find__choice:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 

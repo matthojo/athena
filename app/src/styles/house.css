@@ -110,7 +110,7 @@
 }
 
 .hc:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 4px;
 }
 
@@ -272,11 +272,11 @@
 }
 
 .hc-scale__step:first-of-type {
-  margin-left: 4px;
+  margin-left: var(--space-2xs);
 }
 
 .hc-scale__step:last-of-type {
-  margin-right: 4px;
+  margin-right: var(--space-2xs);
 }
 
 /* Tooltip, as charts.css's. */
@@ -287,9 +287,9 @@
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   pointer-events: none;
-  padding: 6px 8px;
+  padding: 6px var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--ink);
   color: var(--on-ink);
@@ -470,7 +470,7 @@
 }
 
 .house-trend {
-  row-gap: 2px;
+  row-gap: var(--space-3xs);
   padding: var(--space-xs) 0;
   border-top: 1px solid var(--line);
   font-size: var(--text-small);
@@ -483,7 +483,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 var(--space-xs);
-  margin-bottom: 2px;
+  margin-bottom: var(--space-3xs);
 }
 
 .house-trend__name {
@@ -591,7 +591,7 @@
   align-items: center;
   gap: 6px;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
 }
 
 .tc-views {
@@ -624,7 +624,7 @@
 }
 
 .tc-panel:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 4px;
 }
 
@@ -659,7 +659,7 @@
 .tc-headline {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .tc-headline__eyebrow {
@@ -673,7 +673,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px var(--space-xs);
+  gap: var(--space-2xs) var(--space-xs);
   margin: 0;
 }
 
@@ -765,7 +765,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px var(--space-md);
+  gap: var(--space-2xs) var(--space-md);
   margin: 0;
   color: var(--ink-3);
   font-size: var(--text-meta);
@@ -821,8 +821,8 @@
 .tc-chip {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 8px;
+  gap: var(--space-3xs);
+  padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--radius-pill);
   font-size: var(--text-meta);
   font-weight: var(--weight-semibold);
@@ -1190,7 +1190,7 @@
 .house-rate,
 .house-month {
   display: grid;
-  gap: 2px var(--space-sm);
+  gap: var(--space-3xs) var(--space-sm);
   padding: var(--space-xs) 0;
   border-top: 1px solid var(--line);
   font-size: var(--text-small);
@@ -1214,7 +1214,7 @@
 }
 
 .house-rate__tag {
-  padding: 1px 8px;
+  padding: 1px var(--space-xs);
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink-2);
@@ -1273,7 +1273,7 @@
 .house-bill__amount {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 

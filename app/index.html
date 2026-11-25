@@ -11,9 +11,11 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0c0e13" media="(prefers-color-scheme: dark)" />
+    <!-- --canvas in each scheme. The script below gives both the chosen scheme's colour (src/lib/appearance.ts). -->
+    <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)" data-light="#f4f6f8" data-dark="#0c0e13" />
+    <meta name="theme-color" content="#0c0e13" media="(prefers-color-scheme: dark)" data-light="#f4f6f8" data-dark="#0c0e13" />
     <meta name="color-scheme" content="light dark" />
+    <!-- appearance: first paint -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />

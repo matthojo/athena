@@ -11,6 +11,7 @@ import type { LinkPreview } from "../../../lib/link-previews";
 import type { ReadingItem } from "../types";
 import type { LivePicture } from "./rich-links-rules";
 import { dayFrom } from "./rich-links-rules";
+import { isDark } from "../lib/appearance";
 
 type Sample = Partial<LinkPreview> & Pick<LinkPreview, "title" | "summary" | "site_name">;
 
@@ -80,7 +81,7 @@ export function sampleLastVisit(placeId: string, today: string): string {
 
 /** A drawn map for sample mode: a few streets and a pin, as an SVG data URL. Never a real map. */
 export function sampleMapStill(name: string): string {
-  const dark = typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
+  const dark = isDark();
   const [bg, street, pin] = dark ? ["#1d2126", "#2f353d", "#ff6b5a"] : ["#eef0ea", "#ffffff", "#e5483a"];
   const title = name.replace(/[<>&"']/g, "");
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 320"><title>${title}</title><rect width="600" height="320" fill="${bg}"/><g fill="none" stroke="${street}" stroke-linecap="round"><path d="M-20 92 C 120 70, 220 120, 360 96 S 560 60, 640 84" stroke-width="12"/><path d="M-20 236 C 140 250, 260 206, 420 226 S 560 260, 640 238" stroke-width="9"/><path d="M168 -20 C 150 90, 196 190, 172 340" stroke-width="9"/><path d="M430 -20 C 446 80, 404 200, 438 340" stroke-width="12"/><path d="M-20 160 L 640 170" stroke-width="5"/></g><circle cx="300" cy="166" r="11" fill="${pin}" stroke="${bg}" stroke-width="4"/></svg>`;

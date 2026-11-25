@@ -66,7 +66,7 @@
 }
 
 .hs-manage svg {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
 }
 
 .hs-state {
@@ -173,9 +173,9 @@
 .hs-fields {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: 4px var(--space-sm);
+  gap: var(--space-2xs) var(--space-sm);
   margin-top: var(--space-xs);
-  padding: 4px;
+  padding: var(--space-2xs);
   border-radius: var(--radius-sm);
   background: var(--sunken);
   list-style: none;
@@ -286,9 +286,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
   margin-top: var(--space-xs);
-  padding: 8px 10px;
+  padding: var(--space-xs) 10px;
   border-radius: var(--radius-sm);
   background: var(--sunken);
   font-size: var(--text-meta);
@@ -299,7 +299,7 @@
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  padding: 0 8px;
+  padding: 0 var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--accent-wash);
   color: var(--accent-ink);

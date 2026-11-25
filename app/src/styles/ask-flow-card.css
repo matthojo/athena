@@ -5,14 +5,14 @@
 .flowcard {
   display: grid;
   gap: var(--space-sm);
-  padding: 16px;
+  padding: var(--space-md);
 }
 
 .flowcard__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .flowcard__title {
@@ -44,7 +44,7 @@
   flex: none;
   font-size: var(--text-meta);
   color: var(--ink-3);
-  padding-top: 2px;
+  padding-top: var(--space-3xs);
 }
 
 .flowcard__flow {
@@ -62,7 +62,7 @@
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-sm);
   padding-bottom: 14px;
 }
 
@@ -118,7 +118,7 @@
 
 .flowcard__line {
   display: grid;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
   padding-top: 5px;
 }
@@ -152,7 +152,7 @@
   display: grid;
   gap: 6px;
   margin-left: 44px;
-  padding-bottom: 12px;
+  padding-bottom: var(--space-sm);
 }
 
 .flowcard__branch::before {
@@ -177,7 +177,7 @@
 
 .flowcard__branch-label {
   justify-self: start;
-  padding: 1px 8px;
+  padding: 1px var(--space-xs);
   border-radius: var(--radius-pill);
   background: var(--sunken);
   font-size: var(--text-meta);
@@ -206,7 +206,7 @@
 
 .flowcard__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .flowcard__actions > * {

@@ -38,6 +38,7 @@ import { choiceChips } from "./fields";
 import { getMapApp, MAP_APP_LABELS, setMapApp } from "../lib/map-app";
 import { MAP_APPS, type MapApp } from "../../../lib/embeds";
 import "../styles/days-art.css";
+import { isDark, onSchemeChange } from "../lib/appearance";
 
 /** Words on this page (docs/notes/days-art.md "New copy"). */
 export const COPY = {
@@ -85,7 +86,6 @@ export const COPY = {
 };
 
 const SOURCES = ["Letterboxd", "Spotify", "Last.fm", "Steam", "Plex", "Jellyfin", "Open Library"];
-const dark = window.matchMedia("(prefers-color-scheme: dark)");
 
 export function mapsArtSection(): { el: HTMLElement; destroy: () => void } {
   const body = h("div", { class: "settings__body ma" });
@@ -105,7 +105,7 @@ export function mapsArtSection(): { el: HTMLElement; destroy: () => void } {
   const objectUrls: string[] = [];
 
   async function load() {
-    body.replaceChildren(h("div", { class: "ma-card" }, h("span", { class: "skeleton", style: "height:18px;width:120px" }), h("span", { class: "skeleton", style: "aspect-ratio:600/320;width:100%;border-radius:18px" })));
+    body.replaceChildren(h("div", { class: "ma-card" }, h("span", { class: "skeleton", style: "height:18px;width:120px" }), h("span", { class: "skeleton", style: "aspect-ratio:600/320;width:100%;border-radius:var(--radius-md)" })));
     try {
       status = await fetchMapsArt();
       if (destroyed) return;
@@ -213,7 +213,7 @@ export function mapsArtSection(): { el: HTMLElement; destroy: () => void } {
   /** The saved sample, or the one just made, in the current theme. */
   function sample(which: "map" | "poster", animate: boolean): HTMLElement {
     const box = which === "map" ? h("div", { class: `ma-sample${animate && !prefersReducedMotion() ? " ma-sample--new" : ""}` }, mapSketch()) : h("span", { class: "art-img", style: "--art-ratio:0.6667" });
-    const key = which === "poster" ? "poster" : dark.matches ? "dark" : "light";
+    const key = which === "poster" ? "poster" : isDark() ? "dark" : "light";
     const show = (src: string) => {
       const img = h("img", { src, alt: which === "map" ? "A sample map in your theme: three stops across central London." : "Paddington 2's poster, found with your TMDB key.", decoding: "async" });
       if (which === "map") box.replaceChildren(img, h("span", { class: "ma-sample__tag" }, COPY.sampleTag));
@@ -362,14 +362,13 @@ export function mapsArtSection(): { el: HTMLElement; destroy: () => void } {
     );
   }
 
-  const onTheme = () => paint();
-  dark.addEventListener("change", onTheme);
+  const stopTheme = onSchemeChange(() => paint());
   void load();
   return {
     el,
     destroy: () => {
       destroyed = true;
-      dark.removeEventListener("change", onTheme);
+      stopTheme();
       objectUrls.forEach((u) => URL.revokeObjectURL(u));
     },
   };

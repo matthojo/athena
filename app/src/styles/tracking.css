@@ -18,7 +18,7 @@
   --tk-neutral-2: color-mix(in oklch, var(--ink-3) 18%, var(--tk-surface));
   display: flex;
   flex-direction: column;
-  padding: 4px var(--space-md) 2px;
+  padding: var(--space-2xs) var(--space-md) var(--space-3xs);
   border-radius: var(--radius-md);
   background: var(--tk-surface);
   min-width: 0;
@@ -28,7 +28,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-xs);
   min-height: 44px;
   margin: 0 -8px 0 0;
 }
@@ -47,12 +47,12 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 12px 0 6px;
+  padding: var(--space-sm) 0 6px;
   min-width: 0;
 }
 
 .tk-head + .tk-block {
-  padding-top: 2px;
+  padding-top: var(--space-3xs);
 }
 
 .tk-block + .tk-block {
@@ -87,7 +87,7 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin-right: 8px;
+  margin-right: var(--space-xs);
   border-radius: 50%;
   background: var(--chart-2);
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--chart-2) 22%, transparent);
@@ -113,7 +113,7 @@
 /* ---------- the picture ---------- */
 
 .tk-figure {
-  margin: 8px 0 0;
+  margin: var(--space-xs) 0 0;
 }
 
 .tk-chart {
@@ -221,7 +221,7 @@
   left: 0;
   z-index: 5;
   pointer-events: none;
-  padding: 4px 8px;
+  padding: var(--space-2xs) var(--space-xs);
   border-radius: var(--radius-xs);
   background: var(--ink);
   color: color-mix(in oklch, var(--on-ink) 72%, var(--ink));
@@ -277,7 +277,7 @@
 .tk-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
+  gap: var(--space-2xs) 14px;
   margin: 6px 0 0;
   font-size: var(--text-meta);
   color: var(--ink-3);
@@ -302,7 +302,7 @@
 .tk-axis {
   display: flex;
   justify-content: space-between;
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
@@ -315,8 +315,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0 12px;
-  margin: 2px 0 0;
+  gap: 0 var(--space-sm);
+  margin: var(--space-3xs) 0 0;
   font-size: var(--text-small);
   color: var(--ink-3);
 }
@@ -325,7 +325,7 @@
 .tk-row__where a {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   color: var(--ink-2);
   font-weight: 500;
   text-decoration: none;
@@ -350,7 +350,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0 4px;
+  gap: 0 var(--space-2xs);
   margin: 0 -8px -2px;
 }
 
@@ -360,11 +360,11 @@
 }
 
 .tk-bar--single > span {
-  padding: 0 8px;
+  padding: 0 var(--space-xs);
 }
 
 .tk-bar--single > .tk-foot__link {
-  padding: 0 8px;
+  padding: 0 var(--space-xs);
 }
 
 .tk-toggle {
@@ -372,7 +372,7 @@
   align-items: center;
   gap: 6px;
   min-height: 44px;
-  padding: 0 8px;
+  padding: 0 var(--space-xs);
   border: 0;
   border-radius: var(--radius-xs);
   background: none;
@@ -418,9 +418,9 @@
 .tk-goal {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   min-height: 32px;
-  padding: 0 6px 0 12px;
+  padding: 0 6px 0 var(--space-sm);
   border: 1px solid var(--line);
   border-right: 0;
   border-radius: var(--radius-pill) 0 0 var(--radius-pill);
@@ -483,14 +483,14 @@
 }
 
 .tk-goalwrap {
-  margin-right: 8px;
+  margin-right: var(--space-xs);
 }
 
 /* ---------- the list ---------- */
 
 .tk-list {
   list-style: none;
-  margin: 4px 0 0;
+  margin: var(--space-2xs) 0 0;
   padding: 0;
   border-top: 1px solid var(--line);
 }
@@ -504,8 +504,8 @@
   display: grid;
   grid-template-columns: 6.5rem 6rem minmax(0, 1fr) 36px;
   align-items: center;
-  gap: 4px 12px;
-  padding: 8px 0;
+  gap: var(--space-2xs) var(--space-sm);
+  padding: var(--space-xs) 0;
   border-bottom: 1px solid var(--line);
   font-size: var(--text-small);
   font-variant-numeric: tabular-nums;
@@ -537,7 +537,7 @@
   display: block;
   width: 14px;
   height: 4px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-2xs);
   border-radius: var(--radius-3xs);
   background: var(--tk-row-tone, var(--tk-neutral));
 }
@@ -565,7 +565,7 @@
   display: inline-block;
   width: 6px;
   height: 6px;
-  margin-right: 4px;
+  margin-right: var(--space-2xs);
   border-radius: 50%;
   background: var(--chart-2);
   vertical-align: 1px;
@@ -613,7 +613,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin: 2px -8px 0;
+  margin: var(--space-3xs) -8px 0;
 }
 
 .tk-listfoot .tk-toggle--quiet {
@@ -622,7 +622,7 @@
 
 .tk-note {
   flex-basis: 100%;
-  margin: 0 8px 6px;
+  margin: 0 var(--space-xs) 6px;
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
@@ -633,8 +633,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 4px 0 8px;
-  padding-top: 12px;
+  margin: var(--space-2xs) 0 var(--space-xs);
+  padding-top: var(--space-sm);
   border-top: 1px solid var(--line);
   animation: tk-in var(--dur-base) var(--ease-out-expo) both;
 }
@@ -649,7 +649,7 @@
 .tk-form__row {
   display: grid;
   grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .tk-form__row--goal {
@@ -662,7 +662,7 @@
 
 .tk-form__foot {
   display: flex;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .tk-form__error {
@@ -689,7 +689,7 @@
   min-height: 44px;
   min-width: 0;
   width: 100%;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-xs);
   background: var(--surface);
@@ -703,7 +703,7 @@
 }
 
 .tk-input:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
   border-color: transparent;
 }
@@ -716,9 +716,9 @@
 .tk-affixed {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-xs);
   background: var(--surface);
@@ -726,7 +726,7 @@
 }
 
 .tk-affixed:focus-within {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
   border-color: transparent;
 }
@@ -754,9 +754,9 @@
 /* ---------- in a reply ---------- */
 
 .tk--reply {
-  gap: 2px;
+  gap: var(--space-3xs);
   margin-top: var(--space-sm);
-  padding: 12px var(--space-md) 2px;
+  padding: var(--space-sm) var(--space-md) var(--space-3xs);
   border-radius: var(--radius-sm);
 }
 
@@ -768,7 +768,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 0 0 2px;
+  margin: 0 0 var(--space-3xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-semibold);
   color: var(--ink-3);
@@ -798,14 +798,14 @@
 }
 
 .tk--reply .tk-figure {
-  margin: 4px 0 0;
+  margin: var(--space-2xs) 0 0;
 }
 
 .tk-replyfoot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
@@ -833,10 +833,10 @@
 .tk-line {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   width: 100%;
   min-height: 56px;
-  padding: 8px 4px 8px 0;
+  padding: var(--space-xs) var(--space-2xs) var(--space-xs) 0;
   border: 0;
   border-bottom: 1px solid var(--line);
   background: none;
@@ -895,7 +895,7 @@
 }
 
 .tk-line__label {
-  margin-right: 8px;
+  margin-right: var(--space-xs);
   color: var(--ink-3);
 }
 
@@ -913,12 +913,12 @@
 .tks {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
   padding-bottom: var(--space-sm);
 }
 
 .tks-lede {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-xs);
   font-size: var(--text-small);
   color: var(--ink-3);
   overflow: hidden;
@@ -938,7 +938,7 @@
   gap: 14px;
   width: 100%;
   min-height: 64px;
-  padding: 10px 12px;
+  padding: 10px var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -993,7 +993,7 @@
 .tks-opt__text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   flex: 1;
   min-width: 0;
 }
@@ -1051,7 +1051,7 @@
   grid-template-columns: minmax(0, 6rem) auto minmax(0, 6rem);
   justify-content: start;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .tks-affix {
@@ -1080,7 +1080,7 @@
 .tks-states {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .tks-states + .tk-toggle {
@@ -1126,7 +1126,7 @@
 @media (max-width: 480px) {
   .tk-row {
     grid-template-columns: 5.5rem 5.25rem minmax(0, 1fr) 36px;
-    gap: 4px 8px;
+    gap: var(--space-2xs) var(--space-xs);
   }
   .tk-form__row {
     grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
@@ -1161,7 +1161,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 16px;
+  gap: var(--space-xs) var(--space-md);
   margin: 0 0 var(--space-md);
 }
 
@@ -1201,7 +1201,7 @@
 }
 
 .sv-tracker__name:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 4px;
 }
 
@@ -1213,14 +1213,14 @@
 }
 
 .tdt-more {
-  margin: 4px 0 0 -8px;
+  margin: var(--space-2xs) 0 0 -8px;
 }
 
 .tk-block__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-xs);
   min-height: 28px;
   margin: 0 -10px -4px 0;
 }
@@ -1240,7 +1240,7 @@
 }
 
 .sv-card--tracker .sv-card__track {
-  margin-top: 2px;
+  margin-top: var(--space-3xs);
   font-size: var(--text-title);
   font-weight: var(--weight-semibold);
   letter-spacing: -0.01em;
@@ -1268,14 +1268,14 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 4px 0 0;
+  margin: var(--space-2xs) 0 0;
   min-width: 0;
 }
 
 .tk-who__row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   min-height: 44px;
   font-size: var(--text-small);
   color: var(--ink-3);
@@ -1360,7 +1360,7 @@ a.tk-who__name:hover .tk-who__title {
 }
 
 .tk-who__choose {
-  padding: 2px 0;
+  padding: var(--space-3xs) 0;
   border: 0;
   background: none;
   color: var(--accent);
@@ -1413,9 +1413,9 @@ a.tk-who__name:hover .tk-who__title {
 .tk-cant {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   margin: 0;
-  padding: 8px 8px 8px 12px;
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   background: color-mix(in oklch, var(--ink) 4%, var(--tk-surface));
   font-size: var(--text-small);
@@ -1436,7 +1436,7 @@ a.tk-who__name:hover .tk-who__title {
 /* ---------- one quiet line: not tracked yet, or didn't load ---------- */
 
 .tk--quiet {
-  padding: 6px 8px 6px var(--space-md);
+  padding: 6px var(--space-xs) 6px var(--space-md);
 }
 
 .tk-quiet {

@@ -5,7 +5,7 @@
   flex-wrap: wrap;
   align-items: center;
   column-gap: 6px;
-  row-gap: 2px;
+  row-gap: var(--space-3xs);
   margin: var(--space-xs) 0 0;
   font-size: var(--text-meta);
   line-height: var(--leading-snug);
@@ -32,7 +32,7 @@
 .remembered__undo {
   min-height: 44px;
   margin: -12px -8px;
-  padding: 0 8px;
+  padding: 0 var(--space-xs);
   border: 0;
   background: none;
   font: inherit;

@@ -95,7 +95,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: var(--space-2xs) 10px;
   border-radius: var(--radius-pill);
   background: var(--sunken);
   font-size: var(--text-small);
@@ -214,8 +214,8 @@
   display: inline-flex;
   align-items: center;
   align-self: center;
-  gap: 4px;
-  padding: 2px 9px;
+  gap: var(--space-2xs);
+  padding: var(--space-3xs) 9px;
   border-radius: var(--radius-pill);
   background: color-mix(in oklch, var(--chart-1) 12%, var(--surface));
   color: color-mix(in oklch, var(--chart-1) 78%, var(--ink));
@@ -261,7 +261,7 @@
 }
 
 .mu-rank:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 0;
 }
 
@@ -355,7 +355,7 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
 .mu-album {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   width: 100%;
   min-width: 0;
   text-align: left;
@@ -367,7 +367,7 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
   width: 100%;
   margin-bottom: 6px;
   border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px var(--line), 0 10px 22px -14px oklch(0.2 0.03 264 / 0.5);
+  box-shadow: 0 0 0 1px var(--line), 0 10px 22px -14px var(--mu-album-art-shadow);
   transition: transform var(--dur-fast) var(--ease-out);
 }
 
@@ -378,7 +378,7 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
 }
 
 .mu-album:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 4px;
   border-radius: var(--radius-sm);
 }
@@ -419,7 +419,7 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
 .mu-new {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
+  gap: var(--space-3xs);
   margin: 0 calc(-1 * var(--space-xs));
   padding: 0;
   list-style: none;
@@ -455,7 +455,7 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
 
 .mu-new__item:focus-visible,
 .mu-day:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 0;
 }
 
@@ -581,13 +581,13 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
   width: 72px;
   flex: none;
   border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px var(--line), 0 10px 22px -14px oklch(0.2 0.03 264 / 0.5);
+  box-shadow: 0 0 0 1px var(--line), 0 10px 22px -14px var(--mu-sheet-art-shadow);
 }
 
 .mu-sheet__words {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .mu-sheet__big {
@@ -622,7 +622,7 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
 }
 
 .mu-sheet__facts dd {
-  margin: 2px 0 0;
+  margin: var(--space-3xs) 0 0;
   font-size: var(--text-small);
   font-weight: var(--weight-semibold);
 }
@@ -654,7 +654,7 @@ li:not(:first-child) > .mu-rank .mu-rank__fill {
   display: flex;
   flex: none;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   width: 96px;
   scroll-snap-align: start;
 }

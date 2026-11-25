@@ -3,19 +3,6 @@
  * todo-links.ts), and the marks its details leave on a To do row
  * (components/loop-row.ts). Tokens only; dark mode follows them.
  */
-
-/* Washes for a late date and a high or medium priority: warm, not mixed with the cool surface. */
-:root {
-  --todo-bad-wash: oklch(0.955 0.03 25);
-  --todo-warn-wash: var(--warn-wash);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --todo-bad-wash: oklch(0.29 0.06 25);
-  }
-}
-
 /* ---------- the sheet ---------- */
 
 .sheet--todo .sheet__panel {
@@ -406,19 +393,19 @@
 }
 
 .todo-pop__label {
-  margin: 4px 10px 2px;
+  margin: var(--space-2xs) 10px var(--space-3xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
 }
 
 .todo-pop__empty {
-  margin: 8px 10px;
+  margin: var(--space-xs) 10px;
   font-size: var(--text-small);
   color: var(--ink-3);
 }
 
 .todo-pop .menu__sep {
-  margin: 6px 4px;
+  margin: 6px var(--space-2xs);
 }
 
 .todo-pop__person .picker {
@@ -456,7 +443,7 @@
   position: static;
   box-shadow: none;
   border: 0;
-  margin-top: 4px;
+  margin-top: var(--space-2xs);
   padding: 0;
   max-height: 260px;
 }
@@ -464,14 +451,14 @@
 /* The month calendar */
 
 .tcal {
-  padding: 2px 4px 4px;
+  padding: var(--space-3xs) var(--space-2xs) var(--space-2xs);
 }
 
 .tcal__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 0 6px 6px;
+  padding: var(--space-3xs) 0 6px 6px;
 }
 
 .tcal__title {
@@ -481,7 +468,7 @@
 
 .tcal__navs {
   display: flex;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .tcal__nav svg {
@@ -492,7 +479,7 @@
 .tcal__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .tcal__head {
@@ -538,7 +525,7 @@
 }
 
 .tcal__day:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
@@ -563,7 +550,7 @@
 .tsec__head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   margin: 0;
   font-size: var(--text-meta);
   font-weight: var(--weight-semibold);
@@ -590,7 +577,7 @@
 .tdesc__body {
   min-height: 48px;
   margin-inline: -12px;
-  padding: 2px 12px;
+  padding: var(--space-3xs) var(--space-sm);
   border-radius: var(--radius-sm);
   transition: background-color var(--dur-fast) var(--ease-out);
 }
@@ -664,9 +651,9 @@
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-height: 40px;
-  padding-inline: 0 4px;
+  padding-inline: 0 var(--space-2xs);
   border-radius: var(--radius-xs);
   background: var(--surface);
 }
@@ -892,7 +879,7 @@
   align-items: center;
   gap: var(--space-xs);
   margin-top: calc(-1 * var(--space-sm));
-  padding: 8px 8px 8px 12px;
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--mint-wash);
   color: var(--ink);
@@ -924,7 +911,7 @@
 .tlinks {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -964,7 +951,7 @@
   align-items: center;
   gap: 10px;
   min-height: 52px;
-  padding: 7px 4px 7px 8px;
+  padding: 7px var(--space-2xs) 7px var(--space-xs);
   color: inherit;
   text-decoration: none;
   border-radius: inherit;
@@ -974,12 +961,12 @@
   flex: none;
   width: 14px;
   height: 14px;
-  margin-right: 4px;
+  margin-right: var(--space-2xs);
   color: var(--ink-3);
 }
 
 .tlink__open:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
@@ -1009,15 +996,8 @@
 }
 
 .tlink__tile--web {
-  background: oklch(0.95 0.035 var(--hue));
-  color: oklch(0.45 0.1 var(--hue));
-}
-
-@media (prefers-color-scheme: dark) {
-  .tlink__tile--web {
-    background: oklch(0.3 0.045 var(--hue));
-    color: oklch(0.86 0.08 var(--hue));
-  }
+  background: oklch(var(--tlink-tile-web-bg) var(--hue));
+  color: oklch(var(--tlink-tile-web-ink) var(--hue));
 }
 
 .tlink__tile:has(img) {
@@ -1060,7 +1040,7 @@
 .tlink__acts {
   flex: none;
   display: flex;
-  padding-right: 4px;
+  padding-right: var(--space-2xs);
   opacity: 0;
   transition: opacity var(--dur-instant) var(--ease-out);
 }
@@ -1093,8 +1073,8 @@
   flex: 1;
   min-width: 0;
   height: 50px;
-  margin: 0 4px 0 8px;
-  padding: 0 8px;
+  margin: 0 var(--space-2xs) 0 var(--space-xs);
+  padding: 0 var(--space-xs);
   border: 0;
   border-radius: var(--radius-xs);
   background: var(--sunken);
@@ -1139,9 +1119,9 @@
   scroll-margin-bottom: 88px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: 4px;
-  padding: 4px;
+  gap: var(--space-3xs);
+  margin-top: var(--space-2xs);
+  padding: var(--space-2xs);
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--surface);
@@ -1236,7 +1216,7 @@
 .loop__marks {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   color: var(--ink-3);
 }
 
@@ -1291,7 +1271,7 @@
   align-items: center;
   gap: 6px;
   margin-top: var(--space-xs);
-  padding: 0 4px;
+  padding: 0 var(--space-2xs);
   font-size: var(--text-meta);
   color: var(--ink-3);
   animation: step-in var(--dur-fast) var(--ease-out);

@@ -1,8 +1,11 @@
 /**
  * Athena design tokens — see /.impeccable.md for the design context.
  *
- * Light is the designed default; dark follows the OS via prefers-color-scheme,
- * stepped from the same hues (not an inversion). Every neutral is tinted
+ * Light is the designed default; dark is stepped from the same hues (not an
+ * inversion). The root carries the scheme (data-scheme="light|dark", set by
+ * lib/appearance.ts from Settings → Appearance or the system), and dark
+ * values sit under :root:where([data-scheme="dark"]), the one switch every
+ * stylesheet uses. Every neutral is tinted
  * toward the cobalt brand hue (264). Text pairs were measured, not eyeballed:
  * ink-3 (the lightest text token) clears 4.83:1 on the sunken fill in light
  * and 5.64:1 in dark. Chart series were run through the dataviz palette
@@ -42,24 +45,74 @@
     U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* ======================================================================
+   The theme surface: the public tokens. The rest of the app derives from
+   these, so a theme sets these and nothing else (ARCHITECTURE.md,
+   "Appearance and the theme surface"). Colours have a light and a dark
+   value; shape and type are the same in both unless a theme says otherwise.
+   ====================================================================== */
+
+:root {
+  /* Colour */
+  --theme-page: oklch(0.972 0.004 264); /* #f4f6f8: the page behind everything */
+  --theme-surface: oklch(0.993 0.002 264); /* #fcfdfe: cards, sheets, fields */
+  --theme-sunken: oklch(0.955 0.005 264); /* #eef0f4: fills set into a surface */
+  --theme-border: oklch(0.915 0.006 264); /* #e1e3e7: hairlines and dividers */
+  --theme-text: oklch(0.21 0.012 264); /* #15181e */
+  --theme-text-muted: oklch(0.43 0.014 264); /* #4c5058: secondary text */
+  --theme-accent: oklch(0.53 0.2 264); /* #2c5fdd, 5.4:1 on surface */
+  --theme-on-accent: oklch(0.985 0.003 264); /* text and marks on the accent */
+  --theme-focus: var(--theme-accent); /* the keyboard focus ring */
+
+  /* Shape: multipliers on the radius and space scales below. */
+  --theme-radius: 1;
+  --theme-density: 1;
+
+  /* Type. No remote font: a theme names fonts on the device or in /fonts. */
+  --theme-font-ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --theme-font-display: "Funnel Display", "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --theme-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --theme-text-scale: 1; /* a multiplier on the type scale */
+}
+
+:root:where([data-scheme="dark"]) {
+  --theme-page: oklch(0.165 0.01 264); /* #0c0e13 */
+  --theme-surface: oklch(0.205 0.012 264); /* #14171d */
+  --theme-sunken: oklch(0.245 0.012 264); /* #1d2026 */
+  --theme-border: oklch(0.29 0.012 264);
+  --theme-text: oklch(0.95 0.006 264);
+  --theme-text-muted: oklch(0.79 0.01 264);
+  --theme-accent: oklch(0.7 0.15 264);
+  --theme-on-accent: oklch(0.18 0.012 264);
+}
+
 :root {
   color-scheme: light;
 
-  /* ---------- Type ---------- */
-  --font-display: "Funnel Display", "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* ---------- Type: sizes times the text scale (a person's --user-text-scale, else the theme's) ---------- */
+  /* Three layers, last wins: Athena's default (the --theme-* values above), a
+     theme's own --theme-* values, then a person's choice (--user-*, unset
+     unless they pick one, for reading comfort), which no theme overrides. */
+  --font-display: var(--user-font-display, var(--theme-font-display));
+  --font-ui: var(--user-font-ui, var(--theme-font-ui));
+  --font-mono: var(--user-font-mono, var(--theme-font-mono));
+  /* The Athena wordmark's face. Never themed and never overridden: it is
+     written out here, not taken from --theme-* or --user-*. */
+  --font-wordmark: "Funnel Display", "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* The italic button in the editor's toolbar shows its I in a serif. */
+  --font-serif: Georgia, serif;
 
-  --text-meta: 0.75rem; /* 12 — timestamps, counts */
-  --text-small: 0.875rem; /* 14 — secondary UI, snippets */
-  --text-ui: 0.9375rem; /* 15 — list titles, chat bubbles */
-  --text-body: 1rem; /* 16 — body, inputs */
-  --text-title: 1.25rem; /* 20 — section and card titles (display face) */
-  --text-heading: 1.75rem; /* 28 — page titles */
-  --text-display: 2.125rem; /* 34 — the home headline */
+  --text-meta: calc(0.75rem * var(--user-text-scale, var(--theme-text-scale))); /* 12 — timestamps, counts */
+  --text-small: calc(0.875rem * var(--user-text-scale, var(--theme-text-scale))); /* 14 — secondary UI, snippets */
+  --text-ui: calc(0.9375rem * var(--user-text-scale, var(--theme-text-scale))); /* 15 — list titles, chat bubbles */
+  --text-body: calc(1rem * var(--user-text-scale, var(--theme-text-scale))); /* 16 — body, inputs */
+  --text-title: calc(1.25rem * var(--user-text-scale, var(--theme-text-scale))); /* 20 — section and card titles (display face) */
+  --text-heading: calc(1.75rem * var(--user-text-scale, var(--theme-text-scale))); /* 28 — page titles */
+  --text-display: calc(2.125rem * var(--user-text-scale, var(--theme-text-scale))); /* 34 — the home headline */
   /* 11: only where a glyph has to fit a fixed cell (the habit grid's day
      letters, a count badge on an icon). Never for a sentence. */
-  --text-micro: 0.6875rem;
-  --text-hero: 2.75rem; /* 44 — the one line a page opens on, on a wide screen: Home's greeting, a day's date, a recap */
+  --text-micro: calc(0.6875rem * var(--user-text-scale, var(--theme-text-scale)));
+  --text-hero: calc(2.75rem * var(--user-text-scale, var(--theme-text-scale))); /* 44 — the one line a page opens on, on a wide screen: Home's greeting, a day's date, a recap */
 
   --leading-tight: 1.08;
   --leading-snug: 1.3;
@@ -69,25 +122,25 @@
   --weight-medium: 500;
   --weight-semibold: 600;
 
-  /* ---------- Space (4pt) ---------- */
-  --space-3xs: 2px;
-  --space-2xs: 4px;
-  --space-xs: 8px;
-  --space-sm: 12px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
-  --space-3xl: 64px;
+  /* ---------- Space (4pt), times --theme-density ---------- */
+  --space-3xs: calc(2px * var(--theme-density));
+  --space-2xs: calc(4px * var(--theme-density));
+  --space-xs: calc(8px * var(--theme-density));
+  --space-sm: calc(12px * var(--theme-density));
+  --space-md: calc(16px * var(--theme-density));
+  --space-lg: calc(24px * var(--theme-density));
+  --space-xl: calc(32px * var(--theme-density));
+  --space-2xl: calc(48px * var(--theme-density));
+  --space-3xl: calc(64px * var(--theme-density));
 
-  /* ---------- Shape ---------- */
-  --radius-3xs: 2px; /* hairline marks: grid days, legend swatches, thin bars */
-  --radius-2xs: 4px; /* small marks: chart bars, highlights, key caps */
-  --radius-xs: 8px;
-  --radius-sm: 12px;
-  --radius-md: 18px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
+  /* ---------- Shape, times --theme-radius (a pill stays a pill) ---------- */
+  --radius-3xs: calc(2px * var(--theme-radius)); /* hairline marks: grid days, legend swatches, thin bars */
+  --radius-2xs: calc(4px * var(--theme-radius)); /* small marks: chart bars, highlights, key caps */
+  --radius-xs: calc(8px * var(--theme-radius));
+  --radius-sm: calc(12px * var(--theme-radius));
+  --radius-md: calc(18px * var(--theme-radius));
+  --radius-lg: calc(24px * var(--theme-radius));
+  --radius-xl: calc(32px * var(--theme-radius));
   --radius-pill: 999px;
 
   /* ---------- Motion ---------- */
@@ -119,22 +172,24 @@
   --z-toast: 500;
 
   /* ---------- Surfaces ---------- */
-  --canvas: oklch(0.972 0.004 264); /* #f4f6f8 */
-  --surface: oklch(0.993 0.002 264); /* #fcfdfe */
-  --sunken: oklch(0.955 0.005 264); /* #eef0f4 */
+  --canvas: var(--theme-page);
+  --surface: var(--theme-surface);
+  --sunken: var(--theme-sunken);
   --sunken-strong: oklch(0.93 0.007 264);
-  --line: oklch(0.915 0.006 264); /* #e1e3e7 */
+  --line: var(--theme-border);
   --line-strong: oklch(0.87 0.008 264);
   --scrim: oklch(0.25 0.02 264 / 0.28);
 
   /* ---------- Ink ---------- */
-  --ink: oklch(0.21 0.012 264); /* #15181e */
-  --ink-2: oklch(0.43 0.014 264); /* #4c5058 */
+  --ink: var(--theme-text);
+  --ink-2: var(--theme-text-muted);
   --ink-3: oklch(0.49 0.012 264); /* 4.5:1 on the aurora haze too */
   --on-ink: oklch(0.985 0.003 264);
 
   /* ---------- Brand ---------- */
-  --accent: oklch(0.53 0.2 264); /* #2c5fdd, 5.4:1 on surface */
+  --accent: var(--theme-accent);
+  --on-accent: var(--theme-on-accent);
+  --focus: var(--theme-focus);
   --accent-wash: oklch(0.95 0.03 264);
   --accent-ink: oklch(0.45 0.19 264);
   --mint-wash: oklch(0.955 0.035 170);
@@ -246,81 +301,517 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
+:root:where([data-scheme="dark"]) {
+  color-scheme: dark;
 
-    --canvas: oklch(0.165 0.01 264); /* #0c0e13 */
-    --surface: oklch(0.205 0.012 264); /* #14171d */
-    --sunken: oklch(0.245 0.012 264); /* #1d2026 */
-    --sunken-strong: oklch(0.28 0.013 264);
-    --line: oklch(0.29 0.012 264);
-    --line-strong: oklch(0.34 0.014 264);
-    --scrim: oklch(0.08 0.01 264 / 0.6);
+  --sunken-strong: oklch(0.28 0.013 264);
+  --line-strong: oklch(0.34 0.014 264);
+  --scrim: oklch(0.08 0.01 264 / 0.6);
 
-    --ink: oklch(0.95 0.006 264);
-    --ink-2: oklch(0.79 0.01 264);
-    --ink-3: oklch(0.68 0.012 264);
-    --on-ink: oklch(0.18 0.012 264);
+  --ink-3: oklch(0.68 0.012 264);
+  --on-ink: oklch(0.18 0.012 264);
 
-    --accent: oklch(0.7 0.15 264);
-    --accent-wash: oklch(0.29 0.06 264);
-    --accent-ink: oklch(0.82 0.1 264);
-    --mint-wash: oklch(0.28 0.04 170);
-    --dusk-wash: oklch(0.29 0.04 40);
-    --dusk-ink: oklch(0.84 0.07 40);
-    --paper-wash: oklch(0.29 0.03 80);
-    --paper-ink: oklch(0.86 0.06 85);
+  --accent-wash: oklch(0.29 0.06 264);
+  --accent-ink: oklch(0.82 0.1 264);
+  --mint-wash: oklch(0.28 0.04 170);
+  --dusk-wash: oklch(0.29 0.04 40);
+  --dusk-ink: oklch(0.84 0.07 40);
+  --paper-wash: oklch(0.29 0.03 80);
+  --paper-ink: oklch(0.86 0.06 85);
 
-    --good: oklch(0.72 0.14 158);
-    --warn: oklch(0.78 0.12 80);
-    --warn-wash: oklch(0.3 0.05 80);
-    --bad: oklch(0.7 0.16 25);
+  --good: oklch(0.72 0.14 158);
+  --warn: oklch(0.78 0.12 80);
+  --warn-wash: oklch(0.3 0.05 80);
+  --bad: oklch(0.7 0.16 25);
 
-    --chart-1: #5686f2;
-    --chart-2: #23aa8a;
-    --chart-3: #ae5528;
-    --chart-4: #ab3ba5;
-    --chart-5: #56a700;
-    --chart-axis: oklch(0.45 0.012 264);
-    --stage-deep: #6c8ff2;
-    --stage-rem: #23aa8a;
-    --stage-core: #3557c0;
-    --stage-awake: #d95926;
-    --scale-1: #e88d5a;
-    --scale-2: #ac5107;
-    --scale-3: #494a4e;
-    --scale-4: #2649c0;
-    --scale-5: #7ba0f6;
-    --stage-none: oklch(0.42 0.012 264);
-    --ctx-grey: oklch(0.6 0.012 264);
-    --ctx-blue: oklch(0.7 0.14 264);
-    --ctx-teal: oklch(0.72 0.1 195);
-    --ctx-green: oklch(0.72 0.13 155);
-    --ctx-amber: oklch(0.8 0.13 80);
-    --ctx-orange: oklch(0.74 0.14 45);
-    --ctx-red: oklch(0.7 0.16 25);
-    --ctx-pink: oklch(0.74 0.14 350);
-    --ctx-violet: oklch(0.7 0.14 300);
+  --chart-1: #5686f2;
+  --chart-2: #23aa8a;
+  --chart-3: #ae5528;
+  --chart-4: #ab3ba5;
+  --chart-5: #56a700;
+  --chart-axis: oklch(0.45 0.012 264);
+  --stage-deep: #6c8ff2;
+  --stage-rem: #23aa8a;
+  --stage-core: #3557c0;
+  --stage-awake: #d95926;
+  --scale-1: #e88d5a;
+  --scale-2: #ac5107;
+  --scale-3: #494a4e;
+  --scale-4: #2649c0;
+  --scale-5: #7ba0f6;
+  --stage-none: oklch(0.42 0.012 264);
+  --ctx-grey: oklch(0.6 0.012 264);
+  --ctx-blue: oklch(0.7 0.14 264);
+  --ctx-teal: oklch(0.72 0.1 195);
+  --ctx-green: oklch(0.72 0.13 155);
+  --ctx-amber: oklch(0.8 0.13 80);
+  --ctx-orange: oklch(0.74 0.14 45);
+  --ctx-red: oklch(0.7 0.16 25);
+  --ctx-pink: oklch(0.74 0.14 350);
+  --ctx-violet: oklch(0.7 0.14 300);
 
-    --graph-person: oklch(0.71 0.145 264);
-    --graph-note: oklch(0.63 0.018 264);
-    --graph-place: oklch(0.72 0.115 170);
-    --graph-organisation: oklch(0.79 0.125 78);
-    --graph-event: oklch(0.71 0.15 25);
-    --graph-record: oklch(0.72 0.13 345);
-    --graph-saved: oklch(0.7 0.12 110);
-    --graph-detail: oklch(0.7 0.09 300);
-    --graph-link: oklch(0.8 0.02 264 / 0.2);
-    --graph-on-node: oklch(0.18 0.012 264);
+  --graph-person: oklch(0.71 0.145 264);
+  --graph-note: oklch(0.63 0.018 264);
+  --graph-place: oklch(0.72 0.115 170);
+  --graph-organisation: oklch(0.79 0.125 78);
+  --graph-event: oklch(0.71 0.15 25);
+  --graph-record: oklch(0.72 0.13 345);
+  --graph-saved: oklch(0.7 0.12 110);
+  --graph-detail: oklch(0.7 0.09 300);
+  --graph-link: oklch(0.8 0.02 264 / 0.2);
+  --graph-on-node: oklch(0.18 0.012 264);
 
-    --aurora-a: oklch(0.42 0.12 250 / 0.26);
-    --aurora-b: oklch(0.45 0.09 168 / 0.16);
-    --aurora-a-morning: oklch(0.44 0.1 232 / 0.24);
-    --aurora-a-evening: oklch(0.42 0.12 266 / 0.28);
+  --aurora-a: oklch(0.42 0.12 250 / 0.26);
+  --aurora-b: oklch(0.45 0.09 168 / 0.16);
+  --aurora-a-morning: oklch(0.44 0.1 232 / 0.24);
+  --aurora-a-evening: oklch(0.42 0.12 266 / 0.28);
 
-    --shadow-card: 0 1px 0 oklch(1 0 0 / 0.03) inset;
-    --shadow-float: 0 1px 0 oklch(1 0 0 / 0.05) inset, 0 18px 44px -14px oklch(0 0 0 / 0.6);
-    --shadow-sheet: 0 -8px 40px -12px oklch(0 0 0 / 0.6);
-  }
+  --shadow-card: 0 1px 0 oklch(1 0 0 / 0.03) inset;
+  --shadow-float: 0 1px 0 oklch(1 0 0 / 0.05) inset, 0 18px 44px -14px oklch(0 0 0 / 0.6);
+  --shadow-sheet: 0 -8px 40px -12px oklch(0 0 0 / 0.6);
+}
+
+/* ======================================================================
+   Component tokens: the colours of particular parts, moved here from their
+   stylesheets so no colour is written anywhere else (lib/colour-tokens.test.ts).
+   A theme sets the public tokens above; these are fixed recipes it can
+   still override one by one. A "--x: L C" pair is an oklch() lightness and
+   chroma, drawn with a hue the element carries: oklch(var(--x) var(--h)).
+   ====================================================================== */
+
+/* ---------- styles/components.css ---------- */
+
+/* Its three colours are registered, so a change of mood (Talk's listening,
+   speaking, paused) cross-fades instead of snapping. */
+@property --orb-hi {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(0.88 0.08 222);
+}
+
+@property --orb-mid {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(0.6 0.19 258);
+}
+
+@property --orb-low {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(0.38 0.18 266);
+}
+
+@property --orb-sheen {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(0.9 0.08 205 / 0.85);
+}
+
+/* ---------- styles/context-menu.css ---------- */
+
+:root {
+  --cm-surface: oklch(0.995 0.002 264 / 0.86);
+  --cm-hair: oklch(0.25 0.02 264 / 0.1);
+  --cm-wash: oklch(0.25 0.02 264 / 0.06);
+  --cm-press: oklch(0.25 0.02 264 / 0.09);
+  --cm-scrim: oklch(0.22 0.02 264 / 0.16);
+  --cm-shadow: 0 0 0 0.5px oklch(0.25 0.02 264 / 0.16), 0 2px 4px oklch(0.25 0.02 264 / 0.05), 0 12px 28px -8px oklch(0.25 0.03 264 / 0.18), 0 32px 64px -24px oklch(0.25 0.04 264 / 0.3);
+  --cm-spring: var(--ease-spring);
+  --cm-spring-dur: var(--dur-spring);
+}
+
+:root:where([data-scheme="dark"]) {
+  --cm-surface: oklch(0.255 0.012 264 / 0.84);
+  --cm-hair: oklch(1 0 0 / 0.09);
+  --cm-wash: oklch(1 0 0 / 0.07);
+  --cm-press: oklch(1 0 0 / 0.1);
+  --cm-scrim: oklch(0.08 0.01 264 / 0.42);
+  --cm-shadow: 0 0 0 0.5px oklch(1 0 0 / 0.14), inset 0 1px 0 oklch(1 0 0 / 0.05), 0 12px 28px -8px oklch(0 0 0 / 0.6), 0 32px 64px -24px oklch(0 0 0 / 0.8);
+}
+
+/* ---------- styles/days.css ---------- */
+
+:root {
+  --today-morning-a: oklch(0.89 0.075 50 / 0.6);
+  --today-morning-b: oklch(0.91 0.08 75 / 0.5);
+  --today-day-a: oklch(0.92 0.06 78 / 0.8);
+  --today-day-b: oklch(0.94 0.03 240 / 0.45);
+  --today-evening-a: oklch(0.87 0.065 310 / 0.55);
+  --today-evening-b: oklch(0.8 0.075 275 / 0.42);
+}
+
+:root:where([data-scheme="dark"]) {
+  --today-morning-a: oklch(0.52 0.11 42 / 0.42);
+  --today-morning-b: oklch(0.58 0.1 68 / 0.24);
+  --today-day-a: oklch(0.46 0.055 75 / 0.48);
+  --today-day-b: oklch(0.44 0.04 245 / 0.2);
+  --today-evening-a: oklch(0.46 0.1 310 / 0.38);
+  --today-evening-b: oklch(0.38 0.1 275 / 0.36);
+}
+
+/* ---------- styles/flows.css ---------- */
+
+:root {
+  --flow-mint-ink: oklch(0.44 0.1 170);
+  --flow-violet-wash: oklch(0.95 0.035 300);
+  --flow-violet-ink: oklch(0.47 0.16 300);
+  --flow-wire: var(--line-strong);
+}
+
+:root:where([data-scheme="dark"]) {
+  --flow-mint-ink: oklch(0.82 0.09 170);
+  --flow-violet-wash: oklch(0.29 0.06 300);
+  --flow-violet-ink: oklch(0.83 0.09 300);
+}
+
+/* ---------- styles/rich-links.css ---------- */
+
+:root {
+  --rl-hair: oklch(0.25 0.02 264 / 0.09);
+  --rl-hair-img: oklch(0.2 0.02 264 / 0.07);
+  --rl-shadow: 0 0 0 1px var(--rl-hair), 0 1px 1px oklch(0.25 0.02 264 / 0.03), 0 2px 5px -2px oklch(0.25 0.03 264 / 0.06), 0 14px 28px -18px oklch(0.25 0.04 264 / 0.18);
+  --rl-shadow-hover: 0 0 0 1px oklch(0.25 0.02 264 / 0.12), 0 2px 3px oklch(0.25 0.02 264 / 0.04), 0 6px 12px -6px oklch(0.25 0.03 264 / 0.1), 0 24px 44px -22px oklch(0.25 0.04 264 / 0.26);
+  --rl-float: 0 0 0 1px var(--rl-hair), 0 2px 4px oklch(0.25 0.02 264 / 0.05), 0 10px 20px -8px oklch(0.25 0.03 264 / 0.14), 0 28px 56px -24px oklch(0.25 0.04 264 / 0.28);
+  --rl-glow: 26%;
+  --rl-glow-hover: 42%;
+  --rl-sk: oklch(0.93 0.007 264);
+  --rl-shine: oklch(1 0 0 / 0.55);
+  --rl-spring: var(--ease-spring);
+  --rl-spring-dur: var(--dur-spring);
+  --rl-zoom: 1.035;
+}
+
+:root:where([data-scheme="dark"]) {
+  --rl-hair: oklch(1 0 0 / 0.08);
+  --rl-hair-img: oklch(1 0 0 / 0.07);
+  --rl-shadow: 0 0 0 1px var(--rl-hair), inset 0 1px 0 oklch(1 0 0 / 0.04), 0 2px 6px -2px oklch(0 0 0 / 0.4), 0 16px 32px -18px oklch(0 0 0 / 0.7);
+  --rl-shadow-hover: 0 0 0 1px oklch(1 0 0 / 0.12), inset 0 1px 0 oklch(1 0 0 / 0.05), 0 4px 10px -4px oklch(0 0 0 / 0.5), 0 26px 48px -22px oklch(0 0 0 / 0.8);
+  --rl-float: 0 0 0 1px oklch(1 0 0 / 0.1), inset 0 1px 0 oklch(1 0 0 / 0.05), 0 10px 24px -8px oklch(0 0 0 / 0.55), 0 30px 60px -24px oklch(0 0 0 / 0.75);
+  --rl-glow: 30%;
+  --rl-glow-hover: 48%;
+  --rl-sk: oklch(0.27 0.012 264);
+  --rl-shine: oklch(1 0 0 / 0.06);
+}
+
+/* ---------- styles/todo-detail.css ---------- */
+
+/* Washes for a late date and a high or medium priority: warm, not mixed with the cool surface. */
+:root {
+  --todo-bad-wash: oklch(0.955 0.03 25);
+  --todo-warn-wash: var(--warn-wash);
+}
+
+:root:where([data-scheme="dark"]) {
+  --todo-bad-wash: oklch(0.29 0.06 25);
+}
+
+/* ---------- styles/week-moment.css ---------- */
+
+:root {
+  --wm-h: 148px;
+  --wm-ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent);
+  --wm-print: oklch(0.99 0.004 85);
+  --wm-print-shadow: 0 1px 2px oklch(0.25 0.03 264 / 0.12), 0 8px 18px -10px oklch(0.25 0.04 264 / 0.35);
+}
+
+:root:where([data-scheme="dark"]) {
+  --wm-print: oklch(0.3 0.01 264);
+  --wm-print-shadow: 0 1px 2px oklch(0 0 0 / 0.5), 0 10px 22px -10px oklch(0 0 0 / 0.8);
+}
+
+/* ---------- styles/week-review.css ---------- */
+
+:root {
+  --wr-hair: oklch(0.25 0.02 264 / 0.09);
+  --wr-shadow: 0 0 0 1px var(--wr-hair), 0 1px 1px oklch(0.25 0.02 264 / 0.03), 0 2px 5px -2px oklch(0.25 0.03 264 / 0.06), 0 14px 28px -18px oklch(0.25 0.04 264 / 0.18);
+  --wr-mood-1: oklch(0.6 0.15 25);
+  --wr-mood-2: oklch(0.7 0.13 60);
+  --wr-mood-3: oklch(0.78 0.1 95);
+  --wr-mood-4: oklch(0.68 0.12 160);
+  --wr-mood-5: oklch(0.6 0.15 200);
+  --wr-person: var(--graph-person);
+  --wr-place: var(--graph-place);
+  --wr-rail: 200px;
+}
+
+:root:where([data-scheme="dark"]) {
+  --wr-hair: oklch(1 0 0 / 0.08);
+  --wr-shadow: 0 0 0 1px var(--wr-hair), inset 0 1px 0 oklch(1 0 0 / 0.04), 0 2px 6px -2px oklch(0 0 0 / 0.4), 0 16px 32px -18px oklch(0 0 0 / 0.7);
+  --wr-mood-1: oklch(0.66 0.15 25);
+  --wr-mood-2: oklch(0.74 0.13 60);
+  --wr-mood-3: oklch(0.8 0.1 95);
+  --wr-mood-4: oklch(0.72 0.12 160);
+  --wr-mood-5: oklch(0.68 0.13 200);
+  --wr-person: oklch(0.72 0.14 264);
+  --wr-place: oklch(0.74 0.11 170);
+}
+
+:root {
+  /* styles/answer.css */
+  --art-img-shadow: oklch(0.2 0.02 264 / 0.14);
+  /* styles/ask-picture.css */
+  --pic-zoom-bg: oklch(0.21 0.012 264 / 0.55);
+  --pic-zoom-ink: oklch(0.985 0.003 264);
+  --pic-slot-frame-shine: oklch(1 0 0 / 0.42);
+  /* styles/attachments.css */
+  --file-summary-mark-bg: white;
+  --viewer-bg: oklch(0.15 0.012 264 / 0.985);
+  --viewer-ink: oklch(0.97 0.005 264);
+  --viewer-backdrop-bg: oklch(0.15 0.012 264);
+  --btn-soft-bg: oklch(1 0 0 / 0.12);
+  --viewer-pdf-bg: #fff;
+  --viewer-card-bg: oklch(1 0 0 / 0.06);
+  /* styles/components.css */
+  --avatar-bg: 0.93 0.04;
+  --avatar-ink: 0.42 0.09;
+  --orb-shadow: oklch(0.5 0.2 262 / 0.6);
+  --orb-before-bg-1: oklch(0.52 0.22 266 / 0.85);
+  --orb-before-bg-2: oklch(0.9 0.1 172 / 0.45);
+  --orb-after-bg-1: oklch(1 0 0 / 0.78);
+  --orb-after-bg-2: oklch(0.3 0.15 268 / 0.45);
+  --orb-shadow-2: oklch(0.5 0.2 262 / 0.7);
+  --btn-danger-ink: oklch(0.99 0 0);
+  --switch-before-shadow: oklch(0.25 0.02 264 / 0.25);
+  --logo-granola-bg: #b2c248;
+  --dir-btn-shadow: oklch(0.3 0.02 264 / 0.06);
+  --seg-item-true-shadow: oklch(0.3 0.02 264 / 0.08);
+  /* styles/context-menu.css */
+  --cm-item-focus-ink: oklch(0.99 0 0);
+  --cm-item-focus-ink-2: oklch(0.99 0 0 / 0.85);
+  --cm-seg-opt-true-shadow: oklch(0 0 0 / 0.12);
+  --cm-preview-shadow: oklch(0 0 0 / 0.35);
+  --cm-static-lift-shadow: oklch(0.2 0.02 264 / 0.4);
+  /* styles/days-art.css */
+  --art-img-after-shadow: oklch(0.2 0.02 264 / 0.08);
+  --art-img-loading-bg: oklch(1 0 0 / 0.14);
+  --art-img-made-bg-1: oklch(1 0 0 / 0.16);
+  --art-img-made-bg-2: oklch(0 0 0 / 0.08);
+  --daymap-frame-after-shadow: oklch(0.2 0.02 264 / 0.07);
+  --daymap-expand-shadow: oklch(0.2 0.02 264 / 0.12);
+  --daymap-invite-shadow-1: oklch(0.2 0.02 264 / 0.06);
+  --daymap-invite-shadow-2: oklch(0.2 0.02 264 / 0.18);
+  --daymap-full-bg: oklch(0.25 0.012 264);
+  --ma-switch-item-true-shadow: oklch(0.2 0.02 264 / 0.1);
+  /* styles/days.css */
+  --art-shadow: oklch(0 0 0 / 0.06);
+  --art-after-shadow: oklch(0 0 0 / 0.07);
+  --photo-viewer-bg: oklch(0.12 0.01 264 / 0.96);
+  --photo-viewer-ink: oklch(0.96 0.005 264);
+  --icon-btn-bg: oklch(1 0 0 / 0.1);
+  --poster-art-shadow-1: oklch(0.2 0.02 264 / 0.08);
+  --poster-art-shadow-2: oklch(0.2 0.03 264 / 0.35);
+  --book-art-shadow-1: oklch(0.2 0.02 264 / 0.08);
+  --book-art-shadow-2: oklch(0.2 0.03 264 / 0.35);
+  --cal-cell-ink: oklch(0.98 0 0);
+  --cal-cell-after-bg: oklch(0.15 0.01 264 / 0.55);
+  --mood-glyph-on: oklch(0.98 0 0);
+  --mood-glyph-off: oklch(0.98 0 0 / 0.35);
+  --highlight-art-shadow-1: oklch(0.2 0.02 264 / 0.1);
+  --highlight-art-shadow-2: oklch(0.2 0.03 264 / 0.45);
+  /* styles/health.css */
+  --logo-bg: oklch(1 0 0);
+  --hsrc-apple-bg: oklch(1 0 0);
+  --hsrc-apple-ink: oklch(0.63 0.22 18);
+  /* styles/home-ask.css */
+  --team-report-badge-ink: white;
+  /* styles/home-personal.css */
+  --moment-avatar-bg: 0.93 0.04;
+  --moment-avatar-ink: 0.42 0.09;
+  /* styles/music.css */
+  --mu-album-art-shadow: oklch(0.2 0.03 264 / 0.5);
+  --mu-sheet-art-shadow: oklch(0.2 0.03 264 / 0.5);
+  /* styles/nav.css */
+  --lib-group-home-ink: oklch(0.45 0.09 170);
+  --lib-group-home-icon: oklch(0.45 0.09 170);
+  /* styles/note-print.css */
+  --print-page-bg: #fff;
+  --print-body-bg: #fff;
+  --print-note-canvas: #fff;
+  --print-note-surface: #fff;
+  --print-note-sunken: oklch(0.955 0.005 264);
+  --print-note-line: oklch(0.915 0.006 264);
+  --print-note-line-strong: oklch(0.87 0.008 264);
+  --print-note-ink: oklch(0.21 0.012 264);
+  --print-note-ink-2: oklch(0.43 0.014 264);
+  --print-note-ink-3: oklch(0.49 0.012 264);
+  --print-note-accent: oklch(0.53 0.2 264);
+  --print-note-accent-ink: oklch(0.45 0.19 264);
+  /* styles/patterns.css */
+  --pcard-mood-p-accent: oklch(0.68 0.14 52);
+  /* styles/record.css */
+  --avatar-hero-bg-1: 0.955 0.035;
+  --avatar-hero-bg-2: 0.87 0.075;
+  --avatar-hero-ink: 0.38 0.1;
+  --avatar-hero-shadow-1: oklch(1 0 0 / 0.55);
+  --avatar-hero-shadow-2: 0.45 0.12;
+  --avatar-hero-shadow-2-a: 0.6;
+  --avatar-ring-shadow: 0.45 0.12;
+  --avatar-ring-shadow-a: 0.55;
+  --record-date-shadow: oklch(0.25 0.04 264 / 0.35);
+  --record-label-bg-1: 0.975 0.02;
+  --record-label-bg-2: 0.92 0.045;
+  --record-label-shadow-1: 0.975 0.02;
+  --record-label-shadow-2: 0.6 0.08;
+  --record-label-shadow-2-a: 0.35;
+  --record-label-shadow-3: 0.4 0.1;
+  --record-label-shadow-3-a: 0.6;
+  --record-label-ink: 0.42 0.1;
+  --story-card-hover-shadow: oklch(0.25 0.04 264 / 0.3);
+  /* styles/rich-links.css */
+  --rl-mark-default: #5a6170; /* a link's letter mark when its service has no colour of its own (editor/link-render.ts) */
+  --rl-fav-ink: oklch(0.99 0 0);
+  --rl-fav-shadow: oklch(0 0 0 / 0.08);
+  --rl-media-shadow: black;
+  --rl-date-shadow: oklch(0.2 0.02 264 / 0.3);
+  --rl-date-m-ink: oklch(0.99 0 0);
+  --rl-embed-stage-bg: oklch(0.18 0.01 264);
+  --rl-embed-scrim-bg: oklch(0.1 0.01 264 / 0.55);
+  --rl-play-bg: oklch(1 0 0 / 0.2);
+  --rl-play-ink: oklch(1 0 0);
+  --rl-play-shadow-1: oklch(1 0 0 / 0.38);
+  --rl-play-shadow-2: oklch(0 0 0 / 0.4);
+  --rl-play-hover-bg: oklch(1 0 0 / 0.28);
+  --rl-play-focus-visible-ring: oklch(1 0 0);
+  --rl-play-ghost-bg: oklch(1 0 0 / 0.25);
+  --rl-play-bg-2: oklch(0.15 0.01 264 / 0.55);
+  --rl-embed-scrim-bg-2: oklch(0.1 0.01 264 / 0.35);
+  --rl-embed-note-ink: oklch(1 0 0 / 0.88);
+  --rl-embed-note-text-shadow: oklch(0 0 0 / 0.4);
+  --rl-embed-audio-bg-1: #333;
+  --rl-embed-audio-bg-2: oklch(0.16 0.02 264);
+  --rl-embed-audio-bg-3: oklch(0.14 0.01 264);
+  --rl-embed-audio-ink: oklch(0.98 0 0);
+  --rl-embed-art-shadow-1: oklch(1 0 0 / 0.1);
+  --rl-embed-art-shadow-2: oklch(0 0 0 / 0.6);
+  --rl-card-site-ink: oklch(1 0 0 / 0.72);
+  --rl-play-bg-3: oklch(1 0 0);
+  --rl-play-ink-2: oklch(0.18 0.01 264);
+  --rl-play-shadow: oklch(0 0 0 / 0.5);
+  --rl-embed-note-inline-ink: oklch(1 0 0 / 0.72);
+  --rl-player-bg-1: oklch(0.1 0.01 264 / 0.8);
+  --rl-player-bg-2: oklch(0.1 0.01 264 / 0.25);
+  --rl-player-ink: oklch(1 0 0);
+  --rl-player-note-ink: oklch(1 0 0 / 0.8);
+  --rl-player-track-bg: oklch(1 0 0 / 0.25);
+  --rl-player-fill-bg: oklch(1 0 0);
+  --rl-switch-thumb-shadow: oklch(0 0 0 / 0.2);
+  --rl-switch-hint-ink: oklch(0.99 0 0);
+  --rl-menu-thumb-date-ink: oklch(0.99 0 0);
+  --rl-menu-pin-shadow: oklch(1 0 0);
+  /* styles/saved.css */
+  --sv-site-mark-bg: 0.93 0.04;
+  --sv-site-mark-ink: 0.42 0.1;
+  /* styles/team-assign.css */
+  --team-entry-count-ink: #fff;
+  /* styles/todo-detail.css */
+  --tlink-tile-web-bg: 0.95 0.035;
+  --tlink-tile-web-ink: 0.45 0.1;
+  /* styles/trips.css */
+  --booking-icon-ink: oklch(0.45 0.09 170);
+  /* styles/voice.css */
+  --logo-elevenlabs-bg: #0e0e10;
+  --logo-elevenlabs-ink: #fff;
+  --logo-elevenlabs-shadow: oklch(1 0 0 / 0.08);
+  --talk-btn-wave-ink: oklch(1 0 0 / 0.94);
+  --talk-btn-wave-glow: oklch(0.3 0.16 266 / 0.55);
+  --orb-shadow-3: oklch(0.5 0.2 262 / 0.7);
+  --talk-bar-cool: oklch(0.6 0.11 200);
+  --talk-bar-cool-wash: oklch(0.95 0.035 195);
+  --talk-bar-cool-ink: oklch(0.47 0.09 210);
+  --talk-bar-glow-speak: oklch(0.72 0.16 258 / 0.5);
+  --talk-bar-glow-listen: oklch(0.82 0.09 192 / 0.55);
+  --talk-orb-listening-hi: oklch(0.94 0.06 188);
+  --talk-orb-listening-mid: oklch(0.68 0.12 210);
+  --talk-orb-listening-low: oklch(0.43 0.13 244);
+  --talk-orb-listening-sheen: oklch(0.95 0.07 172 / 0.8);
+  --talk-orb-speaking-hi: oklch(0.96 0.05 222);
+  --talk-orb-speaking-mid: oklch(0.63 0.21 258);
+  --talk-orb-speaking-low: oklch(0.4 0.2 266);
+  --talk-orb-speaking-sheen: oklch(0.96 0.08 205 / 0.95);
+  --talk-orb-paused-hi: oklch(0.94 0.012 250);
+  --talk-orb-paused-mid: oklch(0.72 0.03 256);
+  --talk-orb-paused-low: oklch(0.5 0.04 262);
+  --talk-orb-paused-sheen: oklch(0.97 0.01 230 / 0.55);
+  --talk-orb-paused-shadow: oklch(0.4 0.03 262 / 0.5);
+  /* styles/watch.css */
+  --watch-switch-item-true-shadow: oklch(0.2 0.02 264 / 0.1);
+  --art-img-shadow-1: oklch(0.2 0.02 264 / 0.1);
+  --art-img-shadow-2: oklch(0.2 0.02 264 / 0.28);
+  --watch-card-act-shadow-1: oklch(0.2 0.02 264 / 0.16);
+  --watch-card-act-shadow-2: oklch(0.2 0.02 264 / 0.35);
+  --watch-card-len-bg: oklch(0.16 0.01 264 / 0.78);
+  --watch-card-len-ink: oklch(0.98 0 0);
+  --watch-season: oklch(0.62 0.11 150);
+  --watch-season-halloween: oklch(0.7 0.14 55);
+  --watch-season-valentines: oklch(0.65 0.14 12);
+  --watch-season-summer: oklch(0.78 0.13 85);
+  /* styles/week-moment.css */
+  --wm-choice-art-shadow: oklch(0.2 0.03 264 / 0.5);
+  --wm-choice-art-shadow-2: oklch(0.2 0.05 264 / 0.55);
+  --cal-cell-ink-2: oklch(0.98 0 0);
+  --cal-cell-after-bg-2: oklch(0.15 0.01 264 / 0.55);
+  --cal-num-on: oklch(0.98 0 0);
+  --cal-num-off: oklch(0.98 0 0 / 0.35);
+  --cal-kept-line-shadow: oklch(0 0 0 / 0.18);
+  /* styles/week-review.css */
+  --wr-person-avatar-bg: white;
+  --wr-person-avatar-ink: oklch(0.99 0.004 264);
+  --wr-tick-box-ink: oklch(0.99 0.004 160);
+  --wr-strip-day-ink: oklch(0.99 0.004 170);
+  --wr-cover-art-shadow: oklch(0.2 0.03 264 / 0.5);
+  --wr-open-mark-ink: oklch(0.99 0.004 160);
+  --wr-catchup-avatar-bg: 0.93 0.04;
+  --wr-catchup-avatar-shadow: 0.85 0.06;
+  --wr-catchup-avatar-ink: 0.42 0.09;
+  /* team/kit/avatar.css */
+  --kit-tile-line: #22262e;
+  /* team/kit/wardrobe.css */
+  --kit-wr-swatch-shadow: #22262e;
+}
+
+:root:where([data-scheme="dark"]) {
+  /* styles/ask-picture.css */
+  --pic-slot-frame-shine: oklch(1 0 0 / 0.06);
+  /* styles/components.css */
+  --avatar-bg: 0.33 0.05;
+  --avatar-ink: 0.87 0.07;
+  /* styles/home-personal.css */
+  --moment-avatar-bg: 0.33 0.05;
+  --moment-avatar-ink: 0.87 0.07;
+  /* styles/nav.css */
+  --lib-group-home-ink: oklch(0.8 0.08 170);
+  --lib-group-home-icon: oklch(0.8 0.08 170);
+  /* styles/patterns.css */
+  --pcard-mood-p-accent: oklch(0.74 0.13 58);
+  /* styles/record.css */
+  --avatar-hero-bg-1: 0.42 0.07;
+  --avatar-hero-bg-2: 0.3 0.05;
+  --avatar-hero-ink: 0.92 0.05;
+  --avatar-hero-shadow-1: oklch(1 0 0 / 0.08);
+  --avatar-ring-shadow-dark: oklch(0 0 0 / 0.7);
+  --record-label-bg-1: 0.36 0.05;
+  --record-label-bg-2: 0.27 0.04;
+  --record-label-shadow-1: 0.36 0.05;
+  --record-label-shadow-2: 0.8 0.06;
+  --record-label-shadow-2-a: 0.3;
+  --record-label-shadow-3-dark: oklch(0 0 0 / 0.7);
+  --record-label-ink: 0.9 0.05;
+  /* styles/saved.css */
+  --sv-site-mark-bg: 0.32 0.06;
+  --sv-site-mark-ink: 0.86 0.08;
+  /* styles/todo-detail.css */
+  --tlink-tile-web-bg: 0.3 0.045;
+  --tlink-tile-web-ink: 0.86 0.08;
+  /* styles/trips.css */
+  --booking-icon-ink: oklch(0.82 0.08 170);
+  /* styles/voice.css */
+  --talk-bar-cool: oklch(0.78 0.1 195);
+  --talk-bar-cool-wash: oklch(0.3 0.05 200);
+  --talk-bar-cool-ink: oklch(0.84 0.08 195);
+  --talk-bar-glow-speak: oklch(0.6 0.18 262 / 0.5);
+  --talk-bar-glow-listen: oklch(0.62 0.1 195 / 0.42);
+  /* styles/week-review.css */
+  --wr-catchup-avatar-bg: 0.33 0.05;
+  --wr-catchup-avatar-shadow: 0.45 0.07;
+  --wr-catchup-avatar-ink: 0.88 0.06;
 }

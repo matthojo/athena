@@ -25,7 +25,7 @@
 .who-picker {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .who-row {
@@ -33,7 +33,7 @@
   align-items: center;
   gap: var(--space-sm);
   min-height: 56px;
-  padding: 8px var(--space-sm) 8px 8px;
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-xs);
   border-radius: var(--radius-md);
   text-align: left;
   transition:
@@ -120,11 +120,11 @@
   display: inline-flex;
   align-items: center;
   justify-self: center;
-  gap: 8px;
+  gap: var(--space-xs);
   max-width: 100%;
   min-width: 0;
   min-height: 44px;
-  padding: 4px 10px 4px 6px;
+  padding: var(--space-2xs) 10px var(--space-2xs) 6px;
   border-radius: var(--radius-pill);
   text-align: left;
   transition:
@@ -153,7 +153,7 @@
 .ask-who__name {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
   font-size: var(--text-small);
   font-weight: var(--weight-semibold);
   color: var(--ink);
@@ -289,7 +289,7 @@
   align-items: center;
   gap: 6px;
   min-height: 32px;
-  padding: 4px 10px 4px 5px;
+  padding: var(--space-2xs) 10px var(--space-2xs) 5px;
   border-radius: var(--radius-pill);
   background: var(--sunken);
   color: var(--ink-2);
@@ -355,7 +355,7 @@
   gap: 6px;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 2px var(--space-2xs) var(--space-xs);
+  padding: var(--space-3xs) var(--space-2xs) var(--space-xs);
   margin-inline: calc(-1 * var(--space-2xs));
 }
 
@@ -422,7 +422,7 @@
 .msg--run {
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .msg--run::before,
@@ -452,7 +452,7 @@
 .checked-with__talk {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   margin-top: 6px;
   min-height: 32px;
   font-size: var(--text-small);
@@ -514,7 +514,7 @@
   align-items: center;
   gap: var(--space-sm);
   min-height: 56px;
-  padding: 8px 8px 8px 16px;
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-md);
   border-radius: var(--radius-pill);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -546,7 +546,7 @@
 }
 
 .who-recent__title {
-  margin: 0 0 6px 4px;
+  margin: 0 0 6px var(--space-2xs);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
   color: var(--ink-3);
@@ -555,7 +555,7 @@
 .who-recent__list {
   display: flex;
   flex-direction: column;
-  padding: 4px;
+  padding: var(--space-2xs);
   margin: 0;
   list-style: none;
   border-radius: var(--radius-lg);
@@ -569,7 +569,7 @@
   gap: var(--space-sm);
   width: 100%;
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 10px var(--space-sm);
   border-radius: var(--radius-md);
   text-align: start;
   color: var(--ink);

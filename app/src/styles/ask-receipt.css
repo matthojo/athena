@@ -1,6 +1,6 @@
 /* What Ask saved from an answer (components/ask-answer.ts foundEl): the assistant's change rows, inside the answer's bubble. */
 .found {
-  margin-top: 16px;
+  margin-top: var(--space-md);
 }
 
 .found .answers__label {
@@ -8,7 +8,7 @@
 }
 
 .found__list {
-  margin-top: 8px;
+  margin-top: var(--space-xs);
 }
 
 /* A link, not a button: the same hover and press as the assistant's rows. */
@@ -61,13 +61,13 @@
 }
 
 .acted .change {
-  padding-right: 8px;
+  padding-right: var(--space-xs);
 }
 
 .acted .change__main {
   gap: 10px;
   min-height: 52px;
-  padding: 8px 0 8px 10px;
+  padding: var(--space-xs) 0 var(--space-xs) 10px;
 }
 
 .acted .change__title {

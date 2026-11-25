@@ -2,31 +2,9 @@
  * Context menu (components/context-menu.ts): one menu for the whole app.
  * Two layouts: "popover" at the pointer on a desk, and "lift" on a phone,
  * where the preview rises over a blurred, dimmed page with the actions below.
- * Everything is prefixed cm-. Built on tokens.css; the few new values are the
- * --cm-* properties below.
+ * Everything is prefixed cm-. Built on tokens.css, where its own --cm-*
+ * values live too.
  */
-
-:root {
-  --cm-surface: oklch(0.995 0.002 264 / 0.86);
-  --cm-hair: oklch(0.25 0.02 264 / 0.1);
-  --cm-wash: oklch(0.25 0.02 264 / 0.06);
-  --cm-press: oklch(0.25 0.02 264 / 0.09);
-  --cm-scrim: oklch(0.22 0.02 264 / 0.16);
-  --cm-shadow: 0 0 0 0.5px oklch(0.25 0.02 264 / 0.16), 0 2px 4px oklch(0.25 0.02 264 / 0.05), 0 12px 28px -8px oklch(0.25 0.03 264 / 0.18), 0 32px 64px -24px oklch(0.25 0.04 264 / 0.3);
-  --cm-spring: var(--ease-spring);
-  --cm-spring-dur: var(--dur-spring);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --cm-surface: oklch(0.255 0.012 264 / 0.84);
-    --cm-hair: oklch(1 0 0 / 0.09);
-    --cm-wash: oklch(1 0 0 / 0.07);
-    --cm-press: oklch(1 0 0 / 0.1);
-    --cm-scrim: oklch(0.08 0.01 264 / 0.42);
-    --cm-shadow: 0 0 0 0.5px oklch(1 0 0 / 0.14), inset 0 1px 0 oklch(1 0 0 / 0.05), 0 12px 28px -8px oklch(0 0 0 / 0.6), 0 32px 64px -24px oklch(0 0 0 / 0.8);
-  }
-}
 
 /* ---------- Layer ---------- */
 
@@ -131,7 +109,7 @@
   align-items: center;
   gap: 10px;
   min-height: 30px;
-  padding: 5px 10px 5px 8px;
+  padding: 5px 10px 5px var(--space-xs);
   border-radius: var(--radius-xs);
   cursor: default;
   outline: none;
@@ -200,13 +178,13 @@
 .cm-item.is-focus,
 .cm-item[aria-expanded="true"] {
   background: var(--accent);
-  color: oklch(0.99 0 0);
+  color: var(--cm-item-focus-ink);
 }
 
 .cm-item:focus :is(.cm-ico, .cm-item__hint, .cm-item__kbd, .cm-item__chev),
 .cm-item.is-focus :is(.cm-ico, .cm-item__hint, .cm-item__kbd, .cm-item__chev),
 .cm-item[aria-expanded="true"] :is(.cm-ico, .cm-item__hint, .cm-item__kbd, .cm-item__chev) {
-  color: oklch(0.99 0 0 / 0.85);
+  color: var(--cm-item-focus-ink-2);
 }
 
 .cm-item--danger:focus,
@@ -245,7 +223,7 @@
 
 .cm-seg {
   display: flex;
-  gap: 2px;
+  gap: var(--space-3xs);
   padding: 3px;
   border-radius: var(--radius-sm);
   background: var(--cm-wash);
@@ -256,9 +234,9 @@
   flex: 1 1 0;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   min-width: 0;
-  padding: 7px 4px 6px;
+  padding: 7px var(--space-2xs) 6px;
   border-radius: var(--radius-xs);
   color: var(--ink-2);
   font-size: var(--text-meta);
@@ -281,7 +259,7 @@
 .cm-seg__opt[aria-checked="true"] {
   background: var(--ink);
   color: var(--surface);
-  box-shadow: 0 1px 2px oklch(0 0 0 / 0.12);
+  box-shadow: 0 1px 2px var(--cm-seg-opt-true-shadow);
 }
 
 .cm-seg__opt:focus-visible,
@@ -357,7 +335,7 @@
   position: relative;
   align-self: stretch;
   width: auto;
-  box-shadow: 0 0 0 0.5px var(--cm-hair), 0 18px 48px -16px oklch(0 0 0 / 0.35);
+  box-shadow: 0 0 0 0.5px var(--cm-hair), 0 18px 48px -16px var(--cm-preview-shadow);
 }
 
 :is(.cm-layer--lift, .cm-static--lift) .cm-menu {
@@ -376,9 +354,9 @@
 }
 
 :is(.cm-layer--lift, .cm-static--lift) .cm-item {
-  gap: 12px;
+  gap: var(--space-sm);
   min-height: 44px;
-  padding: 10px 16px;
+  padding: 10px var(--space-md);
   border-radius: 0;
 }
 
@@ -427,16 +405,16 @@
 }
 
 :is(.cm-layer--lift, .cm-static--lift) .cm-choice {
-  padding: 10px 10px 12px;
+  padding: 10px 10px var(--space-sm);
 }
 
 :is(.cm-layer--lift, .cm-static--lift) .cm-choice__label {
-  padding: 0 6px 8px;
+  padding: 0 6px var(--space-xs);
   font-size: var(--text-small);
 }
 
 :is(.cm-layer--lift, .cm-static--lift) .cm-seg__opt {
-  padding: 9px 4px 8px;
+  padding: 9px var(--space-2xs) var(--space-xs);
   font-size: var(--text-meta);
 }
 
@@ -455,7 +433,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .cm-static__menus {
@@ -479,7 +457,7 @@
   overflow: hidden;
   border-radius: var(--radius-xl);
   background: var(--bg, var(--surface));
-  box-shadow: 0 0 0 1px var(--line), 0 0 0 7px var(--surface), 0 0 0 8px var(--line-strong), 0 24px 60px -24px oklch(0.2 0.02 264 / 0.4);
+  box-shadow: 0 0 0 1px var(--line), 0 0 0 7px var(--surface), 0 0 0 8px var(--line-strong), 0 24px 60px -24px var(--cm-static-lift-shadow);
 }
 
 .cm-static__behind {

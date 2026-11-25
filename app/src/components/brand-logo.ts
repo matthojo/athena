@@ -27,6 +27,7 @@ import { FLIGHTS_MARKS } from "./brand-marks/flights";
 import { LIVE_TRAVEL_MARKS } from "./brand-marks/live-travel";
 import { DOCUMENTS_MARKS } from "./brand-marks/documents";
 import { LIFE_B_MARKS } from "./brand-marks/life-b";
+import { darkSource } from "../lib/appearance";
 
 const CORE_MARKS: Record<string, string> = {
   // google.com (Gmail 2020 product logo) (checked 9 Nov 2026)
@@ -92,6 +93,6 @@ export function connectorLogo(c: { provider: string; server_info?: { icon?: { li
   const el = document.createElement("span");
   el.className = `logo logo--${size} logo--image`;
   el.setAttribute("aria-hidden", "true");
-  el.append(dark && light ? h("picture", {}, h("source", { srcset: dark, media: "(prefers-color-scheme: dark)" }), img) : img);
+  el.append(dark && light ? h("picture", {}, darkSource(dark), img) : img);
   return el;
 }

@@ -54,6 +54,7 @@ import {
   type StoredPreview,
 } from "./rich-links-rules";
 import type { Commitment, InteractionChannel, Person, ReadingItem } from "../types";
+import { scheme } from "../lib/appearance";
 
 export type { LinkPreview, LiveCard, LivePicture };
 export type { EventCard, NoteCard, PersonCard, PlaceCard, PlainCard, SavedCard, TodoCard, WatchCard } from "./rich-links-rules";
@@ -262,7 +263,7 @@ const MAP_REFRESH_MS = 24 * 3_600_000;
 
 /** Athena's still of a Place (GET /api/places/:id/map), kept on the device and asked for again after a day. Null when there's no spot or no key. */
 async function placeMapUrl(id: string): Promise<string | null> {
-  const theme = typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const theme = scheme();
   const key = `/place-map-cache/${id}/${theme}/card`;
   let c: Cache | null = null;
   try {

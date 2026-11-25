@@ -75,13 +75,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
+  gap: var(--space-2xs) var(--space-xs);
 }
 
 .trip-row__kinds {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   color: var(--ink-3);
 }
 
@@ -134,7 +134,7 @@
 .booking__title-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -151,15 +151,7 @@
 .booking[data-kind="car"] .booking__icon,
 .booking[data-kind="event"] .booking__icon {
   background: var(--mint-wash);
-  color: oklch(0.45 0.09 170);
-}
-
-@media (prefers-color-scheme: dark) {
-  .booking[data-kind="hotel"] .booking__icon,
-  .booking[data-kind="car"] .booking__icon,
-  .booking[data-kind="event"] .booking__icon {
-    color: oklch(0.82 0.08 170);
-  }
+  color: var(--booking-icon-ink);
 }
 
 .booking__titles {
@@ -221,7 +213,7 @@
 }
 
 .leg__clock {
-  margin-block: 1px 2px;
+  margin-block: 1px var(--space-3xs);
   font-family: var(--font-display);
   font-size: var(--text-heading);
   font-weight: var(--weight-medium);
@@ -249,8 +241,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding-top: 24px;
+  gap: var(--space-2xs);
+  padding-top: var(--space-lg);
   color: var(--ink-3);
 }
 
@@ -266,7 +258,7 @@
   position: relative;
   width: 18px;
   height: 18px;
-  padding: 0 4px;
+  padding: 0 var(--space-2xs);
   box-sizing: content-box;
   background: var(--sunken);
   color: var(--accent-ink);
@@ -290,7 +282,7 @@
 .booking__place {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-xs);
   margin-top: calc(var(--space-2xs) * -1);
   font-size: var(--text-small);
   line-height: 1.4;
@@ -344,7 +336,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
+  gap: 6px var(--space-xs);
 }
 
 .ticket-chip {
@@ -457,7 +449,7 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 3px;
   width: min(168px, 100%);
-  margin-top: 8px;
+  margin-top: var(--space-xs);
 }
 
 .track__step {
@@ -494,9 +486,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   min-width: 0;
-  padding-inline: 2px;
+  padding-inline: var(--space-3xs);
   text-align: center;
 }
 
@@ -520,7 +512,7 @@
   place-items: center;
   width: 24px;
   height: 24px;
-  margin-bottom: 2px;
+  margin-bottom: var(--space-3xs);
   border-radius: 50%;
   background: var(--surface);
   box-shadow: inset 0 0 0 2px var(--line-strong);
@@ -582,8 +574,8 @@
 .prop__list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding-block: 8px;
+  gap: var(--space-3xs);
+  padding-block: var(--space-xs);
 }
 
 .update-row {
@@ -622,7 +614,7 @@
   flex-wrap: nowrap;
   gap: 6px;
   margin: 0 calc(var(--space-md) * -1);
-  padding: 2px var(--space-md);
+  padding: var(--space-3xs) var(--space-md);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -634,7 +626,7 @@
 .booking-form__kinds .chip {
   flex: none;
   height: 36px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
   gap: 6px;
 }
 
@@ -655,10 +647,10 @@
 .when {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
   width: 100%;
   min-width: 0;
-  padding-block: 2px;
+  padding-block: var(--space-3xs);
 }
 
 .when > .prop__input {
@@ -686,7 +678,7 @@
   gap: 5px;
   min-width: 0;
   height: 28px;
-  padding: 0 4px;
+  padding: 0 var(--space-2xs);
   border-radius: var(--radius-pill);
   color: var(--ink-3);
   font-size: var(--text-meta);
@@ -724,7 +716,7 @@
 }
 
 .tz-pick:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: var(--radius-2xs);
 }
@@ -810,7 +802,7 @@
 }
 
 .kind-pick__item:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -823,7 +815,7 @@
 .prop__copy {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -866,7 +858,7 @@
   align-items: center;
   gap: 7px;
   height: 30px;
-  padding: 0 12px 0 10px;
+  padding: 0 var(--space-sm) 0 10px;
   border: 1px solid color-mix(in oklch, var(--tone) 32%, var(--line));
   border-radius: var(--radius-pill);
   background: color-mix(in oklch, var(--tone) 9%, var(--surface));
@@ -928,7 +920,7 @@
 .live-chip__platform {
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--space-2xs);
   padding-left: 9px;
   border-left: 1px solid color-mix(in oklch, var(--tone) 28%, var(--line));
 }

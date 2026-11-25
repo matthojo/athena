@@ -15,7 +15,7 @@
   display: inline-block;
   width: 2px;
   height: 1.05em;
-  margin-left: 2px;
+  margin-left: var(--space-3xs);
   border-radius: var(--radius-3xs);
   background: var(--accent);
   vertical-align: -0.18em;
@@ -57,7 +57,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   min-width: 0;
   pointer-events: none;
 }
@@ -72,7 +72,7 @@
   gap: 6px;
   max-width: 100%;
   height: 32px;
-  padding: 0 4px 0 10px;
+  padding: 0 var(--space-2xs) 0 10px;
   border-radius: var(--radius-pill);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -133,7 +133,7 @@
   align-items: center;
   gap: 6px;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 var(--space-sm);
   border-radius: var(--radius-pill);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -147,7 +147,7 @@
 }
 
 .composer-top__editing .link-btn {
-  margin-left: 4px;
+  margin-left: var(--space-2xs);
 }
 
 /* ---------- Your last message: Edit ---------- */
@@ -157,9 +157,9 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   height: 28px;
-  padding: 0 8px;
+  padding: 0 var(--space-xs);
   border-radius: var(--radius-pill);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
@@ -226,7 +226,7 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-3xs);
   margin-left: auto;
   margin-right: -8px;
 }
@@ -265,7 +265,7 @@
 .reply-bar__versions {
   display: inline-flex;
   align-items: center;
-  margin-right: 2px;
+  margin-right: var(--space-3xs);
 }
 
 .reply-bar__count {
@@ -357,5 +357,5 @@
 }
 
 .chats__pinned {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-2xs);
 }

@@ -259,7 +259,7 @@ test("dark mode: every coloured fill carries its dark value; markup alone stays 
   assert.match(svg, /--ks:/, "coloured strokes (the headband) too");
   assert.equal((svg.match(/style="/g) ?? []).length, (svg.match(/<[a-z]+\b[^>]*style="/g) ?? []).length, "one style attribute per tag");
   const css = readFileSync(new URL("./avatar.css", import.meta.url), "utf8");
-  assert.match(css, /prefers-color-scheme: dark[\s\S]*\[style\*="--kd"\][\s\S]*fill: var\(--kd\)/);
+  assert.match(css, /:where\(\[data-scheme="dark"\]\) \.kit-avatar \[style\*="--kd"\]\s*\{\s*fill: var\(--kd\)/);
   assert.match(avatarTint("snow"), /color-mix\(in oklch, #[0-9a-f]{6} 20%, var\(--surface/);
 });
 
@@ -287,8 +287,7 @@ test("a monster's antenna stalks carry the coat's dark shade, used only in dark 
     }
   }
   const css = readFileSync(new URL("./avatar.css", import.meta.url), "utf8");
-  const dark = css.slice(css.lastIndexOf("@media (prefers-color-scheme: dark)"));
-  assert.match(dark, /\.kit-stalk\s*\{\s*stroke: var\(--kstalk\)/);
+  assert.match(css, /:where\(\[data-scheme="dark"\]\) \.kit-avatar \.kit-stalk\s*\{\s*stroke: var\(--kstalk\)/);
 });
 
 test("the tile: radius and rise follow the size; the clip opens above and, to the neck, a little past the sides", () => {

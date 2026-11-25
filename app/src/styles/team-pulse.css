@@ -21,10 +21,8 @@
   --who: var(--who-light);
 }
 
-@media (prefers-color-scheme: dark) {
-  .has-who {
-    --who: var(--who-dark);
-  }
+:where([data-scheme="dark"]) .has-who {
+  --who: var(--who-dark);
 }
 
 @keyframes team-breathe {
@@ -62,7 +60,7 @@
 
 .side-item.is-working .side-item__label::after {
   content: "";
-  margin-left: 8px;
+  margin-left: var(--space-xs);
   vertical-align: 2px;
 }
 

@@ -423,6 +423,7 @@ ${base ? `<base href="${escapeHtml(base)}">\n` : ""}<title>${escapeHtml(meta.tit
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0e13" media="(prefers-color-scheme: dark)">
+<script>${SCHEME_SCRIPT}</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Athena">
 <meta property="og:title" content="${escapeHtml(meta.title)}">
@@ -436,6 +437,13 @@ ${social}<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favi
 <script src="assets/site.js" defer></script>
 </head>`;
 }
+
+/**
+ * The copied tokens.css keeps its dark values under [data-scheme="dark"], the
+ * switch the app sets from Settings → Appearance (app/src/lib/appearance.ts).
+ * The site has no setting, so it follows the system, before the first paint.
+ */
+export const SCHEME_SCRIPT = `(function(){var r=document.documentElement,m=window.matchMedia("(prefers-color-scheme: dark)");function s(){r.setAttribute("data-scheme",m.matches?"dark":"light")}s();m.addEventListener("change",s)})();`;
 
 const AURORA = `<div class="aurora" aria-hidden="true"><span></span><span></span></div>`;
 
