@@ -60,8 +60,8 @@ function fakes(over: Partial<CommunityAddDeps> = {}): { deps: CommunityAddDeps; 
     replaceAssistant: async (id, input) => (calls.replaced.push({ kind: "assistant", id, input }), { writing: null }),
     replaceSkill: async (id, input) => void calls.replaced.push({ kind: "skill", id, input }),
     replaceFlow: async (id, shared, answers, catalogue) => void calls.replaced.push({ kind: "flow", id, shared, answers, catalogue }),
-    addCheckins: async (shared, catalogue) => (calls.checkin.push({ shared, catalogue }), { id: "44444444-4444-4444-8444-444444444444", added: 2, skipped: ["What went well today?"], off: ["evening"] }),
-    replaceCheckins: async (id, shared, catalogue) => (calls.replaced.push({ kind: "checkin", id, shared, catalogue }), { id, added: 3, skipped: [], off: [] }),
+    addCheckins: async (shared, catalogue, opts) => (calls.checkin.push({ shared, catalogue, opts }), { id: "44444444-4444-4444-8444-444444444444", added: 2, skipped: ["What went well today?"], off: ["evening"], full: [] }),
+    replaceCheckins: async (id, shared, catalogue) => (calls.replaced.push({ kind: "checkin", id, shared, catalogue }), { id, added: 3, skipped: [], off: [], full: [] }),
     markCatalogue: async (kind, id, listing) => void calls.marked.push({ kind, id, listing }),
     now: () => new Date("2026-11-24T10:00:00Z"),
     ...over,
@@ -230,7 +230,10 @@ test("a flow from the catalogue passes its listing to the flow's own import", as
 
 test("readChoices: only the shapes, nothing else", () => {
   const c = readChoices({ answers: { a: "b", n: 3 }, accounts: ["not an id", "44444444-4444-4444-8444-444444444444"], allow: ["add_todo", 7], web: "yes", money: true, assistant_id: 9 });
-  assert.deepEqual(c, { answers: { a: "b" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: false, money: true, assistant_id: null, replace: null });
+  assert.deepEqual(c, { answers: { a: "b" }, accounts: ["44444444-4444-4444-8444-444444444444"], allow: ["add_todo"], web: false, money: true, assistant_id: null, replace: null, start: true });
+  // Only an explicit false adds check-in questions switched off.
+  assert.equal(readChoices({ start: false }).start, false);
+  assert.equal(readChoices({ start: "no" }).start, true);
 });
 
 // ---------- the routes ----------
@@ -326,7 +329,7 @@ const CHECKINS = {
   ],
 };
 
-test("check-in questions: a link to checkin.json previews as its folder, read by its own reader, tier 1", async () => {
+test("check-in questions: a link to checkin.json previews as its folder, read by its own reader, always tier 1", async () => {
   assert.deepEqual(parseAddLink("https://github.com/sample-author/athena-items/blob/main/small-joys/checkin.json").path, "small-joys");
   const { deps } = fakes({ fetchLink: async () => entries({ "small-joys/checkin.json": JSON.stringify(CHECKINS) }) });
   const p = await previewOf({ link: "https://github.com/sample-author/athena-items/tree/main/small-joys" }, deps);
@@ -346,9 +349,13 @@ test("check-in questions: Add hands them to their own import and says what joine
   const { result } = await addFrom({ preview, choices: {} }, deps);
   assert.equal(result.kind, "checkin");
   assert.equal(result.href, "#/settings/checkins");
-  assert.deepEqual(result.checkins, { added: 2, skipped: ["What went well today?"], off: ["evening"] });
+  assert.deepEqual(result.checkins, { added: 2, skipped: ["What went well today?"], off: ["evening"], full: [] });
   assert.equal(calls.checkin.length, 1);
   assert.equal(calls.marked.length, 0);
+  // "Start asking these now" is on unless the owner turned it off.
+  assert.deepEqual((calls.checkin[0] as { opts: unknown }).opts, { start: true });
+  await addFrom({ preview, choices: { start: false } }, deps);
+  assert.deepEqual((calls.checkin[1] as { opts: unknown }).opts, { start: false });
 });
 
 test("check-in questions from the catalogue: the listing goes with them, and Update replaces only that set", async () => {
@@ -364,7 +371,7 @@ test("check-in questions from the catalogue: the listing goes with them, and Upd
   assert.equal(added.result.updated, undefined);
   const updated = await addFrom({ preview, choices: { replace: setId } }, deps);
   assert.equal(updated.result.updated, true);
-  assert.deepEqual(updated.result.checkins, { added: 3, skipped: [], off: [] });
+  assert.deepEqual(updated.result.checkins, { added: 3, skipped: [], off: [], full: [] });
   assert.equal((calls.replaced[0] as { kind: string }).kind, "checkin");
 });
 

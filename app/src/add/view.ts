@@ -41,11 +41,11 @@ import { sharedFlowSteps } from "./flow-steps";
 import { tierIcon } from "../community/words";
 import { entriesOf, filesFromDrop, takeHeldFiles, takeSharedFile } from "./hold";
 import { SAMPLE_LINKS } from "./sample-items";
-import { addedWords, addLabel, basedOnWords, checkinAddedWords, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, offWords, originWords, reachWords, updatedWords, updateLandsWords } from "./words";
+import { addedWords, addLabel, basedOnWords, checkinAddedWords, DEEPER_WORDS, fillsWords, haveWords, KIND_LABEL, landsWords, makerWords, offWords, originWords, reachWords, roomWords, updatedWords, updateLandsWords } from "./words";
 import { checkinPreview } from "./checkin-preview";
 import { loadCheckinSettings, type CheckinSettingsView } from "../db/checkins";
-import { promptsHere, samePrompt } from "../../../lib/checkin-share";
-import { CHECKIN_KINDS, type CheckinKind } from "../../../lib/checkin-types";
+import { offersDeeper, promptsHere, samePrompt } from "../../../lib/checkin-share";
+import { CHECKIN_KINDS, MAX_OWN_QUESTIONS, type CheckinKind } from "../../../lib/checkin-types";
 import type { AddResult } from "../../../lib/community-api";
 
 type Go = (view: ViewId, opts?: { source?: string | null; noteId?: string | null }) => void;
@@ -377,18 +377,29 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     // Check-in questions: every one, grouped by routine, as it would be asked; one the owner has already is marked.
     let joinsKinds: CheckinKind[] = [];
     let offNote: HTMLElement | null = null;
+    let startBox: HTMLInputElement | null = null;
+    let startSec: HTMLElement | null = null;
     if (item.kind === "checkin") {
       const have = checkinSettings ? promptsHere(checkinSettings) : new Set<string>();
       const fresh = item.checkins.questions.filter((q) => !have.has(samePrompt(q.prompt)));
       joinsKinds = CHECKIN_KINDS.filter((k) => fresh.some((q) => q.kinds.includes(k)));
       const off = checkinSettings ? joinsKinds.filter((k) => !checkinSettings[k].enabled) : [];
       const offText = offWords(off);
-      offNote = offText ? h("p", { class: "add-note add-note--calm" }, icons.toggle(), h("span", {}, offText)) : null;
+      const roomText = checkinSettings ? roomWords(fresh.length, MAX_OWN_QUESTIONS - checkinSettings.own.length) : null;
+      offNote = offText || roomText ? h("div", { class: "add-notes" }, ...[roomText, offText].filter((t): t is string => !!t).map((t) => h("p", { class: "add-note add-note--calm" }, icons.toggle(), h("span", {}, t)))) : null;
+      // Start asking them now, or add the set switched off (the owner's decision, 25 Nov 2026): on by default.
+      startBox = h("input", { type: "checkbox", role: "switch", class: "switch", id: "add-start", checked: true, "aria-describedby": "add-start-sub" }) as HTMLInputElement;
+      const startSub = h("span", { class: "checkin-set__sub", id: "add-start-sub" });
+      const paintStart = () => (startSub.textContent = startBox!.checked ? "They take their turns with your own questions from the next check-in." : "The set is added switched off. Switch it on in Settings when you'd like them asked.");
+      startBox.addEventListener("change", paintStart);
+      paintStart();
+      startSec = h("label", { class: "card checkin-set__switch add-start", for: "add-start" }, h("span", { class: "checkin-set__words" }, h("span", { class: "checkin-set__name" }, "Start asking these now"), startSub), startBox);
       const repeated = item.checkins.questions.length - fresh.length;
       questionsSec = section(
         "questions",
         item.checkins.questions.length === 1 ? "Its question" : `Its ${item.checkins.questions.length} questions`,
         h("p", { class: "form__hint add-sec__lede" }, repeated ? `Each one as it would be asked. ${repeated === 1 ? "You already have one of them" : `You already have ${repeated} of them`}, so ${repeated === 1 ? "it's" : "they're"} marked and won't be added twice.` : "Each one as it would be asked, one to a screen."),
+        offersDeeper(item.checkins.questions) ? h("p", { class: "form__hint add-sec__lede" }, DEEPER_WORDS) : null,
         checkinPreview(item.checkins.questions, (q) => have.has(samePrompt(q.prompt)))
       );
     }
@@ -519,6 +530,8 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       addBtn.replaceChildren(copying ? icons.plus() : had?.newer ? icons.refresh() : icons.arrowRight(), label());
       addBtn.disabled = copying && !room;
       if (copyBtn) copyBtn.hidden = copying;
+      // Only a new set gets the switch: an Update keeps the set's own.
+      if (startSec) startSec.hidden = !copying;
     };
     copyBtn?.addEventListener("click", () => {
       copying = true;
@@ -542,10 +555,10 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       addBtn.disabled = true;
       addBtn.classList.add("is-busy");
       addBtn.lastChild!.textContent = copying ? "Adding…" : "Updating…";
-      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null, replace: copying ? null : had!.id };
+      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null, replace: copying ? null : had!.id, start: startBox ? startBox.checked : true };
       try {
         const result = await addItem(p, choices);
-        added(p.kind, name, result.href, !!result.updated, result, joinsKinds);
+        added(p.kind, name, result.href, !!result.updated, result, joinsKinds, startBox ? startBox.checked : true);
       } catch (error) {
         if (!alive) return;
         addBtn.disabled = false;
@@ -562,14 +575,14 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     const foot = h("div", { class: "add-foot" }, problem, h("div", { class: "add-foot__row" }, cancel, addBtn), footNote);
 
     if (p.kind === "checkin") el.classList.add("add--checkin");
-    show(hero, haveCard, facts, reachCard, ...notes, offNote, needsSec, questionsSec, accountsSec, aloneSec, asksFirstSec, content, foot);
+    show(hero, haveCard, facts, reachCard, ...notes, offNote, needsSec, questionsSec, accountsSec, aloneSec, asksFirstSec, content, startSec, foot);
     focusHeading();
   }
 
   // ---------- added ----------
 
-  function added(kind: ShareKind, name: string, href: string, updated = false, result?: AddResult, joins: CheckinKind[] = []) {
-    const w = kind === "checkin" && result?.checkins && !updated ? checkinAddedWords(name, result.checkins, joins) : updated ? updatedWords(kind, name) : addedWords(kind, name);
+  function added(kind: ShareKind, name: string, href: string, updated = false, result?: AddResult, joins: CheckinKind[] = [], started = true) {
+    const w = kind === "checkin" && result?.checkins && !updated ? checkinAddedWords(name, result.checkins, joins, started) : updated ? updatedWords(kind, name) : addedWords(kind, name);
     const open = h("a", { class: "btn btn--primary", href }, w.open, icons.arrowRight());
     const more = h("button", { class: "btn btn--soft", type: "button" }, "Add something else");
     more.addEventListener("click", startOver);

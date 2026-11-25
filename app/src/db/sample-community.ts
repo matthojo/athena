@@ -79,7 +79,7 @@ const SEEDS: Seed[] = [
     summary: "Four questions for a slower start to the day.",
     author: "early-light",
     version: "2.1",
-    reach: reach(2),
+    reach: reach(1),
     featured: false,
     days: 5,
     downloads: 860,

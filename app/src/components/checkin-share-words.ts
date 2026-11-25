@@ -5,11 +5,11 @@
 import type { CheckinSet } from "../../../lib/checkin-types";
 import { tierIcon, tierWords } from "../community/words";
 
-/** The reach card on the share sheet: the tier by the name Community gives it, then why. */
-export function shareReachWords(model: boolean): { title: string; detail: string; icon: "shield" | "sparkle" } {
-  const r = { tier: (model ? 2 : 1) as 1 | 2, model, lookups: [] };
-  if (!model) return { title: tierWords(r), detail: "Questions only ask, and answers stay in the check-ins of whoever adds them. Nothing is sent anywhere.", icon: tierIcon(r) as "shield" };
-  return { title: tierWords(r), detail: "One of them offers Go deeper. When whoever adds them taps it, the question and what they wrote go to the AI model they chose.", icon: tierIcon(r) as "sparkle" };
+/** The reach card on the share sheet: always tier 1, with a word on Go deeper when one of them offers it. */
+export function shareReachWords(deeper: boolean): { title: string; detail: string; icon: "shield" } {
+  const r = { tier: 1 as const, model: false, lookups: [] };
+  const base = "Questions only ask, and answers stay in the check-ins of whoever adds them.";
+  return { title: tierWords(r), detail: deeper ? `${base} Go deeper reaches their AI model only when they tap it.` : base, icon: tierIcon(r) as "shield" };
 }
 
 /** "In the name", "In question 2", "In questions 1 and 3, and the summary": where a finding is. */

@@ -53,10 +53,7 @@ const list = (xs: readonly string[]) => (xs.length <= 1 ? xs.join("") : `${xs.sl
 /** Its reach in plain words: the tier's name, as Community and the share sheet name it, and a line for each thing it uses. */
 export function reachWords(r: Reach, kind: ShareKind): { title: string; lines: string[] } {
   const lines: string[] = [];
-  if (kind === "checkin") {
-    if (!r.model) return { title: tierWords(r), lines: ["Its questions stay in your Athena, and so do your answers. Nothing is sent anywhere"] };
-    return { title: tierWords(r), lines: ["When you tap Go deeper on one of its questions, the question and what you wrote go to the AI model you chose, for one follow-up question"] };
-  }
+  if (kind === "checkin") return { title: tierWords(r), lines: ["Its questions stay in your Athena, and so do your answers"] };
   if (r.tier === 1) return { title: tierWords(r), lines: ["Every step stays inside your Athena. Nothing is sent anywhere"] };
   if (r.model) lines.push(kind === "flow" ? "Some of its steps send what they work on to the AI model you chose" : "It sends what it works on to the AI model you chose");
   for (const tool of r.lookups) {
@@ -127,15 +124,30 @@ export function offWords(off: readonly CheckinKind[]): string | null {
 /** Under a question the owner already has. */
 export const HAVE_QUESTION = "You already have this one, so it won't be added again";
 
+/** Go deeper on a shared question: the line the preview shows when one of its questions offers it. */
+export const DEEPER_WORDS = "Like your own questions, any that offer Go deeper send the question and what you wrote to the AI model you chose, but only when you tap it.";
+
+/** The note when a set is bigger than the room left among the owner's own questions. Null when it fits. Pure. */
+export function roomWords(fresh: number, room: number): string | null {
+  if (fresh <= room) return null;
+  if (room <= 0) return "You have 40 questions of your own, the most Athena keeps, so none of these can be added. Remove some in Settings first.";
+  return `There's room for ${room === 1 ? "one more question" : `${room} more questions`} of your own, so the first ${room === 1 ? "one is" : `${room} are`} added and the other ${fresh - room === 1 ? "one is" : `${fresh - room} are`} left out.`;
+}
+
 /** The confirmation once check-in questions are added: how many joined which routines, what was skipped, what's off. Pure. */
-export function checkinAddedWords(name: string, got: { added: number; skipped: readonly string[]; off: readonly CheckinKind[] }, joined: readonly CheckinKind[]): { title: string; body: string; open: string } {
+export function checkinAddedWords(name: string, got: { added: number; skipped: readonly string[]; off: readonly CheckinKind[]; full?: readonly string[] }, joined: readonly CheckinKind[], started = true): { title: string; body: string; open: string } {
   const open = "Open check-in settings";
+  const full = got.full ?? [];
+  if (!got.added && full.length) return { title: `There wasn't room for ${name}`, body: "You have 40 questions of your own, the most Athena keeps. Remove some in Settings, then add these again.", open };
   if (!got.added) return { title: `You already have every question in ${name}`, body: "Nothing new was added. It's listed in Settings, where you can remove it.", open };
   const where = joined.length > 1 ? "your morning preparation and evening reflection" : `your ${ROUTINE[joined[0] ?? "evening"]}`;
   const parts = [`${got.added === 1 ? "One question" : `${got.added} questions`} joined ${where}, after the ones you have.`];
   if (got.skipped.length === 1) parts.push(`You already had “${got.skipped[0]}”, so it was left out.`);
   else if (got.skipped.length > 1) parts.push(`You already had ${got.skipped.length} of them, so those were left out.`);
-  const off = offWords(got.off);
+  if (full.length === 1) parts.push(`There wasn't room for “${full[0]}”: you have 40 questions of your own, the most Athena keeps.`);
+  else if (full.length > 1) parts.push(`There wasn't room for the other ${full.length}: you have 40 questions of your own, the most Athena keeps.`);
+  if (!started) parts.push("The set is switched off, so they won't be asked until you switch it on in Settings.");
+  const off = started ? offWords(got.off) : null;
   if (off) parts.push(off);
   return { title: `${name} joined your check-ins`, body: parts.join(" "), open };
 }

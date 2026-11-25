@@ -20,7 +20,8 @@
  * - a skill: lib/skills-store.ts createSkill: off (an imported skill always starts off), ticked accounts only;
  * - a flow: lib/flow-share-store.ts addSharedFlow: paused, blanks filled from the answers;
  * - check-in questions: lib/checkin-sets.ts addSharedCheckins: they join the owner's own, after what's there; a
- *   question whose words are already here is skipped, and a routine that's off stays off.
+ *   question whose words are already here is skipped, a routine that's off stays off, and the set starts switched
+ *   off when the owner turned off "Start asking these now" (`choices.start` false).
  *
  * Add never overwrites by itself: the preview says "You already have this" when an item came from the same listing,
  * and only an explicit `replace` naming that item updates it (its name and history stay, its content becomes the new
@@ -63,7 +64,7 @@ export interface CommunityAddDeps {
   replaceAssistant: (id: string, input: ImportInput) => Promise<{ writing: Promise<unknown> | null }>;
   replaceSkill: (id: string, input: { description: string; body: string; extra: string; files: SharedSkill["files"]; skipped: SharedSkill["skipped"]; accounts: string[] }) => Promise<void>;
   replaceFlow: (id: string, shared: SharedFlow, answers: FlowAnswers, catalogue: { id: string; hash: string; version?: string }) => Promise<void>;
-  addCheckins: (shared: SharedCheckins, catalogue?: { id: string; hash: string; version?: string }) => Promise<AddedCheckins>;
+  addCheckins: (shared: SharedCheckins, catalogue?: { id: string; hash: string; version?: string }, opts?: { start?: boolean }) => Promise<AddedCheckins>;
   replaceCheckins: (id: string, shared: SharedCheckins, catalogue: { id: string; hash: string; version?: string }) => Promise<AddedCheckins>;
   /** Record the listing an assistant or skill came from (migration 0089). Flows and check-in questions record their own. */
   markCatalogue: (kind: "assistant" | "skill", id: string, listing: { id: string; hash: string; version: string | null }) => Promise<void>;
@@ -206,6 +207,7 @@ export function readChoices(raw: unknown): AddChoices {
     money: c.money === true,
     assistant_id: typeof c.assistant_id === "string" ? c.assistant_id.slice(0, 64) : null,
     replace: typeof c.replace === "string" ? c.replace.slice(0, 64) : null,
+    start: c.start !== false,
   };
 }
 
@@ -265,8 +267,8 @@ export async function addFrom(body: unknown, deps: CommunityAddDeps): Promise<{ 
   }
   const listed = mark ? { id: mark.id, hash: mark.hash, ...(mark.version ? { version: mark.version } : {}) } : undefined;
   if (item.kind === "checkin") {
-    const got = await deps.addCheckins(item.checkins, listed);
-    return { result: { kind: "checkin", id: got.id, href: HREF.checkin(got.id), checkins: { added: got.added, skipped: got.skipped, off: got.off } }, writing: null };
+    const got = await deps.addCheckins(item.checkins, listed, { start: choices.start !== false });
+    return { result: { kind: "checkin", id: got.id, href: HREF.checkin(got.id), checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } }, writing: null };
   }
   const { id } = await deps.addFlow(item.flow, flowAnswers(item.flow, choices), listed);
   return { result: { kind: "flow", id, href: HREF.flow(id) }, writing: null };
@@ -307,7 +309,7 @@ async function replaceFrom(id: string, preview: AddPreview, choices: AddChoices,
   if (item.kind === "checkin") {
     const got = await deps.replaceCheckins(id, item.checkins, listed);
     const d = done(null);
-    return { ...d, result: { ...d.result, checkins: { added: got.added, skipped: got.skipped, off: got.off } } };
+    return { ...d, result: { ...d.result, checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } } };
   }
   await deps.replaceFlow(id, item.flow, flowAnswers(item.flow, choices), listed);
   return done(null);

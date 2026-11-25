@@ -1073,3 +1073,18 @@
     margin-inline: auto;
   }
 }
+
+.add-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* "Start asking these now": the check-in settings' own switch row, above Add. */
+.add-start {
+  padding: var(--space-sm) var(--space-md);
+}
+
+.add-start[hidden] {
+  display: none;
+}

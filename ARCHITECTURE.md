@@ -547,7 +547,9 @@ screen. The contract (types, the question library, the routes) is
   join the owner's own (`own`, each with `set` naming the `checkin_sets`
   row) and the end of each routine they're asked in, unpinned
   (`joinSharedCheckins`); words already here are skipped, a routine that's
-  off stays off. A set switched off (`paused`) is left out of new plans
+  off stays off, and past 40 of the owner's own the rest are left out and
+  named. "Start asking these now" (on by default) adds the set switched on
+  or off. A set switched off (`paused`) is left out of new plans
   (`askable` in `getCheckin`). `PUT`/`DELETE /api/checkins/sets/:id` switch
   one off or on and remove one with its questions; `POST
   /api/checkins/share` makes a file from questions the owner wrote, with
@@ -2010,8 +2012,8 @@ permission.
   `askable` are pure and shared with sample mode.
 - **`lib/reach.ts`.** `reachOf(files)`: tier 1 stays inside Athena, tier 2
   uses AI or an outside lookup (each named), tier 3 asks for the web. A set
-  of check-in questions is tier 2 when one of them offers Go deeper, tier 1
-  otherwise. Worked
+  of check-in questions is always tier 1: Go deeper reaches a model only when
+  the owner taps it, as for their own questions. Worked
   out from the files, never declared. Every screen names a tier the same way
   (`app/src/community/words.ts` `tierWords`, `tierIcon`).
 - **`lib/catalogue-types.ts`.** index.json, a bundle and listing.json, with

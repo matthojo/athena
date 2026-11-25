@@ -106,6 +106,8 @@ export interface AddChoices {
    * catalogue item, and only the one the server finds came from that listing.
    */
   replace?: string | null;
+  /** Check-in questions only: start asking them now. False adds the set switched off. Missing means true. */
+  start?: boolean;
 }
 
 export interface AddResult {
@@ -120,7 +122,7 @@ export interface AddResult {
    * Check-in questions only: how many joined, the questions skipped because the owner already had their words, and
    * the routines they joined that are switched off (they stay off).
    */
-  checkins?: { added: number; skipped: string[]; off: CheckinKind[] };
+  checkins?: { added: number; skipped: string[]; off: CheckinKind[]; full: string[] };
 }
 
 /** An item added from the catalogue, against the index now. */

@@ -17,7 +17,7 @@ import { AthenaInputError, qRaw } from "./db";
 import { checkSettings, listSets, loadCheckinSettings, saveCheckinSettings, settingsView } from "./checkins";
 import { knownTerms } from "./team-share-store";
 import { writeSkillZip } from "./skill-zip";
-import { CHECKIN_FILE, exportCheckins, joinSharedCheckins, offersDeeper, readSharedCheckins, removeSetFrom, serialiseSharedCheckins, setQuestions, type CheckinExport, type SharedCheckins } from "./checkin-share";
+import { CHECKIN_FILE, exportCheckins, joinSharedCheckins, readSharedCheckins, removeSetFrom, serialiseSharedCheckins, type CheckinExport, type SharedCheckins } from "./checkin-share";
 import { ShareFormatError, type KnownTerm } from "./team-share";
 import type { CheckinKind, CheckinSettings, CheckinSettingsView } from "./checkin-types";
 import type { Reach } from "./reach";
@@ -82,6 +82,8 @@ export interface AddedCheckins {
   added: number;
   skipped: string[];
   off: CheckinKind[];
+  /** Left out: the owner's own questions reached the limit. */
+  full: string[];
 }
 
 function readListing(catalogue?: { id: string; hash: string; version?: string }) {
@@ -102,9 +104,10 @@ function readShared(shared: SharedCheckins): SharedCheckins {
 
 /**
  * Add a shared set: read again, recorded as a set, its new questions joined to the owner's own and to the end of
- * their routines. A routine that's off stays off. Throws AthenaInputError with words (no room, a bad file).
+ * their routines. A routine that's off stays off. `opts.start` false adds the set switched off (the Add screen's
+ * "Start asking these now", on by default). Throws AthenaInputError with words (a bad file).
  */
-export async function addSharedCheckins(raw: SharedCheckins, catalogue?: { id: string; hash: string; version?: string }): Promise<AddedCheckins> {
+export async function addSharedCheckins(raw: SharedCheckins, catalogue?: { id: string; hash: string; version?: string }, opts: { start?: boolean } = {}): Promise<AddedCheckins> {
   const shared = readShared(raw);
   const listing = readListing(catalogue);
   const id = crypto.randomUUID();
@@ -117,8 +120,8 @@ export async function addSharedCheckins(raw: SharedCheckins, catalogue?: { id: s
     throw error;
   }
   await qRaw(
-    `INSERT INTO checkin_sets (id, name, summary, author, version, catalogue_id, catalogue_hash, catalogue_version) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8)`,
-    [id, shared.name, shared.summary, shared.author ?? null, shared.version ?? null, listing?.id ?? null, listing?.hash ?? null, listing?.version ?? null],
+    `INSERT INTO checkin_sets (id, name, summary, author, version, catalogue_id, catalogue_hash, catalogue_version, paused) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [id, shared.name, shared.summary, shared.author ?? null, shared.version ?? null, listing?.id ?? null, listing?.hash ?? null, listing?.version ?? null, opts.start === false],
   );
   try {
     await saveSettings(joined.settings);
@@ -126,7 +129,7 @@ export async function addSharedCheckins(raw: SharedCheckins, catalogue?: { id: s
     await qRaw(`DELETE FROM checkin_sets WHERE id = $1::uuid`, [id]).catch(() => undefined);
     throw error;
   }
-  return { id, added: joined.added.length, skipped: joined.skipped, off: joined.off };
+  return { id, added: joined.added.length, skipped: joined.skipped, off: joined.off, full: joined.full };
 }
 
 /**
@@ -151,7 +154,7 @@ export async function replaceSharedCheckins(setId: string, raw: SharedCheckins, 
     `UPDATE checkin_sets SET name = $2, summary = $3, author = $4, version = $5, catalogue_id = $6, catalogue_hash = $7, catalogue_version = $8, updated_at = now() WHERE id = $1::uuid`,
     [id, shared.name, shared.summary, shared.author ?? null, shared.version ?? null, listing.id, listing.hash, listing.version],
   );
-  return { id, added: joined.added.length, skipped: joined.skipped, off: joined.off };
+  return { id, added: joined.added.length, skipped: joined.skipped, off: joined.off, full: joined.full };
 }
 
 // ---------- switching off, removing ----------
@@ -173,10 +176,9 @@ export async function removeCheckinSet(setId: string): Promise<CheckinSettingsVi
   return settingsView(next, await listSets());
 }
 
-/** A set's tier as it is here now, for Community's Update banner: 2 when one of its questions offers Go deeper. */
+/** A set's tier as it is here now, for Community's Update banner: always 1 (lib/reach.ts reachOfCheckins). */
 export async function checkinSetTier(setId: string): Promise<Reach["tier"] | null> {
   if (!UUID.test(setId)) return null;
   const [row] = await qRaw<{ id: string }>(`SELECT id::text AS id FROM checkin_sets WHERE id = $1::uuid`, [setId]);
-  if (!row) return null;
-  return offersDeeper(setQuestions(await loadCheckinSettings(), row.id)) ? 2 : 1;
+  return row ? 1 : null;
 }

@@ -218,7 +218,7 @@ async function sampleReplace(p: AddPreview, choices: AddChoices, id: string): Pr
     const { sampleReplaceCheckins } = await import("./sample-checkins");
     const got = await sampleReplaceCheckins(id, item.checkins, { id: p.listing!.id, hash: p.hash, version: p.listing?.version ?? null });
     forgetUpdates();
-    return { kind: "checkin", id, href: HREF.checkin(id), updated: true, checkins: { added: got.added, skipped: got.skipped, off: got.off } };
+    return { kind: "checkin", id, href: HREF.checkin(id), updated: true, checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } };
   } else await sampleReplaceSharedFlow(id, importSharedFlow(item.flow, choices.answers));
   forgetUpdates();
   return { kind: p.kind, id, href: HREF[p.kind](id), updated: true };
@@ -246,8 +246,8 @@ async function sampleAddNew(p: AddPreview, choices: AddChoices): Promise<AddResu
   if (item.kind === "checkin") {
     const { sampleAddCheckins } = await import("./sample-checkins");
     const listing = "catalogue" in p.from && p.listing ? { id: p.listing.id, hash: p.hash, version: p.listing.version } : undefined;
-    const got = await sampleAddCheckins(item.checkins, listing);
-    return { kind: "checkin", id: got.id, href: HREF.checkin(got.id), checkins: { added: got.added, skipped: got.skipped, off: got.off } };
+    const got = await sampleAddCheckins(item.checkins, listing, { start: choices.start !== false });
+    return { kind: "checkin", id: got.id, href: HREF.checkin(got.id), checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } };
   }
   const made = await sampleAddSharedFlow(importSharedFlow(item.flow, choices.answers));
   return { kind: "flow", id: made.id, href: `#/flows/${encodeURIComponent(made.id)}` };

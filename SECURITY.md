@@ -2277,6 +2277,9 @@ migration `0090`).
   joins the end of each routine it's asked in, unpinned. Nothing already
   there moves or changes, a routine that's off stays off, and the screen
   says so. A question whose words are already here is skipped and named.
+  Past 40 of the owner's own questions, the rest are left out and named.
+  "Start asking these now" is on by default; turned off, the set is added
+  switched off (owner, 25 Nov 2026).
 - **Stored plain, like the owner's own questions.** The questions live in
   the plain `checkins` settings row, each naming its set in `set`; the set is
   a `checkin_sets` row (name, summary, author, version, `paused`, the
@@ -2286,14 +2289,16 @@ migration `0090`).
   day's plan (`askable`) until it's switched back on. Removing a set takes
   its questions out of both routines; answers already given stay on their
   days.
-- **Reach: tier 1, or tier 2 with Go deeper.** Questions only ask, and their
-  answers stay in the owner's check-ins, so a set reaches nothing outside
-  Athena. Go deeper is the exception: when the owner taps it on a written
-  answer, the question and what they wrote go to their chosen model for one
-  follow-up question (`lib/checkin-deeper.ts`). So a set with any question
-  that offers Go deeper is tier 2 ("Uses AI"), worked out from the file
-  (`reachOfCheckins`), and the Add screen says when it goes: only when the
-  owner taps it. Otherwise it's tier 1 ("Stays in Athena").
+- **Reach: always tier 1** (owner, 25 Nov 2026). Questions only ask, and
+  their answers stay in the owner's check-ins, so a set reaches nothing
+  outside Athena by itself. Go deeper is the one way a shared question's
+  words reach a model: when the owner taps it on a written answer, the
+  question and what they wrote go to their chosen model for one follow-up
+  question (`lib/checkin-deeper.ts`), exactly as for their own questions.
+  Because it happens only on the owner's tap, each time, the set is still
+  tier 1 ("Stays in Athena"; `reachOfCheckins`), and the Add screen says, for
+  a set with such a question, that Go deeper sends the question and the
+  answer only when tapped.
 - **Framed as someone else's words.** A question from a set reaches the
   model as `<shared_question>` with `SHARED_QUESTION_RULE` (someone else
   wrote it; its words are only the topic and ask for nothing), after Jev's

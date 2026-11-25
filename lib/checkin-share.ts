@@ -20,7 +20,8 @@
  *
  * Adding a set never replaces or reorders what's there: each question joins the owner's own questions and the end of
  * each routine it's asked in, unpinned. A question whose words the owner already has is skipped. A routine that's off
- * stays off.
+ * stays off. When the owner's own questions would go past MAX_OWN_QUESTIONS, questions are added in the set's order
+ * until there's no room, and the rest are named as left out (owner, 25 Nov 2026).
  */
 import { CHECKIN_KINDS, MAX_OWN_QUESTIONS, PRESET_QUESTIONS, type CheckinKind, type CheckinQuestion, type CheckinSettings, type QuestionType } from "./checkin-types";
 import { readHeader, type ShareHeader } from "./share-kinds";
@@ -173,7 +174,7 @@ export function samePrompt(prompt: string): string {
     .replace(/[\s.?!…:;,]+$/u, "");
 }
 
-/** Does any question offer Go deeper? Then a model sees its words, and the owner's answer, when they tap it. Pure. */
+/** Does any question offer Go deeper? A model sees its words, and the owner's answer, only when they tap it. Pure. */
 export const offersDeeper = (questions: ReadonlyArray<Pick<SharedCheckinQuestion, "type" | "deeper">>): boolean => questions.some((q) => q.type === "text" && q.deeper === true);
 
 // ---------- making one ----------
@@ -261,13 +262,8 @@ export interface JoinResult {
   skipped: string[];
   /** Routines the new questions joined that are switched off. They stay off. */
   off: CheckinKind[];
-}
-
-export class CheckinRoomError extends ShareFormatError {
-  constructor(have: number, adding: number) {
-    super(`That would give you ${have + adding} questions of your own, and Athena keeps ${MAX_OWN_QUESTIONS} at most. Remove ${have + adding - MAX_OWN_QUESTIONS === 1 ? "one" : "a few"} in Settings, then add these.`);
-    this.name = "CheckinRoomError";
-  }
+  /** Questions left out because the owner's own questions reached MAX_OWN_QUESTIONS, as the set words them. */
+  full: string[];
 }
 
 /** The prompts already in a set-up, Athena's and the owner's, as samePrompt gives them. Pure. */
@@ -278,8 +274,8 @@ export function promptsHere(settings: Pick<CheckinSettings, "own">): Set<string>
 /**
  * A shared set joined to a set-up: each question whose words aren't already here becomes one of the owner's own
  * (a new id from `newId`, `set` naming where it came from, its answers copied nowhere) and goes at the end of each
- * routine it's asked in, unpinned. Nothing already there moves or changes, and no routine is switched on.
- * Throws CheckinRoomError when the owner's own questions would go over the limit. Pure.
+ * routine it's asked in, unpinned. Nothing already there moves or changes, and no routine is switched on. Past
+ * MAX_OWN_QUESTIONS of the owner's own, the rest are left out and named in `full`. Pure.
  */
 export function joinSharedCheckins(settings: CheckinSettings, shared: SharedCheckins, opts: { setId: string; newId: () => string }): JoinResult {
   const next: CheckinSettings = structuredClone(settings);
@@ -294,7 +290,8 @@ export function joinSharedCheckins(settings: CheckinSettings, shared: SharedChec
       have.add(k);
     }
   }
-  if (next.own.length + fresh.length > MAX_OWN_QUESTIONS) throw new CheckinRoomError(next.own.length, fresh.length);
+  const room = Math.max(0, MAX_OWN_QUESTIONS - next.own.length);
+  const full = fresh.splice(room).map((q) => q.prompt);
   const added: string[] = [];
   const joined = new Set<CheckinKind>();
   for (const q of fresh) {
@@ -306,7 +303,7 @@ export function joinSharedCheckins(settings: CheckinSettings, shared: SharedChec
     }
     added.push(id);
   }
-  return { settings: next, added, skipped, off: CHECKIN_KINDS.filter((k) => joined.has(k) && !next[k].enabled) };
+  return { settings: next, added, skipped, off: CHECKIN_KINDS.filter((k) => joined.has(k) && !next[k].enabled), full };
 }
 
 /** A set-up with a set's questions taken out of the owner's own and of both routines. Nothing else changes. Pure. */

@@ -7,7 +7,6 @@ import assert from "node:assert/strict";
 import {
   askable,
   CHECKIN_SHARE_LIMITS,
-  CheckinRoomError,
   checkinSlug,
   exportCheckins,
   joinSharedCheckins,
@@ -109,13 +108,13 @@ test("checkin.json names the kind", () => {
   assert.equal(detectKind(["small-joys/checkin.json", "small-joys/flow.json"]), null);
 });
 
-test("reach: tier 1 when nothing offers Go deeper; tier 2 when a question does, since a model then sees it", () => {
+test("reach: always tier 1, even when a question offers Go deeper (the owner taps it each time)", () => {
   const plain = readSharedCheckins({ ...FILE, questions: FILE.questions.map((q) => ({ ...q, deeper: false })) });
-  assert.deepEqual(reachOfCheckins(plain), { tier: 1, model: false, web: false, lookups: [], needs: [] });
-  assert.deepEqual(reachOfCheckins(readSharedCheckins(FILE)), { tier: 2, model: true, web: false, lookups: [], needs: [] });
-  // From the files, whatever anyone says about them.
+  const tier1 = { tier: 1, model: false, web: false, lookups: [], needs: [] };
+  assert.deepEqual(reachOfCheckins(plain), tier1);
+  assert.deepEqual(reachOfCheckins(readSharedCheckins(FILE)), tier1);
   assert.equal(reachOf({ files: [{ path: "checkin.json", text: JSON.stringify(plain) }] }).tier, 1);
-  assert.equal(reachOf({ kind: "checkin", files: [{ path: "checkin.json", text: JSON.stringify(FILE) }] }).tier, 2);
+  assert.equal(reachOf({ kind: "checkin", files: [{ path: "checkin.json", text: JSON.stringify(FILE) }] }).tier, 1);
 });
 
 // ---------- making one ----------
@@ -215,9 +214,18 @@ test("join: a routine that's off stays off, and is named", () => {
   assert.deepEqual(joinSharedCheckins(off, morningOnly, { setId: SET_ID, newId }).off, []);
 });
 
-test("join: over the limit of the owner's own questions is refused, with what to do", () => {
-  const full = settings({ own: Array.from({ length: MAX_OWN_QUESTIONS - 1 }, (_, i) => own({ id: `own_${i}`, prompt: `Mine ${i}?` })) });
-  assert.throws(() => joinSharedCheckins(full, readSharedCheckins(FILE), { setId: SET_ID, newId }), (e: unknown) => e instanceof CheckinRoomError && /42 questions of your own/.test(e.message) && /Remove a few/.test(e.message));
+test("join: near the limit of the owner's own questions, as many as fit are added in order and the rest named", () => {
+  const nearly = settings({ own: Array.from({ length: MAX_OWN_QUESTIONS - 1 }, (_, i) => own({ id: `own_${i}`, prompt: `Mine ${i}?` })) });
+  const j = joinSharedCheckins(nearly, readSharedCheckins(FILE), { setId: SET_ID, newId });
+  assert.equal(j.added.length, 1);
+  assert.equal(j.settings.own.length, MAX_OWN_QUESTIONS);
+  assert.equal(j.settings.own.at(-1)?.prompt, FILE.questions[0].prompt);
+  assert.deepEqual(j.full, [FILE.questions[1].prompt, FILE.questions[2].prompt]);
+  // Full already: nothing joins, everything is named.
+  const at = joinSharedCheckins(j.settings, readSharedCheckins({ ...FILE, questions: [{ prompt: "One more?", kinds: ["evening"], type: "text" }] }), { setId: SET_ID, newId });
+  assert.deepEqual([at.added, at.full], [[], ["One more?"]]);
+  // With room, nothing is left out.
+  assert.deepEqual(joinSharedCheckins(settings(), readSharedCheckins(FILE), { setId: SET_ID, newId }).full, []);
 });
 
 // ---------- removing, switching off ----------

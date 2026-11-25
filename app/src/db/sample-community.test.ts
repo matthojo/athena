@@ -57,7 +57,7 @@ test("every sample listing is named as its files name it, so the list and the pr
 test("sample check-in questions: listed sets read, and Sunday reset is taken down and switched off", async () => {
   const index = await sampleCatalogue();
   const sets = index.items.filter((i) => i.kind === "checkin");
-  assert.deepEqual(sets.map((s) => [s.name, s.reach.tier]), [["Small joys", 1], ["Slow mornings", 2]]);
+  assert.deepEqual(sets.map((s) => [s.name, s.reach.tier]), [["Small joys", 1], ["Slow mornings", 1]]);
   const { sampleSetOf, SAMPLE_SET_ID } = await import("./sample-checkins");
   assert.equal(sampleSetOf(SAMPLE_SET_ID)?.paused, true);
   const updates = await sampleUpdates();

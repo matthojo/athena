@@ -141,18 +141,19 @@ export interface SampleAddedCheckins {
   added: number;
   skipped: string[];
   off: CheckinKind[];
+  full: string[];
 }
 
-/** Add a shared set, as the server's Add would: read again, joined after what's here. */
-export async function sampleAddCheckins(raw: SharedCheckins, listing?: { id: string; hash: string; version: string | null }): Promise<SampleAddedCheckins> {
+/** Add a shared set, as the server's Add would: read again, joined after what's here, switched off when `start` is false. */
+export async function sampleAddCheckins(raw: SharedCheckins, listing?: { id: string; hash: string; version: string | null }, opts: { start?: boolean } = {}): Promise<SampleAddedCheckins> {
   await wait(200);
   const shared = readSharedCheckins(raw);
   const id = newSetId();
   const j = joinSharedCheckins(settings, shared, { setId: id, newId: newOwnId });
   settings = j.settings;
-  sets.push({ id, name: shared.name, summary: shared.summary, author: shared.author ?? null, version: shared.version ?? listing?.version ?? null, paused: false, catalogue_id: listing?.id ?? null, added_at: new Date().toISOString() });
+  sets.push({ id, name: shared.name, summary: shared.summary, author: shared.author ?? null, version: shared.version ?? listing?.version ?? null, paused: opts.start === false, catalogue_id: listing?.id ?? null, added_at: new Date().toISOString() });
   if (listing) setHashes.set(id, listing.hash);
-  return { id, added: j.added.length, skipped: j.skipped, off: j.off };
+  return { id, added: j.added.length, skipped: j.skipped, off: j.off, full: j.full };
 }
 
 /** Update a set to a newer listing: its questions out, the new version's in. It keeps whether it's switched off. */
@@ -165,7 +166,7 @@ export async function sampleReplaceCheckins(id: string, raw: SharedCheckins, lis
   settings = j.settings;
   sets[at] = { ...sets[at], name: shared.name, summary: shared.summary, author: shared.author ?? null, version: listing.version, catalogue_id: listing.id };
   setHashes.set(id, listing.hash);
-  return { id, added: j.added.length, skipped: j.skipped, off: j.off };
+  return { id, added: j.added.length, skipped: j.skipped, off: j.off, full: j.full };
 }
 
 export async function sampleSetPaused(id: string, paused: boolean): Promise<CheckinSettingsView> {

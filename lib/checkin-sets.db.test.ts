@@ -60,6 +60,13 @@ test("add: the set joins after what's there, skips words already here, and leave
   assert.ok(c.plan.length > 0);
 });
 
+test("add switched off: \"Start asking these now\" turned off adds the set paused", { skip }, async () => {
+  const { loadSettingsView } = await import("./checkins");
+  const { addSharedCheckins } = await import("./checkin-sets");
+  await addSharedCheckins(FILE, undefined, { start: false });
+  assert.equal((await loadSettingsView()).sets[0].paused, true);
+});
+
 test("switch off, on, and remove: a paused set's questions aren't planned; removed, they're gone", { skip }, async () => {
   const { loadSettingsView, saveCheckinSettings, getCheckin } = await import("./checkins");
   const { addSharedCheckins, setCheckinSetPaused, removeCheckinSet } = await import("./checkin-sets");
