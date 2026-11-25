@@ -1037,8 +1037,9 @@ mark {
   fill: var(--accent);
 }
 
+/* The wordmark keeps its own face under any theme or font choice (tokens.css --font-wordmark). */
 .brand-name {
-  font-family: var(--font-display);
+  font-family: var(--font-wordmark);
   font-size: var(--text-title);
   font-weight: var(--weight-semibold);
   letter-spacing: -0.015em;

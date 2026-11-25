@@ -41,18 +41,29 @@ test("the public set is small, and defined where it should be", () => {
 test("the system tokens derive from the public ones", () => {
   const derives: Record<string, string> = {
     canvas: "page", surface: "surface", sunken: "sunken", line: "border", ink: "text", "ink-2": "text-muted",
-    accent: "accent", "on-accent": "on-accent", focus: "focus", "font-ui": "font-ui", "font-display": "font-display", "font-mono": "font-mono",
+    accent: "accent", "on-accent": "on-accent", focus: "focus",
   };
   for (const [token, from] of Object.entries(derives)) {
     assert.match(TOKENS, new RegExp(`\\n  --${token}: var\\(--theme-${from}\\);`), `--${token}`);
     assert.doesNotMatch(DARK, new RegExp(`\\n  --${token}:`), `--${token} isn't restated for dark`);
   }
-  for (const m of TOKENS.matchAll(/\n {2}--text-[\w-]+: ([^;]+);/g)) assert.match(m[1], /^calc\([\d.]+rem \* var\(--theme-text-scale\)\)$/);
+  // Fonts and text size: Athena's default, then a theme's, then a person's own choice on top.
+  for (const f of ["ui", "display", "mono"]) assert.match(TOKENS, new RegExp(`\\n  --font-${f}: var\\(--user-font-${f}, var\\(--theme-font-${f}\\)\\);`), `--font-${f}`);
+  for (const m of TOKENS.matchAll(/\n {2}--text-[\w-]+: ([^;]+);/g)) assert.match(m[1], /^calc\([\d.]+rem \* var\(--user-text-scale, var\(--theme-text-scale\)\)\)$/);
+  assert.doesNotMatch(TOKENS, /--user-[\w-]+:/, "a person's overrides are unset until they choose one");
   for (const m of TOKENS.matchAll(/\n {2}--space-[\w-]+: ([^;]+);/g)) assert.match(m[1], /^calc\([\d.]+px \* var\(--theme-density\)\)$/);
   for (const m of TOKENS.matchAll(/\n {2}--radius-([\w-]+): ([^;]+);/g)) {
     if (m[1] === "pill") continue;
     assert.match(m[2], /^calc\([\d.]+px \* var\(--theme-radius\)\)$/);
   }
+});
+
+test("the Athena wordmark keeps its own face: not themed, not overridden", () => {
+  const value = /\n {2}--font-wordmark: ([^;]+);/.exec(TOKENS)?.[1] ?? "";
+  assert.match(value, /^"Funnel Display"/);
+  assert.doesNotMatch(value, /var\(/, "written out, not taken from --theme-* or --user-*");
+  const css = readFileSync(new URL("../styles/components.css", import.meta.url), "utf8");
+  assert.match(css, /\n\.brand-name \{\n {2}font-family: var\(--font-wordmark\);/);
 });
 
 function sheets(): [string, string][] {

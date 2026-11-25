@@ -430,7 +430,20 @@ the stylesheets use are built from them:
 | `--theme-text-scale` | a multiplier on every `--text-*` | type sizes |
 
 No remote font is loaded: a theme names fonts on the device or in
-`app/public/fonts/`. Font sizes and radii were already tokens
+`app/public/fonts/`.
+
+Fonts and text size have three layers, and the last one set wins: Athena's
+default (the `--theme-*` values in `tokens.css`), then a theme's own
+`--theme-*` values, then the person's own choice, `--user-font-ui`,
+`--user-font-display`, `--user-font-mono` and `--user-text-scale`. Those are
+unset until someone picks one (a font they read more easily, larger text),
+and no theme can override them. There's no control for them yet.
+
+One thing is outside the theme surface: the Athena wordmark beside the mark
+(the sidebar, Home's header) keeps Funnel Display under every theme and every
+personal choice. Its rule uses `--font-wordmark`, which is written out in
+`tokens.css` and never taken from `--theme-*` or `--user-*`
+(`lib/theme-surface.test.ts`). Font sizes and radii were already tokens
 (`lib/type-scale.test.ts`); every font family is now one, and spacing on the
 4pt scale is written as `--space-*` (`lib/theme-surface.test.ts`). About half
 the spacing values in the stylesheets are off the scale (6, 10 and 14px

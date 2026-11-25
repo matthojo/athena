@@ -89,24 +89,30 @@
 :root {
   color-scheme: light;
 
-  /* ---------- Type: sizes times --theme-text-scale ---------- */
-  --font-display: var(--theme-font-display);
-  --font-ui: var(--theme-font-ui);
-  --font-mono: var(--theme-font-mono);
+  /* ---------- Type: sizes times the text scale (a person's --user-text-scale, else the theme's) ---------- */
+  /* Three layers, last wins: Athena's default (the --theme-* values above), a
+     theme's own --theme-* values, then a person's choice (--user-*, unset
+     unless they pick one, for reading comfort), which no theme overrides. */
+  --font-display: var(--user-font-display, var(--theme-font-display));
+  --font-ui: var(--user-font-ui, var(--theme-font-ui));
+  --font-mono: var(--user-font-mono, var(--theme-font-mono));
+  /* The Athena wordmark's face. Never themed and never overridden: it is
+     written out here, not taken from --theme-* or --user-*. */
+  --font-wordmark: "Funnel Display", "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
   /* The italic button in the editor's toolbar shows its I in a serif. */
   --font-serif: Georgia, serif;
 
-  --text-meta: calc(0.75rem * var(--theme-text-scale)); /* 12 — timestamps, counts */
-  --text-small: calc(0.875rem * var(--theme-text-scale)); /* 14 — secondary UI, snippets */
-  --text-ui: calc(0.9375rem * var(--theme-text-scale)); /* 15 — list titles, chat bubbles */
-  --text-body: calc(1rem * var(--theme-text-scale)); /* 16 — body, inputs */
-  --text-title: calc(1.25rem * var(--theme-text-scale)); /* 20 — section and card titles (display face) */
-  --text-heading: calc(1.75rem * var(--theme-text-scale)); /* 28 — page titles */
-  --text-display: calc(2.125rem * var(--theme-text-scale)); /* 34 — the home headline */
+  --text-meta: calc(0.75rem * var(--user-text-scale, var(--theme-text-scale))); /* 12 — timestamps, counts */
+  --text-small: calc(0.875rem * var(--user-text-scale, var(--theme-text-scale))); /* 14 — secondary UI, snippets */
+  --text-ui: calc(0.9375rem * var(--user-text-scale, var(--theme-text-scale))); /* 15 — list titles, chat bubbles */
+  --text-body: calc(1rem * var(--user-text-scale, var(--theme-text-scale))); /* 16 — body, inputs */
+  --text-title: calc(1.25rem * var(--user-text-scale, var(--theme-text-scale))); /* 20 — section and card titles (display face) */
+  --text-heading: calc(1.75rem * var(--user-text-scale, var(--theme-text-scale))); /* 28 — page titles */
+  --text-display: calc(2.125rem * var(--user-text-scale, var(--theme-text-scale))); /* 34 — the home headline */
   /* 11: only where a glyph has to fit a fixed cell (the habit grid's day
      letters, a count badge on an icon). Never for a sentence. */
-  --text-micro: calc(0.6875rem * var(--theme-text-scale));
-  --text-hero: calc(2.75rem * var(--theme-text-scale)); /* 44 — the one line a page opens on, on a wide screen: Home's greeting, a day's date, a recap */
+  --text-micro: calc(0.6875rem * var(--user-text-scale, var(--theme-text-scale)));
+  --text-hero: calc(2.75rem * var(--user-text-scale, var(--theme-text-scale))); /* 44 — the one line a page opens on, on a wide screen: Home's greeting, a day's date, a recap */
 
   --leading-tight: 1.08;
   --leading-snug: 1.3;
