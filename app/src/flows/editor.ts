@@ -27,8 +27,11 @@ import { openAddStep } from "./add-step";
 import { openStepSheet } from "./step-sheet";
 import { openTriggerSheet } from "./trigger-sheet";
 import { openHandSheet } from "./hand-sheet";
+import { openShareFlow } from "./share-sheet";
+import { needsAssistant, unansweredWords } from "../../../lib/flow-share";
 import { refKey } from "./text";
 import { triggerWords } from "./words";
+import { catalogueStatus } from "../community/status";
 import { clockOfDay } from "../lib/clock";
 
 export interface EditorContext {
@@ -60,6 +63,8 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
   const body = h("div", { class: "flow-ed", "aria-busy": "true" });
   const foot = h("div", { class: "flow-foot", hidden: true });
   const el = h("div", { class: "view flows flows--editor" }, h("div", { class: "flow-top" }, back, more), body, foot);
+  // The catalogue's word on this flow (an update, or taken down): under its title and switch, drawn once.
+  const status = catalogueStatus("flow", ctx.id);
 
   let alive = true;
   let flow: Flow;
@@ -329,8 +334,24 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
       "div",
       { class: "flow-hero" },
       h("h1", { class: "page-title flow-hero__name" }, flow.name),
-      h("div", { class: "flow-hero__row flow-hero__row--between" }, h("span", { class: "flow-hero__kind" }, flowKindWords(flow)), onRow)
+      h("div", { class: "flow-hero__row flow-hero__row--between" }, h("span", { class: "flow-hero__kind" }, flowKindWords(flow)), onRow),
+      sharedNote()
     );
+  }
+
+  /** A flow added from a file that isn't ready to switch on: questions nobody answered, or thinking with no assistant. */
+  function sharedNote(): HTMLElement | "" {
+    const left = flow.unfilled ?? [];
+    if (left.length) {
+      const asks = [...new Set(left.map((u) => u.question))];
+      return h("p", { class: "flow-note", role: "status" }, icons.flag(), h("span", {}, left.length === 1 ? `Before it can go on, set the step that asks “${asks[0]}”` : `Before it can go on, set the ${left.length} steps that still have questions: ${asks.map((q) => `“${q}”`).join(", ")}`));
+    }
+    if (flow.origin === "shared" && !flow.assistant_id && flow.paused && needsAssistant(flow.steps)) {
+      const pick = h("button", { class: "flow-link", type: "button" }, "Pick an assistant");
+      pick.addEventListener("click", () => openHandSheet({ flow, onHanded: handed }));
+      return h("p", { class: "flow-note", role: "status" }, icons.flag(), h("span", {}, "Its thinking steps need one of your assistants before it can go on. ", pick));
+    }
+    return "";
   }
 
   function triggerCard(): HTMLElement {
@@ -400,6 +421,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     const notesEl = notes.length ? h("div", { class: "flow-drawn", role: "note" }, h("span", { class: "flow-drawn__title" }, "Athena made these steps from your sentence. Check them:"), h("ul", {}, ...notes.map((x) => h("li", {}, x)))) : null;
     body.replaceChildren(
       hero(),
+      status,
       notesEl ?? "",
       h("span", { class: "flow-eyebrow" }, "When"),
       triggerCard(),
@@ -452,19 +474,27 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
   // ---------- the More menu ----------
   more.addEventListener("click", () => {
     if (!flow) return;
-    const runNow = h("button", { class: "flow-menu__item", type: "button" }, icons.play(), "Run now");
+    // A flow added from a file can't run until its questions are answered: Run now says so instead.
+    const unanswered = unansweredWords(flow.unfilled);
+    const runNow = h("button", { class: "flow-menu__item", type: "button", disabled: !!unanswered, ...(unanswered ? { "aria-describedby": "flow-run-why" } : {}) }, icons.play(), unanswered ? h("span", { class: "flow-menu__text" }, "Run now", h("span", { class: "flow-menu__why", id: "flow-run-why" }, unanswered)) : "Run now");
     const rename = h("button", { class: "flow-menu__item", type: "button" }, icons.pen(), "Rename");
+    const share = h("button", { class: "flow-menu__item", type: "button" }, icons.send(), "Share");
     const giveBackBtn = assistant ? h("button", { class: "flow-menu__item", type: "button" }, icons.restore(), `Run it without ${assistant.name}`) : null;
     const del = h("button", { class: "flow-menu__item flow-menu__item--danger", type: "button" }, icons.trash(), "Delete");
-    const sheet = openSheet({ label: flow.name, title: flow.name, body: h("div", { class: "flow-menu" }, runNow, rename, giveBackBtn, del) });
+    const sheet = openSheet({ label: flow.name, title: flow.name, body: h("div", { class: "flow-menu" }, runNow, rename, share, giveBackBtn, del) });
+    share.addEventListener("click", async () => {
+      sheet.close();
+      await afterSheet();
+      openShareFlow(flow);
+    });
     runNow.addEventListener("click", async () => {
       sheet.close();
       await afterSheet();
       try {
         const run = await runFlow(flow.id, false);
         ctx.openRun(run.id);
-      } catch {
-        showToast("Couldn't start it. Try again.");
+      } catch (error) {
+        showToast((error as { status?: number }).status === 409 && error instanceof Error ? error.message : "Couldn't start it. Try again.");
       }
     });
     rename.addEventListener("click", () => {

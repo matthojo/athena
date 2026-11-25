@@ -3,6 +3,7 @@
  * badge, what starts it, its shape, who runs it, and how its last run went.
  */
 import { h } from "../lib/dom";
+import { updateDot } from "../community/status";
 import type { Flow, FlowRun } from "../../../lib/flow-types";
 import type { TeamAssistant } from "../../../lib/team-types";
 import { badge, chain, face } from "./parts";
@@ -14,7 +15,7 @@ export function flowCard(f: Flow, latest: FlowRun | undefined, o: { assistant?: 
   const b = h(
     "button",
     { class: `card flow-row${o.compact ? " flow-row--compact" : ""}`, type: "button" },
-    h("span", { class: "flow-row__head" }, h("span", { class: "flow-row__name" }, f.name), badge(flowBadge(f, latest))),
+    h("span", { class: "flow-row__head" }, h("span", { class: "flow-row__name" }, f.name, updateDot("flow", f.id)), badge(flowBadge(f, latest))),
     h("span", { class: "flow-row__when" }, triggerWords(f.trigger)),
     h("span", { class: "flow-row__shape" }, chain(f), o.compact ? null : who),
     o.compact ? null : h("span", { class: "flow-row__last" }, lastRunLine(latest))

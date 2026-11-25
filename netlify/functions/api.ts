@@ -100,6 +100,8 @@ import { handleTeamChatRoutes, type ChatDesk } from "../lib/team-chat-routes";
 import { settlePlanPosts } from "../../lib/team-posts";
 import { startTeamEvent } from "../../lib/team-triggers";
 import { handleSkillRoutes } from "../lib/skills-routes";
+import { handleCommunityRoutes } from "../lib/community-routes";
+import { handleCommunityAddRoutes } from "../lib/community-add-routes";
 import { draftSkill } from "../../lib/skill-draft";
 import { answerEvent } from "../../lib/rsvp";
 import { calendarPort } from "../lib/connectors/calendar-rsvp";
@@ -1508,8 +1510,10 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
     const run = (tool: string, input: unknown) => runPlanTool(tool, input, { gmail: mailPort, slack: slackPort, ...ports });
     // A plan a flow's run waits on goes through the run's own Go (owner, 21 Nov 2026), as on the run page: a draft is
     // kept as that run's change, and the run carries on now.
-    const viaFlow = await goWaitingFlowPlan(body?.id, body?.ticked, { ports: { gmail: mailPort, slack: slackPort, ...ports }, handOff: (id) => handOffFlowRun(new URL(req.url).origin, id) });
-    const went = viaFlow ?? (await goPlan(body?.id, body?.ticked, { run, log: logChanges }));
+    // The owner's answer to a plan that stopped for an account (lib/ask-plans.ts goPlan) carries on from that step.
+    const answering = body?.account !== undefined;
+    const viaFlow = answering ? null : await goWaitingFlowPlan(body?.id, body?.ticked, { ports: { gmail: mailPort, slack: slackPort, ...ports }, handOff: (id) => handOffFlowRun(new URL(req.url).origin, id) });
+    const went = viaFlow ?? (await goPlan(body?.id, body?.ticked, { run, log: logChanges, undo: (c) => applyUndo(c.undo, ports) }, answering ? { account: body!.account } : {}));
     // A stage of an assignment that waited on this plan moves on now, not at the next reminders pass (lib/assignment-run.ts).
     await sweepAssignments().catch((error) => console.warn("Athena assignments: sweep after an approval failed", error instanceof Error ? error.message : error));
     // A Go on a Team run's plan settles its post in Team chat (lib/team-posts.ts).
@@ -2076,6 +2080,16 @@ export default async (req: Request, _context: Context) => {
     // Ask's skills: the list, the editor, uploads and link imports (netlify/lib/skills-routes.ts).
     if (first === "skills") {
       const handled = await handleSkillRoutes(req, segments, () => parseJsonBody(req), (d, s) => json(req, d, s));
+      if (handled) return handled;
+    }
+    // Community: the catalogue, update checks and the owner's switch (netlify/lib/community-routes.ts).
+    if (first === "community") {
+      const handled = await handleCommunityRoutes(req, segments, () => parseJsonBody(req), (d, s) => json(req, d, s));
+      if (handled) return handled;
+    }
+    // Then Community's #/add: the preview every shared item goes through, and adding it (netlify/lib/community-add-routes.ts).
+    if (first === "community" && (second === "preview" || second === "add")) {
+      const handled = await handleCommunityAddRoutes(req, segments, (d, s) => json(req, d, s), { waitUntil: _context?.waitUntil?.bind(_context) });
       if (handled) return handled;
     }
     if (first === "nudges") {

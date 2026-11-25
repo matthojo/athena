@@ -8,34 +8,29 @@
  *   places, organisations, projects, email addresses, phone numbers, profile
  *   and account names. Nothing is kept: the edits only change the file.
  * - `shareZip`: the download, once nothing is left to check.
- * - `previewImport`: POST /api/team/import/preview. A zip, a folder's
- *   files, an assistant.json or a GitHub link, read once, with the accounts it
- *   needs and whether they're connected. Nothing is kept.
- * - `importAssistant`: POST /api/team/import. The assistant, paused, with
+ * - `importAssistant`: through POST /api/community/add (netlify/lib/community-add-routes.ts),
+ *   once the Add screen's preview was seen. The assistant, paused, with
  *   only the tools the owner ticked (and the file asked for) allowed to
  *   run alone, and its skill with their answers added.
  */
 import { AthenaInputError, q } from "./db";
 import { listFacts } from "./memory";
-import { listConnectors } from "./connectors";
-import { createAssistant, getAssistant, listAssistants } from "./team";
+import { listConnectors, offeredInAsk, type Connector } from "./connectors";
+import { cleanAccountIds, orderAccounts, type AccountRow } from "./shared-limits";
+import { createAssistant, getAssistant, updateAssistant } from "./team";
 import { triggersMoved } from "./team-flows";
 import { avatarFromSeed } from "./team-seed";
-import { MAX_ASSISTANTS, MAX_GREETING, MAX_INSTRUCTIONS, MAX_JOB, MAX_NAME, type TeamAssistant } from "./team-types";
+import { MAX_GREETING, MAX_INSTRUCTIONS, MAX_JOB, MAX_NAME, type TeamAssistant } from "./team-types";
 import { assistantSkill, putAssistantSkill } from "./skills-store";
 import { attachSkill } from "./team-skill-make";
 import { fitAnswers, fitTeamSkill, hashText, MAX_CHOICE, MAX_CHOICES, MAX_QUESTION, MAX_QUESTIONS, MAX_SUMMARY, skillBasis } from "./team-skill";
-import { serialiseSkillMd, SKILL_LIMITS, SkillFormatError, type IntakeEntry, type SkillSource } from "./skills";
-import { readSkillZip, writeSkillZip } from "./skill-zip";
-import { fetchGithubFolder } from "./skill-fetch";
+import { serialiseSkillMd, SKILL_LIMITS, type SkillSource } from "./skills";
+import { writeSkillZip } from "./skill-zip";
 import {
   addRemoved,
-  bundleFromEntries,
-  bundleFromText,
   checkFields,
   findPersonal,
   grantedTools,
-  linkedHosts,
   parseShareLink,
   readShared,
   scrubText,
@@ -50,10 +45,8 @@ import {
   ASSISTANT_FILE,
   type KnownTerm,
   type Removed,
-  type SharedBundle,
   type ShareEdits,
   type ShareExport,
-  type ImportPreview,
   type SharedSkill,
 } from "./team-share";
 
@@ -213,47 +206,13 @@ export function shareZip(x: ShareExport): Uint8Array {
 
 // ---------- adding one ----------
 
-const asShareError = (error: unknown): never => {
-  if (error instanceof SkillFormatError) throw new ShareFormatError(error.message.replace("for a skill", "for an assistant").replace("A skill is mostly text", "A shared assistant is mostly text"));
-  throw error;
-};
-
-const bytesOf = (b64: unknown): Uint8Array => {
-  if (typeof b64 !== "string" || !/^[A-Za-z0-9+/=\s]*$/.test(b64)) throw new ShareFormatError("That file didn't arrive whole. Try again.");
-  return new Uint8Array(Buffer.from(b64, "base64"));
-};
-
-/** A shared from what the app sent: a zip, a folder's files, an assistant.json, or a GitHub link. Throws ShareFormatError. */
-export async function bundleFrom(body: Record<string, unknown>, now = new Date()): Promise<SharedBundle> {
-  const at = now.toISOString();
-  const file = typeof body.file === "string" ? body.file.slice(0, 200) : undefined;
-  const upload: SkillSource = { kind: "upload", ...(file ? { file } : {}), at };
-  try {
-    if (typeof body.url === "string") {
-      const url = body.url.trim().slice(0, 2048);
-      const link = parseShareLink(url);
-      return bundleFromEntries(await fetchGithubFolder(link), { kind: "link", url, at });
-    }
-    if (body.zip !== undefined) return bundleFromEntries(readSkillZip(bytesOf(body.zip)), upload);
-    if (Array.isArray(body.entries)) {
-      if (body.entries.length > 500) throw new ShareFormatError("That folder has too many files for an assistant.");
-      const entries: IntakeEntry[] = body.entries.map((e) => ({ path: String((e as { path?: unknown })?.path ?? ""), bytes: bytesOf((e as { data?: unknown })?.data ?? "") }));
-      return bundleFromEntries(entries, upload);
-    }
-    if (typeof body.assistant_json === "string") return bundleFromText(body.assistant_json.slice(0, 200_000), upload, typeof body.skill_md === "string" ? body.skill_md.slice(0, SKILL_LIMITS.body + 5_000) : undefined);
-  } catch (error) {
-    return asShareError(error);
-  }
-  throw new ShareFormatError("Send a shared assistant's zip, its folder, its assistant.json or a GitHub link.");
-}
-
-/** Everything an import would add, with the accounts it needs and whether they're connected. Nothing is kept. */
-export async function previewImport(body: Record<string, unknown>, now = new Date()): Promise<ImportPreview> {
-  const bundle = await bundleFrom(body, now);
-  const [connectors, team] = await Promise.all([listConnectors().catch(() => []), listAssistants()]);
-  const have = new Set(connectors.filter((c) => c.status !== "error").map((c) => c.provider));
-  const texts = [bundle.shared.instructions, bundle.shared.summary, bundle.skill?.body ?? "", ...(bundle.skill?.files.map((f) => f.text) ?? [])];
-  return { ...bundle, needs: bundle.shared.needs.map((id) => ({ id, connected: have.has(id) })), links: linkedHosts(texts), room: team.length < MAX_ASSISTANTS };
+/**
+ * This Athena's connected accounts as tick rows, the ones a shared needs first: every account a turn could open
+ * (a custom server only with "Use in Ask" on, since nothing else reaches one). Pure.
+ */
+export function accountRows(connectors: Connector[], needs: readonly string[]): AccountRow[] {
+  const rows = connectors.filter((c) => offeredInAsk(c)).map((c) => ({ id: c.id, provider: c.provider, name: c.name, ...(c.account_label ? { label: c.account_label } : {}) }));
+  return orderAccounts(rows, needs);
 }
 
 function sourceOf(raw: unknown, now: Date): SkillSource {
@@ -276,7 +235,32 @@ function sourceOf(raw: unknown, now: Date): SkillSource {
  * one Athena writes from the job and the answers. Returns the assistant; the
  * second value is the skill still being written, when there is one.
  */
-export async function importAssistant(body: Record<string, unknown>, now = new Date()): Promise<{ assistant: TeamAssistant; writing: Promise<unknown> | null }> {
+/**
+ * Update an assistant added from the catalogue to a newer version (the Add screen's Update): its job, instructions,
+ * personality and skill become the new version's, with the owner's answers. What it may do alone is only what the
+ * owner ticked this time that the new version asked for; the web and accounts likewise. Its name, looks, chats, runs
+ * and flows stay. It's paused, as a newly added one is. The second value is the skill still being written, if any.
+ */
+export async function updateImportedAssistant(id: string, body: Record<string, unknown>, now = new Date()): Promise<{ assistant: TeamAssistant; writing: Promise<unknown> | null }> {
+  const { w, answers, skillBody, files } = readImport(body);
+  const a = await updateAssistant(id, {
+    job: w.job,
+    instructions: w.instructions,
+    ...(w.personality ? { personality: w.personality } : {}),
+    allow: grantedTools(w, body.allow),
+    web: body.web === true && w.web,
+    paused: true,
+    accounts: cleanAccountIds(body.accounts),
+  });
+  const source = sourceOf(body.source, now);
+  const fitted = skillBody ? fitTeamSkill({ body: withAnswers(skillBody, answers).slice(0, SKILL_LIMITS.body), summary: w.summary }, a) : null;
+  if (!fitted) return { assistant: a, writing: attachSkill(a.id, answers) };
+  await putAssistantSkill(a.id, fitted, { basis: skillBasis(a), made: hashText(fitted.body.trim()), summary: fitted.summary, answers }, { files, source });
+  return { assistant: a, writing: null };
+}
+
+/** An import's body, read and checked: the shared assistant, the answers, and its skill's text and files. */
+function readImport(body: Record<string, unknown>) {
   let w;
   try {
     w = readShared(body.shared);
@@ -294,6 +278,11 @@ export async function importAssistant(body: Record<string, unknown>, now = new D
     if (error instanceof ShareFormatError) throw new AthenaInputError(error.message);
     throw error;
   }
+  return { w, answers, skillBody, files };
+}
+
+export async function importAssistant(body: Record<string, unknown>, now = new Date()): Promise<{ assistant: TeamAssistant; writing: Promise<unknown> | null }> {
+  const { w, answers, skillBody, files } = readImport(body);
   const asFlows = await triggersMoved();
   const a = await createAssistant({
     ...(w.name ? { name: w.name } : {}),
@@ -308,7 +297,9 @@ export async function importAssistant(body: Record<string, unknown>, now = new D
     // Once triggers are flows (lib/team-flows.ts), each becomes a paused flow of its own, marked as imported: turning
     // the assistant on turns on the ones that have never run (lib/team.ts updateAssistant).
     triggers: triggerInputs(w).map((t) => (asFlows ? { ...t, paused: true } : t)),
-  }, { origin: "shared" });
+    // The connected accounts the owner ticked for it; none ticked, it opens none (lib/shared-limits.ts).
+    accounts: cleanAccountIds(body.accounts),
+  }, { origin: "shared", needs: w.needs });
   const source = sourceOf(body.source, now);
   const fitted = skillBody ? fitTeamSkill({ body: withAnswers(skillBody, answers).slice(0, SKILL_LIMITS.body), summary: w.summary }, a) : null;
   if (!fitted) return { assistant: a, writing: attachSkill(a.id, answers) };

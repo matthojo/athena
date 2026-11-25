@@ -29,6 +29,7 @@ import { ASSET_META, renewalLabel } from "../lib/memory-meta";
 import type { Commitment, EntityKind, Note, Renewal, Upcoming, UpcomingItem } from "../types";
 import type { ViewId } from "../components/nav";
 import { profileSetupCard } from "../components/profile-card";
+import { accountsNoticeCard } from "../components/accounts-notice";
 import { homePersonal, rememberedName } from "../components/home-personal";
 import { pageHead } from "../components/page-head";
 import { phaseAt } from "../components/day-words";
@@ -278,6 +279,8 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
 
   // Until the owner has told Athena about themselves (or said not now): the profile wizard.
   const setupCard = profileSetupCard();
+  // Once, after the update that limits imported skills: those that lost their accounts (accounts-notice.ts).
+  const acctNotice = accountsNoticeCard();
 
   // Friday to Sunday: a way into the weekly review.
   const dow = new Date(`${localToday()}T12:00:00Z`).getUTCDay();
@@ -543,7 +546,7 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
     h("ul", { class: "home-more__list" }, more("calendar", "This week", openWeek), more("person", "Your people", () => ctx.go("people")), more("notes", "Notes", () => ctx.goNotes(null)), more("flag", "Goals", () => ctx.go("goals")))
   );
 
-  const blocks = [topbar, headline, ask.el, fwAsk, fwYesterday, waiting.el, today, fwCard, briefing, setupCard.el, weekBanner, todo, moreNav];
+  const blocks = [topbar, headline, ask.el, fwAsk, fwYesterday, waiting.el, today, fwCard, briefing, setupCard.el, acctNotice.el, weekBanner, todo, moreNav];
   if (!introPlayed) {
     blocks.forEach((b, i) => {
       b.classList.add("reveal");
@@ -569,7 +572,7 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
       waiting.el,
       today,
       prep,
-      h("div", { class: "home-banners" }, personal.banner, fwCard, briefing, setupCard.el, weekBanner),
+      h("div", { class: "home-banners" }, personal.banner, fwCard, briefing, setupCard.el, acctNotice.el, weekBanner),
       todo,
       nudges
     ),
@@ -798,6 +801,7 @@ export function renderHome(ctx: HomeContext): { el: HTMLElement; destroy: () => 
       clearInterval(dayClock);
       document.removeEventListener("visibilitychange", onBack);
       setupCard.destroy();
+      acctNotice.destroy();
       ask.destroy();
       personal.destroy();
       gone = true;

@@ -116,13 +116,13 @@ import "../styles/ask-polish.css";
 import "../styles/ask-choices.css";
 import "../styles/ask-plans.css";
 import "../styles/skills.css";
-import { fetchTonight, goPlan, undoPlanAll } from "../db/ask-plans";
-import { SAMPLE_PLAN_REQUEST, SAMPLE_ROUTINE_REQUEST, samplePlan, sampleRoutineChange } from "../db/sample-ask-plans";
+import { answerPlanAccount, fetchTonight, goPlan, undoPlanAll } from "../db/ask-plans";
+import { SAMPLE_PLAN_REQUEST, SAMPLE_ROUTINE_REQUEST, samplePlan, sampleRoutineChange, sampleSkillPlan } from "../db/sample-ask-plans";
 import type { AnswerReply, AnswerSource, RelatedItem } from "../../../lib/answer-text";
 import { lineupCard } from "../team/lineup-card";
 import { askFlowCard, FLOW_WORDS, sampleFlowReply } from "../components/ask-flow-card";
 import { draftLineup } from "../db/assignments";
-import type { AskConfirmCard, AskFile, AskStep, AskThread, WatchPick, AssistantChange, AssistantReply, AssistantTurn, EntityKind, Note, RecallHit, RecallKind, SavedAskMessage } from "../types";
+import type { AskConfirmCard, AskPlan, AskFile, AskStep, AskThread, WatchPick, AssistantChange, AssistantReply, AssistantTurn, EntityKind, Note, RecallHit, RecallKind, SavedAskMessage } from "../types";
 import { pageHead } from "../components/page-head";
 import { ATHENA, checkedWith, findWho, loadTeam, pickWho, teamLoaded, teammateSources, whoLead, whoMark, whoOf, type Who } from "../components/ask-who";
 import { ATHENA_STATUS, WORKING } from "../lib/who-status";
@@ -932,6 +932,76 @@ function actedEls(m: Acting, ctx: AskContext, choose: (text: string) => void, re
 
 // ---------- Plans (lib/ask-plans.ts) and tonight's picks ----------
 
+/** "Gmail (sam@example.com)", or just "Gmail". */
+const accountWords = (ask: NonNullable<AskPlan["needs_account"]>) => (ask.label ? `${ask.account} (${ask.label})` : ask.account);
+
+/**
+ * Go stopped at a step that needs an account the imported assistant that proposed the plan, or an imported skill in
+ * use when it was made, isn't allowed (lib/ask-plans.ts goPlan): nothing has reached it, and nothing the step made
+ * without it is kept. The steps so far, then the question, in Athena's words: Just this once, Always for
+ * <assistant>, or Skip it. For a skill only Just this once and Skip it, and a link to its page, where its accounts
+ * are ticked. Go carries on from that step whichever the owner picks.
+ */
+function accountAskEl(m: Acting, plan: AskPlan, ask: NonNullable<AskPlan["needs_account"]>, repaint: () => void, save: () => void): HTMLElement {
+  const STATUS = { done: ["check", "Done"], skipped: ["minus", "Skipped"], failed: ["close", "Didn't work"] } as const;
+  const rows = plan.steps.map((step, i) => {
+    const r = ask.results[i];
+    if (r) {
+      const [icon, word] = STATUS[r.status];
+      return h("div", { class: `plan__step plan__step--${r.status}`, style: `--i:${i}` }, h("span", { class: "plan__mark", "aria-hidden": "true" }, icons[icon]()), h("span", { class: "plan__label" }, step.label, h("span", { class: "plan__state" }, r.error ? `${word}: ${r.error}` : word)));
+    }
+    const here = i === ask.step;
+    return h(
+      "div",
+      { class: `plan__step${here ? " plan__step--asking" : " plan__step--later"}`, style: `--i:${i}` },
+      h("span", { class: "plan__mark", "aria-hidden": "true" }, here ? icons.key() : null),
+      h("span", { class: "plan__label" }, step.label, h("span", { class: "plan__state" }, here ? `Needs ${ask.account}` : "Not run yet"))
+    );
+  });
+  const textId = `plan-ask-${plan.id}`;
+  const skill = ask.skill ?? null;
+  const answer = async (choice: "once" | "always" | "skip") => {
+    m.going = true;
+    repaint();
+    try {
+      const done = await answerPlanAccount(plan, choice);
+      if (m.reply) {
+        m.reply.plan = done.plan;
+        m.reply.changes = [...(m.reply.changes ?? []), ...done.changes];
+      }
+      if (choice === "always") showToast(`${ask.assistant} can open ${ask.account} from now on`, { icon: "check" });
+      changedElsewhere();
+      save();
+    } catch (error) {
+      showToast(error instanceof Error && error.message && !(error instanceof ApiError && !error.status) ? error.message : "That didn't go through. Try again in a moment.", { icon: "refresh" });
+    } finally {
+      m.going = false;
+      repaint();
+    }
+  };
+  const button = (label: string, tone: string, choice: "once" | "always" | "skip") => {
+    const b = h("button", { class: `btn ${tone} plan__ask-btn`, type: "button", disabled: m.going }, label) as HTMLButtonElement;
+    b.addEventListener("click", () => void answer(choice));
+    return b;
+  };
+  return h(
+    "section",
+    { class: "card plan plan--held plan--ask", "aria-label": "A plan waiting for you" },
+    h("p", { class: "plan__head" }, icons.checklist(), "Waiting for you"),
+    h("div", { class: "plan__steps" }, ...rows),
+    h(
+      "div",
+      { class: "plan__ask", role: "group", "aria-labelledby": textId },
+      h("p", { class: "plan__ask-text", id: textId }, `This step needs ${accountWords(ask)}, which you haven't ticked for ${skill ? `the ${skill.title} skill` : ask.assistant}. Nothing has used it yet.`),
+      // A skill's accounts are ticked on its page, never from here: no Always, and a way there instead.
+      skill
+        ? h("div", { class: "plan__ask-actions plan__ask-actions--two" }, button("Just this once", "btn--primary", "once"), button("Skip it", "btn--ghost", "skip"))
+        : h("div", { class: "plan__ask-actions" }, button("Just this once", "btn--primary", "once"), button(`Always for ${ask.assistant}`, "btn--soft", "always"), button("Skip it", "btn--ghost", "skip")),
+      skill?.id ? h("a", { class: "plan__ask-link", href: `#/settings/skills/${encodeURIComponent(skill.id)}` }, `Tick accounts for ${skill.title}`) : null
+    )
+  );
+}
+
 /**
  * A plan: each step with a tick, and Go. Nothing has changed until Go; then
  * each step says how it went, its receipt joins the reply's (each with Undo),
@@ -939,6 +1009,7 @@ function actedEls(m: Acting, ctx: AskContext, choose: (text: string) => void, re
  */
 export function planEl(m: Acting, plan: NonNullable<AskActed["plan"]>, repaint: () => void, save: () => void): HTMLElement {
   const ran = plan.ran;
+  if (!ran && plan.needs_account) return accountAskEl(m, plan, plan.needs_account, repaint, save);
   const ticked = (m.ticked ??= new Set(plan.steps.map((_, i) => i)));
   // One step held back by what the turn read first (lib/ask-guard.ts) is a change to confirm, not a plan to tick through.
   const held = !ran ? heldNote(plan.why) : null;
@@ -3333,7 +3404,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
    * Each belongs to the sample that makes it; null when none of them is for this message. Nothing here judges
    * whether a message is a question or a request.
    */
-  async function sampleRequestReply(q: string, step: (x: AskStep) => void, history: ReturnType<typeof answerHistory> = []): Promise<AskReply | null> {
+  async function sampleRequestReply(q: string, step: (x: AskStep) => void, history: ReturnType<typeof answerHistory> = [], skillId?: string): Promise<AskReply | null> {
     const none = { sources: [], related: [], searched: "", skipped: [], found: true, flagged: false };
     const plain = replaceAthenaLinks(q, () => "");
     // A follow-up acts on the reply before it: "Turn this into a recipe" keeps the recipe that reply gave, from its own text.
@@ -3379,6 +3450,12 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
         step
       );
       return { ...none, text, scheduling: card };
+    }
+    // A plan made while the sample's imported skill is in use: its Go keeps to the skill's accounts (db/sample-ask-plans.ts).
+    const shared = skillId && SAMPLE_PLAN_REQUEST.test(q) ? sampleSkillPlan(skillId) : null;
+    if (shared) {
+      await playSampleSteps([["Reading Deal notes", "Read Deal notes"], ["Looking for Elena", "Found Elena"], ["Planning the changes", "Planned 2 changes"]], step);
+      return { ...none, text: "Here's the plan: two changes, and nothing happens until you tap Approve.", plan: shared.plan, skills: [shared.used] };
     }
     if (SAMPLE_PLAN_REQUEST.test(q) || SAMPLE_ROUTINE_REQUEST.test(q)) {
       // A plan (two or more changes) or a routine, as a real request gets them.
@@ -3656,7 +3733,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
         const plain = mentionsToText(q);
         // The stand-in for the assistant has a few made-up replies. With none for this message, it's the keyword search over the sample notes, saying so.
         // A made-up reply that changes, plans or prepares something comes first (a time to pick names Priya, and so does a canned answer).
-        const made = await sampleRequestReply(q, step, history);
+        const made = await sampleRequestReply(q, step, history, pending.skill);
         if (made) return made;
         if (!hasSampleAnswer(q)) throw new SampleHasNone();
         // A question and a request in one message ("What did Elena say about pricing, and add a to-do to follow up"): one reply with both.

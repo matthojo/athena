@@ -8,16 +8,17 @@
  *                last), and the day's runs in order
  *   #/team/<id>  the assistant's own page (team/team-detail.ts)
  *   #/team/new   setup (team/setup.ts), a sheet over the page
- *   #/team/import  add a shared someone shared (team/import-sheet.ts),
- *                a sheet over the page; a file shared to the installed app
- *                lands here. A shared dropped on the page opens it too, and
- *                so does setup's "Or import one someone shared".
+ *   #/team/import  an older address for #/add (app/src/add/), where every
+ *                shared item is previewed and added. A file dropped on the
+ *                page goes there too, and so does setup's "Or import one
+ *                someone shared".
  *
  * The page looks again while it's open (team/page-live.ts) and updates in
  * place, so focus, scroll and the characters' motion carry on undisturbed.
  */
 import "../styles/team.css";
 import { h } from "../lib/dom";
+import { updateDot, UPDATE_WORDS } from "../community/status";
 import { pageHead } from "../components/page-head";
 import { icons } from "../components/icons";
 import { showToast } from "../components/toast";
@@ -39,8 +40,7 @@ import { renderTeamChat } from "../team/chat";
 import { renderAssignment } from "../team/assignment-page";
 import { openNewAssignment } from "../team/new-assignment";
 import { watchWaiting } from "../team/waiting";
-import { openImportAssistant } from "../team/import-sheet";
-import { takeSharedAssistant } from "../db/team-share";
+import { openAddWithFiles } from "../add/hold";
 
 type Go = (view: ViewId, opts?: { noteId?: string | null }) => void;
 
@@ -89,16 +89,9 @@ function backToGrid(go: Go) {
   } else go("team");
 }
 
-/** Add a shared someone shared: a sheet over the team; once added, its page. */
-function openImport(go: Go, files?: File[], onClose?: () => void) {
-  openImportAssistant({
-    files,
-    onClose,
-    onAdded: (a) => {
-      showToast(`${a.name} joined your team, paused`);
-      window.setTimeout(() => toDetail(go, a.id), 450);
-    },
-  });
+/** Add something someone shared: #/add previews it (app/src/add/), and links to its page once it's added. */
+function openImport(_go: Go, files?: File[]) {
+  openAddWithFiles(files ?? []);
 }
 
 /** A run's conversation when it kept one, else the assistant's own page. */
@@ -150,10 +143,11 @@ function desk(a0: TeamAssistant, go: Go): DeskEl {
   const cause = h("span", { class: "desk__cause" });
   const foot = h("span", { class: "desk__foot" });
   const panel = h("span", { class: "desk__now" }, meta, line, cause);
+  let hasUpdate = false;
   const el = h(
     "button",
     { class: "desk", type: "button" },
-    h("span", { class: "desk__head" }, face, h("span", { class: "desk__id" }, h("span", { class: "desk__title" }, name, badge), job)),
+    h("span", { class: "desk__head" }, face, h("span", { class: "desk__id" }, h("span", { class: "desk__title" }, name, updateDot("assistant", a0.id, () => (hasUpdate = true, el.setAttribute("aria-label", `${el.getAttribute("aria-label") ?? ""}. ${UPDATE_WORDS}`))), badge), job)),
     panel,
     foot
   );
@@ -212,7 +206,7 @@ function desk(a0: TeamAssistant, go: Go): DeskEl {
     cause.hidden = !c;
     text(foot, d.last || d.live || a.paused ? nextWords(a, now) : "");
     foot.hidden = !foot.textContent;
-    el.setAttribute("aria-label", [a.name, BADGE[d.state], a.job, m, l, c, foot.textContent].filter(Boolean).join(". ").replace(/\.\./g, "."));
+    el.setAttribute("aria-label", [a.name, BADGE[d.state], hasUpdate ? UPDATE_WORDS : null, a.job, m, l, c, foot.textContent].filter(Boolean).join(". ").replace(/\.\./g, "."));
   }
 
   return { el, update };
@@ -535,11 +529,11 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
     more.hidden = showAll || ordered.length <= limit;
   }
 
-  /** #/team/import: a file shared to the installed app, or the import sheet on its own. */
+  /** #/team/import: an older address for #/add, which also takes a file shared to the installed app. */
   function maybeImport() {
     if (ctx.param !== "import" || setupOpen) return;
     setupOpen = true;
-    void takeSharedAssistant().then((file) => openImport(ctx.go, file ? [file] : undefined, () => backToGrid(ctx.go)));
+    location.replace("#/add");
   }
 
   function maybeSetup() {

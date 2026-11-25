@@ -5,11 +5,12 @@
  *
  * Like Team, Flows needs the server: nothing here is kept offline.
  */
-import { isSampleMode, request } from "./api";
+import { ApiError, isSampleMode, request } from "./api";
 import { sampleCatalog, sampleFlows, sampleRunFrom, type SampleFlows } from "./sample-flows";
 import { triggerGives } from "../../../lib/flow-trigger-gives";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
 import { listTeam } from "./team";
+import { needsAssistant, stillUnfilled, unansweredWords, type ImportedFlowInput, type ImportUnfilled } from "../../../lib/flow-share";
 import { FLOW_LIMITS, type CatalogEntry, type Flow, type FlowDraft, type FlowInput, type FlowListResponse, type FlowRun, type FlowSuggestion } from "../../../lib/flow-types";
 
 export type { CatalogEntry, Flow, FlowDraft, FlowInput, FlowListResponse, FlowRun, FlowSuggestion };
@@ -108,13 +109,46 @@ export async function createFlow(input: FlowInput): Promise<Flow> {
   return made;
 }
 
+/** Sample mode's blanks a shared flow came with, by flow id, as the server keeps them sealed with the flow. */
+const sampleUnfilled = new Map<string, ImportUnfilled[]>();
+
+/** Sample mode's Add for a shared flow (lib/flow-share.ts importSharedFlow's result), as lib/flow-share-store.ts addSharedFlow does it. */
+export async function sampleAddSharedFlow(input: ImportedFlowInput): Promise<Flow> {
+  const { unfilled, ...rest } = input;
+  const made = await createFlow(rest);
+  const left = stillUnfilled(made.steps, unfilled);
+  if (left.length) {
+    sampleUnfilled.set(made.id, left);
+    const f = store().flows.find((x) => x.id === made.id);
+    if (f) f.unfilled = left.map(({ was: _was, ...u }) => u);
+  }
+  return { ...made, ...(left.length ? { unfilled: left.map(({ was: _was, ...u }) => u) } : {}) };
+}
+
+/** Sample mode's Update of a shared flow to a newer version, as lib/flow-share-store.ts replaceSharedFlow does it. */
+export async function sampleReplaceSharedFlow(id: string, input: ImportedFlowInput): Promise<Flow> {
+  const { unfilled, trigger, steps } = input;
+  sampleUnfilled.set(id, unfilled);
+  return updateFlow(id, { trigger, steps, money: false, paused: true });
+}
+
 export async function updateFlow(id: string, input: FlowInput): Promise<Flow> {
   let next: Flow;
   if (isSampleMode()) {
     const s = store();
     const i = s.flows.findIndex((f) => f.id === id);
     if (i < 0) throw notThere();
-    s.flows[i] = sampleApply(s.flows[i], input);
+    const was = s.flows[i];
+    const after = sampleApply(was, input);
+    const left = stillUnfilled(after.steps, sampleUnfilled.get(id));
+    if (input.paused === false && was.paused) {
+      if (left.length) throw new Error(left.length === 1 ? `Answer “${left[0].question}” in its step first.` : `Fill in the ${left.length} steps that still have questions first.`);
+      if (was.origin === "shared" && !was.assistant_id && needsAssistant(after.steps)) throw new Error("Pick an assistant to run its thinking steps first.");
+    }
+    if (left.length) sampleUnfilled.set(id, left);
+    else sampleUnfilled.delete(id);
+    const { unfilled: _old, ...plain } = after;
+    s.flows[i] = left.length ? { ...plain, unfilled: left.map(({ was: _was, ...u }) => u) } : plain;
     next = structuredClone(s.flows[i]);
   } else {
     next = (await request<{ flow: Flow }>(`/flows/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(input) })).flow;
@@ -181,6 +215,8 @@ export async function runFlow(id: string, dry: boolean): Promise<FlowRun> {
     const s = store();
     const f = sampleFlow(id);
     if (!f) throw notThere();
+    const unanswered = unansweredWords(f.unfilled);
+    if (unanswered) throw new ApiError(unanswered, 409);
     const last = latestOf(id);
     const state = sampleRunFrom(s, f, { label: dry ? (last?.label ?? "A try") : "Run now", at: Date.now(), decisions: {}, dry });
     s.runs.push(state);

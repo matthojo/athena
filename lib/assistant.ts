@@ -54,7 +54,7 @@ import { contextByName, contextsOf, filterByContext } from "./todo-context";
 import { getReadingItem, listReading, upsertReadingItem, type ReadingItem } from "./memory";
 import { KIND_WORDS, PROGRESS_UNITS, progressWords, READING_KINDS, READING_STATUSES, WATCH_READ, type ProgressUnit } from "./watch-read";
 import { isEncryptedPlaceholder } from "./encrypted";
-import { formatAthenaLink, linkKindOf } from "./links";
+import { formatAthenaLink, linkKindOf, modelWroteInto } from "./links";
 import { zonedParts, zonedToInstant, zonedToday } from "./dates";
 import { guardText } from "./jev";
 import { CHANNEL_LABEL, DRAFT_CHANNELS, draftMessage, draftProviderName, type DraftChannel, type EmailDraft, type GmailPort, type SlackPort } from "./drafts";
@@ -1494,7 +1494,8 @@ export class Session {
           });
         const before = { title: note.title, body: note.body, tags: note.tags };
         const updated = (await updateNote(note.id, {
-          body: appendItem(note.body, input.item),
+          // A list the owner wrote: the new line's links are plain (lib/links.ts modelWroteInto).
+          body: modelWroteInto(note, appendItem(note.body, input.item)),
         }))!;
         return this.record({
           kind: "note",
@@ -1517,10 +1518,13 @@ export class Session {
             body: note.body,
             tags: note.tags,
           };
+          // A note the owner wrote: the model's text links plainly, so nothing it adds makes Athena fetch a page for a card,
+          // mention or embed (links the owner already chose a mode for keep it). lib/links.ts plainNewWebLinks.
+          const written = input.body !== undefined ? modelWroteInto(note, input.body) : undefined;
           const updated = (await updateNote(note.id, {
             title: input.title,
             // A Life log day keeps its Health line and Places section: Ask never sees them, so can't write them back (lib/health.ts, lib/places-line.ts).
-            body: input.body !== undefined && note.tags.includes("life-log") ? withPlacesSection(withHealthLine(input.body, lineIn(note.body)), placesSectionIn(note.body)) : input.body,
+            body: written !== undefined && note.tags.includes("life-log") ? withPlacesSection(withHealthLine(written, lineIn(note.body)), placesSectionIn(note.body)) : written,
             tags: input.tags,
           }))!;
           return this.record({
@@ -1958,9 +1962,17 @@ export async function runAssistantTool(
   input: unknown,
   opts: { now?: Date; tz?: string; gmail?: GmailPort; slack?: SlackPort; calendar?: CalendarPort; scheduling?: SchedulingPort } = {},
 ): Promise<{ result: string; changes: Change[]; confirm: ConfirmCard[] }> {
-  const session = new Session(opts.now ?? new Date(), opts.tz ?? (await getOwnerTimeZone()), { client: null as unknown as Anthropic, capture: false, gmail: opts.gmail, slack: opts.slack, calendar: opts.calendar, scheduling: opts.scheduling });
+  // Under the owner's Go on a plan an imported assistant proposed: its limit holds, and a refusal stops Go to ask (lib/shared-scope.ts).
+  const ports = await portsForGo(opts);
+  const session = new Session(opts.now ?? new Date(), opts.tz ?? (await getOwnerTimeZone()), { client: null as unknown as Anthropic, capture: false, gmail: ports.gmail, slack: ports.slack, calendar: ports.calendar, scheduling: ports.scheduling });
   const result = await session.run(name, input);
   return { result, changes: [...session.changes], confirm: [...session.confirm] };
+}
+
+/** The ports, limited when a Go runs a plan an imported assistant proposed (lib/shared-scope.ts limitedForGo). */
+async function portsForGo<T extends { gmail?: GmailPort; slack?: SlackPort; calendar?: CalendarPort; scheduling?: SchedulingPort }>(opts: T): Promise<T> {
+  const [{ limitedForGo }, { slackAccountIds }] = await Promise.all([import("./shared-scope"), import("./shared-scope-db")]);
+  return limitedForGo(opts, slackAccountIds);
 }
 
 /**
@@ -1976,6 +1988,7 @@ export async function runPlanTool(
   const now = opts.now ?? new Date();
   const tz = opts.tz ?? (await getOwnerTimeZone());
   if (name !== "move_event") return (await runAssistantTool(name, input, { ...opts, now, tz })).changes;
+  opts = { ...opts, ...(await portsForGo(opts)) };
   if (!opts.scheduling) throw new AthenaInputError("Moving events needs a connected calendar");
   let card: SchedulingCard | undefined;
   await runSchedulingTool(name, withoutStep(input), { scheduling: opts.scheduling, tz, now, show: (c) => (card = c) });

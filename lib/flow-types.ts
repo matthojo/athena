@@ -153,6 +153,18 @@ export interface Flow {
   last_run_at: string | null;
   created_at: string;
   updated_at: string;
+  /**
+   * Blanks a shared flow came with that nobody filled when it was added (lib/flow-share.ts importSharedFlow): the
+   * step stays, but the flow can't be switched on until the owner sets each field. Missing when there are none.
+   */
+  unfilled?: FlowUnfilled[];
+}
+
+/** A field a shared flow left for the owner to fill: the step, the field ("input.person_id", "text"), and the question it asked. */
+export interface FlowUnfilled {
+  step_id: string;
+  field: string;
+  question: string;
 }
 
 /** POST /api/flows and PATCH /api/flows/:id. Everything the owner can set. */

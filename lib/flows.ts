@@ -17,6 +17,7 @@ import { eventFilterSchema } from "./team";
 import { defaultGo, flowTool, isDraftTool } from "./flow-catalog";
 import { allSteps, depthOf, eachStep, triggerValues, valueWords, type FlowValues, type Frame } from "./flow-steps";
 import { triggerGives } from "./flow-triggers";
+import { needsAssistant, stillUnfilled, unansweredWords, type ImportUnfilled } from "./flow-share";
 import type { ModelRef } from "./model-types";
 import {
   FLOW_LIMITS,
@@ -216,6 +217,8 @@ interface Words {
   name: string;
   trigger: FlowTrigger;
   steps: FlowStep[];
+  /** Blanks a shared flow came with that nobody filled (lib/flow-share.ts): sealed with the rest, cleared as each field is set. */
+  unfilled?: ImportUnfilled[];
 }
 
 function readJson<T>(raw: string | null): Partial<T> {
@@ -231,12 +234,14 @@ function readJson<T>(raw: string | null): Partial<T> {
 function presentFlow(r: FlowRow): Flow {
   const w = readJson<Words>(r.payload);
   const trigger: FlowTrigger = w.trigger ?? { kind: "manual" };
+  const steps = Array.isArray(w.steps) ? w.steps : [];
+  const unfilled = stillUnfilled(steps, w.unfilled).map(({ was: _was, ...u }) => u);
   return {
     id: r.id,
     name: w.name ?? "",
     trigger,
     trigger_gives: triggerGives(trigger),
-    steps: Array.isArray(w.steps) ? w.steps : [],
+    steps,
     assistant_id: r.assistant_id,
     handed_at: iso(r.handed_at),
     money: r.money,
@@ -245,6 +250,7 @@ function presentFlow(r: FlowRow): Flow {
     last_run_at: iso(r.last_run_at),
     created_at: iso(r.created_at)!,
     updated_at: iso(r.updated_at)!,
+    ...(unfilled.length ? { unfilled } : {}),
   };
 }
 
@@ -266,35 +272,60 @@ const NOT_JOB = `NOT (assistant_id IS NOT NULL AND origin IN ('trigger', 'shared
 
 const FULL = `You have ${FLOW_LIMITS.flows} flows, which is the most Athena keeps. Remove one first.`;
 
-/** A new flow. Left out: the name "New flow", a manual trigger, no steps, money off, on. Refused past FLOW_LIMITS.flows. */
-export async function createFlow(raw: unknown): Promise<Flow> {
+/** Where a flow added from the Community catalogue came from (migration 0089), for update checks. */
+export interface FlowCatalogueRef {
+  id: string;
+  hash: string;
+  version?: string;
+}
+
+/**
+ * A new flow. Left out: the name "New flow", a manual trigger, no steps, money off, on. Refused past FLOW_LIMITS.flows.
+ * `extra` is for a shared flow (lib/flow-share-store.ts): the blanks nobody filled, and the catalogue listing.
+ */
+export async function createFlow(raw: unknown, extra: { unfilled?: ImportUnfilled[]; catalogue?: FlowCatalogueRef } = {}): Promise<Flow> {
   const input = parse(inputSchema, raw ?? {}) as FlowInput;
   const trigger: FlowTrigger = input.trigger ?? { kind: "manual" };
   const steps = fillGo(input.steps ?? []);
   checkSteps(steps, trigger);
-  const w: Words = { name: oneLine(input.name ?? "").slice(0, FLOW_LIMITS.name) || "New flow", trigger, steps };
+  const unfilled = stillUnfilled(steps, extra.unfilled);
+  const w: Words = { name: oneLine(input.name ?? "").slice(0, FLOW_LIMITS.name) || "New flow", trigger, steps, ...(unfilled.length ? { unfilled } : {}) };
+  const c = extra.catalogue;
   const [row] = await q<FlowRow>(
-    `INSERT INTO flows (payload, trigger_kind, schedule, money, paused, origin)
-     SELECT $1, $2, $3::jsonb, $4, $5, $6 WHERE (SELECT count(*) FROM flows WHERE ${NOT_JOB}) < $7
+    `INSERT INTO flows (payload, trigger_kind, schedule, money, paused, origin, catalogue_id, catalogue_hash, catalogue_version)
+     SELECT $1, $2, $3::jsonb, $4, $5, $6, $8, $9, $10 WHERE (SELECT count(*) FROM flows WHERE ${NOT_JOB}) < $7
      RETURNING ${F_COLUMNS}`,
-    [sealText(JSON.stringify(w)), trigger.kind, JSON.stringify(plainSchedule(trigger)), input.money === true, input.paused === true, input.origin ?? "owner", FLOW_LIMITS.flows],
+    [sealText(JSON.stringify(w)), trigger.kind, JSON.stringify(plainSchedule(trigger)), input.money === true, (input.paused === true || unfilled.length > 0), input.origin ?? "owner", FLOW_LIMITS.flows, c?.id ?? null, c?.hash ?? null, c?.version ?? null],
   );
   if (!row) throw new AthenaInputError(FULL);
   return presentFlow(row);
 }
 
-/** Change what the owner may set. Steps and the trigger are checked together. */
-export async function updateFlow(id: unknown, raw: unknown): Promise<Flow> {
+/**
+ * Change what the owner may set. Steps and the trigger are checked together. `extra` is for updating a shared flow
+ * to a newer version (lib/flow-share-store.ts replaceSharedFlow): its new blanks, and the listing it now matches.
+ */
+export async function updateFlow(id: unknown, raw: unknown, extra: { unfilled?: ImportUnfilled[]; catalogue?: FlowCatalogueRef } = {}): Promise<Flow> {
   const was = await getFlow(id);
   if (!was) throw new AthenaInputError("That flow isn't there any more", 404);
   const input = parse(inputSchema, raw ?? {}) as FlowInput;
   const trigger = input.trigger ?? was.trigger;
   const steps = input.steps ? fillGo(input.steps) : was.steps;
   checkSteps(steps, trigger);
-  const w: Words = { name: input.name !== undefined ? oneLine(input.name).slice(0, FLOW_LIMITS.name) || was.name : was.name, trigger, steps };
+  // A shared flow's blanks stay until each field is set; until then, and until a thinking step has an assistant, it stays off.
+  const [stored] = await q<{ payload: string }>(`SELECT payload FROM flows WHERE id = $1::uuid`, [was.id]);
+  const unfilled = stillUnfilled(steps, extra.unfilled ?? readJson<Words>(stored?.payload ?? null).unfilled);
+  if (input.paused === false && was.paused) {
+    const why = unansweredWords(unfilled);
+    if (why) throw new AthenaInputError(why);
+    if (was.origin === "shared" && !was.assistant_id && needsAssistant(steps)) throw new AthenaInputError("Pick an assistant to run its thinking steps first.");
+  }
+  const w: Words = { name: input.name !== undefined ? oneLine(input.name).slice(0, FLOW_LIMITS.name) || was.name : was.name, trigger, steps, ...(unfilled.length ? { unfilled } : {}) };
   const [row] = await q<FlowRow>(
-    `UPDATE flows SET payload = $2, trigger_kind = $3, schedule = $4::jsonb, money = $5, paused = $6, origin = $7, updated_at = now() WHERE id = $1::uuid RETURNING ${F_COLUMNS}`,
-    [was.id, sealText(JSON.stringify(w)), trigger.kind, JSON.stringify(plainSchedule(trigger)), input.money ?? was.money, input.paused ?? was.paused, input.origin ?? was.origin],
+    `UPDATE flows SET payload = $2, trigger_kind = $3, schedule = $4::jsonb, money = $5, paused = $6, origin = $7,
+       catalogue_id = COALESCE($8, catalogue_id), catalogue_hash = COALESCE($9, catalogue_hash), catalogue_version = CASE WHEN $8::text IS NULL THEN catalogue_version ELSE $10 END,
+       updated_at = now() WHERE id = $1::uuid RETURNING ${F_COLUMNS}`,
+    [was.id, sealText(JSON.stringify(w)), trigger.kind, JSON.stringify(plainSchedule(trigger)), input.money ?? was.money, (input.paused ?? was.paused) || (extra.unfilled !== undefined && unfilled.length > 0), input.origin ?? was.origin, extra.catalogue?.id ?? null, extra.catalogue?.hash ?? null, extra.catalogue?.version ?? null],
   );
   if (!row) throw new AthenaInputError("That flow isn't there any more", 404);
   return presentFlow(row);

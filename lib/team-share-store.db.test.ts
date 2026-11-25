@@ -4,7 +4,9 @@
 // added on another copy: paused, with only the ticked tools it asked for, and its skill with the answers.
 // Every name and address is made up. No model key: an assistant's own skill is the plain one.
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/team-share-store.db.test.ts
-// Skipped without ATHENA_TEST_DB_URL. Empties the team, skill and people tables first.
+// Skipped without ATHENA_TEST_DB_URL. Empties the team and skill tables, and everything the personal-data check
+// reads (people, places, organisations, projects, the owner's own facts, connected accounts), first: whatever an
+// earlier test file left there would otherwise be flagged too.
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
@@ -26,9 +28,14 @@ beforeEach(async () => {
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants CASCADE`);
   // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
   await qRaw(`DELETE FROM settings WHERE key = 'team.triggers_moved'`);
+  // Everything knownTerms (lib/team-share-store.ts) reads, so the findings are this test's own.
   await qRaw(`DELETE FROM identities`);
   await qRaw(`DELETE FROM people`);
   await qRaw(`DELETE FROM places`);
+  await qRaw(`DELETE FROM organisations`);
+  await qRaw(`DELETE FROM projects`);
+  await qRaw(`DELETE FROM facts WHERE subject_kind = 'me'`);
+  await qRaw(`DELETE FROM connectors`);
   await qRaw(`INSERT INTO settings (key, value) VALUES ('skills.starters', 'true'::jsonb) ON CONFLICT (key) DO NOTHING`);
 });
 
@@ -50,6 +57,21 @@ async function api() {
     return { status: res.status, type, json: type.includes("json") ? await res.json() : null, bytes: type.includes("zip") ? new Uint8Array(await res.arrayBuffer()) : null };
   };
 }
+
+/** The Add screen's preview of files (multipart, as the app sends them): POST /api/community/preview. */
+async function previewFiles(files: Array<{ path: string; bytes: Uint8Array }>) {
+  const fn = (await import("../netlify/functions/api")).default;
+  const form = new FormData();
+  for (const f of files) {
+    form.append("files", new Blob([f.bytes as BlobPart]), f.path.split("/").pop() || "file");
+    form.append("path", f.path);
+  }
+  const res = await fn(new Request("https://athena.example.com/api/community/preview", { method: "POST", headers: { Authorization: "Bearer master-token-for-tests" }, body: form }), { waitUntil: () => undefined } as never);
+  return { status: res.status, json: (await res.json()) as Record<string, any> };
+}
+
+const choices = (over: Record<string, unknown> = {}) => ({ answers: {}, accounts: [], allow: [], web: false, money: false, assistant_id: null, ...over });
+const utf8 = (text: string) => new TextEncoder().encode(text);
 
 test("sharing: links into Athena go, the owner's people are flagged, and the download waits for them", { skip }, async () => {
   const call = await api();
@@ -96,19 +118,18 @@ test("sharing: links into Athena go, the owner's people are flagged, and the dow
   const still = await call("GET", `team/${id}`);
   assert.match(still.json.instructions, /Priya/);
 
-  // The zip previews on "another copy", and adds as a paused assistant with only the ticked tools it asked for.
-  const zip = Buffer.from(ready.bytes!).toString("base64");
-  const preview = await call("POST", "team/import/preview", { zip, file: "moss.zip" });
+  // The zip previews on "another copy" (the Add screen), and adds as a paused assistant with only the ticked tools it asked for.
+  const preview = await previewFiles([{ path: "moss.zip", bytes: ready.bytes! }]);
   assert.equal(preview.status, 200, JSON.stringify(preview.json));
-  const p = preview.json;
-  assert.equal(p.shared.name, "Moss");
-  assert.match(p.skill.body, /each shop you trust/);
-  assert.deepEqual(p.needs, [{ id: "gmail", connected: false }]);
-  assert.equal(p.room, true);
+  const p = preview.json.preview;
+  assert.equal(p.kind, "assistant");
+  assert.equal(p.item.shared.name, "Moss");
+  assert.match(p.item.skill.body, /each shop you trust/);
+  assert.deepEqual(p.reach.needs, ["gmail"]);
 
-  const added = await call("POST", "team/import", { shared: p.shared, skill: p.skill, source: p.source, answers: [{ question: "Which shops do you trust?", answer: "Any shop on Example Road" }], allow: ["add_todo", "remember"], web: true });
+  const added = await call("POST", "community/add", { preview: p, choices: choices({ answers: { "Which shops do you trust?": "Any shop on Example Road" }, allow: ["add_todo", "remember"], web: true }) });
   assert.equal(added.status, 201, JSON.stringify(added.json));
-  const a = added.json.assistant;
+  const a = (await call("GET", `team/${added.json.id}`)).json;
   assert.equal(a.paused, true);
   assert.deepEqual(a.allow, ["add_todo"], "remember wasn't asked for");
   assert.equal(a.web, false, "the file didn't ask to look things up online");
@@ -122,17 +143,17 @@ test("sharing: links into Athena go, the owner's people are flagged, and the dow
 
 test("adding: a bad shared, a link off GitHub, and a full team are refused", { skip }, async () => {
   const call = await api();
-  assert.equal((await call("POST", "team/import/preview", { assistant_json: "{\"format\": 1}" })).status, 400);
-  const off = await call("POST", "team/import/preview", { url: "https://athena.example.com/w/moss" });
+  assert.equal((await previewFiles([{ path: "assistant.json", bytes: utf8("{\"format\": 1}") }])).status, 400);
+  const off = await call("POST", "community/preview", { link: "https://athena.example.com/w/moss" });
   assert.equal(off.status, 400);
-  assert.match(off.json.error, /from GitHub/);
-  assert.equal((await call("POST", "team/import", { shared: { format: 1 } })).status, 400);
+  assert.match(off.json.error, /GitHub/);
+  assert.equal((await call("POST", "community/add", { preview: { from: { files: "x" }, files: [{ path: "assistant.json", text: "{\"format\": 1}" }] }, choices: choices() })).status, 400);
 
-  const one = await call("POST", "team/import/preview", { assistant_json: JSON.stringify({ format: 1, name: "Dot", job: "Turns Linear issues into to-dos" }) });
+  const one = await previewFiles([{ path: "assistant.json", bytes: utf8(JSON.stringify({ format: 1, name: "Dot", job: "Turns Linear issues into to-dos" })) }]);
   assert.equal(one.status, 200);
-  assert.equal(one.json.skill, null);
+  assert.equal(one.json.preview.item.skill, null);
   for (let i = 0; i < 12; i++) assert.equal((await call("POST", "team", { job: `Job ${i}` })).status, 201);
-  const full = await call("POST", "team/import/preview", { assistant_json: JSON.stringify({ format: 1, job: "One more" }) });
-  assert.equal(full.json.room, false);
-  assert.equal((await call("POST", "team/import", { shared: full.json.shared, skill: null, answers: [], allow: [], web: false })).status, 400);
+  const full = await previewFiles([{ path: "assistant.json", bytes: utf8(JSON.stringify({ format: 1, job: "One more" })) }]);
+  assert.equal(full.status, 200, "a preview keeps nothing, so it's shown");
+  assert.equal((await call("POST", "community/add", { preview: full.json.preview, choices: choices() })).status, 400);
 });

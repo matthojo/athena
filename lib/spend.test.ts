@@ -93,7 +93,7 @@ test("every function that can reach a model loads lib/spend.ts, so the budget is
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const dir = join(root, "netlify/functions");
   // None of these calls a model.
-  const none = new Set(["backfill-content-links.ts", "encrypt-data.ts", "link-previews-sweep.ts"]);
+  const none = new Set(["backfill-content-links.ts", "community-check.ts", "encrypt-data.ts", "link-previews-sweep.ts"]);
   // These load it through another file that does.
   const through: Record<string, string> = { "voice.ts": "./api", "api.ts": "../../lib/spend", "team-run.ts": "../../lib/team-run" };
   for (const f of readdirSync(dir).filter((n) => n.endsWith(".ts") && !none.has(n))) {

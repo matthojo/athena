@@ -7,6 +7,9 @@ import { isSampleMode, request } from "./api";
 import { sampleQuestions, sampleRuns, sampleTeam } from "./sample-team";
 import { sampleRunHistory, sampleRunNowSummary, sampleRunStep, sampleRunThreadId, seedSampleThreads } from "./sample-team-detail";
 import { sampleSkillFrom, sampleSkillList, setSampleSkills, type AppSkill } from "./skills";
+import { sampleLimits, sampleRunPlans } from "./sample-ask-plans";
+import { SAMPLE_ACCOUNTS } from "./item-accounts";
+import type { AskPlan } from "../types";
 import { assistantSkillDescription, assistantSkillName, fitAnswers, hashText, skillBasis, skillEdited, skillGist, skillStale, templateSkill, type TeamAnswer, type TeamQuestion, type TeamSkillDraft } from "../../../lib/team-skill";
 import { serialiseSkillMd } from "../../../lib/skills";
 import { avatarFromSeed, nameFromSeed, newSeed, personalityFromSeed } from "../../../lib/team-seed";
@@ -39,6 +42,33 @@ function sampleRunNow(r: TeamRun): TeamRun {
     r.finished_at = new Date(Date.parse(r.started_at) + 6500).toISOString();
     const a = sampleList().find((x) => x.id === r.assistant_id);
     if (a) a.last_run_at = r.finished_at;
+    // An imported one (Dot from the sample link) leaves a plan whose Go needs Gmail: its Go asks when Gmail isn't ticked for it.
+    if (a?.imported) {
+      const plan: AskPlan = {
+        id: uuid(),
+        source: "routine",
+        proposed: true,
+        steps: [
+          { label: "Add a to-do: Review the export spec", tool: "add_todo" },
+          { label: "Draft a reply to Priya about the export spec", tool: "draft_message" },
+        ],
+      };
+      sampleRunPlans.set(r.id, plan);
+      sampleLimits.set(plan.id, {
+        assistant: () => {
+          const now = sampleList().find((x) => x.id === r.assistant_id);
+          return now ? { name: now.name, accounts: [...(now.accounts ?? [])] } : null;
+        },
+        tick: (accountId) => {
+          const now = sampleList().find((x) => x.id === r.assistant_id);
+          if (now && !(now.accounts ?? []).includes(accountId)) now.accounts = [...(now.accounts ?? []), accountId];
+          changed();
+        },
+        accounts: SAMPLE_ACCOUNTS,
+      });
+      r.summary = "One issue came in. I've left a to-do and a reply to Priya for your approval.";
+      r.waiting = plan.steps.length;
+    }
   }
   return r;
 }
@@ -74,6 +104,7 @@ function sampleApply(a: TeamAssistant, input: TeamAssistantInput): TeamAssistant
     ...(input.personality && { personality: input.personality }),
     ...(input.avatar && { avatar: input.avatar }),
     ...(input.allow && { allow: [...new Set(input.allow)] }),
+    ...(input.accounts && { accounts: [...new Set(input.accounts)] }),
     ...(input.paused !== undefined && { paused: input.paused }),
     // The contract's `web` (team/web-access.ts), until lib/team-types.ts has it.
     ...((input as { web?: boolean }).web !== undefined && { web: (input as { web?: boolean }).web === true }),
@@ -101,7 +132,7 @@ export async function getAssistant(id: string): Promise<TeamAssistant | null> {
 }
 
 /** Add an assistant. `answers` (setup's questions) go to the server, which writes its skill after it's added. */
-export async function createAssistant(input: TeamAssistantInput & { answers?: TeamAnswer[] }, opts: { sampleSkill?: boolean } = {}): Promise<TeamAssistant> {
+export async function createAssistant(input: TeamAssistantInput & { answers?: TeamAnswer[] }, opts: { sampleSkill?: boolean; imported?: boolean; needs?: string[] } = {}): Promise<TeamAssistant> {
   let made: TeamAssistant;
   if (isSampleMode()) {
     const list = sampleList();
@@ -125,6 +156,7 @@ export async function createAssistant(input: TeamAssistantInput & { answers?: Te
       created_at: now,
       updated_at: now,
       ...{ web: false },
+      ...(opts.imported ? { imported: true, accounts: [], needs: [...(opts.needs ?? [])] } : {}),
     };
     const { answers, ...rest } = input;
     made = sampleApply(base, rest);

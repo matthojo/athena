@@ -11,6 +11,8 @@
  *                                           on the last thing that matched its trigger; nothing is changed
  *   POST   /api/flows/:id/hand   { assistant_id: string | "new" } → { flow }: "new" makes an assistant for it
  *   POST   /api/flows/:id/take-back         → { flow }: a plain flow again
+ *   POST   /api/flows/:id/export { edits?, fine?, download? } → FlowExport (lib/flow-share-store.ts); with download
+ *                                           and nothing flagged or blocked, the zip; otherwise 409 with what's left
  *   GET    /api/flows/runs/:runId           → { run }
  *   POST   /api/flows/runs/:runId/answer  { step_id, choice } → { run }
  *   POST   /api/flows/runs/:runId/go      { step_id } → { run }: the waiting change runs through Ask's plan code
@@ -28,6 +30,7 @@ import { settleRun, stopRun, type FlowEffects, type Settle } from "../../lib/flo
 import { clip } from "../../lib/flow-steps";
 import type { EventFilter } from "../../lib/team-types";
 import type { TeamEventRow } from "../../lib/team-events";
+import { unansweredWords } from "../../lib/flow-share";
 
 type Json = (data: unknown, status?: number) => Response;
 
@@ -138,6 +141,9 @@ export async function handleFlowRoutes(req: Request, segments: string[], body: (
   if (!flow) return json({ error: "Not found" }, 404);
 
   if (third === "run") {
+    // A flow added from a file runs only once its questions are answered: a run would leave its blanks empty.
+    const unanswered = unansweredWords(flow.unfilled);
+    if (unanswered) return json({ error: unanswered }, 409);
     const b = (await body()) ?? {};
     const dry = b.dry === true;
     const fx = await deps.effects();
@@ -174,6 +180,16 @@ export async function handleFlowRoutes(req: Request, segments: string[], body: (
   }
 
   if (third === "take-back") return json({ flow: await setFlowAssistant(flow.id, null) });
+
+  if (third === "export") {
+    const b = (await body()) ?? {};
+    const { exportFlowFor, flowZip } = await import("../../lib/flow-share-store");
+    const { ownHosts } = await import("../../lib/team-share-store");
+    const made = await exportFlowFor(flow.id, { body: b, hosts: ownHosts(new URL(req.url).origin) });
+    if (b.download !== true) return json(made);
+    if (made.findings.length || made.blocked.length) return json({ error: made.blocked.length ? "A step can't be shared yet. See the sheet for which." : "Check what's flagged first: edit it out, or say it's fine to share.", findings: made.findings, blocked: made.blocked }, 409);
+    return new Response(Buffer.from(flowZip(made)), { status: 200, headers: { "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="${made.slug}.zip"`, "Cache-Control": "no-store" } });
+  }
 
   return json({ error: "Not found" }, 404);
 }

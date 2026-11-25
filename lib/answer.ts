@@ -119,6 +119,8 @@ import type { Pattern } from "./patterns-data";
 import { dayWords } from "./days";
 import { plainWebLinks } from "./links";
 import { loadSkillTools, noteSkillUses } from "./skills-ask";
+import { AccountScope, scopedPorts, scopedSources } from "./shared-scope";
+import { limitForPicked, limitForSkill, slackAccountIds } from "./shared-scope-db";
 import { skillTitle } from "./skills";
 import { ANY_OBJECT, pickTools, rememberRefused, wasRefused } from "./ask-tool-pick";
 import { sourceCovers } from "./answer-art";
@@ -130,7 +132,7 @@ import type { ConfirmCard } from "./assistant-confirm";
 import type { GmailPort, SlackPort } from "./drafts";
 import type { CalendarPort } from "./rsvp";
 import type { SchedulingPort } from "./scheduling";
-import { PLAN_RULE, PROPOSE_RULE, PlanDraft, WAITS_NOTE, planCard, savePlan, withoutStep, type PlanCard, type PlanMode } from "./ask-plans";
+import { PLAN_RULE, PROPOSE_RULE, PlanDraft, WAITS_NOTE, planCard, planLimit, savePlan, withoutStep, type PlanCard, type PlanMode } from "./ask-plans";
 import { logChanges, type ActivitySource } from "./ask-activity";
 import { TurnGuard, isCollected, isWriteTool, needsOwnersGo, type ReadFrom } from "./ask-guard";
 import { BUSY_STEP_AGAIN, BUSY_STEP_FIRST, BUSY_STEP_ID } from "./ask-busy";
@@ -247,8 +249,11 @@ export interface OpenSources {
 
 /** What Athena needs from its connected accounts to answer a question. */
 export interface SourcesPort {
-  /** Open every account Ask can search, at once. One that fails is listed in `skipped`, never thrown. */
-  open(opts: { timeoutMs: number }): Promise<OpenSources>;
+  /**
+   * Open every account Ask can search, at once. One that fails is listed in `skipped`, never thrown. `only`: open
+   * just these (connector ids), when something someone else shared limits the turn (lib/shared-scope.ts).
+   */
+  open(opts: { timeoutMs: number; only?: ReadonlySet<string> }): Promise<OpenSources>;
 }
 
 /** A cited item from a connected account, for the app to save into Athena after the answer (ask-import.ts checks Athena doesn't have it). */
@@ -350,6 +355,8 @@ export interface AnswerOptions {
   beforeChange?: () => Promise<void>;
   /** One of the Team's assistants is speaking (lib/team-chat.ts): its prompt block and allowlist, and no main-Ask memory or desk. */
   persona?: AssistantPersona | null;
+  /** The connected accounts this turn may open, when an imported assistant is answering (lib/shared-scope.ts). An imported skill in use limits it further. */
+  accounts?: AccountScope | null;
   /** This message only: a model the owner picked for it, already checked (lib/models.ts messageModel). Never stored. */
   model?: ResolvedModel | null;
   /** Caps below the usual, for a Team run or a check (lib/team-chat.ts): model calls, and the whole turn's time. */
@@ -1310,10 +1317,13 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
   const planMode: PlanMode = opts.plan ?? "auto";
 
   const step = opts.onStep;
+  // Something someone else shared (an imported assistant, or a skill picked with "/") opens only the accounts the owner ticked for it.
+  const scope = opts.accounts ?? new AccountScope();
+  if (opts.skill) await limitForPicked(scope, opts.skill);
   if (firstQuery) step?.({ id: "first", text: "Searching your notes", done: false });
   // The accounts open while Athena's own search runs.
   const [opened, first, mentioned] = await Promise.all([
-    deps.sources.open({ timeoutMs: OPEN_TIMEOUT_MS }).catch((error: unknown): OpenSources => {
+    scopedSources(deps.sources, scope).open({ timeoutMs: OPEN_TIMEOUT_MS }).catch((error: unknown): OpenSources => {
       console.warn("Athena ask: couldn't open the connected accounts", error instanceof Error ? error.message : error);
       return { accounts: [], skipped: ["your connected accounts"], close: async () => undefined };
     }),
@@ -1377,7 +1387,8 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       profilePromptBlock(),
       askContext({ now, tz }),
       remember ? pastThreads(plain, { now, people, exclude: opts.thread_id, earlier: earlierAsked }) : Promise.resolve([]),
-      loadSkillTools({ picked: opts.skill, guard: (t) => athena.guardedText(t) }),
+      // An imported skill limits the accounts from the moment it's in use (lib/shared-scope.ts).
+      loadSkillTools({ picked: opts.skill, guard: (t) => athena.guardedText(t), onUse: (s) => limitForSkill(scope, s) }),
       // main Ask's Team (check_with_assistant); none while an assistant answers, so it can't check with another.
       loadTeamDesk({ persona, client }),
     ]);
@@ -1397,7 +1408,8 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     if (allBlocks.length) guard.sawOthers("file");
 
     // The write side (lib/assistant.ts): every change is queued first, so nothing is made while the model is still reading.
-    const session = new Session(now, tz, { client, gmail: deps.gmail, slack: deps.slack, calendar: deps.calendar, scheduling: deps.scheduling, capture: false, files: shared, money, sawCollected: () => guard.sawOthers("collected") });
+    const ports = scopedPorts({ gmail: deps.gmail, slack: deps.slack, calendar: deps.calendar, scheduling: deps.scheduling }, scope, slackAccountIds);
+    const session = new Session(now, tz, { client, ...ports, capture: false, files: shared, money, sawCollected: () => guard.sawOthers("collected") });
     const draft = (session.draft = new PlanDraft(planMode));
     // A Team assistant's allowlist (lib/team-chat.ts): those changes run without waiting for Go, where the guard lets them.
     // In a run it does unless something read was flagged. In a chat, after reading other people's words, only what the
@@ -1698,6 +1710,8 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       const target = byTool.get(call.name);
       if (!target) return fail(call, `There's no tool called ${call.name}.`);
       const { account } = target;
+      // Off for something someone else shared that's in use: refused before the account is asked anything.
+      if (!scope.has(account.connector?.id)) return fail(call, scope.refusal(account.name));
       const timeout = Math.max(1_000, Math.min(TOOL_TIMEOUT_MS, deadline() - 5_000 - Date.now()));
       try {
         const r = await withTimeout(account.call(target.tool, input, timeout), timeout + 500, `${account.name} took too long`);
@@ -1750,7 +1764,11 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
         // What's offered this turn. The web tool goes last, so every other tool keeps its place in the list (rejectedTool counts from it).
         let offered: Anthropic.Tool[] = tools;
         const sent = (): Anthropic.ToolUnion[] => {
-          offered = guard.flagged ? tools.filter((t) => guard.allows(t.name)) : tools;
+          offered = (guard.flagged ? tools.filter((t) => guard.allows(t.name)) : tools).filter((t) => {
+            // An account an imported skill in use doesn't allow is no longer offered.
+            const acc = byTool.get(t.name);
+            return !acc || scope.has(acc.account.connector?.id);
+          });
           return [...offered, ...(web ? [webSearchTool(searchBudget - searches, region, tz)] : []), ...(fetchOn ? [webFetchTool(webTurn!.pages - pages, offered.map((t) => t.name))] : [])];
         };
         const params = (): Anthropic.MessageCreateParamsNonStreaming => ({ model, max_tokens: MAX_TOKENS, system, tools: sent(), messages, output_config: { effort: lim.effort }, cache_control: { type: "ephemeral" } });
@@ -1941,7 +1959,10 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
         failed = `I couldn't do that: ${(error instanceof z.ZodError ? "Athena couldn't read that change." : error instanceof Error ? error.message : String(error)).slice(0, 300)}`;
       }
     } else if (outcome.kind === "plan") {
-      const saved = await savePlan(outcome.steps, { source: planMode === "propose" ? "routine" : "ask", thread_id: opts.thread_id, routine_id: opts.routine_id });
+      // A plan from an imported assistant, or made while an imported skill was in use: its Go keeps to the accounts
+      // ticked for them, and asks before any other (lib/ask-plans.ts goPlan).
+      const limit = planLimit(opts.persona && opts.accounts ? opts.persona.id : null, scope.skills);
+      const saved = await savePlan(outcome.steps, { source: planMode === "propose" ? "routine" : "ask", thread_id: opts.thread_id, routine_id: opts.routine_id, limit });
       plan = { ...planCard(saved, { proposed: planMode === "propose" }), ...(heldWhy ? { why: heldWhy } : {}) };
     }
     // What Ask did: one log for every change, whichever way it came (lib/ask-activity.ts).

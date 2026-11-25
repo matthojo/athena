@@ -19,6 +19,7 @@ import { sealText } from "./data-box";
 import { STARTER_SKILLS } from "./skill-starters";
 import { checkDoc, checkFiles, parseSkillMd, SKILL_LIMITS, SkillFormatError, type SkillDoc, type SkillFile, type SkillSkipped, type SkillSource, type SkillSourceKind } from "./skills";
 import type { TeamSkillMeta } from "./team-skill";
+import { cleanAccountIds, skillImported } from "./shared-limits";
 
 export interface Skill {
   id: string;
@@ -35,6 +36,10 @@ export interface Skill {
   assistant_id: string | null;
   /** An assistant's skill: what Athena wrote it from. */
   team?: TeamSkillMeta;
+  /** From a file or a link: someone else's words (lib/shared-limits.ts). While it's in use, Ask opens only `accounts`. */
+  imported: boolean;
+  /** The connected accounts (connector ids) ticked for an imported skill (migration 0087). Empty: it opens none. */
+  accounts: string[];
   uses: number;
   last_used_at: string | null;
   created_at: string;
@@ -47,6 +52,7 @@ interface Row {
   enabled: boolean;
   starter: string | null;
   assistant_id: string | null;
+  accounts?: string[] | null;
   uses: number;
   last_used_at: string | Date | null;
   created_at: string | Date;
@@ -64,7 +70,7 @@ interface Payload {
   team?: TeamSkillMeta;
 }
 
-const COLUMNS = `id, payload, enabled, starter, assistant_id, uses, last_used_at, created_at, updated_at`;
+const COLUMNS = `id, payload, enabled, starter, assistant_id, accounts, uses, last_used_at, created_at, updated_at`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const iso = (v: string | Date | null) => (v == null ? null : new Date(v).toISOString());
 const SOURCE_KINDS: SkillSourceKind[] = ["upload", "link", "written", "chat", "starter", "team"];
@@ -90,6 +96,8 @@ function present(r: Row): Skill | null {
     starter: r.starter,
     assistant_id: r.assistant_id ?? null,
     ...(p.team ? { team: p.team } : {}),
+    imported: skillImported(p.source),
+    accounts: r.accounts ?? [],
     uses: Number(r.uses ?? 0),
     last_used_at: iso(r.last_used_at),
     created_at: iso(r.created_at)!,
@@ -112,15 +120,68 @@ async function ensureStarters(): Promise<void> {
   }
 }
 
+// ---------- imported skills' accounts (0087) ----------
+
+const NOTICE_KEY = "skills.accounts_notice";
+let noticeClaimed: Promise<void> | null = null;
+
+/**
+ * Once, on the first read after migration 0087: the imported skills there were then. Each lost its connected
+ * accounts (none is ticked to start), so a one-time notice lists them with a link to tick them. Only ids are kept,
+ * plain. Skipped when no account could be read in Ask, since nothing was lost. Never throws.
+ */
+function claimAccountsNotice(): Promise<void> {
+  noticeClaimed ??= (async () => {
+    try {
+      const [had] = await qRaw<{ key: string }>(`SELECT key FROM settings WHERE key = $1`, [NOTICE_KEY]);
+      if (had) return;
+      const { listConnectors, offeredInAsk } = await import("./connectors");
+      const usable = (await listConnectors().catch(() => [])).some((c) => offeredInAsk(c));
+      const rows = await q<Row>(`SELECT ${COLUMNS} FROM ask_skills WHERE assistant_id IS NULL`);
+      const ids = usable ? rows.map(present).filter((x): x is Skill => !!x && x.imported).map((x) => x.id) : [];
+      await qRaw(`INSERT INTO settings (key, value) VALUES ($1, $2::jsonb) ON CONFLICT (key) DO NOTHING`, [NOTICE_KEY, JSON.stringify({ ids, dismissed: false })]);
+    } catch (error) {
+      noticeClaimed = null;
+      console.warn("Athena skills: couldn't note imported skills' accounts", error instanceof Error ? error.message.slice(0, 120) : error);
+    }
+  })();
+  return noticeClaimed;
+}
+
+/** An imported skill the one-time notice names. */
+export interface AccountsNoticeSkill {
+  id: string;
+  name: string;
+}
+
+/** The one-time notice: imported skills from before 0087 that are still there with no account ticked. Empty once dismissed. */
+export async function accountsNotice(): Promise<AccountsNoticeSkill[]> {
+  await claimAccountsNotice();
+  const [row] = await qRaw<{ value: { ids?: unknown; dismissed?: unknown } | null }>(`SELECT value FROM settings WHERE key = $1`, [NOTICE_KEY]);
+  const v = row?.value;
+  if (!v || v.dismissed === true || !Array.isArray(v.ids)) return [];
+  const ids = v.ids.filter((id): id is string => typeof id === "string" && UUID.test(id));
+  if (!ids.length) return [];
+  const rows = await q<Row>(`SELECT ${COLUMNS} FROM ask_skills WHERE id = ANY($1::uuid[]) ORDER BY created_at`, [ids]);
+  return rows.map(present).filter((x): x is Skill => !!x && x.imported && !x.accounts.length).map((x) => ({ id: x.id, name: x.name }));
+}
+
+/** The owner has read it: it doesn't come back. */
+export async function dismissAccountsNotice(): Promise<void> {
+  await claimAccountsNotice();
+  await qRaw(`UPDATE settings SET value = jsonb_set(value, '{dismissed}', 'true'::jsonb) WHERE key = $1`, [NOTICE_KEY]);
+}
+
 /** Every skill, most recently used first, then newest. */
 export async function listSkills(): Promise<Skill[]> {
-  await ensureStarters();
+  await Promise.all([ensureStarters(), claimAccountsNotice()]);
   const rows = await q<Row>(`SELECT ${COLUMNS} FROM ask_skills ORDER BY last_used_at DESC NULLS LAST, created_at DESC`);
   return rows.map(present).filter((s): s is Skill => !!s);
 }
 
 /** The switched-on skills, for main Ask: never an assistant's own. No starters are added from here. */
 export async function enabledSkills(): Promise<Skill[]> {
+  await claimAccountsNotice();
   const rows = await q<Row>(`SELECT ${COLUMNS} FROM ask_skills WHERE enabled AND assistant_id IS NULL ORDER BY last_used_at DESC NULLS LAST, created_at DESC`);
   return rows.map(present).filter((s): s is Skill => !!s);
 }
@@ -142,6 +203,8 @@ export interface SkillInput {
   skipped?: unknown;
   source?: unknown;
   enabled?: unknown;
+  /** An imported skill's connected accounts (Skill.accounts), the whole set. */
+  accounts?: unknown;
 }
 
 const str = (v: unknown, max = 50_000) => (typeof v === "string" ? v.slice(0, max) : undefined);
@@ -186,13 +249,18 @@ async function nameTaken(name: string, except?: string): Promise<boolean> {
   return (await listSkills()).some((s) => s.name === name && s.id !== except);
 }
 
-/** Save a new skill the owner checked. Off unless they say on. */
+/**
+ * Save a new skill the owner checked. Off unless they say on; one from a file or a link (someone else's words)
+ * always starts off, whatever was sent: the owner turns it on from its page.
+ */
 export async function createSkill(input: SkillInput): Promise<Skill> {
   const p = payloadOf(input);
+  const enabled = input.enabled === true && !skillImported(p.source);
   const all = await listSkills();
   if (all.filter((s) => !s.assistant_id).length >= SKILL_LIMITS.skills) throw new AthenaInputError(`You have ${SKILL_LIMITS.skills} skills, the most Athena keeps. Delete one first.`);
   if (all.some((s) => s.name === p.name)) throw new AthenaInputError(`There's already a skill called ${p.name}. Pick another name.`);
-  const [row] = await q<Row>(`INSERT INTO ask_skills (payload, enabled) VALUES ($1, $2) RETURNING ${COLUMNS}`, [sealText(JSON.stringify(p)), input.enabled === true]);
+  const accounts = input.accounts === undefined ? [] : await knownAccounts(input.accounts);
+  const [row] = await q<Row>(`INSERT INTO ask_skills (payload, enabled, accounts) VALUES ($1, $2, $3::text[]) RETURNING ${COLUMNS}`, [sealText(JSON.stringify(p)), enabled, accounts]);
   return present(row)!;
 }
 
@@ -206,11 +274,19 @@ export async function updateSkill(id: unknown, input: SkillInput): Promise<Skill
   // An assistant's own skill stays off: it's loaded by its assistant, never by main Ask.
   if (was.assistant_id) input = { ...input, enabled: undefined };
   if (p && p.name !== was.name && (await nameTaken(p.name, was.id))) throw new AthenaInputError(`There's already a skill called ${p.name}. Pick another name.`);
+  if (input.accounts !== undefined && !Array.isArray(input.accounts)) throw new AthenaInputError("accounts: a list of account ids");
+  const accounts = input.accounts === undefined ? null : await knownAccounts(input.accounts);
   const [row] = await q<Row>(
-    `UPDATE ask_skills SET payload = COALESCE($2, payload), enabled = COALESCE($3, enabled), updated_at = now() WHERE id = $1::uuid RETURNING ${COLUMNS}`,
-    [was.id, p ? sealText(JSON.stringify(p)) : null, typeof input.enabled === "boolean" ? input.enabled : null],
+    `UPDATE ask_skills SET payload = COALESCE($2, payload), enabled = COALESCE($3, enabled), accounts = COALESCE($4::text[], accounts), updated_at = now() WHERE id = $1::uuid RETURNING ${COLUMNS}`,
+    [was.id, p ? sealText(JSON.stringify(p)) : null, typeof input.enabled === "boolean" ? input.enabled : null, accounts],
   );
   return present(row)!;
+}
+
+/** Ticked account ids, keeping only accounts that are there (lib/shared-limits.ts). */
+async function knownAccounts(raw: unknown): Promise<string[]> {
+  const rows = await q<{ id: string }>(`SELECT id::text AS id FROM connectors`);
+  return cleanAccountIds(raw, new Set(rows.map((r) => r.id.toLowerCase())));
 }
 
 export async function deleteSkill(id: unknown): Promise<boolean> {

@@ -30,6 +30,7 @@ export type ViewId =
   | "ask"
   | "team"
   | "flows"
+  | "community"
   | "people"
   | "places"
   | "organisations"
@@ -55,6 +56,7 @@ export type ViewId =
   | "days"
   | "saved"
   | "recipes"
+  | "add"
   | KindView;
 
 export { isKindView, kindIdOf, kindView, type KindView } from "../lib/routes";

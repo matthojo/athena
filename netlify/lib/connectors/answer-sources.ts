@@ -305,7 +305,7 @@ export interface AnswerSourceDeps {
 
 /** The port over these accounts; tests pass their own list and opener, the app uses the stored ones. */
 export function answerSourcesWith(deps: AnswerSourceDeps): SourcesPort {
-  return { open: ({ timeoutMs }) => openAll(deps, timeoutMs) };
+  return { open: ({ timeoutMs, only }) => openAll(deps, timeoutMs, only) };
 }
 
 let active: SourcesPort = answerSourcesWith({ list: listConnectors, open: openConnector });
@@ -316,8 +316,9 @@ export function useAnswerSources(port: SourcesPort): void {
 
 export const answerSources: SourcesPort = { open: (opts) => active.open(opts) };
 
-async function openAll(deps: AnswerSourceDeps, timeoutMs: number): Promise<OpenSources> {
-  const all = await deps.list();
+async function openAll(deps: AnswerSourceDeps, timeoutMs: number, only?: ReadonlySet<string>): Promise<OpenSources> {
+  // Something someone else shared limits this answer (lib/shared-scope.ts): the other accounts aren't opened, listed or named.
+  const all = (await deps.list()).filter((c) => !only || only.has(c.id.toLowerCase()));
   const names = displayNames(all);
   const skipped: string[] = [];
   // An account in error may only have had a bad run; one that needs signing in can't be read until it's signed in again.

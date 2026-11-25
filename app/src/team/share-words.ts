@@ -3,6 +3,7 @@
  * and flagged, and what the import sheet says about where one came from and
  * what it needs. Pure, so the tests can check the words without a DOM.
  */
+import { listingIdOf } from "../../../lib/community-site";
 import type { Finding, FindingKind, Removed, ImportNeed, ImportPreview } from "../../../lib/team-share";
 import { connectorById } from "./trigger-editor-words";
 
@@ -95,7 +96,7 @@ export function creditWords(w: { author?: string; version?: string; based_on?: s
   const parts: string[] = [];
   if (w.author) parts.push(`By @${w.author}`);
   if (w.version) parts.push(`version ${w.version}`);
-  if (w.based_on) parts.push(`based on ${w.based_on.replace(/^https:\/\/(www\.)?/, "")}`);
+  if (w.based_on) parts.push(listingIdOf(w.based_on) ? "based on a Community listing" : `based on ${w.based_on.replace(/^https:\/\/(www\.)?/, "")}`);
   const line = parts.join(" · ");
   return line ? line.charAt(0).toUpperCase() + line.slice(1) : "";
 }

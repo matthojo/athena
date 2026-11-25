@@ -1,0 +1,117 @@
+/* Account ticks for something someone else shared (components/account-ticks.ts): one row per account, with the
+   service's mark, set like the import sheet's other ticks. Self-contained: the skill page doesn't load the sheet's
+   styles. */
+.acct-ticks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acct-tick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 52px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+  cursor: pointer;
+  font-weight: var(--weight-regular);
+}
+
+.acct-tick__box {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.acct-tick .logo {
+  flex: none;
+}
+
+.acct-tick__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.acct-tick__name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  line-height: var(--leading-tight, 1.3);
+}
+
+.acct-tick__meta {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  line-height: var(--leading-tight, 1.3);
+  overflow-wrap: anywhere;
+}
+
+.acct-tick:has(.acct-tick__box:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.acct-ticks__none {
+  margin: 0;
+}
+
+/* On an imported skill's page (components/skills-page.ts): a heading, a line, then the rows. */
+.skills-form__accounts-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skills-form__accounts-sec .skills-form__caption {
+  margin: 0;
+}
+
+.skills-form__accounts-sec .form__hint {
+  margin: 0;
+}
+
+/* "Dot can't work without Linear." (components/account-ticks.ts cantWorkNote): above the ticks, like the import
+   sheet's other warnings, and gone once every account it needs is ticked. */
+.acct-need-wrap:has(.acct-need[hidden]) {
+  display: none;
+}
+
+.acct-need {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--warn-wash);
+  color: var(--ink);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+}
+
+.acct-need[hidden] {
+  display: none;
+}
+
+.acct-need svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.acct-need__text {
+  font-weight: var(--weight-medium);
+}
+
+/* The warning, then the rows (team/detail-accounts.ts, the import sheet). */
+.acct-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

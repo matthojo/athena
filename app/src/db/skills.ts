@@ -10,6 +10,7 @@ import { STARTER_SKILLS } from "../../../lib/skill-starters";
 import { intakeEntries, parseSkillMd, serialiseSkillMd, skillTitle, SkillFormatError, type SkillFile, type SkillPreview, type SkillSkipped, type SkillSource } from "../../../lib/skills";
 import type { TeamSkillMeta } from "../../../lib/team-skill";
 import { sampleTeamSkills } from "./sample-team";
+import { skillImported } from "../../../lib/shared-limits";
 
 export interface AppSkill {
   id: string;
@@ -28,6 +29,10 @@ export interface AppSkill {
   assistant_id: string | null;
   /** An assistant's skill: what Athena wrote it from. */
   team?: TeamSkillMeta;
+  /** From a file or a link: someone else's words. While Ask uses it, only `accounts` can be opened. Missing on older servers. */
+  imported?: boolean;
+  /** The connected accounts ticked for an imported skill (connector ids). Missing on older servers. */
+  accounts?: string[];
   uses: number;
   last_used_at: string | null;
   created_at: string;
@@ -46,6 +51,8 @@ export interface SkillDraftInput {
   skipped?: SkillSkipped[];
   source?: Partial<SkillSource>;
   enabled?: boolean;
+  /** An imported skill's connected accounts, the whole set. */
+  accounts?: string[];
 }
 
 const listeners = new Set<() => void>();
@@ -75,7 +82,8 @@ description: Use when the owner asks what a client said about pricing, terms or 
 function sampleSkill(id: string, text: string, over: Partial<AppSkill>): AppSkill {
   const doc = parseSkillMd(text);
   const at = over.created_at ?? daysAgo(30);
-  return { id, ...doc, title: skillTitle(doc.name), files: [], skipped: [], source: { kind: "starter", at }, enabled: false, starter: null, assistant_id: null, uses: 0, last_used_at: null, created_at: at, updated_at: at, skill_md: serialiseSkillMd(doc), ...over };
+  const s: AppSkill = { id, ...doc, title: skillTitle(doc.name), files: [], skipped: [], source: { kind: "starter", at }, enabled: false, starter: null, assistant_id: null, accounts: [], uses: 0, last_used_at: null, created_at: at, updated_at: at, skill_md: serialiseSkillMd(doc), ...over };
+  return { ...s, imported: skillImported(s.source) };
 }
 
 let sampleSet: AppSkill[] | null = null;
@@ -148,8 +156,9 @@ export async function saveSkill(input: SkillDraftInput, id?: string): Promise<Ap
     const was = id ? list.find((s) => s.id === id) : undefined;
     const now = new Date().toISOString();
     const next: AppSkill = was
-      ? { ...was, ...doc, title: skillTitle(doc.name), files: input.files ?? was.files, skipped: input.skipped ?? was.skipped, enabled: input.enabled ?? was.enabled, updated_at: now, skill_md: serialiseSkillMd(doc) }
-      : sampleSkill(crypto.randomUUID(), serialiseSkillMd(doc), { files: input.files ?? [], skipped: input.skipped ?? [], enabled: !!input.enabled, source: { kind: input.source?.kind ?? "written", ...(input.source?.url ? { url: input.source.url } : {}), ...(input.source?.file ? { file: input.source.file } : {}), at: now }, created_at: now });
+      ? { ...was, ...doc, title: skillTitle(doc.name), files: input.files ?? was.files, skipped: input.skipped ?? was.skipped, enabled: input.enabled ?? was.enabled, accounts: input.accounts ?? was.accounts, updated_at: now, skill_md: serialiseSkillMd(doc) }
+      : // As the server does: one from a file or a link starts off, whatever was sent.
+        sampleSkill(crypto.randomUUID(), serialiseSkillMd(doc), { files: input.files ?? [], skipped: input.skipped ?? [], enabled: !!input.enabled && !skillImported(input.source), accounts: input.accounts ?? [], source: { kind: input.source?.kind ?? "written", ...(input.source?.url ? { url: input.source.url } : {}), ...(input.source?.file ? { file: input.source.file } : {}), at: now }, created_at: now });
     sampleSet = was ? list.map((s) => (s.id === id ? next : s)) : [next, ...list];
     changed();
     return next;
@@ -177,40 +186,6 @@ export async function deleteSkill(id: string): Promise<void> {
   else await request(`/skills/${encodeURIComponent(id)}`, { method: "DELETE" });
   cache = null;
   changed();
-}
-
-// ---------- imports: a preview first ----------
-
-const b64 = async (blob: Blob): Promise<string> => {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  let s = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(s);
-};
-
-/** A SKILL.md, a .zip, or a folder's files (from a folder picker or a drop), as the server would keep them. Nothing is saved. */
-export async function previewUpload(files: File[]): Promise<SkillPreview> {
-  const one = files.length === 1 ? files[0] : null;
-  const isZip = !!one && (/\.zip$/i.test(one.name) || one.type === "application/zip" || one.type === "application/x-zip-compressed");
-  const folder = !one || !isZip ? files.map((f) => ({ path: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name, file: f })) : [];
-  if (isSampleMode()) {
-    if (isZip) throw new SkillFormatError("In sample mode Athena can read a SKILL.md or a folder, but not a zip.");
-    const entries = await Promise.all(folder.map(async (e) => ({ path: e.path, bytes: new Uint8Array(await e.file.arrayBuffer()) })));
-    return intakeEntries(entries, { kind: "upload", file: one?.name ?? folder[0]?.path.split("/")[0], at: new Date().toISOString() });
-  }
-  const body = isZip
-    ? { zip: await b64(one!), file: one!.name }
-    : { entries: await Promise.all(folder.map(async (e) => ({ path: e.path, data: await b64(e.file) }))), file: one?.name ?? folder[0]?.path.split("/")[0] };
-  return request<SkillPreview>("/skills/preview", { method: "POST", body: JSON.stringify(body) });
-}
-
-/** A GitHub folder or a raw SKILL.md, fetched once by the server. Nothing is saved. */
-export async function previewLink(url: string): Promise<SkillPreview> {
-  if (isSampleMode()) {
-    const doc = parseSkillMd(STARTER_SKILLS[2].text.replace("name: meeting-prep", "name: client-prep"));
-    return { ...doc, files: [{ path: "reference/questions.md", text: "# Questions worth asking\n\n- What would make this a yes?\n- Who else needs to agree?\n" }], skipped: [{ path: "scripts/calendar.js", reason: "Not used: Athena doesn't run scripts" }], source: { kind: "link", url, at: new Date().toISOString() } };
-  }
-  return request<SkillPreview>("/skills/preview", { method: "POST", body: JSON.stringify({ url }) });
 }
 
 /** "Make this a skill": a draft from this conversation, for the editor. Never saved by this. */

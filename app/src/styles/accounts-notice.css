@@ -1,0 +1,36 @@
+/* Home's one-time notice about imported skills' accounts (components/accounts-notice.ts). */
+.acct-notice__list {
+  display: grid;
+  gap: 2px;
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acct-notice__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  margin-inline: calc(var(--space-xs) * -1);
+  padding-inline: var(--space-xs);
+  border-radius: var(--radius-md);
+  color: var(--accent-ink, var(--accent));
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.acct-notice__link:hover {
+  background: var(--sunken);
+}
+
+.acct-notice__link svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.acct-notice__link span {
+  flex: 1;
+  min-width: 0;
+}

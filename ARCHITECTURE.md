@@ -1727,12 +1727,14 @@ contracts between slices, is `docs/team.md`.
 
 - **Sharing and importing assistants** (`lib/team-share.ts`, pure and shared with the app;
   `lib/team-share-store.ts`; routes in `netlify/lib/team-routes.ts`; app
-  `db/team-share.ts`, `team/share-sheet.ts`, `team/import-sheet.ts`,
+  `db/team-share.ts`, `team/share-sheet.ts`, the Add screen in `app/src/add/`,
   `team/share-words.ts`). An assistant as a file someone else can import: a
   folder (zipped for download) with `assistant.json` (format 1: name, job,
   instructions, summary, personality, avatar, triggers without ids, `asks`,
   `needs`, `would_like`, `web`, and optional `version`, `author`,
-  `based_on`), its `SKILL.md` and the skill's files. No migration.
+  `based_on`), its `SKILL.md` and the skill's files. Migration 0087 records
+  an import (`team_assistants.origin = 'shared'`) and the accounts ticked for
+  it (`team_assistants.accounts`).
   - **Share** (the assistant's page): `POST /api/team/<id>/export` with
     `edits` and `fine` returns a `ShareExport`: the file's contents with
     links into this Athena taken out (`scrubText`), and `findings` from
@@ -1740,17 +1742,69 @@ contracts between slices, is `docs/team.md`.
     organisations, projects, the owner's profile, connector labels). The
     setup questions kept with its skill become `asks`; the owner's answers
     don't go. `download: true` gives the zip, or 409 with the findings.
-  - **Import** ("Or import one someone shared" in New assistant, the empty
-    Team page, a drop on the page, or `#/team/import` from the share target):
-    `POST /api/team/import/preview` reads a zip, a folder's files, an
+  - **Import** ("Or add one someone shared" in New assistant, the empty
+    Team page, a drop on the page, or the share target, all opening `#/add`):
+    `POST /api/community/preview` reads a zip, a folder's files, an
     `assistant.json` or a GitHub link (`parseShareLink`, `fetchGithubFolder`
-    in `lib/skill-fetch.ts`) into an `ImportPreview` with each needed
-    account's connection. `POST /api/team/import` makes
-    the assistant paused, with `grantedTools` (asked for and ticked), and its
+    in `lib/skill-fetch.ts`) into an `AddPreview`; the screen shows each needed
+    account's connection, `asks_first` (what it asked to do alone that an
+    import can't grant) and `accounts` (every account a turn could open, the
+    ones it needs first; the Add screen works these out from the preview). `POST /api/community/add` makes
+    the assistant paused, with `grantedTools` (asked for, ticked, and in
+    `SHARED_TOOLS`: the flows catalogue's "add" group plus `track`,
+    `lib/shared-limits.ts`), the accounts ticked, and its
     skill as the assistant's own (`putAssistantSkill` with the file's
     files and source), the owner's answers appended (`withAnswers`); with no
     skill, `attachSkill` writes one after the response. An assistant with no
     looks gets the character its preview showed (`shareSeed`).
+  - **What an imported item reaches** (`lib/shared-limits.ts`,
+    `lib/shared-scope.ts`, `lib/shared-scope-db.ts`). An imported assistant's
+    turns (chat, run, a flow's think step) carry an `AccountScope` of its
+    ticked accounts (`runAssistantTurn`); an imported skill (source `upload`
+    or `link`) limits the turn when it comes into use (`SkillTools`' `onUse`)
+    or, picked with "/", before anything opens. `runAsk` opens only allowed
+    accounts (`SourcesPort.open`'s `only`, honoured in
+    `netlify/lib/connectors/answer-sources.ts`), drops the others' tools,
+    refuses a call to one, and wraps the Session's mail, Slack and calendar
+    ports (`scopedPorts`). Their words reach the model as someone else's:
+    `<shared_instructions>` and `<shared_skill>` in the persona block, and
+    `SHARED_SKILL_RULE` for an imported Ask skill. The app's ticks are
+    `components/account-ticks.ts` (import sheet, `team/detail-accounts.ts`,
+    the skill page), and Home's one-time `components/accounts-notice.ts`
+    reads `GET /api/skills/notice`.
+  - **Needed accounts.** The file's `needs` are kept with the imported
+    assistant's sealed words (`Words.needs`, `cleanNeeds` in `lib/team.ts`;
+    `TeamAssistant.needs`). The import sheet and the assistant's page list
+    those accounts first and, while one is unticked, show
+    `cantWorkNote` ("Dot can't work without Linear.", from `unmetNeeds` and
+    `cantWorkWords` in `lib/shared-limits.ts`). The "Always asks first" rows
+    take their words from `ASKS_FIRST_TOOLS`.
+  - **Approve on a plan an imported item limits.** `runAsk` saves the plan with
+    `limit: { assistant_id?, skill_ids? }` (`planLimit`): the imported
+    assistant answering, and the imported skills that limited the turn
+    (`AccountScope.skills`, recorded by `limitForSkill`). `goPlan`
+    (`lib/ask-plans.ts`) works out who still holds it (`holders`: each still
+    imported, or removed) and runs its steps under `underGoLimit` with all of
+    their ticks: the step runners' ports go through `limitedForGo` (strict
+    `scopedPorts`, where a look is refused too and the refused account is
+    recorded). Steps run unlogged (`runStepsFrom`); one that wasn't refused
+    is logged (`keep`), and one that was refused stops the plan before it however
+    it ended, and what it made is undone through `GoDeps.undo` (`discard`,
+    `applyUndo`) and never logged or shown. Then the payload keeps
+    `paused` (the step, the account, the ticks and the results so far),
+    `ran_at` goes back to NULL so it still counts as waiting, and the card
+    carries `needs_account`, with `skill` when an imported skill refused the
+    account (`refuser`: a skill is named before the assistant).
+    `POST /api/assistant/plan` with `account` (`once`, `always` or `skip`)
+    carries on from that step (`carryOn`): once adds the account to this
+    approval's scope only, always ticks it for the assistant (refused when a skill
+    refused it), skip leaves the step out. Approve and an answer claim the plan by
+    the sealed payload they read. The app draws the question in
+    `accountAskEl` (`views/ask.ts`): for a skill, Just this once, Skip it and
+    a link to `#/settings/skills/<id>`. In sample mode, imported Dot leaves
+    such a plan on Run now, and a plan request with the imported Deal notes
+    skill picked with "/" leaves one held by the skill (`sampleSkillPlan`;
+    both through `sampleLimits` in `db/sample-ask-plans.ts`).
   - **Sample mode** checks, previews and imports in the app against the sample
     team and people; a download there is `assistant.json` alone.
   - **The catalogue** is a separate GitHub repository; Athena only reads
@@ -1870,9 +1924,17 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
   write one; import from a GitHub folder or a raw SKILL.md link
   (`lib/skill-fetch.ts`); or "Make this a skill" in Ask's menu
   (`lib/skill-draft.ts`), which drafts one from the conversation and opens
-  the editor. Every import is a preview (`POST /api/skills/preview`) before
-  anything is saved; a draft is never saved or switched on by itself. Three
-  starters (weekly-review, plan-meals, meeting-prep) are added once, off.
+  the editor. Every import is a preview (`#/add`, `POST /api/community/preview`) before
+  anything is saved; a draft is never saved or switched on by itself, and
+  one from a file or a link is saved off whatever the request says
+  (`createSkill`). Three starters (weekly-review, plan-meals, meeting-prep)
+  are added once, off.
+- **Imported skills' accounts** (migration 0087, `ask_skills.accounts`).
+  While Ask uses a skill from a file or a link it opens only the accounts
+  ticked on the skill's page (see Team, "What an imported item reaches").
+  The first read after 0087 notes the imported skills there were then
+  (settings `skills.accounts_notice`, ids only); `GET /api/skills/notice`
+  lists those still with none ticked until `DELETE` marks it read.
 - **Assistants' own skills** (0069, `assistant_id`) are listed in Settings
   under Team with the assistant's avatar and name, no switch. They never
   count toward the 50, and Ask's list, "/" and `use_skill` skip them (see
@@ -1892,6 +1954,150 @@ change how Ask handles some kinds of request (`lib/skills.ts`, migration 0058,
   the list with switches, last used and source; the editor (Name, Use when,
   Instructions, files); upload, link and new. Sample mode keeps the starters
   and one skill in use on the device.
+
+### Community
+
+People share assistants, skills and flows as folders of plain files: data,
+never code. The Community site (a separate repository and a directory people
+sign in to and submit through) reviews items and serves the catalogue as
+static files. Every way in, a listing, a link or files, ends at one preview,
+`#/add`. What's added starts switched off, and nothing in a file is a
+permission.
+
+**The files.**
+
+- **`lib/share-kinds.ts`.** The kinds (`assistant`, `skill`, `flow`), the file
+  that names each (assistant.json, SKILL.md, flow.json), the optional header
+  (`version`, `author`, `based_on`) and `detectKind(paths)`. `based_on` is a
+  github.com link or a listing on the Community site (`basedOnLink`).
+- **`lib/community-site.ts`.** `COMMUNITY_SITE`, the one constant naming the
+  Community site, and the addresses Athena makes on it: `submitPageUrl`
+  (`/submit/`), `listingPageUrl` (`/items/<id>/`) and `listingLink`, which
+  reads a `based_on` back only when it's a listing on that site. No imports,
+  so the share formats and the catalogue types can all use it.
+- **`lib/flow-share.ts`.** flow.json, format 1. `readSharedFlow` is as strict
+  as `readShared`: FLOW_LIMITS, unknown keys dropped, tools checked against
+  the flows catalogue, no record ids. A step field that named one of the
+  owner's records, lists or to-do contexts is a blank (`{ "blank": key }`)
+  that a question in `asks` fills; a list or context question carries
+  `pick` (`list`, `area`, `where`) so the Add screen can offer the owner's
+  own. `checkSharedFlowSteps` makes the checks `checkSteps` makes on save
+  (each tool's own fields, the values it gives, values only from the trigger
+  or an earlier step) without the database, from `FLOW_TOOL_SHAPES`, which a
+  test keeps in step with `lib/flow-catalog.ts`. Reach, the preview, import,
+  export and the catalogue's own CI all run it.
+- **`lib/reach.ts`.** `reachOf(files)`: tier 1 stays inside Athena, tier 2
+  uses AI or an outside lookup (each named), tier 3 asks for the web. Worked
+  out from the files, never declared. Every screen names a tier the same way
+  (`app/src/community/words.ts` `tierWords`, `tierIcon`).
+- **`lib/catalogue-types.ts`.** index.json, a bundle and listing.json, with
+  zod validators and caps, and `bundleHash`: SHA-256 over the files in a
+  canonical encoding both repositories compute, pinned by test vectors. An
+  item may carry `downloads`, the site's count; an index without it reads as
+  before, and the screens then say nothing about it.
+- **The catalogue can grow.** Reading is tolerant of new keys: one Athena
+  doesn't know, on the index, an item, its reach, a withdrawn entry, a
+  bundle, a bundle's file or a listing, is dropped, so the directory site can
+  add a field without older copies refusing the whole index. Every field
+  Athena knows keeps its type, size and count checks, and a bad one still
+  refuses the file whole. The bundle hash is unchanged and covers each file's
+  path and text. A change older copies must not read past bumps `format` or
+  an item's `min_format`; it is never a new key.
+- **Migration 0089.** Nullable `catalogue_id`, `catalogue_hash` and
+  `catalogue_version` on `team_assistants`, `ask_skills` and `flows`: which
+  listing an item came from, for "You already have this" and update checks.
+
+**The catalogue.**
+
+- **`lib/community-config.ts`.** `catalogueUrl()`: `ATHENA_CATALOGUE_URL`
+  when it's set, else `COMMUNITY_SITE`; set to anything that isn't an https
+  address (`off`), there's no catalogue. And the owner's "Check the
+  Community catalogue" switch (settings `community`), off until Community is
+  first opened, so nothing is fetched before then.
+- **`netlify/lib/community-catalogue.ts`.** The index is fetched through
+  `publicFetch` and kept a day in the `community` blob store; `loadBundle(id)`
+  uses a bundle only when `verifyBundle` matches it to its files and the
+  index. `compareInstalled` and `toPause` work out updates and withdrawals.
+- **`netlify/lib/community-routes.ts`.** `GET /api/community` (opening it the
+  first time switches the check on), `GET /api/community/updates` (pauses a
+  withdrawn item once) and `GET`/`PUT /api/community/settings` (the GET also
+  gives `submit`, the site's `/submit/` page, without contacting it). It answers
+  null for any other path, and `netlify/functions/api.ts` then tries the Add
+  routes. `netlify/functions/community-check.ts` runs the check daily.
+- **`#/community`** (`app/src/community/page.ts`). Filter by kind, search, and
+  an order (`?sort=downloads`): featured then newest, or most downloaded,
+  offered once the index carries counts. A row shows its count rounded down
+  (`downloadCount`: "40+", "1k+"), or nothing without one. On a wide screen
+  the rows are cards on a six-track grid that never leaves a hole: an odd
+  list ends with one card across the row, an odd number of featured picks
+  leads with one, and three sit in one row. Each row opens
+  `#/add?catalogue=<id>`. It's in the Library's More group (the sidebar, ⌘K,
+  and the phone's Library beside Flows). Team setup, the new-flow sheet and
+  Skills' Add sheet each offer "Or add one someone shared" (`#/add`) and
+  "Browse Community". `app/src/community/status.ts` draws "Update available"
+  and "Taken down from Community" under the item's title on the assistant,
+  skill and flow pages, and `updateDot` puts a small dot beside an item with
+  an update on the Team, Flows and Skills lists (one check serves a list).
+- **Submit to Community** (`app/src/community/submit.ts`), at the foot of the
+  assistant and flow share sheets and beside a skill's downloads. Athena
+  publishes nothing: it says the two steps (the downloaded folder in a public
+  GitHub repository of the owner's, then shared on the site) and opens the
+  site's `/submit/` page in the browser, with no referrer.
+
+**Adding: `#/add`.**
+
+- **`lib/community-add.ts`** (pure, shared with sample mode). `itemFiles`
+  cuts a folder, zip or link down to the item's own text files; a lone
+  `.json` or `.md` renamed on the way is read by what it holds. `buildPreview`
+  reads them by kind and works out reach and hash; a file made for a newer
+  Athena throws `NewerFormatError` (HTTP 426).
+- **`netlify/lib/community-add-routes.ts`.** `POST /api/community/preview`
+  (a listing, a link, or multipart files) and `POST /api/community/add`. Add
+  reads the files again and hands each kind to its own import
+  (`importAssistant`, `createSkill`, `addSharedFlow`), switched off,
+  recording the listing for a catalogue item. The preview's `existing` names
+  an item already added from the same listing, with `newer` when the files
+  differ. `choices.replace` updates that one instead of adding a copy
+  (`updateImportedAssistant`, `updateSkill`, `replaceSharedFlow`): its name
+  and history stay, its content becomes the new version's, and it goes off.
+  The server only replaces the item it finds came from that listing. The old
+  `/api/team/import*` and `/api/skills/preview` routes are gone.
+- **`app/src/add/`.** The screen (`view.ts`) and its words (`words.ts`). One
+  layout for all three kinds: who made it and where from (with the
+  listing's download count), "You already have this" with Open and Update (a
+  second copy is a separate tap), its reach, what it needs, its questions,
+  account ticks, what it may do alone, then all of it. A flow's steps
+  (`flow-steps.ts`) are titled from the step catalogue as the editor titles
+  them, with the first field as the body and the others under it by name
+  (`toolStepFields`). Add or Update sits in a sticky foot shared with the
+  flow page (`styles/flows.css`, "Sticky foot"): solid, at the bottom of the
+  content column, above the phone's dock.
+- **A flow, added** (`importSharedFlow`). New step ids; steps that change
+  something wait for approval and steps that only look run; thinking steps off the
+  web; money off; paused, origin `shared`. Unanswered blanks are kept in the
+  sealed payload (`Words.unfilled`) and shown as `Flow.unfilled`; until each
+  is set, the switch, Run now and a try are refused (`unansweredWords`), and
+  a shared flow's thinking steps need an assistant before it can go on.
+
+**Sharing a flow** (`exportFlow`, `lib/flow-share-store.ts` `exportFlowFor`,
+`POST /api/flows/:id/export`, `app/src/flows/share-sheet.ts`, in a flow's More
+menu). Steps are numbered afresh; a record id becomes "Which person…?", a
+list "Which list?" and a to-do context "Which context?", each worded by the
+owner; links into the site go; findings wait for an edit or "It's fine". The
+summary starts as a draft from the trigger and steps in Athena's own words
+(`draftSummary`, no model). A flow added from Community names its listing as
+`based_on` (`listingPageUrl` from its `catalogue_id`), so a copy shows what it
+was made from. A step that leans on the owner's own types or
+fields is named in `blocked` and nothing downloads. The download is a zip
+with `<slug>/flow.json`; sample mode saves flow.json alone.
+
+**Sample mode.** `app/src/db/sample-community.ts` is a dozen made-up listings
+across the kinds and tiers, real files whose hashes and reach the tests
+check; `app/src/add/sample-items.ts` answers `#/add?link=` for its made-up
+links. Gift price watch is added at an older version and Dot was taken down.
+Most listings carry made-up download counts; the two newest have none.
+localStorage `athena.sample.catalogue` (`none`, `down`, `offline`, `slow`)
+shows each state of the Community screen.
 
 ### Files
 

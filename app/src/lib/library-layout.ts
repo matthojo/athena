@@ -13,6 +13,7 @@
  *    being delivered, what renews.
  *  - Health, habits and work: your body, your routines, what you're working
  *    towards, and what you shipped.
+ *  - More: Community (what other people shared), Graph, Archived, Settings.
  */
 
 import type { ViewId } from "../components/nav";
@@ -81,6 +82,8 @@ export const LIBRARY_LAYOUT: readonly LibraryGroup[] = [
     id: "more",
     label: "More",
     items: [
+      // Community: what other people shared, beside Flows on a phone's Library (views/library.ts).
+      { view: "community", label: "Community", icon: "globe" },
       { view: "graph", label: "Graph", icon: "graph" },
       { view: "archived", label: "Archived", icon: "archive" },
       { view: "settings", label: "Settings", icon: "sliders" },

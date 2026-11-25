@@ -1,0 +1,101 @@
+/* Sharing a flow: "Share <Name>" (flows/share-sheet.ts). Built on skills.css and team-share.css (.wf). */
+
+/* What it reaches: one card with a tile, the tier and what puts it there. */
+.fs-reach {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+}
+
+.fs-reach .row__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-reach .row__meta {
+  white-space: normal;
+  line-height: var(--leading-body);
+}
+
+.fs-tile {
+  flex: none;
+}
+
+.fs-reach--shield .fs-tile {
+  color: var(--good);
+}
+
+.fs-reach--sparkle .fs-tile,
+.fs-reach--cloud .fs-tile {
+  color: var(--accent);
+}
+
+.fs-reach--globe .fs-tile {
+  color: var(--warn, var(--ink-2));
+}
+
+/* Steps that can't go yet: like the findings, with no button, since only the flow itself can change. */
+.fs-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fs-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding-right: var(--space-sm);
+}
+
+.fs-row .row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-row .row__title {
+  overflow-wrap: anywhere;
+}
+
+.fs-row .row__meta {
+  white-space: normal;
+  line-height: var(--leading-body);
+}
+
+
+.wf textarea.fs-summary.field:not(.skill-editor__body) {
+  min-height: 4.5em;
+}
+
+/* The questions: each its own box, with the steps it fills under it. */
+.fs-asks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fs-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fs-ask__used {
+  padding-inline: var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-body);
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+.fs-starts {
+  margin: 0;
+}

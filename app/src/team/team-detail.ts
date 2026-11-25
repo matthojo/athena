@@ -9,6 +9,8 @@
  *   think, and say each step as they go (detail-work.ts shows the run).
  * - What it has done (detail-work.ts), first: each run opens its
  *   conversation; one that didn't finish offers Try again.
+ * - An imported assistant's accounts (detail-accounts.ts): the connected
+ *   accounts it may open, one tick each, beside its brief.
  * - How it works for you (detail-brief.ts): its brief as sentences you tap
  *   to change, its skill (team-skill-section.ts), what it knows about you,
  *   and its personality and looks.
@@ -37,10 +39,12 @@ import { briefSection, memorySection, personalitySection, triggerInput } from ".
 import { workSection } from "./detail-work";
 import { trackingSection } from "./detail-tracking";
 import { modelsSection } from "./detail-models";
+import { accountsSection } from "./detail-accounts";
 import { cap, isLive, liveWords, pronouns, startLine } from "./detail-words";
 import { openShareAssistant } from "./share-sheet";
 import { assistantFlowsSection } from "../flows/assistant-flows";
 import { flowsChanged } from "../db/flows";
+import { catalogueStatus } from "../community/status";
 
 export { triggerInput };
 
@@ -100,6 +104,8 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
   back.addEventListener("click", ctx.back);
   const body = h("div", { class: "td-body", "aria-busy": "true" });
   const el = h("div", { class: "view team-detail" }, h("div", { class: "td-top" }, back), body);
+  // The catalogue's word on this assistant (an update, or taken down): under its name and Pause, drawn once.
+  const catalogueNote = catalogueStatus("assistant", ctx.id);
   let alive = true;
   let a: TeamAssistant;
   let runs: TeamRun[] = [];
@@ -392,6 +398,8 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
   const personality = personalitySection({ ...briefCtx, customise });
   const end = endSection();
   const share = shareSection();
+  // An imported assistant's accounts (detail-accounts.ts): hidden for one made here.
+  const accounts = accountsSection({ ...briefCtx, alive: () => alive });
   // What it tracks (detail-tracking.ts): hidden when it tracks nothing.
   const tracking = trackingSection(() => a, () => alive);
   // "<Name>'s flows" and Give <Name> a flow (flows/assistant-flows.ts): hidden until they load.
@@ -406,6 +414,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     memory.paint();
     personality.paint();
     share.paint();
+    accounts.paint();
     end.paint();
     tracking.paint();
     flows.paint();
@@ -422,6 +431,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     memory.paint();
     personality.paint();
     share.paint();
+    accounts.paint();
     end.paint();
     work.paint(a, runs);
     tracking.paint();
@@ -429,8 +439,9 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     models ??= modelsSection(() => a);
     body.replaceChildren(
       hero(),
+      catalogueNote,
       pausedNote,
-      h("div", { class: "td-layout" }, h("div", { class: "td-main" }, work.el, flows.el, tracking.el), h("div", { class: "td-aside" }, brief.el, models.el, skill.el, memory.el, personality.el, spendCapSection(a.id), share.el, end.el))
+      h("div", { class: "td-layout" }, h("div", { class: "td-main" }, work.el, flows.el, tracking.el), h("div", { class: "td-aside" }, brief.el, accounts.el, models.el, skill.el, memory.el, personality.el, spendCapSection(a.id), share.el, end.el))
     );
     if (live()) mood("working");
   }

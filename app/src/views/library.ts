@@ -48,6 +48,7 @@ const ABOUT: Partial<Record<ViewId, string>> = {
   goals: "What you're working towards",
   work: "What you closed, merged and reviewed",
   graph: "How everything links together",
+  community: "Assistants, skills and flows other people shared",
   flows: "What Athena does for you when something happens",
   archived: "Put away, ready to restore",
   settings: "Sources, fields, voice and keys",

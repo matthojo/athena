@@ -1941,7 +1941,8 @@ is kept.
   the switch, the starter key, the use count and times.
 - **Imports.** Nothing is saved without the owner: every upload, folder, zip
   and link is a preview of the whole text and files first, and keeps where it
-  came from. Zips are read from the central directory with each text entry
+  came from. One from a file or a link is saved off, whatever the request
+  says (`createSkill`); the owner switches it on from its page. Zips are read from the central directory with each text entry
   inflated to at most 100 KB; uploads are capped at 2 MB; paths with `..`,
   hidden files and anything but .md .txt .csv .json are dropped or listed as
   not used. Scripts are never stored or run.
@@ -1952,9 +1953,13 @@ is kept.
   file and 2 MB in all. GitHub folders go through `api.github.com`'s contents
   API without a token (public repositories only); files are fetched only from
   `raw.githubusercontent.com` as its listing names them.
-- **Text from others.** A skill's body is the owner's chosen instructions and
-  is marked as a skill in the prompt; its reference files may be someone
-  else's words and go through Jev's check like any tool result.
+- **Text from others.** A skill the owner wrote (or a starter) is the
+  owner's chosen instructions and is marked as a skill in the prompt. One
+  from a file or a link is someone else's words: it goes in as
+  `<shared_skill>` with `SHARED_SKILL_RULE`, to weigh, never as the owner's
+  instructions, and while it's in use the turn opens only the accounts
+  ticked for it (below, "Items someone else shared"). Reference files may be
+  someone else's words and go through Jev's check like any tool result.
 - **Drafts.** "Make this a skill" sends the conversation's text (no files) to
   the model through `/api/assistant/skill-draft`, rate-limited with the rest
   of Ask. `lib/skill-draft.ts` has no store: the draft only opens the editor.
@@ -1962,8 +1967,9 @@ is kept.
 ### Sharing and importing assistants (`lib/team-share*.ts`)
 
 An assistant can be downloaded as a file (a zip of `assistant.json`,
-`SKILL.md` and the skill's files) and imported into another copy. No migration:
-nothing new is stored.
+`SKILL.md` and the skill's files) and imported into another copy. Migration
+`0087` records that an assistant was imported and the accounts ticked for it
+(ids only).
 
 - **Nothing leaves unless the owner downloads it.** `POST
   /api/team/<id>/export` (bearer token) builds the file in memory and sends
@@ -2001,20 +2007,236 @@ nothing new is stored.
   `raw.githubusercontent.com`), fetched once through the same guard as skill
   links; links to any other host are refused, so a shared assistant can't point
   Athena at someone's own site. The preview (`POST
-  /api/team/import/preview`) keeps nothing.
-  `POST /api/team/import` adds it.
+  /api/community/preview`, below) keeps nothing.
+  `POST /api/community/add` adds it.
 - **Nothing in the file is a permission.** The assistant joins paused.
   `allow` is only the tools the owner ticked that the file also asked
-  for (`grantedTools`), each unticked to start; `web` is on only when both
-  the file asked and the owner ticked it. Everything else waits for approval,
+  for and that an import may grant at all (`grantedTools`, `SHARED_TOOLS`
+  in `lib/shared-limits.ts`: changes inside Athena that keep an Undo, as the
+  flows catalogue's "add" group, plus `track`), each unticked to start.
+  Anything else the file asks to do alone is shown as "Always asks first"
+  and isn't stored. `web` is on only when both
+  the file asked and the owner ticked it. It opens no connected account
+  until the owner ticks it (below). Everything else waits for approval,
   as for any assistant (§10, "One loop"). The skill is an assistant's own
   skill: instructions only, no tools (§10, "Skills"). Sites its words link
   to are listed on the preview as unchecked.
-- **The installed app's share target** takes a shared assistant (a `.zip` or
-  `.json`, up to 2 MB) only from the OS, as for any share
+- **The installed app's share target** takes a shared item (a `.zip`,
+  `.json` or `.md`, up to 2 MB) only from the OS, as for any share
   (`shareFrom` in `sw.js`); another page's form is refused. It's kept in
-  Cache Storage until Team's import sheet reads it, and that sheet shows all
-  of it before anything is imported.
+  Cache Storage until the Add screen (`#/add`) reads it, and that screen
+  shows all of it before anything is added.
+
+### Items someone else shared (migration `0087`, `lib/shared-limits.ts`, `lib/shared-scope.ts`)
+
+An imported assistant, and a skill from a file or a link, are someone else's
+words. They reach only what the owner ticked for them, enforced in code.
+
+- **Recorded, not guessed.** An assistant is imported when its row says so
+  (`team_assistants.origin = 'shared'`, set by `importAssistant`, now reached through `POST /api/community/add`; the
+  migration marks those whose triggers became flows with origin `shared`)
+  or its own skill came from a file or a link (once, in code, since that is
+  sealed). A skill is imported when its sealed source is `upload` or `link`,
+  so skills imported before `0087` are held too.
+- **Accounts only when ticked, per account.** `team_assistants.accounts` and
+  `ask_skills.accounts` are connector ids, plain, empty to start, kept only
+  for accounts that exist. An imported assistant's chats, runs, checks and
+  flow steps (`runAssistantTurn`), and any turn while an imported skill is
+  in use (picked with "/", or loaded with `use_skill` or `read_skill_file`),
+  carry an `AccountScope`. Accounts outside it aren't opened when it's known
+  before they open (`SourcesPort.open`'s `only`), their tools stop being
+  offered, a call to one is refused, and the Session's mail, Slack and
+  calendar ports refuse them (`scopedPorts`; a calendar look outside it
+  finds nothing). A custom MCP server with "Use in Ask" is an account like
+  any other. Two limits leave only what both allow. A skill brought into use
+  part way through a turn can't take back what was read before it.
+- **Approve keeps the limit, and asks** (owner, 24 Nov 2026). A plan records
+  who limits it (`ask_plans` payload `limit`, sealed, ids only): the
+  imported assistant that proposed it, and each imported skill in use when
+  main Ask (or an assistant) made it. Approving it runs under all of their ticks
+  together (`goPlan`, `limitedForGo`): a step that needs another account is
+  refused before the account is reached, and the plan stops there. The card names
+  the account in Athena's words, never the model's. For an assistant it
+  offers Just this once (that approval only; nothing is kept), Always for the
+  assistant (ticks it) or Skip it. When a skill is what refused it, the card
+  names the skill and offers only Just this once and Skip it, with a link to
+  the skill's page; the server refuses Always for a skill, so a skill's
+  accounts are only ever ticked on its page. A plan whose assistant or
+  skill was removed is held the same way, with no ticks.
+- **A refused step always stops** (owner, 24 Nov 2026). Some steps carry on
+  without an account they were refused (a draft written without reading
+  the earlier thread). Any step refused an account stops the plan and asks,
+  however it ended. What it made without the account is undone and never
+  kept in What Ask did or shown as done; if an undo fails, that change is
+  kept in What Ask did so the owner can see it and undo it there.
+- **Needed accounts said plainly.** Ticks still start empty. The accounts
+  the file says it needs are kept with the assistant's sealed words, listed
+  first, and while one is unticked the Add screen and the assistant's
+  page say it can't work without it.
+- **Framed as someone else's words.** An imported assistant's instructions
+  and skill go in as `<shared_instructions>` and `<shared_skill>` with a
+  rule that they are suggestions to weigh, never the owner's requests;
+  `lib/team-chat.ts` and `lib/skills-ask.ts`.
+- **Seen and changed by the owner.** One tick per account on the import
+  sheet (the accounts the file needs first), an imported assistant's page and
+  an imported skill's page. After `0087`, Home names each imported skill that
+  had none ticked, once (`GET`/`DELETE /api/skills/notice`; settings
+  `skills.accounts_notice` holds ids only).
+- **A model's words in the owner's note link plainly.** Every tool through
+  which a model writes into a note the owner wrote (`save_note`,
+  `add_to_list`, filing a saved item onto a list, an assignment's work, the
+  MCP `update_note`) goes through `modelWroteInto` (`lib/links.ts`): links
+  it adds lose their card, mention or embed mode, so nothing it writes
+  makes Athena fetch a page. Modes the owner had already chosen stay. This
+  holds for agents writing over MCP too, a Claude only key included, on
+  purpose (owner, 24 Nov 2026): an agent's words are a model's words, so a
+  link it adds to the owner's note stays plain until the owner changes it.
+- **Decided as built** (owner, 24 Nov 2026). What a shared assistant may be
+  granted stays the flows catalogue's "add" group plus `track`. Assistants
+  imported before 0087 that left no record are not limited. An imported
+  skill limits a turn from the moment it is used, and stays imported after
+  the owner rewrites it. The one-time notice stays a Home card, and sample
+  mode's Dot keeps its extra asks.
+- **Tested** (`lib/shared-limits.test.ts`, `lib/ask-plans.test.ts`, `lib/shared-items.db.test.ts`).
+
+### Community (migration `0089`, `lib/community-*.ts`, `lib/flow-share*.ts`, `netlify/lib/community-*.ts`)
+
+Shared assistants, skills and flows are someone else's words. They reach
+Athena through one screen (`#/add`) and two routes, behind the bearer token,
+and start switched off. Nothing in a file is a permission.
+
+**Reading the catalogue: what leaves the site.**
+
+- **Which host.** The Community site, `athena-community.netlify.app`
+  (`COMMUNITY_SITE` in `lib/community-site.ts`), unless the site's owner sets
+  `ATHENA_CATALOGUE_URL` to another catalogue, or to `off` for none.
+- **Only the server, only the catalogue's files.** Athena's server reads
+  `index.json` and an item's bundle (`bundles/<id>.json`) from under the
+  catalogue's root (`netlify/lib/community-catalogue.ts`), through
+  `publicFetch` (https only, every address checked as it connects). Each
+  request is a plain GET with `Accept: application/json` and nothing else:
+  no site address, account, API key, cookie or token, and no body. What the
+  host can see is what any web server sees: a request from Netlify's
+  servers, when, and which file, so a bundle read tells it that some copy of
+  Athena opened that item. It may count those reads as downloads; nothing in
+  them names the owner or their site. A redirect is followed only while it
+  stays under the catalogue's root, and `catalogueFileUrl` refuses a path
+  that leaves it. The browser never contacts the catalogue.
+- **How often.** The index at most once a day (kept in the `community` blob
+  store, plain: it's the catalogue's public list), and a bundle only when the
+  owner opens an item. The daily check (`netlify/functions/community-check.ts`)
+  and the update check fetch nothing while nothing from the catalogue is
+  added.
+- **The switch.** Nothing is fetched until the owner opens Community: the
+  switch is off until then, so a new copy contacts the site for nothing.
+  Opening Community the first time switches "Check the Community catalogue"
+  on (the owner's decision); the page names the host beside the switch, and
+  Settings → Ask has it too. Off means no request at all: no browsing, no
+  update or withdrawn checks. Adding from a file or a link still works.
+- **Submit to Community sends nothing.** The share sheets say how to submit
+  (the folder in a public GitHub repository of the owner's, then shared on
+  the site) and open the site's `/submit/` page in the browser, with
+  `rel="noopener noreferrer"`, so the site isn't told which Athena sent the
+  owner. Athena never publishes anything. The page's address comes from
+  `GET /api/community/settings`, which doesn't contact the site.
+- **A download count is the site's word.** `downloads` on an index item is
+  shown rounded and used to order the list, nothing else; it's checked as a
+  whole number within a cap, and an index without it reads as before.
+- **Only fields Athena knows are kept.** A key it doesn't know, on the
+  index, an item, a withdrawn entry, a bundle, a bundle's file or a listing,
+  is dropped as the file is read (`lib/catalogue-types.ts`): never stored,
+  shown or passed on. Every known field keeps its type, size and count
+  checks, and one that doesn't fit refuses the whole file. The bundle hash
+  covers each file's path and text, so an extra key can't carry changed
+  words past it.
+- **A withdrawn item is paused once** (assistant or flow paused, skill
+  switched off) and remembered in the plain settings row `community_paused`,
+  so switching it back on sticks. Nothing is deleted or updated by itself.
+- **Plain columns.** `catalogue_id`, `catalogue_hash` and `catalogue_version`
+  on `team_assistants`, `ask_skills` and `flows` hold the catalogue's public
+  id, a SHA-256 of the item's files as added and the author's version:
+  nothing the owner wrote.
+
+**Adding something someone shared.**
+
+- **One preview, nothing kept.** `POST /api/community/preview` takes a
+  listing id, a link, or files (multipart, 2 MB in all; one zip goes through
+  the skill zip reader). Its files are cut down to the item's own folder,
+  text only, within the catalogue's caps (32 files, 100 KB each, 500 KB in
+  all), and read by its kind's own reader (`readShared`, `intakeEntries`,
+  `readSharedFlow`, then `checkSharedFlowSteps`). Kind, reach and hash are
+  worked out here from the files; the catalogue's or author's word for them
+  is never used. A lone file renamed on the way is read by what it holds.
+- **Links** are GitHub only (`parseShareLink`, a `flow.json` read as its
+  folder), fetched once through the same guard as skill links. Any other
+  host is refused, so a shared item can't point Athena at someone's own site.
+- **Catalogue listings.** A bundle is checked with `verifyBundle` against its
+  own hash and the index's before it is read.
+- **The server never trusts the preview it sent.** `POST /api/community/add`
+  reads the files the app sends back again and refuses them if their hash
+  differs from the preview's. For a listing it fetches the bundle again and
+  refuses it if it changed since the preview. A preview relabelled as
+  another kind is added as what its files are.
+- **Switched off, with only the owner's choices.** An assistant goes to
+  `importAssistant`: paused; tools ticked that it asked for and an import may
+  grant (`grantedTools`, `SHARED_TOOLS` in `lib/shared-limits.ts`); the web
+  only when asked for and ticked; ticked accounts only; "Always asks first"
+  for the rest. A skill goes to `createSkill`, always off, ticked accounts
+  only. A flow goes to `addSharedFlow`, paused, every question answered
+  first. Account ticks start empty; the accounts it needs are listed first,
+  and an unticked one is named as one it can't work without.
+- **Already added** (owner, 24 Nov 2026). The preview says "You already have
+  this" for an item added from the same listing. Update (`choices.replace`)
+  replaces only the item the server itself finds came from that listing,
+  never another id the app names, and only for a catalogue item. It goes
+  through the same reading and the same choices as an add, keeps the item's
+  name and history, and switches it off. A second copy is a separate,
+  deliberate tap.
+- **A file for a newer Athena** is refused with 426 and nothing is read
+  further. Team's old `/api/team/import`, `/api/team/import/preview` and
+  `/api/skills/preview` are gone (owner, 24 Nov 2026).
+
+**Shared flows** (`lib/flow-share.ts`, `lib/flow-share-store.ts`).
+
+- **What a shared flow carries.** Its name, a summary, its trigger and steps,
+  the questions it asks whoever adds it, the accounts its trigger needs, and
+  whether it would like to read spending or search the web. A flow added
+  from Community also names its listing's public page as `based_on`: the
+  catalogue's own id, nothing of the owner's. A `based_on` is kept only when
+  it's a github.com link or a listing on the Community site; anything else in
+  a file is dropped. Never its id,
+  runs, values, the assistant it was handed to, or a record id: steps are
+  numbered afresh, and a step field that held one of the owner's records,
+  list names or to-do contexts becomes a blank with a question ("Which
+  list?", "Which context?"; owner, 24 Nov 2026). The owner's own list and
+  context names never go in the file.
+- **Checked before it leaves.** `POST /api/flows/<id>/export` takes links
+  into the site and `athena://` links out (`scrubText`) and flags anything
+  that looks like the owner's own people, places, addresses, email
+  addresses, phone numbers or private links (`findPersonal`, the same terms
+  as sharing an assistant). Nothing downloads until each finding is edited
+  out or marked fine, and the server checks again on download (409 with
+  what's left). A step that leans on the owner's own types or fields can't
+  be exported, and the sheet names it. The drafted summary uses only
+  Athena's words for the trigger and steps (`draftSummary`, no model): what
+  a trigger matches and step titles are left out. The edits change the
+  file, never the flow. The terms are compared in memory, never kept or
+  sent.
+- **Adding one grants nothing.** `addSharedFlow` reads the file again
+  (`readSharedFlow`, `checkSharedFlowSteps`), whatever the caller sends,
+  then: step ids made here; every step that changes something waits for
+  approval, whatever the file asked (steps that only look run, as in any flow;
+  owner, 24 Nov 2026); thinking steps off the web; spending off; the flow
+  off, origin `shared`. The owner's answers fill the blanks; an answer for a
+  record must be one of their own ids. A blank left unanswered stays as an
+  unfilled field, sealed with the flow (`flows.payload`), and until it is set
+  the flow can't be switched on, run with Run now or tried (owner, 24 Nov
+  2026). A shared flow with thinking steps can't be switched on until the
+  owner hands it to one of their assistants. The result passes the same
+  `checkSteps` as a flow made here.
+- **Tested** (`lib/flow-share*.test.ts`, `lib/flow-share-store.db.test.ts`,
+  `netlify/lib/community-*.test.ts`, `app/src/db/sample-community.test.ts`),
+  with fakes for the stores, the catalogue and GitHub.
 
 ### Ask's read tools, today's context and memory
 
@@ -2314,7 +2536,7 @@ saved (below).
   Once it calls a write tool it may make up to 14 model calls in four
   minutes (15 on the server), as an instruction always could.
 
-### Links a turn may open (`lib/run-links.ts`, migration `0085`)
+### Links a turn may open (`lib/run-links.ts`, migrations `0085` and `0088`)
 
 A web-enabled assistant's turn gets Anthropic's server web fetch tool
 (`webFetchTool` in `lib/answer.ts`). It may open any link in the turn's own
@@ -2333,9 +2555,11 @@ supplied or approved it.
   the owner's or the item's (`runUrlOf`, `trackerLines` in
   `lib/team-chat.ts`); a saved item's tracker otherwise gives the item's own
   link, and one on its own gives none, so the run searches for it by name.
-  Trackers made before 0085 have no record of who set their link: one on a
-  saved item still opens the item's link, and any other link isn't opened
-  until the owner sets it again.
+  Trackers made before 0085 had no record of who set their link. The owner
+  chose (24 Nov 2026), once, to approve every one of those links:
+  migration 0088 marks each as set by the owner, so those trackers keep
+  working. It touched only rows with no record; a link a model chose since
+  0085 still waits for approval.
 - **`track` with a link a model chose waits for the owner's approval** (above),
   for every assistant and for main Ask. Athena writes the approval card's line and
   ignores the model's own step text: what's tracked, the link's host and the
@@ -2353,7 +2577,10 @@ supplied or approved it.
   `lib/flow-run.ts`); an
   assignment's work, handoffs, suggested answers and send-back notes
   (`stageMessage`, `lib/assignment-run.ts`), where `hand_off` puts the
-  work's links back as they were before the note is written; and the shop
+  work's links back as they were before the note is written. A send-back
+  note keeps who wrote it (`note_by` in the stage's sealed words): the
+  owner's goes in as written, so its links can be opened; a stage's, or
+  one kept before this was recorded, can't; and the shop
   in `find_saved`'s best price now. The owner's own words (an assignment's
   brief, an owner's answer, a flow's task text) go in as written.
 - **Tested** (`lib/run-links.test.ts`, `lib/trackers.db.test.ts`): `track`
@@ -2620,7 +2847,7 @@ Function instead.
 - **How often.** Page reads are limited to 30 a minute per caller (Saved's per-minute table, its own bucket); kept previews don't count. A good read is kept 30 days, a failed one an hour, so Athena doesn't ask a site for the same address over and over.
 - **What's kept.** Sealed text in `link_previews` (§11 table), and nothing at all without the data key (503). The address isn't stored, so the table can't be read as a list of pages the owner linked to. Picture (1200px) and favicon (64px) are re-encoded by sharp to WebP, which drops EXIF and location, then sealed in the `athena-link-previews` blob store. Rows aren't in the encryption backfill: Athena writes them only with the key, and finds a row sealed under an old key by that key's index, then replaces it on its next read.
 - **Serving pictures.** `GET /api/link-preview/:id/image` and `/favicon` send WebP with `nosniff` and `default-src 'none'; sandbox`, as Saved's images do. The address carries `?v=` (when it was read), so a refresh gets a new address.
-- **Links Athena wrote are never previewed.** A card, mention or embed makes the server fetch the address, so only links the owner typed or chose get one. The server drops the mode from every web link in model text (`plainWebLinks` in `lib/links.ts`: Ask's replies, answers and the briefing), and the app draws every web link in Ask as a plain link. In a note the owner didn't write (any `source` but `manual` or `app`), each web link present when the note opens is drawn plain and asks for nothing; the Markdown isn't rewritten. A link the owner pastes there, or switches to Card, Mention or Embed, loads as usual.
+- **Links Athena wrote are never previewed.** A card, mention or embed makes the server fetch the address, so only links the owner typed or chose get one. The server drops the mode from every web link in model text (`plainWebLinks` in `lib/links.ts`: Ask's replies, answers and the briefing), and the app draws every web link in Ask as a plain link. In a note the owner didn't write (any `source` but `manual` or `app`), each web link present when the note opens is drawn plain and asks for nothing; the Markdown isn't rewritten. A link the owner pastes there, or switches to Card, Mention or Embed, loads as usual. When a model edits a note the owner did write (`save_note` with a note id), the text it writes has every web link's mode dropped before it's saved (`plainNewWebLinks`), except a link whose address already had that same mode in the note: the owner's own choice stays, and nothing the model adds is fetched for a preview.
 - **A remembered choice** (`note_link_choices`, migration `0059`, `lib/note-link-choices.ts`). When the owner picks Card, Mention or Embed for a link in a note Athena wrote, the app stores `{ url, mode }` and that link loads again next time; picking Link takes it back. The choice isn't in the note: nothing in a note's title, body, tags or a link's title is read as one. The table is written only by `PUT /api/notes/:id/link-choices` (master token or full key; a capture key gets 401), and no assistant, collection or MCP tool writes it, so model-written text can't set one. The list is one sealed value per note. A choice frees one address in one mode; a changed address or mode is held again. Offline and in sample mode no choice is saved or loaded.
 - **Embeds.** `lib/embeds.ts` reads an address, never HTML: text with `<`, `>`, quotes or spaces is refused, so a pasted `<iframe>` snippet can't put markup into a note. The embed address is built from the ids in the address on the provider's own embed host (YouTube on `youtube-nocookie.com`), and query strings aren't carried over except the few that choose what plays. Hosts match exactly or at a dot. Stage 2 loads players only on a tap, in sandboxed iframes (`allow-scripts allow-same-origin allow-popups allow-presentation`, which players need) with each provider's `allow` list and a CSP `frame-src` of `EMBED_FRAME_HOSTS`. The PDF viewer's frame, which shows the owner's own file, has no sandbox attribute. Google Maps and Apple Maps have no player: the still is Athena's own, and "Open map" hands the spot to the maps app picked for the device in Settings (Apple Maps, Google Maps or OpenStreetMap), so nothing loads from Google or Apple inside a note. Previews not used for 90 days are deleted, with their pictures, by a monthly sweep.
 - **Previews through a connected account.** For a Notion address, when a Notion account is connected and allows `notion-fetch`, Athena reads the page through that account (one of the preset's read tools) instead of fetching it, so a private page shows its own title rather than Notion's sign-in page. Only the title and the opening lines are kept, sealed like any preview. With no account, or on any failure, Athena reads the page like any other.

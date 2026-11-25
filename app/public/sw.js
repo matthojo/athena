@@ -160,12 +160,12 @@ const shareFrom = (req) => {
   return "unknown";
 };
 
-/** A shared assistant's zip or assistant.json, at most this big: the import sheet reads it (team/import-sheet.ts). */
+/** A shared assistant, skill or flow (a zip or its file), at most this big: the Add screen reads it (src/add/). */
 const MAX_IMPORT_BYTES = 2_000_000;
 
 /**
  * The shared title, text, link and first image, in Cache Storage until the app takes them.
- * A shared assistant (a .zip or assistant.json) is kept apart and opens Team's import sheet instead,
+ * A shared item (a .zip, or its assistant.json, SKILL.md or flow.json) is kept apart and opens #/add instead,
  * which shows all of it before anything is added.
  */
 async function keepShare(req) {
@@ -178,7 +178,7 @@ async function keepShare(req) {
     if (shared) {
       const cache = await caches.open("athena-share");
       await cache.put("/share-target/assistant", new Response(shared, { headers: { "Content-Type": shared.type || "application/octet-stream", "X-File-Name": encodeURIComponent(shared.name || "assistant.zip") } }));
-      return Response.redirect("/#/team/import", 303);
+      return Response.redirect("/#/add", 303);
     }
     const pick = (k) => (typeof form.get(k) === "string" ? form.get(k).slice(0, 20000) : "");
     const cache = await caches.open("athena-share");
@@ -198,7 +198,7 @@ self.addEventListener("fetch", (event) => {
 
   // The installed app as a share target (manifest.json share_target): keep what was shared, then open
   // #/saved/shared, which sends it to /api/saved with the app's key and says "Saved" (views/saved.ts),
-  // or, for a shared assistant, #/team/import, which previews it before anything is imported.
+  // or, for a shared assistant, skill or flow, #/add, which previews it before anything is added.
   // Only a share from the OS is saved at once; see shareFrom.
   if (req.method === "POST" && url.origin === self.location.origin && url.pathname === "/share-target") {
     event.respondWith(keepShare(req));

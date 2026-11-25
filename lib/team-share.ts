@@ -24,9 +24,11 @@
  * keys dropped, and nothing in it is a permission. On import the assistant
  * starts paused, with nothing allowed to run alone unless the owner ticks it.
  */
+import { listingLink } from "./community-site";
 import { checkFiles, cleanPath, intakeEntries, SkillFormatError, textOf, type IntakeEntry, type SkillFile, type SkillPreview, type SkillSkipped, type SkillSource } from "./skills";
 import { MAX_ANSWER, MAX_CHOICE, MAX_CHOICES, MAX_QUESTION, MAX_QUESTIONS, MAX_SUMMARY, type TeamAnswer } from "./team-skill";
 import { EVERYDAY } from "./todo-person";
+import { sharedToolAllowed, type AccountRow } from "./shared-limits";
 import {
   ACCENT_KEYS,
   ACCESSORY_IDS,
@@ -235,6 +237,9 @@ function names(raw: unknown, field: string, re: RegExp, max: number): string[] {
 }
 
 /** A github.com link, or nothing: a shared only ever points back at GitHub. */
+/** What a `based_on` may name: a github.com link, or a listing on the Community site. Undefined for anything else. Pure. */
+export const basedOnLink = (raw: unknown): string | undefined => githubLink(raw) ?? listingLink(raw);
+
 export function githubLink(raw: unknown): string | undefined {
   if (typeof raw !== "string" || raw.length > 300) return undefined;
   try {
@@ -268,7 +273,7 @@ export function readShared(raw: unknown): SharedAssistant {
   const triggers = triggersRaw.map(readTrigger);
   const version = typeof raw.version === "string" && VERSION.test(raw.version.trim()) ? raw.version.trim() : undefined;
   const author = typeof raw.author === "string" && GITHUB_USER.test(raw.author.trim().replace(/^@/, "")) ? raw.author.trim().replace(/^@/, "") : undefined;
-  const basedOn = githubLink(raw.based_on);
+  const basedOn = basedOnLink(raw.based_on);
   return {
     format: SHARE_FORMAT,
     name: text(raw.name, "name", MAX_NAME),
@@ -642,10 +647,13 @@ export function withAnswers(body: string, answers: TeamAnswer[]): string {
   return extra ? `${body.trim()}\n\n${extra}\n` : body;
 }
 
-/** The tools it may run alone: only ones it asked for and the owner ticked. Pure. */
+/**
+ * The tools it may run alone: only ones it asked for, the owner ticked, and an import may grant at all (changes
+ * inside Athena that keep an Undo, and `track`: lib/shared-limits.ts). Pure.
+ */
 export function grantedTools(w: Pick<SharedAssistant, "would_like">, ticked: unknown): string[] {
   const asked = new Set(w.would_like);
-  return [...new Set((Array.isArray(ticked) ? ticked : []).filter((t): t is string => typeof t === "string" && asked.has(t)))];
+  return [...new Set((Array.isArray(ticked) ? ticked : []).filter((t): t is string => typeof t === "string" && asked.has(t) && sharedToolAllowed(t)))];
 }
 
 /** Hosts its words link to, other than GitHub: shown on the preview, since nothing there was checked. Pure. */
@@ -689,16 +697,20 @@ export interface ImportNeed {
   connected: boolean;
 }
 
-/** POST /api/team/import/preview: everything an import would add, before anything is kept. */
+/** Everything an import would add, before anything is kept: sample mode's Add (app/src/db/team-share.ts addImported). */
 export interface ImportPreview extends SharedBundle {
   needs: ImportNeed[];
+  /** What it asked to do alone that an import can't grant: these always wait for the owner's Go. `shared.would_like` holds only the rest. */
+  asks_first: string[];
+  /** This Athena's connected accounts, the ones it needs first: one tick each, all unticked. */
+  accounts: AccountRow[];
   /** Sites its words link to, other than GitHub. */
   links: string[];
   /** There's room on the team for it. */
   room: boolean;
 }
 
-/** POST /api/team/import: add it. Everything but the owner's choices comes from the preview. */
+/** What importAssistant takes, from the Add screen's POST /api/community/add: the file's words and the owner's choices. */
 export interface ImportInput {
   shared: SharedAssistant;
   skill: { body: string; files: SkillFile[]; skipped?: SkillSkipped[] } | null;
@@ -707,6 +719,8 @@ export interface ImportInput {
   /** Tools ticked to run without asking: only ones it asked for count. */
   allow: string[];
   web: boolean;
+  /** Connected accounts ticked for it (ids). None ticked: it opens none. */
+  accounts?: string[];
 }
 
 // ---------- a link to one ----------

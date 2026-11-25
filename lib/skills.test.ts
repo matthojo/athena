@@ -291,6 +291,8 @@ const skill = (over: Partial<Skill> = {}): Skill => ({
   enabled: true,
   assistant_id: null,
   starter: null,
+  imported: false,
+  accounts: [],
   uses: 0,
   last_used_at: null,
   created_at: at,
