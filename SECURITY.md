@@ -331,7 +331,8 @@ full key.
 - **Full access** (`athk_…`): REST and MCP, like the app: for a device the
   app is signed in on, and the owner's own scripts. On REST that includes
   permanent delete and the archived list (§7).
-- **The Raycast extension** (`raycast/`) takes a capture key or a full
+- **The Raycast extension** (its own repository,
+  `github.com/matthojo/athena-raycast`) takes a capture key or a full
   key, and refuses a Claude only key. With a capture key it only adds
   (capture, Saved, a habit by name) and sends no read at all. Its reading
   commands (search, to-dos, Coming up, habits, the menu bar) need a full

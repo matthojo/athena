@@ -340,8 +340,9 @@ with search.
   vulnerability
 - [extension/README.md](extension/README.md): the "Save to Athena" browser
   extension
-- [raycast/README.md](raycast/README.md): the Raycast extension, for
-  capturing, searching and ticking things off from the keyboard
+- [athena-raycast](https://github.com/matthojo/athena-raycast): the Raycast
+  extension, for capturing, searching and ticking things off from the
+  keyboard. It lives in a repository of its own
 - [CONTRIBUTING.md](CONTRIBUTING.md): setup, checks, and the rules for
   changes and releases
 - [SUPPORT.md](SUPPORT.md): where to ask for help

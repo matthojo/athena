@@ -13,7 +13,6 @@ on:
       - LICENSE
       - package.json
       - extension/README.md
-      - raycast/README.md
       - site/**
       - scripts/build-site.ts
       - app/src/styles/tokens.css
