@@ -38,7 +38,7 @@ export interface Skill {
   team?: TeamSkillMeta;
   /** From a file or a link: someone else's words (lib/shared-limits.ts). While it's in use, Ask opens only `accounts`. */
   imported: boolean;
-  /** The connected accounts (connector ids) ticked for an imported skill (migration 0086). Empty: it opens none. */
+  /** The connected accounts (connector ids) ticked for an imported skill (migration 0087). Empty: it opens none. */
   accounts: string[];
   uses: number;
   last_used_at: string | null;
@@ -120,13 +120,13 @@ async function ensureStarters(): Promise<void> {
   }
 }
 
-// ---------- imported skills' accounts (0086) ----------
+// ---------- imported skills' accounts (0087) ----------
 
 const NOTICE_KEY = "skills.accounts_notice";
 let noticeClaimed: Promise<void> | null = null;
 
 /**
- * Once, on the first read after migration 0086: the imported skills there were then. Each lost its connected
+ * Once, on the first read after migration 0087: the imported skills there were then. Each lost its connected
  * accounts (none is ticked to start), so a one-time notice lists them with a link to tick them. Only ids are kept,
  * plain. Skipped when no account could be read in Ask, since nothing was lost. Never throws.
  */
@@ -154,7 +154,7 @@ export interface AccountsNoticeSkill {
   name: string;
 }
 
-/** The one-time notice: imported skills from before 0086 that are still there with no account ticked. Empty once dismissed. */
+/** The one-time notice: imported skills from before 0087 that are still there with no account ticked. Empty once dismissed. */
 export async function accountsNotice(): Promise<AccountsNoticeSkill[]> {
   await claimAccountsNotice();
   const [row] = await qRaw<{ value: { ids?: unknown; dismissed?: unknown } | null }>(`SELECT value FROM settings WHERE key = $1`, [NOTICE_KEY]);

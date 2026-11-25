@@ -142,6 +142,7 @@ import type { ModelRef } from "../../../lib/model-types";
 import { thinkingModel, visionWarning, visionWords, type VisionWarning } from "../lib/vision-warning";
 import { loadModels } from "../db/models";
 import { CANT_CHANGE, PICTURE_SETTING, PICTURES_OFF_TEXT } from "../../../lib/picture-words";
+import { clockTime } from "../lib/clock";
 
 export interface AskContext {
   openNote: (note: Note) => void;
@@ -1015,7 +1016,7 @@ export function planEl(m: Acting, plan: NonNullable<AskActed["plan"]>, repaint: 
   const one = plan.steps.length === 1;
   const head = h("p", { class: "plan__head" }, icons.checklist(), ran ? "Done" : plan.proposed ? "Your routine suggests" : held && one ? "Waiting for you" : "The plan");
   if (!ran) {
-    const go = h("button", { class: "btn btn--primary plan__go", type: "button", disabled: m.going || !ticked.size }, m.going ? "Going…" : ticked.size === plan.steps.length ? "Go" : `Go with ${ticked.size} of ${plan.steps.length}`) as HTMLButtonElement;
+    const go = h("button", { class: "btn btn--primary plan__go", type: "button", disabled: m.going || !ticked.size }, m.going ? "Approving…" : ticked.size === plan.steps.length ? "Approve" : `Approve ${ticked.size} of ${plan.steps.length}`) as HTMLButtonElement;
     const rows = plan.steps.map((step, i) => {
       const box = h("input", { type: "checkbox", class: "plan__tick", checked: ticked.has(i), disabled: m.going }) as HTMLInputElement;
       box.addEventListener("change", () => {
@@ -1037,7 +1038,7 @@ export function planEl(m: Acting, plan: NonNullable<AskActed["plan"]>, repaint: 
         changedElsewhere();
         save();
       } catch (error) {
-        showToast(error instanceof Error && error.message && !(error instanceof ApiError && !error.status) ? error.message : "Go didn't go through. Try again in a moment.", { icon: "refresh" });
+        showToast(error instanceof Error && error.message && !(error instanceof ApiError && !error.status) ? error.message : "Your approval didn't go through. Try again in a moment.", { icon: "refresh" });
       } finally {
         m.going = false;
         repaint();
@@ -1048,7 +1049,7 @@ export function planEl(m: Acting, plan: NonNullable<AskActed["plan"]>, repaint: 
       { class: `card plan${held ? " plan--held" : ""}`, "aria-label": held && one ? "A change waiting for you" : "Plan" },
       head,
       h("div", { class: "plan__steps" }, ...rows),
-      h("div", { class: "plan__foot" }, h("p", { class: "plan__note" }, held ?? (plan.proposed || one ? "Nothing changes until you tap Go." : "Untick anything you don't want. Nothing changes until you tap Go.")), go)
+      h("div", { class: "plan__foot" }, h("p", { class: "plan__note" }, held ?? (plan.proposed || one ? "Nothing changes until you tap Approve." : "Untick anything you don't want. Nothing changes until you tap Approve.")), go)
     );
   }
   const STATUS = { done: ["check", "Done"], skipped: ["minus", "Skipped"], failed: ["close", "Didn't work"] } as const;
@@ -1829,7 +1830,7 @@ function dayLabel(iso: string, now = new Date()): string {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", ...(d.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}) }).format(d);
 }
 
-const timeOf = (iso: string) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+const timeOf = (iso: string) => clockTime(iso);
 
 /** The chat list: grouped by when each was last used, the open one marked; tap to switch, ⋯ to rename or delete. */
 /** Pinned: each answer with what was asked, to open at that reply or unpin. */
@@ -2733,7 +2734,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   /**
    * The last reply clears the box and the tab bar (owner, 12 Nov 2026: a reply's button sat behind them on iPhone).
    * A reply that fits between the head and the bars is brought wholly above them, follow-ups included. One too
-   * long to fit is read from its start, as far up as it goes, and the thing it asks you to tap (Try again, Write the answer, Go, a choice) is never left behind them.
+   * long to fit is read from its start, as far up as it goes, and the thing it asks you to tap (Try again, Write the answer, Approve, a choice) is never left behind them.
    */
   function clearBars(m: Message | undefined = chat?.messages[chat.messages.length - 1]) {
     const c = chat;
@@ -3428,7 +3429,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
     if (/\bassignment\b/i.test(plain)) {
       await playSampleSteps([["Picking a lineup", "Picked a lineup"]], step);
       const { lineup, fallback } = await draftLineup(plain.replace(/^.*?\bassignment\b[\s:,.-]*(?:to|for|on)?\s*/i, "") || plain);
-      return { ...none, text: "Here's who I'd put on it, in order. Change anything you like. Nothing runs until you tap Go.", lineup: { lineup, fallback } };
+      return { ...none, text: "Here's who I'd put on it, in order. Change anything you like. Nothing runs until you tap Approve.", lineup: { lineup, fallback } };
     }
     // "Whenever…", "every time…": a flow, drawn and kept off, as propose_flow's is (components/ask-flow-card.ts).
     if (FLOW_WORDS.test(plain)) {
@@ -3462,7 +3463,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
       await playSampleSteps(routine ? [["Setting up a routine", "Set up a routine"]] : [["Finding the 3pm", "Found the design review"], ["Looking for Marcus", "Found Marcus Webb"], ["Planning the changes", "Planned 3 changes"]], step);
       return routine
         ? { ...none, text: "Done. Every Friday at 16:00 I'll look at what slipped and send it to your phone. You can pause or change it in Settings → Ask.", changes: [sampleRoutineChange()] }
-        : { ...none, text: "Here's the plan: three changes, and nothing happens until you tap Go.", plan: samplePlan() };
+        : { ...none, text: "Here's the plan: three changes, and nothing happens until you tap Approve.", plan: samplePlan() };
     }
     // What would leave Athena waits as a card for a tap, as a real request does (security review M7); a drafting request gets a sample draft to open.
     const waiting = (await sampleLog(plain)) ?? sampleConfirm(plain);

@@ -27,6 +27,10 @@ import { learnedAboutOwner } from "../lib/owner-rule";
 import { markdownToText } from "../lib/markdown-text";
 import { addDays, daysBetween, upcomingOccurrences } from "../../../lib/dates";
 import { cleanLinks, cleanPriority, cleanSteps } from "../../../lib/todo-details";
+import { caughtBy, sameKey } from "../../../lib/suggestion-similar";
+
+/** A mail rule from the Inbox: skip a sender (an address or a domain) or a subject phrase. */
+export type IgnoreRule = { kind: "sender" | "subject"; value: string };
 import { deviceZone, localToday } from "../lib/time";
 import type {
   Asset,
@@ -637,8 +641,11 @@ export async function loadSuggestions(): Promise<{ items: Suggestion[]; state: C
   }
 }
 
-/** Accept (applying it, with any edits) or reject a suggestion. */
-export async function resolveSuggestion(s: Suggestion, action: "accept" | "reject", edits: Record<string, unknown> = {}): Promise<void> {
+/**
+ * Accept (applying it, with any edits) or reject a suggestion, or mark it
+ * done: dealt with another way (Add to calendar), so it leaves with nothing applied.
+ */
+export async function resolveSuggestion(s: Suggestion, action: "accept" | "reject" | "done", edits: Record<string, unknown> = {}): Promise<void> {
   if (isSampleMode()) {
     if (action === "accept") {
       const p = { ...s.payload, ...edits };
@@ -650,13 +657,40 @@ export async function resolveSuggestion(s: Suggestion, action: "accept" | "rejec
       else if (s.op === "event") await saveRecord("event", p);
       else if (s.op === "person") await saveRecord("person", p, typeof p.id === "string" ? p.id : undefined);
     }
-    await sampleWrite("suggestion", { ...s, status: action === "accept" ? "accepted" : "rejected", resolved_at: nowIso() } as Suggestion);
+    await sampleWrite("suggestion", { ...s, status: action === "reject" ? "rejected" : "accepted", resolved_at: nowIso() } as Suggestion);
     emit("suggestion");
     return;
   }
   await online(() => api.resolveSuggestion(s.id, action, action === "accept" && Object.keys(edits).length ? edits : undefined));
   emit("suggestion");
   if (action === "accept") emit("all");
+}
+
+export interface IgnoreOutcome {
+  rule: IgnoreRule;
+  /** The accounts the rule went on, by name. */
+  accounts: string[];
+  /** The ids that left the Inbox with it. */
+  dismissed: string[];
+}
+
+/**
+ * Ignore emails like this one: a mail rule on the account it came from, so
+ * the next sync skips mail like it, and the finds it catches (and this one
+ * again, from other emails) leave the Inbox. Sample mode changes no account.
+ */
+export async function ignoreLikeSuggestion(s: Suggestion, rule: IgnoreRule): Promise<IgnoreOutcome> {
+  if (isSampleMode()) {
+    const pending = (await sampleAll<Suggestion>("suggestion")).filter((p) => p.status === "pending");
+    const key = sameKey(s);
+    const leaving = pending.filter((p) => p.id === s.id || (p.source === s.source && caughtBy(p.email, rule)) || (!p.email && sameKey(p) === key));
+    for (const p of leaving) await sampleWrite("suggestion", { ...p, status: "rejected", resolved_at: nowIso() } as Suggestion);
+    emit("suggestion");
+    return { rule, accounts: ["Sample email"], dismissed: leaving.map((p) => p.id) };
+  }
+  const out = await online(() => api.ignoreSuggestion(s.id, rule));
+  emit("suggestion");
+  return out;
 }
 
 // ---------- the weekly review ----------

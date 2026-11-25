@@ -22,7 +22,7 @@ export function changeLines(who: Pick<TeamAssistant, "name" | "personality"> | n
     `Its runs show as from ${mid} on Home and on Team.`,
     `${cap} can think between steps. Those steps use AI credits.`,
     `${cap} remembers what you decide, like which renewals you always let run.`,
-    `Anything ${they === "it" ? mid : they} isn't allowed to do alone still waits for your Go.`,
+    `Anything ${they === "it" ? mid : they} isn't allowed to do alone still waits for your approval.`,
   ];
 }
 

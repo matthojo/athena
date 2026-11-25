@@ -10,6 +10,7 @@
 import { h } from "../lib/dom";
 import type { Day } from "../db/days-app";
 import { calendarLabelOrder } from "../../../lib/day-types";
+import { clockOfDay, uses12Hour } from "../lib/clock";
 
 type Lane = "move" | "cal" | "media";
 type MediaKind = "watched" | "listened" | "played" | "read";
@@ -46,7 +47,7 @@ const minutesOf = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? null : d.getHours() * 60 + d.getMinutes();
 };
-const hhmm = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const hhmm = (m: number, hour12 = uses12Hour()) => clockOfDay(`${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`, hour12);
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
@@ -100,9 +101,9 @@ function keyWord(m: Mark): string | null {
 }
 
 /** "13:00 Design review · Work calendar". */
-export function markText(m: Mark): string {
+export function markText(m: Mark, hour12 = uses12Hour()): string {
   const word = keyWord(m);
-  return `${hhmm(m.start)} ${m.label}${word ? ` · ${word}` : ""}`;
+  return `${hhmm(m.start, hour12)} ${m.label}${word ? ` · ${word}` : ""}`;
 }
 
 /** The key: only the kinds and labels this day has, calendar first, each in its fixed colour order. */
@@ -118,12 +119,12 @@ export function ribbonKey(marks: Mark[], owner: readonly string[] = []): KeyItem
 }
 
 /** What the picture says, for a screen reader: the span, then each lane's marks by time with their kind or calendar. */
-export function ribbonLabel(marks: Mark[]): string {
+export function ribbonLabel(marks: Mark[], hour12 = uses12Hour()): string {
   const first = Math.min(...marks.map((m) => m.start));
   const last = Math.max(...marks.map((m) => m.start + m.minutes));
   const lanes = (["move", "cal", "media"] as Lane[]).filter((l) => marks.some((m) => m.lane === l));
-  const parts = lanes.map((l) => `${LANE_WORD[l]}: ${marks.filter((m) => m.lane === l).map(markText).join("; ")}.`);
-  return `Your day from ${hhmm(first)} to ${hhmm(Math.min(last, DAY_END - 1))}. ${parts.join(" ")}`;
+  const parts = lanes.map((l) => `${LANE_WORD[l]}: ${marks.filter((m) => m.lane === l).map((m) => markText(m, hour12)).join("; ")}.`);
+  return `Your day from ${hhmm(first, hour12)} to ${hhmm(Math.min(last, DAY_END - 1), hour12)}. ${parts.join(" ")}`;
 }
 
 export function dayRibbon(day: Day): HTMLElement | null {

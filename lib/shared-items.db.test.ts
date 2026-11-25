@@ -1,4 +1,4 @@
-// Items someone else shared, on the real path: Postgres with every migration (0086 included), the store, the API's
+// Items someone else shared, on the real path: Postgres with every migration (0087 included), the store, the API's
 // skill routes, Ask's one loop with the model stubbed at fetch, and fake connected accounts.
 //  1. Importing an assistant grants only changes that keep an Undo (and track); the rest always ask first.
 //  2. An imported assistant's turns, and an imported skill in use, open only the accounts ticked for them.
@@ -131,7 +131,7 @@ test("the one-time notice names imported skills that lost their accounts, until 
   const { qRaw } = await import("./db");
   const { sealText } = await import("./data-box");
   await accounts();
-  // Two skills from before 0086: one from a link, one the owner wrote.
+  // Two skills from before 0087: one from a link, one the owner wrote.
   const payload = (name: string, kind: string) => sealText(JSON.stringify({ name, description: "x", body: "y", extra: "", files: [], skipped: [], source: { kind, at: "2026-11-01T00:00:00Z" } }));
   await qRaw(`INSERT INTO ask_skills (payload, enabled) VALUES ($1, true), ($2, true)`, [payload("deal-notes", "link"), payload("my-notes", "written")]);
   const notice = await api("GET", "skills/notice");

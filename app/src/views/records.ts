@@ -22,6 +22,7 @@ import { sourceText } from "../lib/sources";
 import type { AnyRecord, AthenaEvent, EntityKind, Organisation, Person, Place, RecordKind } from "../types";
 import type { ViewId } from "../components/nav";
 import { pageHead } from "../components/page-head";
+import { clockOfDay } from "../lib/clock";
 
 export interface RecordsContext {
   kind: RecordKind;
@@ -55,7 +56,7 @@ function subtitle(kind: RecordKind, rec: AnyRecord): string {
       const e = rec as AthenaEvent;
       const at = whenLocal(e);
       const when = e.recurrence === "yearly" ? `Every ${calendarDate(at.date)}` : calendarDate(at.date, true);
-      const parts = [when, at.time, e.source ? sourceText(e.source) : null].filter(Boolean);
+      const parts = [when, clockOfDay(at.time), e.source ? sourceText(e.source) : null].filter(Boolean);
       return parts.join(" · ");
     }
   }

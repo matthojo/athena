@@ -74,7 +74,7 @@ test("Go on an approval starts the next stage; Send back returns it once, with t
   const gone = s.go(offsite, T0);
   assert.deepEqual(gone.stages.map((x) => x.status), ["done", "done", "running"]);
   assert.deepEqual(waiting(s, T0).map((p) => p.assignment_id), [launch]);
-  assert.throws(() => s.go(offsite, T0), /Nothing is waiting for Go/);
+  assert.throws(() => s.go(offsite, T0), /Nothing is waiting for your approval/);
 
   const b = makeSampleAssignments(T0);
   const back = b.sendBack(offsite, { to: 0, note: "Add the coach hire" }, T0);
@@ -150,7 +150,7 @@ test("standing assistants post from their runs: a plan that waits, a run that di
   const run = (p: Partial<TeamRun> & Pick<TeamRun, "id" | "assistant_id">): TeamRun => ({ trigger_id: null, event_id: null, status: "done", thread_id: `t-${p.id}`, summary: "Did a thing.", error: null, started_at: new Date(T0 - 60_000).toISOString(), finished_at: new Date(T0 - 30_000).toISOString(), ...p });
   const team = [{ id: "dot", name: "Dot", avatar: {} as StageWho["avatar"], job: "Turns issues into to-dos" }, { id: "wren", name: "Wren", avatar: {} as StageWho["avatar"], job: "Writes Friday's summary" }];
   const runs = [
-    run({ id: "0000a1", assistant_id: "dot", summary: "Added 2 to-dos. One change waits for you to tap Go.", waiting: 1 }),
+    run({ id: "0000a1", assistant_id: "dot", summary: "Added 2 to-dos. One change waits for you to tap Approve.", waiting: 1 }),
     run({ id: "0000a2", assistant_id: "dot", summary: "Nothing to do this time.", started_at: new Date(T0 - 600_000).toISOString() }),
     run({ id: "0000a3", assistant_id: "wren", status: "failed", error: "Linear didn't answer", thread_id: null }),
   ];

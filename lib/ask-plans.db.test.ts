@@ -93,12 +93,12 @@ test("a three-step plan writes nothing; Go makes all three in order; Undo all ta
         { type: "tool_use", id: "t3", name: "add_reminder", input: { text: "Chase the venue", date: "2026-12-01", time: "09:00", step: "Remind me to chase the venue" } },
       ];
     }
-    return [{ type: "text", text: "Three changes are ready. Nothing changes until you tap Go." }];
+    return [{ type: "text", text: "Three changes are ready. Nothing changes until you tap Approve." }];
   };
   const was = await counts();
   const reply = await runAsk("Add Sam Okafor, a to-do to book the venue with him, and remind me on 1 December to chase it", { sources: NO_SOURCES, web: async () => false, mentions: async () => ({ found: [], missing: [] }) }, { tz: TZ, now: new Date("2026-11-10T10:00:00Z"), thread_id: thread });
   assert.ok(reply.plan, "a plan came back");
-  assert.equal(reply.text, "Three changes are ready. Nothing changes until you tap Go.", "its words, written without the answer tool, go with the plan");
+  assert.equal(reply.text, "Three changes are ready. Nothing changes until you tap Approve.", "its words, written without the answer tool, go with the plan");
   assert.deepEqual(reply.plan!.steps.map((s) => s.label), ["Add Sam Okafor to People", "Add a to-do: book the venue", "Remind me to chase the venue"]);
   assert.equal(reply.changes, undefined);
   assert.deepEqual(await counts(), was, "nothing written before Go");

@@ -30,7 +30,7 @@ function why(a: TeamAssistant, r: TeamRun): string[] {
   const t = r.trigger_id ? a.triggers.find((x) => x.id === r.trigger_id) : null;
   const p = pronouns(a.personality);
   const when = t?.kind === "event" && t.event ? `${a.name} runs ${eventWords(t.event)}.` : t ? `${a.name} runs ${triggerSentence(t).replace(/^Every/, "every")}.` : `You asked ${a.name} to run.`;
-  const what = runWaits(r) ? `Anything ${p.they} can't do alone waits for you to tap Go.` : `${a.name} only did what you let ${p.them} do alone.`;
+  const what = runWaits(r) ? `Anything ${p.they} can't do alone waits for you to tap Approve.` : `${a.name} only did what you let ${p.them} do alone.`;
   return [when, what];
 }
 

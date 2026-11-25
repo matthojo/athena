@@ -37,7 +37,7 @@ test("honestText: a change the record doesn't hold is taken out; the rest stays"
   for (const s of ["Saved you £8 against Amazon.", "The price was updated this morning.", "Prices changed overnight.", "3 prices changed since Friday.", "Your week: 6 to-dos done."]) assert.equal(honestText(s, []), s, s);
   assert.equal(honestText("Both were added.", []), "");
   // Not claims: what waits for Go, a negation, something it might do, a question.
-  for (const s of ["A to-do to chase Priya waits for your Go.", "Nothing changed.", "I didn't add anything.", "I'd add it to your list.", "Want me to add it?", "Shall I add a to-do?"]) assert.equal(honestText(s, []), s, s);
+  for (const s of ["A to-do to chase Priya waits for your approval.", "Nothing changed.", "I didn't add anything.", "I'd add it to your list.", "Want me to add it?", "Shall I add a to-do?"]) assert.equal(honestText(s, []), s, s);
 });
 
 test("runWords: the three runs of the review, after", () => {
@@ -51,7 +51,7 @@ test("runWords: the three runs of the review, after", () => {
   assert.equal(d.summary, "Added 2 to-dos from the new issues. The third, the onboarding copy, is already on your list.");
   // Fig (wry): the false claim goes, and what waits is said in his voice.
   const f = runWords(fig, { text: "Added a to-do to chase Priya about the Q3 review. Your week: 6 to-dos done, the Q3 review still slipping.", changes: [], planned: 1 });
-  assert.equal(f.summary, "Your week: 6 to-dos done, the Q3 review still slipping. One change is ready. It won't happen until you tap Go.");
+  assert.equal(f.summary, "Your week: 6 to-dos done, the Q3 review still slipping. One change is ready. It won't happen until you tap Approve.");
   // The conversation keeps the honest reply; its plan card, right under it, says what waits.
   assert.equal(f.text, "Your week: 6 to-dos done, the Q3 review still slipping.");
   assert.equal(f.quiet, false);
@@ -68,7 +68,7 @@ test("runWords: a run with nothing to do is quiet, in its own words when it said
   assert.equal(runWords(moss, { text: "Nothing else to add.", found: false, changes: [], planned: 1 }).quiet, false);
   // Ask's own "nothing found" is Athena's sentence: the assistant says it its way.
   assert.equal(runWords(fig, { text: "I couldn't find anything about that.", found: false, changes: [], planned: 0 }).summary, "Nothing needed me this time.");
-  assert.equal(runWords(moss, { text: "Here's what I'd change. Nothing happens until you tap Go.", changes: [], planned: 2 }).summary, "2 changes are ready for you. Tap Go when you're happy.");
+  assert.equal(runWords(moss, { text: "Here's what I'd change. Nothing happens until you tap Approve.", changes: [], planned: 2 }).summary, "2 changes are ready for you. Tap Approve when you're happy.");
   // Only false claims, nothing done: quiet, never the claim.
   const lied = runWords(moss, { text: "Added it to your list.", changes: [], planned: 0 });
   assert.equal(lied.quiet, true);
@@ -85,15 +85,15 @@ test("runWords: with no reply, a line from the record in each tone", () => {
     calm: "I added 2 to-dos from the 3 new issues. Nothing else needs you.",
     wry: "Added 2 to-dos from the 3 new issues. Handled.",
   });
-  assert.equal(runWords(as("calm"), { text: "", changes: two, planned: 1 }).summary, "I added 2 to-dos. One change is ready when you are: tap Go.");
+  assert.equal(runWords(as("calm"), { text: "", changes: two, planned: 1 }).summary, "I added 2 to-dos. One change is ready when you are: tap Approve.");
   assert.equal(didPhrase([todo, { kind: "commitment", action: "completed" }, { kind: "note", action: "updated" }]), "added a to-do, ticked off a to-do and updated a note");
 });
 
-test("waitsLine: what waits for Go, in each tone, always naming Go", () => {
-  for (const t of TONES) for (const n of [1, 3]) assert.match(waitsLine(as(t), n), /\bGo\b/, `${t} ${n}`);
-  assert.equal(waitsLine(moss, 1), "One change is ready for you. Tap Go when you're happy.");
-  assert.equal(waitsLine(dot, 3), "3 changes wait for Go.");
-  assert.equal(waitsLine(fig, 3), "3 changes are ready. None happen until you tap Go.");
+test("waitsLine: what waits for approval, in each tone, always naming Approve or your approval", () => {
+  for (const t of TONES) for (const n of [1, 3]) assert.match(waitsLine(as(t), n), /\b(?:Approve|your approval)\b/, `${t} ${n}`);
+  assert.equal(waitsLine(moss, 1), "One change is ready for you. Tap Approve when you're happy.");
+  assert.equal(waitsLine(dot, 3), "3 changes wait for your approval.");
+  assert.equal(waitsLine(fig, 3), "3 changes are ready. None happen until you tap Approve.");
 });
 
 test("startStep and memoryStep: what a run is doing first and last", () => {
@@ -162,7 +162,7 @@ test("the card: its voice, its pronoun, and a Why from the record", () => {
   const d = teamNudge({ id: "a2", name: "Dot", avatar, personality: dot.personality }, run, null, { changed: 2, waiting: 0 });
   assert.deepEqual(d.why, ["You asked Dot to run.", "Dot made 2 changes you let them make alone."]);
   const f = teamNudge({ id: "a3", name: "Fig", avatar, personality: fig.personality }, run, { kind: "schedule", days: [5], time: "16:00", event: null }, { changed: 0, waiting: 1 });
-  assert.deepEqual(f.why, ["Fig runs every Friday at 16:00.", "Anything he can't do alone waits for you to tap Go."]);
+  assert.deepEqual(f.why, ["Fig runs every Friday at 16:00.", "Anything he can't do alone waits for you to tap Approve."]);
   // A failed run's card: from the assistant, plainly, with what to do; it says it won't retry.
   const failed = teamNudge({ id: "a3", name: "Fig", avatar, personality: fig.personality }, { ...run, thread_id: null, summary: null, status: "failed", error: failLine("busy") }, null);
   assert.equal(failed.body, "Didn't get there this time. Athena's AI was busy. Ask me in a few minutes, or use Run now on my page.");

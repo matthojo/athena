@@ -109,7 +109,7 @@ export const skillImported = (source: { kind?: string } | null | undefined): boo
 
 /**
  * Is this assistant someone else's? Recorded, never guessed: its row says it was imported (`origin`, migration
- * 0086), or its own skill came from a file or a link (only an import writes one so). Pure.
+ * 0087), or its own skill came from a file or a link (only an import writes one so). Pure.
  */
 export const assistantImported = (origin: string | null | undefined, ownSkillSource?: { kind?: string } | null): boolean => origin === "shared" || skillImported(ownSkillSource);
 

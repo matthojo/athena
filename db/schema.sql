@@ -363,7 +363,9 @@ CREATE TABLE suggestions (
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
   result_id UUID,              -- what accepting created/updated
   resolved_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- 0086: the email it came from (sender, subject, account), one sealed JSON value; NULL when not an email.
+  email JSONB
 );
 CREATE INDEX suggestions_pending_idx ON suggestions (created_at DESC) WHERE status = 'pending';
 
@@ -1051,7 +1053,7 @@ CREATE TABLE trackers (
   -- Who chose the checker (0074): NULL nobody yet, so the first assistant to keep a check takes it on; 'owner' never overwritten.
   assistant_set_by TEXT CHECK (assistant_set_by IN ('owner', 'ask', 'assistant')),
   -- Who set the link (0085): 'owner' typed or approved it, 'item' the saved item's own; only those are opened by a run.
-  -- Links from before 0085 were approved as the owner's once, by the owner's choice (0087).
+  -- Links from before 0085 were approved as the owner's once, by the owner's choice (0088).
   url_set_by TEXT CHECK (url_set_by IN ('owner', 'item', 'ask', 'assistant')),
   removed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -1656,13 +1658,13 @@ ALTER TABLE team_runs ADD COLUMN IF NOT EXISTS flow_run_id UUID;
 ALTER TABLE team_runs ADD COLUMN IF NOT EXISTS flow_id UUID;
 CREATE UNIQUE INDEX IF NOT EXISTS team_runs_flow_run_idx ON team_runs (flow_run_id) WHERE flow_run_id IS NOT NULL;
 
--- Items someone else shared (0086, lib/shared-limits.ts). `team_assistants.origin`: 'shared' for an imported
+-- Items someone else shared (0087, lib/shared-limits.ts). `team_assistants.origin`: 'shared' for an imported
 -- assistant. `accounts`: the connected accounts (connectors.id) the owner ticked for an imported item; empty to start.
 ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS origin TEXT;
 ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS accounts TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE ask_skills ADD COLUMN IF NOT EXISTS accounts TEXT[] NOT NULL DEFAULT '{}';
 
--- Community (0088, lib/catalogue-types.ts). An assistant, skill or flow added from the Community catalogue keeps the
+-- Community (0089, lib/catalogue-types.ts). An assistant, skill or flow added from the Community catalogue keeps the
 -- listing's id, the SHA-256 of its files as added and the author's version, plain, for update checks; NULL for
 -- anything else. The "Check the Community catalogue" switch is the plain settings row `community` ({ on }).
 ALTER TABLE team_assistants ADD COLUMN IF NOT EXISTS catalogue_id TEXT;

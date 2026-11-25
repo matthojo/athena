@@ -335,6 +335,34 @@ export function sampleSuggestions(): Suggestion[] {
       source_quote: "Your table for 4 at Dishoom King's Cross is booked. We'll hold it for 15 minutes.",
       confidence: 0.86,
     }, 0.15),
+    // One class booking, found in three emails (the booking, a reminder, the day before): one card, "Found 3 times".
+    ...[
+      { subject: "Your spin class is booked", quote: "Your spin class is booked for 7am. Please arrive ten minutes early.", age: 3 },
+      { subject: "Reminder: spin class coming up", quote: "Just a reminder that your spin class is at 7am.", age: 1.2 },
+      { subject: "See you tomorrow at spin class", quote: "See you tomorrow at 7am for spin class.", age: 0.4 },
+    ].map((m, i) =>
+      s(12 + i, {
+        op: "event",
+        summary: `Appointment: Spin class at Northfield Leisure · ${addDays(today, 5)}`,
+        payload: { title: "Spin class at Northfield Leisure", kind: "appointment", date: addDays(today, 5), time: "07:00", location: "Northfield Leisure Centre" },
+        source: "email-digest-personal",
+        source_ref: null,
+        source_quote: m.quote,
+        confidence: 0.62,
+        email: { from: "Northfield Leisure <bookings@mail.northfield.example>", subject: m.subject, connector_id: null },
+      }, m.age)
+    ),
+    // The next week's class is another thing: its own card.
+    s(15, {
+      op: "event",
+      summary: `Appointment: Spin class at Northfield Leisure · ${addDays(today, 12)}`,
+      payload: { title: "Spin class at Northfield Leisure", kind: "appointment", date: addDays(today, 12), time: "07:00", location: "Northfield Leisure Centre" },
+      source: "email-digest-personal",
+      source_ref: null,
+      source_quote: "Your spin class is booked for 7am. Please arrive ten minutes early.",
+      confidence: 0.62,
+      email: { from: "Northfield Leisure <bookings@mail.northfield.example>", subject: "Your spin class is booked", connector_id: null },
+    }, 2.5),
     s(4, {
       op: "interaction",
       summary: "You saw Tom at the residents' meeting",

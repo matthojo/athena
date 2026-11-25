@@ -14,8 +14,9 @@ import { alsoSort, capital, groupEntries, hoursMinutes, isEpisode, kindSummary, 
 import type { DayEntry, EntryKind } from "../db/days-app";
 import { habitSection } from "./day-habits";
 import { savedDaySection } from "./day-saved";
+import { clockOfDay } from "../lib/clock";
 
-const timeOf = (iso: string | undefined) => (iso && iso.length >= 16 ? iso.slice(11, 16) : null);
+const timeOf = (iso: string | undefined) => (iso && iso.length >= 16 ? clockOfDay(iso.slice(11, 16)) : null);
 
 function stars(rating: number | undefined): HTMLElement | null {
   if (rating === undefined) return null;

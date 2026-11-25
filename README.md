@@ -43,15 +43,15 @@ the project never sees your data.
   &nbsp;
   <img src=".github/readme/week.webp" width="31%" alt="Week in review on a phone: time with Tom and Priya, and four days in Lisbon">
   &nbsp;
-  <img src=".github/readme/team.webp" width="31%" alt="Team on a phone: Moss checking a gift price, and Dot waiting for your Go">
+  <img src=".github/readme/team.webp" width="31%" alt="Team on a phone: Moss checking a gift price, and Dot waiting for your approval">
 </p>
 
 <p align="center">
-  <img src=".github/readme/flows.webp" width="31%" alt="Flows on a phone: two flows Athena suggests from your habits, and Renewal guard waiting for your Go">
+  <img src=".github/readme/flows.webp" width="31%" alt="Flows on a phone: two flows Athena suggests from your habits, and Renewal guard waiting for your approval">
   &nbsp;
   <img src=".github/readme/flow.webp" width="31%" alt="A flow on a phone: Renewal guard starts when something's due to renew, then finds what you paid last year">
   &nbsp;
-  <img src=".github/readme/flow-run.webp" width="31%" alt="A run of Renewal guard: £38 is 19% more than last year, so a to-do to decide waits for your Go">
+  <img src=".github/readme/flow-run.webp" width="31%" alt="A run of Renewal guard: £38 is 19% more than last year, so a to-do to decide waits for your approval">
 </p>
 
 <p align="center"><sub>Screens from sample mode. Every person and number in them is made up.</sub></p>
@@ -65,8 +65,8 @@ the project never sees your data.
 - **To do:** each to-do opens as a page of its own: a description with
   links to people and notes, steps to tick off and reorder, the web pages
   and things in Athena it needs, a priority, a due date, an area and where
-  you'll do it. On the list, each row shows its priority and how many of
-  its steps are done.
+  you'll do it. On the list, each row shows who it's for, when it's due
+  and how many of its steps are done.
 - **Ask:** "What did Gayle say about pricing last month?" Claude searches
   your notes and, live, the accounts you've connected. It answers in a few
   sentences with numbered sources, and checks each source against what
@@ -87,13 +87,13 @@ the project never sees your data.
   wait or tell you, and a check can send it down one of two paths. Say
   "whenever…" in Ask, describe one in a sentence under Flows → New, or take
   one Athena suggests from your habits. Adding a reminder, a to-do or a line
-  on a list runs on its own; anything else waits for your **Go**, and Athena
+  on a list runs on its own; anything else waits for your **approval**, and Athena
   never sends a draft.
 - **Team:** assistants you set up, each running its own flows on a schedule
   or when something arrives (a new Linear issue, a saved link). Let an
   assistant run one of your flows and it can add steps that work something
   out, like looking online for a better price, then tell you what it found
-  in its own words. A change you haven't allowed waits for your **Go**. Share
+  in its own words. A change you haven't allowed waits for your **approval**. Share
   an assistant as a file anyone can add to their own Athena, or add one
   someone shared: it joins paused, and asks before every change until you
   tick what it may do on its own.

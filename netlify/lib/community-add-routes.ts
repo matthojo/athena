@@ -59,7 +59,7 @@ export interface CommunityAddDeps {
   replaceAssistant: (id: string, input: ImportInput) => Promise<{ writing: Promise<unknown> | null }>;
   replaceSkill: (id: string, input: { description: string; body: string; extra: string; files: SharedSkill["files"]; skipped: SharedSkill["skipped"]; accounts: string[] }) => Promise<void>;
   replaceFlow: (id: string, shared: SharedFlow, answers: FlowAnswers, catalogue: { id: string; hash: string; version?: string }) => Promise<void>;
-  /** Record the listing an assistant or skill came from (migration 0088). Flows record their own. */
+  /** Record the listing an assistant or skill came from (migration 0089). Flows record their own. */
   markCatalogue: (kind: "assistant" | "skill", id: string, listing: { id: string; hash: string; version: string | null }) => Promise<void>;
   now: () => Date;
 }

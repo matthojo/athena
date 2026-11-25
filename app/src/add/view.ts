@@ -403,7 +403,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
         "alone",
         "What it may do alone",
         ticks.length || webBox
-          ? h("p", { class: "form__hint add-sec__lede" }, `${name} would like to do these without asking. Anything you leave unticked waits for your Go.`)
+          ? h("p", { class: "form__hint add-sec__lede" }, `${name} would like to do these without asking. Anything you leave unticked waits for your approval.`)
           : h("p", { class: "form__hint" }, `Nothing. Every change ${name} wants to make waits for your Go.`),
         ...ticks.map((t) => t.el),
         webBox ? h("label", { class: "wf-tick", for: "add-web" }, webBox, h("span", {}, h("span", { class: "wf-tick__label" }, "Search the web"), h("span", { class: "row__meta" }, "Searches and reads the pages it finds, while “Let Ask search the web” is on"))) : null

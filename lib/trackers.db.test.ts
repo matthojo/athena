@@ -640,7 +640,7 @@ test("a saved item's trackers go with it", { skip }, async () => {
   assert.equal((await qRaw(`SELECT 1 FROM trackers WHERE saved_id = $1`, [item.id])).length, 0);
 });
 
-test("migration 0087: a tracker link from before 0085 is approved once as the owner's; one a model chose since is not", { skip }, async () => {
+test("migration 0088: a tracker link from before 0085 is approved once as the owner's; one a model chose since is not", { skip }, async () => {
   const { readFile } = await import("node:fs/promises");
   const { createTracker, getTracker } = await import("./trackers-store");
   const { qRaw } = await import("./db");
@@ -655,7 +655,7 @@ test("migration 0087: a tracker link from before 0085 is approved once as the ow
   assert.equal((await getTracker(old))!.run_url, null);
   assert.equal((await getTracker(fresh))!.run_url, null);
 
-  const sql = await readFile(new URL("../netlify/database/migrations/0087_tracker-links-approved/migration.sql", import.meta.url), "utf8");
+  const sql = await readFile(new URL("../netlify/database/migrations/0088_tracker-links-approved/migration.sql", import.meta.url), "utf8");
   await qRaw(sql);
   await qRaw(sql); // safe to run twice
   assert.deepEqual([(await getTracker(old))!.url_set_by, (await getTracker(old))!.run_url], ["owner", OLD], "the old link keeps working");

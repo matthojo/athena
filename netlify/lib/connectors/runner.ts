@@ -76,6 +76,8 @@ import {
   type PageType,
 } from "../../../lib/db";
 import { addFact, ASSET_KINDS, findAsset, logInteraction, propose, upsertAsset, upsertCommitment, type AssetKind } from "../../../lib/memory";
+import { emailIdOf, mailFrom, type SuggestionEmail } from "../../../lib/suggestion-similar";
+import { MAIL_PROVIDERS } from "../../../lib/suggestion-ignore";
 import { saveBooking, savePurchase } from "../../../lib/trips";
 import { saveReceipt } from "../../../lib/receipts-save";
 import { RECEIPT_TOOL, receiptInput } from "./receipt-tool";
@@ -364,7 +366,7 @@ const ATHENA_TOOLS: Anthropic.Tool[] = [
   {
     name: "athena_todo",
     description:
-      `Record a commitment from a source item. kind: i_owe = the owner said they'd do something for someone (give person_id); todo = something the owner will do, for nobody in particular; waiting_on = someone else said they'd do something for the owner (give person_id); decision = a decision that was made. Only clear commitments with an owner on the owner's side of the table, not every action item in the room. quote = the words it came from. confidence 0–1: below 0.8 it goes to the owner's Review inbox instead of the To do list. ` +
+      `Record a commitment from a source item. kind: i_owe = the owner said they'd do something for someone (give person_id); todo = something the owner will do, for nobody in particular; waiting_on = someone else said they'd do something for the owner (give person_id); decision = a decision that was made. Only clear commitments with an owner on the owner's side of the table, not every action item in the room. quote = the words it came from. confidence 0–1: below 0.8 it goes to the owner's Inbox instead of the To do list. ` +
       `steps: ${STEPS_RULE} ` +
       `Recording one that's already there (reworded, or from the same meeting under another id) comes back already_recorded with its status: one the owner finished or dropped is never filed again.`,
     input_schema: {
@@ -392,7 +394,7 @@ const ATHENA_TOOLS: Anthropic.Tool[] = [
   {
     name: "athena_remember",
     description:
-      "Remember a durable detail about a person: family, where they're based, their role, a preference, a date that matters (\"Kids: Maya (7)\", \"Based in: Lisbon\"). A new value replaces the old one for the same key. Not for one-off meeting content (that goes in the note), and never money or health details. confidence below 0.8 goes to the Review inbox.",
+      "Remember a durable detail about a person: family, where they're based, their role, a preference, a date that matters (\"Kids: Maya (7)\", \"Based in: Lisbon\"). A new value replaces the old one for the same key. Not for one-off meeting content (that goes in the note), and never money or health details. confidence below 0.8 goes to the Inbox.",
     input_schema: {
       type: "object",
       properties: {
@@ -515,7 +517,7 @@ const TRIP_TOOLS: Anthropic.Tool[] = [
       "a changed time is marked changed and keeps the old time; status \"cancelled\" marks it cancelled. When one reference covers several parts, give each its segment " +
       "(\"outbound\", \"return\", or the flight number) and keep it the same in later emails. Times are the local time where it happens, with that place's IANA time zone. " +
       "Never prices, totals or card details. Returns created / updated / skipped (the owner archived it), the trip it's in, and any other bookings under the same reference " +
-      "(pass booking_id to update one of those). confidence below 0.8 goes to the Review inbox.",
+      "(pass booking_id to update one of those). confidence below 0.8 goes to the Inbox.",
     input_schema: {
       type: "object",
       properties: {
@@ -557,7 +559,7 @@ const TRIP_TOOLS: Anthropic.Tool[] = [
       "Save an order, or an update on one, from an email: ordered, dispatched, out for delivery, delivered, delayed, returned, refunded or cancelled. " +
       "The first email for an order creates it; later ones for the same order number (or tracking number) move it along, so call it for every update. " +
       "Item names, order number, carrier and tracking only: never prices, totals, card or payment details. Returns created / updated / restored / skipped " +
-      "(the owner archived it). confidence below 0.8 goes to the Review inbox.",
+      "(the owner archived it). confidence below 0.8 goes to the Inbox.",
     input_schema: {
       type: "object",
       properties: {
@@ -614,7 +616,7 @@ const EMAIL_TOOLS: Anthropic.Tool[] = [
     description:
       "Save an appointment or a deadline an email sets, that isn't travel: the dentist, a GP or vet appointment, a haircut, an engineer's visit, a parents' evening, a form due by a date. " +
       "It goes on Athena's events, so Coming up, the briefing and reminders show it. Saving again for the same thread (and part) updates it: a moved time, a new place; cancelled: true archives it. " +
-      "An appointment already on the owner's calendar with the same title and time is joined, not doubled. confidence below 0.8 goes to the Review inbox.",
+      "An appointment already on the owner's calendar with the same title and time is joined, not doubled. confidence below 0.8 goes to the Inbox.",
     input_schema: {
       type: "object",
       properties: {
@@ -658,7 +660,7 @@ const EMAIL_TOOLS: Anthropic.Tool[] = [
     description:
       "Flag a security or account alert about the owner's own account: a new sign-in, a password or email address changed, a payment failed or a card declined, an account locked or suspended, a direct debit cancelled. " +
       "It becomes a to-do due today at the top of To do and the briefing, and any assistant watching for alerts is told. Not marketing, and not a sign-in code or reset the owner plainly asked for. " +
-      "One per thread: the same thread again comes back already_recorded. confidence below 0.8 goes to the Review inbox.",
+      "One per thread: the same thread again comes back already_recorded. confidence below 0.8 goes to the Inbox.",
     input_schema: {
       type: "object",
       properties: {
@@ -1034,6 +1036,21 @@ export class AthenaWriter {
     }
   }
 
+  /**
+   * The sender and subject of each email this run's mail tools returned, by thread and message id, and the
+   * account it came from: a find filed to the Review inbox keeps them (suggestions.email), for "Ignore
+   * emails like this". Held for the run only.
+   */
+  private readonly mail = new Map<string, SuggestionEmail>();
+
+  noteMailResult(connector: { id: string; provider: string }, text: string): void {
+    if (!MAIL_PROVIDERS.has(connector.provider)) return;
+    for (const [id, m] of mailFrom(text)) {
+      const had = this.mail.get(id);
+      if (!had || (!had.subject && m.subject)) this.mail.set(id, { ...m, connector_id: connector.id });
+    }
+  }
+
   constructor(
     private readonly collection: Collection,
     private readonly runId: string,
@@ -1232,8 +1249,11 @@ export class AthenaWriter {
     ]);
     const summary = input.summary.trim().replace(/\s+/g, " ").toLowerCase();
     const known = filed.some((f) => f.summary.toLowerCase() === summary);
-    const s = await propose(input);
-    if (!known) this.stats.suggestions++;
+    const emailId = emailIdOf(input.source_ref, this.collection.source);
+    const email = emailId ? this.mail.get(emailId) ?? null : null;
+    const s = await propose({ ...input, email });
+    // Not counted when it's this one again, or the same words still waiting from another email.
+    if (!known && (s.source_ref ?? null) === (input.source_ref ?? null)) this.stats.suggestions++;
     return JSON.stringify({ suggestion_id: s.id, action: "sent_to_review_inbox" });
   }
 
@@ -2145,6 +2165,7 @@ export async function executeRun(runId: string, now: Date = new Date()): Promise
           stats.source_calls++;
           const r = await callTool(source.open, source.mcpName, (call.input ?? {}) as Record<string, unknown>);
           if (!r.isError) writer.noteCalendarResult(source.open.connector, (call.input ?? {}) as Record<string, unknown>, r.text);
+          if (!r.isError) writer.noteMailResult(source.open.connector, r.text);
           // Someone else wrote this: Jev checks it isn't trying to instruct Claude, and flags it if so.
           const guarded = await guardText(r.text);
           if (guarded.flagged) stats.flagged++;
@@ -2344,6 +2365,7 @@ export async function collectOneItem(
           }
           const r = await callTool(open, mcpName, input);
           if (!r.isError) writer.noteCalendarResult(connector, input, r.text);
+          if (!r.isError) writer.noteMailResult(connector, r.text);
           const guarded = await guardText(r.text);
           results.push({ type: "tool_result", tool_use_id: call.id, content: guarded.text, ...(r.isError ? { is_error: true as const } : {}) });
         } catch (error) {

@@ -11,6 +11,7 @@ import { loadSaved, onSavedChange, type SavedItem } from "../db/saved";
 import { savedPicture } from "../views/saved";
 import { plural } from "../lib/format";
 import "../styles/saved.css";
+import { clockTime } from "../lib/clock";
 
 const ICON: Record<SavedItem["kind"], IconName> = { link: "link", image: "image", quote: "quote", snippet: "code", note: "note" };
 const SHOWN = 4;
@@ -18,7 +19,7 @@ const SHOWN = 4;
 function row(item: SavedItem): HTMLElement {
   const title =
     item.kind === "quote" ? `“${(item.quote ?? "").replace(/^[“"]|[”"]$/g, "")}”` : item.kind === "image" ? item.note ?? item.title ?? "Image" : item.kind === "link" ? item.title ?? item.url ?? "Link" : item.quote ?? item.note ?? "";
-  const sub = [item.kind === "quote" ? item.author : null, item.site, item.kind === "image" || item.kind === "snippet" ? item.kind === "image" ? "Image" : "Snippet" : null, new Date(item.saved_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })].filter(Boolean).join(" · ");
+  const sub = [item.kind === "quote" ? item.author : null, item.site, item.kind === "image" || item.kind === "snippet" ? item.kind === "image" ? "Image" : "Snippet" : null, clockTime(item.saved_at)].filter(Boolean).join(" · ");
   const pic = item.image_url ? savedPicture(item, "sm", { minRatio: 1, maxRatio: 1 }) : null;
   const b = h(
     "a",

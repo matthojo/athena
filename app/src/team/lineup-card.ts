@@ -126,7 +126,7 @@ export function lineupCard(o: LineupCardOptions): HTMLElement {
     );
     sugg.classList.add("lineup__sugg");
     const problem = lineupProblem(l);
-    const goBtn = h("button", { class: "btn btn--primary lineup__go", type: "button", disabled: going || !!problem }, going ? "Starting…" : "Go") as HTMLButtonElement;
+    const goBtn = h("button", { class: "btn btn--primary lineup__go", type: "button", disabled: going || !!problem }, going ? "Starting…" : "Approve") as HTMLButtonElement;
     goBtn.addEventListener("click", async () => {
       going = true;
       paint();
@@ -146,8 +146,8 @@ export function lineupCard(o: LineupCardOptions): HTMLElement {
       o.fallback ? h("p", { class: "lineup__note" }, "This is a plain lineup. Athena couldn't fit one to the brief this time, so check it over.") : null,
       h("ol", { class: "lineup__stages" }, ...l.stages.map((_, i) => stageRow(i))),
       h("div", { class: "lineup__choice" }, h("p", { class: "lineup__label" }, "When to check with you"), presets),
-      h("div", { class: "lineup__choice" }, h("p", { class: "lineup__label" }, "When a stage has a question"), sugg, take ? h("p", { class: "lineup__note" }, "A change still waits for your Go.") : null),
-      h("div", { class: "lineup__foot" }, h("p", { class: "lineup__note" }, problem ?? "Nothing runs until you tap Go."), goBtn),
+      h("div", { class: "lineup__choice" }, h("p", { class: "lineup__label" }, "When a stage has a question"), sugg, take ? h("p", { class: "lineup__note" }, "A change still waits for your approval.") : null),
+      h("div", { class: "lineup__foot" }, h("p", { class: "lineup__note" }, problem ?? "Nothing runs until you tap Approve."), goBtn),
       said,
     ];
     el.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));

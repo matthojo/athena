@@ -7,7 +7,7 @@
  *   PUT    /api/skills/<id>                { the same, any of them } → the skill
  *   DELETE /api/skills/<id>                → { ok }
  *   GET    /api/skills/<id>/download?format=md|zip → SKILL.md, or a zip of it and its files
- *   GET    /api/skills/notice              → { skills: [{ id, name, title }] }: imported skills that lost their accounts (0086), once
+ *   GET    /api/skills/notice              → { skills: [{ id, name, title }] }: imported skills that lost their accounts (0087), once
  *   DELETE /api/skills/notice              → { ok }: the notice is read and doesn't come back
  *
  * A skill someone shared (a file, a zip, a folder or a link) is previewed and

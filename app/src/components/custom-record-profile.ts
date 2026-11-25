@@ -21,6 +21,7 @@ import { placeMenuAcross } from "../lib/menu-place";
 import { openAsk } from "../lib/open-ask";
 import { openLinked } from "../lib/open-linked";
 import { h } from "../lib/dom";
+import { setPageName } from "../lib/page-title";
 import { icons, type IconName } from "./icons";
 import { openSheet } from "./sheet";
 import { showToast } from "./toast";
@@ -122,6 +123,8 @@ export function customRecordProfile(kindId: string, initial: CustomRecord | null
   }) as HTMLTextAreaElement;
   titleInput.value = rec?.title ?? "";
   titleInput.readOnly = locked;
+  // The tab is called what this is (lib/page-title.ts); never a placeholder for a title that can't be read here.
+  const unnameTab = setPageName(rec && !locked ? rec.title : null);
   const grow = () => {
     titleInput.style.height = "auto";
     titleInput.style.height = `${titleInput.scrollHeight}px`;
@@ -449,6 +452,7 @@ export function customRecordProfile(kindId: string, initial: CustomRecord | null
         dead = true;
       });
       clearTimeout(linksTimer);
+      unnameTab();
       watchFields.disconnect();
       unsubNotes();
       unsubFields();

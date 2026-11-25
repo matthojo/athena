@@ -70,6 +70,28 @@ export interface NavActions {
   jump: () => void;
 }
 
+/** What the nav calls each of its own views; the tab's title reads these too (viewLabel). */
+export const NAV_LABELS = {
+  home: "Home",
+  days: "Days",
+  loops: "To do",
+  ask: "Ask",
+  team: "Team",
+  flows: "Flows",
+  review: "Inbox",
+  week: "This week",
+  library: "Library",
+  archived: "Archived",
+  settings: "Settings",
+} as const satisfies Partial<Record<ViewId, string>>;
+
+/** The name a view goes by in the nav or the Library, for the tab's title (lib/page-title.ts). */
+export function viewLabel(view: ViewId): string | null {
+  if (view in NAV_LABELS) return NAV_LABELS[view as keyof typeof NAV_LABELS];
+  for (const g of libraryGroups()) for (const i of g.items) if (i.view === view) return i.label;
+  return null;
+}
+
 const orb = () => h("span", { class: "orb", "aria-hidden": "true" });
 
 function setCurrent(items: HTMLElement[], id: string, value: "page" | "true" = "page") {
@@ -96,11 +118,11 @@ export function dock(actions: NavActions): { el: HTMLElement; setActive: (view: 
     return btn;
   };
 
-  const home = item("home", "Home", icons.home, icons.homeSolid);
-  const days = item("days", "Days", dayIcons.days);
-  const todo = item("loops", "To do", icons.loop);
-  const library = item("library", "Library", icons.library);
-  const ask = h("button", { class: "dock__orb", type: "button", "data-id": "ask", "aria-label": "Ask" }, orb());
+  const home = item("home", NAV_LABELS.home, icons.home, icons.homeSolid);
+  const days = item("days", NAV_LABELS.days, dayIcons.days);
+  const todo = item("loops", NAV_LABELS.loops, icons.loop);
+  const library = item("library", NAV_LABELS.library, icons.library);
+  const ask = h("button", { class: "dock__orb", type: "button", "data-id": "ask", "aria-label": NAV_LABELS.ask }, orb());
   ask.addEventListener("click", () => actions.go("ask"));
 
   // Two tabs either side of the orb, so it sits at the centre. Team is on Home, above the Ask box (owner, 13 Nov 2026).
@@ -143,7 +165,8 @@ export function sidebar(
   el: HTMLElement;
   setActive: (view: ViewId) => void;
   setStatus: (s: SyncStatus) => void;
-  setCount: (id: ViewId, n: number) => void;
+  /** `what` says what the number counts ("due today or overdue"), for a long press and a screen reader. */
+  setCount: (id: ViewId, n: number, what?: string) => void;
   /** The owner's own kinds changed: redraw the Library's sections. */
   setKinds: () => void;
 } {
@@ -159,13 +182,13 @@ export function sidebar(
     return b;
   };
   const navItems = [
-    navItem("home", "Home", icons.home()),
-    navItem("days", "Days", dayIcons.days()),
-    navItem("loops", "To do", icons.loop()),
-    navItem("ask", "Ask", orb()),
-    navItem("team", "Team", icons.team()),
+    navItem("home", NAV_LABELS.home, icons.home()),
+    navItem("days", NAV_LABELS.days, dayIcons.days()),
+    navItem("loops", NAV_LABELS.loops, icons.loop()),
+    navItem("ask", NAV_LABELS.ask, orb()),
+    navItem("team", NAV_LABELS.team, icons.team()),
     // Flows, under Team: something Athena does for you, like Team (owner, 21 Nov 2026). Home's pill and Library's row stay.
-    navItem("flows", "Flows", icons.loop()),
+    navItem("flows", NAV_LABELS.flows, icons.flow()),
   ];
   // The Team entry keeps a pulse: a soft dot while an assistant works, and a count of what waits for you (team/page-pulse.ts).
   const teamItem = navItems.find((b) => b.dataset.id === "team")!;
@@ -178,13 +201,13 @@ export function sidebar(
   watchWaiting((p) => {
     teamItem.classList.toggle("is-working", p.working.length > 0);
     teamItem.title = p.working.length ? `${p.working.join(", ")} ${p.working.length === 1 ? "is" : "are"} working` : "";
-    setCount("team", p.waiting);
+    setCount("team", p.waiting, "waiting for you in Team chat");
   });
   // This week is Week in review for the current week (the old #/week page is retired).
-  const checkItems = [navItem("review", "Inbox", icons.inbox()), navItem("week", "This week", icons.week(), () => actions.go("days", { noteId: thisWeekPath() }))];
-  const footItems = [navItem("archived", "Archived", icons.archive()), navItem("settings", "Settings", icons.sliders())];
+  const checkItems = [navItem("review", NAV_LABELS.review, icons.inbox()), navItem("week", NAV_LABELS.week, icons.week(), () => actions.go("days", { noteId: thisWeekPath() }))];
+  const footItems = [navItem("archived", NAV_LABELS.archived, icons.archive()), navItem("settings", NAV_LABELS.settings, icons.sliders())];
 
-  const libraryLabel = h("button", { class: "side-label side-label--link", type: "button", "data-id": "library" }, "Library");
+  const libraryLabel = h("button", { class: "side-label side-label--link", type: "button", "data-id": "library" }, NAV_LABELS.library);
   libraryLabel.addEventListener("click", () => actions.go("library"));
   const libraryNav = h("nav", { class: "side-groups", "aria-label": "Library" });
   interface GroupEl {
@@ -200,14 +223,21 @@ export function sidebar(
   const all = () => [...navItems, ...checkItems, ...libraryItems, ...footItems, libraryLabel];
 
   /** A count beside an item (to-dos due, suggestions waiting); 0 hides it. */
-  function setCount(id: ViewId, n: number) {
+  const countWhat = new Map<ViewId, string>();
+  function setCount(id: ViewId, n: number, what = countWhat.get(id)) {
     counts.set(id, n);
+    if (what) countWhat.set(id, what);
     const item = all().find((b) => b.dataset.id === id);
     if (!item) return;
     let badge = item.querySelector<HTMLElement>(".side-item__count");
     if (!n) return badge?.remove();
     if (!badge) item.append((badge = h("span", { class: "side-item__count" })));
     badge.textContent = String(n);
+    // A bare number says nothing about what it counts: "2 due today or overdue".
+    if (what) {
+      badge.title = `${n} ${what}`;
+      badge.setAttribute("aria-label", `${n} ${what}`);
+    }
   }
 
   const scroller = h("div", { class: "sidebar__scroll" }, libraryLabel, libraryNav);

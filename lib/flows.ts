@@ -147,7 +147,7 @@ export function checkSteps(steps: FlowStep[], trigger: FlowTrigger): void {
       if (s.kind === "tool") {
         const tool = flowTool(s.tool);
         if (!tool) throw new AthenaInputError(`A flow can't use “${s.tool}”`);
-        if (isDraftTool(s.tool) && s.go !== "ask") throw new AthenaInputError("A draft always waits for your Go: it's never sent, and Go only writes it");
+        if (isDraftTool(s.tool) && s.go !== "ask") throw new AthenaInputError("A draft always waits for your approval: it's never sent, and approving only writes it");
         const fields = new Set(Object.keys((tool.input_schema as { properties?: object }).properties ?? {}));
         for (const [k, t] of Object.entries(s.input)) {
           if (!fields.has(k) || k === "step") throw new AthenaInputError(`“${s.tool}” has no field “${k}”`);
@@ -272,7 +272,7 @@ const NOT_JOB = `NOT (assistant_id IS NOT NULL AND origin IN ('trigger', 'shared
 
 const FULL = `You have ${FLOW_LIMITS.flows} flows, which is the most Athena keeps. Remove one first.`;
 
-/** Where a flow added from the Community catalogue came from (migration 0088), for update checks. */
+/** Where a flow added from the Community catalogue came from (migration 0089), for update checks. */
 export interface FlowCatalogueRef {
   id: string;
   hash: string;

@@ -249,18 +249,16 @@
 /* ---------- Home: what steps aside in the first week ---------- */
 
 /* Empty cards would only say "nothing": the first-week card speaks for them. */
-.home--first .bento > [data-empty],
+.home--first .home-now > [data-empty],
 .home--first .profile-card {
   display: none;
 }
 
-.home--first .bento:not(:has(> :not([hidden], [data-empty]))) {
-  display: none;
-}
-
 /* Sample mode's preview of a new owner's Home (#/home?first=1): none of the sample owner's things. */
-.home--first-preview .bento,
-.home--first-preview .home-lower,
+.home--first-preview .todo-card,
+.home--first-preview .home-nudges-slot,
+.home--first-preview .home-waiting,
+.home--first-preview .home-more,
 .home--first-preview .home-banners > :not(.fw-card) {
   display: none;
 }

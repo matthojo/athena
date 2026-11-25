@@ -516,7 +516,8 @@ function mentions(text: string, lead: string): boolean {
 }
 
 /** The reply already says something waits for Go. Pure. */
-const saysGo = (text: string) => /\bGo\b/.test(text);
+// "Go" is the older wording: a summary kept before the change still counts.
+const saysGo = (text: string) => /\b(?:Approve|your approval|Go)\b/.test(text);
 /** The reply says there was nothing to do. Pure. */
 const NOTHING_SAID = /^(?:nothing\b|no (?:new|changes?|action)\b|all quiet\b|there(?:'s| is| was) nothing\b|not(?:hing)? (?:new|needed)\b)/i;
 
@@ -533,15 +534,15 @@ export function waitsLine(v: Voice, n: number): string {
   const one = n === 1;
   switch (toneOf(v)) {
     case "warm":
-      return `${one ? "One change is" : `${n} changes are`} ready for you. Tap Go when you're happy.`;
+      return `${one ? "One change is" : `${n} changes are`} ready for you. Tap Approve when you're happy.`;
     case "crisp":
-      return `${n} ${one ? "change waits" : "changes wait"} for Go.`;
+      return `${n} ${one ? "change waits" : "changes wait"} for your approval.`;
     case "playful":
-      return `${one ? "One change is" : `${n} changes are`} lined up for your Go.`;
+      return `${one ? "One change is" : `${n} changes are`} lined up for your approval.`;
     case "calm":
-      return `${one ? "One change is" : `${n} changes are`} ready when you are: tap Go.`;
+      return `${one ? "One change is" : `${n} changes are`} ready when you are: tap Approve.`;
     case "wry":
-      return one ? "One change is ready. It won't happen until you tap Go." : `${n} changes are ready. None happen until you tap Go.`;
+      return one ? "One change is ready. It won't happen until you tap Approve." : `${n} changes are ready. None happen until you tap Approve.`;
   }
 }
 
@@ -594,7 +595,7 @@ export interface RunWords {
  * record. Pure.
  */
 /** Ask's own words when a reply cited nothing or only planned (lib/answer.ts): Athena's sentences, not the assistant's. */
-const ASK_NOTHING = /^(?:I couldn't find anything about that\.?|Here's what I'd change\. Nothing happens until you tap Go\.|Here's the plan\. Nothing changes until you tap Go\.)$/;
+const ASK_NOTHING = /^(?:I couldn't find anything about that\.?|Here's what I'd change\. Nothing happens until you tap (?:Approve|Go)\.|Here's the plan\. Nothing changes until you tap (?:Approve|Go)\.)$/;
 
 /** A kept check's news marks on its receipt (lib/trackers.ts checkDetail), for a change kept without its `news`. */
 export const TRACKER_NEWS = NEWS_MARKS;
@@ -870,7 +871,7 @@ export function teamNudge(
       ? `${a.name} tried twice and won't try again on ${p.themselves}.`
       : `${a.name} won't try again on ${p.themselves}.`
     : said.waiting
-      ? `Anything ${p.they} can't do alone waits for you to tap Go.`
+      ? `Anything ${p.they} can't do alone waits for you to tap Approve.`
       : said.changed
         ? `${a.name} made ${said.changed === 1 ? "one change" : `${said.changed} changes`} you let ${p.them} make alone.`
         : `${a.name} didn't change anything.`;

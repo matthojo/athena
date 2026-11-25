@@ -3,10 +3,11 @@
  * Pure, so the Team page, the detail page and setup say the same thing, and
  * the tests can check the words without a DOM.
  *
- *   triggerSentence({ kind: "schedule", days: [1,2,3,4,5], time: "08:00" }) → "Every weekday at 8:00"
+ *   triggerSentence({ kind: "schedule", days: [1,2,3,4,5], time: "08:00" }) → "Every weekday at 08:00"
  *   triggerSentence({ kind: "event", event: { source: "collected", connector: "linear" } }) → "When a Linear issue is assigned to you"
  */
 import type { EventFilter, TeamAssistant, TeamTriggerInput } from "../../../lib/team-types";
+import { clockOfDay, clockTime, uses12Hour } from "../lib/clock";
 
 /** Monday first, as the pills read; values are 0 = Sunday, as the server keeps them. */
 export const WEEK: ReadonlyArray<{ day: number; short: string; long: string; letter: string }> = [
@@ -53,22 +54,12 @@ export function dayList(days: TeamTriggerInput["days"]): number[] {
   return [...new Set(raw.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b);
 }
 
-/** Whether this device writes times on a 12-hour clock, as its time fields do. */
-export function prefers12h(): boolean {
-  try {
-    return new Intl.DateTimeFormat(undefined, { hour: "numeric" }).resolvedOptions().hour12 === true;
-  } catch {
-    return false;
-  }
-}
+/** Whether this device writes times on a 12-hour clock, as its time fields do (lib/clock.ts decides, for the whole app). */
+export const prefers12h = (): boolean => uses12Hour();
 
-/** "08:00" → "8:00", or "8:00 am" on a 12-hour device, matching the time field beside it. */
+/** "08:00" as the app writes a time: "08:00", or "8:00 am" on a 12-hour device (lib/clock.ts). */
 export function clockWords(time: string | null | undefined, hour12 = prefers12h()): string {
-  const m = /^(\d{1,2}):(\d{2})/.exec(time ?? "");
-  if (!m) return time ?? "";
-  const h = Number(m[1]);
-  if (!hour12) return `${h}:${m[2]}`;
-  return `${h % 12 || 12}:${m[2]} ${h < 12 ? "am" : "pm"}`;
+  return clockOfDay(time, hour12);
 }
 
 const listWords = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -121,11 +112,11 @@ function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-/** "9:12", "yesterday", "Tue", "3 Nov": when something happened, as briefly as reads clearly. */
-export function whenWords(iso: string, now = new Date()): string {
+/** "09:12", "yesterday", "Tue", "3 Nov": when something happened, as briefly as reads clearly. */
+export function whenWords(iso: string, now = new Date(), hour12 = prefers12h()): string {
   const t = new Date(iso);
   if (Number.isNaN(t.getTime())) return "";
-  if (sameDay(t, now)) return `${t.getHours()}:${String(t.getMinutes()).padStart(2, "0")}`;
+  if (sameDay(t, now)) return clockTime(t, { hour12 });
   const y = new Date(now);
   y.setDate(now.getDate() - 1);
   if (sameDay(t, y)) return "yesterday";
@@ -167,7 +158,7 @@ export function statusLine(a: Pick<TeamAssistant, "paused" | "last_run_at" | "tr
 function lastRanWords(iso: string, now: Date, hour12: boolean): string {
   const t = new Date(iso);
   if (Number.isNaN(t.getTime())) return "";
-  if (sameDay(t, now)) return clockWords(`${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`, hour12);
+  if (sameDay(t, now)) return clockTime(t, { hour12 });
   const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime()) / 86_400_000);
   if (days === 1) return "yesterday";
   if (days > 1 && days < 7) return WEEK.find((w) => w.day === t.getDay())!.short;

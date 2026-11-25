@@ -13,6 +13,7 @@ import { askWebSetting } from "./ask-web-setting";
 import { communitySetting } from "../community/setting";
 import { fetchActivity, undoActivity, type ActivityEntry } from "../db/ask-plans";
 import { flowRunHref, flowRunOf, flowSourceWords, isFlowActivity, type FlowActivityFields } from "../flows/activity";
+import { clockTime } from "../lib/clock";
 
 /** #/settings/ask: Skills and What Ask did one step in. Routines moved to Team (docs/team.md). */
 export function askSettingsSection(ctx: { open: (id: "ask-activity" | "skills") => void }): { el: HTMLElement; destroy: () => void } {
@@ -75,7 +76,7 @@ function sourceOf(e: ActivityEntry): Node {
   if (run && !f.flow_name?.trim()) void flowNameForRun(run).then((n) => n && (el.textContent = flowSourceWords(n)));
   return el;
 }
-const timeOf = (iso: string) => new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
+const timeOf = (iso: string) => clockTime(iso);
 function dayOf(iso: string): string {
   const d = new Date(iso);
   const today = new Date();

@@ -24,6 +24,7 @@ import { isSampleMode } from "../db/api";
 import { findTimes, moveEvent, prepareCreate, undoMove, type FindInput, type MoveProposal, type MoveResult, type SlotCard } from "../db/scheduling";
 import { createReceipt, openCreateSheet } from "./create-sheet";
 import { slotBooking } from "../lib/create-event";
+import { clockTime, uses12Hour } from "../lib/clock";
 
 const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const first = (name: string) => name.replace(/^(dr|mr|mrs|ms)\.?\s+/i, "").split(/\s+/)[0];
@@ -32,9 +33,9 @@ const first = (name: string) => name.replace(/^(dr|mr|mrs|ms)\.?\s+/i, "").split
 export function dayLabel(iso: string, tz: string): string {
   return new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short", day: "numeric", month: "short" }).format(new Date(iso)).replace(",", "");
 }
-/** "14:00" in `tz`. */
-export function timeLabel(iso: string, tz: string): string {
-  return new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
+/** "14:00" in `tz`, or "2:00 pm" on a 12-hour device (lib/clock.ts). */
+export function timeLabel(iso: string, tz: string, hour12 = uses12Hour()): string {
+  return clockTime(iso, { timeZone: tz, hour12 });
 }
 /** "Thursday 12 November, 14:00–14:30", for an email. */
 function longLabel(s: { start: string; end: string }, tz: string): string {

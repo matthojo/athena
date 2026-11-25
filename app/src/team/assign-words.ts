@@ -34,7 +34,7 @@ export const ROLE_JOB: Record<RoleKey, string> = {
 };
 
 /** A change or an approval waits for Go; a question waits for an answer; a run that didn't finish waits to be dismissed. */
-export const WAITS_WORD: Record<PostWaits, string> = { go: "Needs your Go", answer: "Needs your answer", approval: "Needs your Go", dismiss: "Didn't finish" };
+export const WAITS_WORD: Record<PostWaits, string> = { go: "Needs your approval", answer: "Needs your answer", approval: "Needs your approval", dismiss: "Didn't finish" };
 
 /** Under a guest's name: "Guest", with its role when there is one. */
 export function guestLine(who: Pick<StageWho, "guest" | "role" | "job">): string {
@@ -67,7 +67,7 @@ export function assignmentLine(a: Pick<Assignment, "status" | "stages">): string
   if (a.status === "stopped") return "Stopped";
   if (a.status === "failed") return s ? `${s.who.name} didn't finish` : "Didn't finish";
   if (a.status === "draft" || !s) return "Not started";
-  if (s.status === "waiting") return `${s.who.name} ${s.waits_for === "answer" ? "needs your answer" : "needs your Go"}`;
+  if (s.status === "waiting") return `${s.who.name} ${s.waits_for === "answer" ? "needs your answer" : "needs your approval"}`;
   if (s.status === "running") return `${s.who.name} is working`;
   return `${s.who.name} is about to start`;
 }
@@ -84,7 +84,7 @@ export const thingsWait = (n: number): string => (n === 1 ? "1 thing waits for y
 export function waitTitle(p: Pick<TeamPost, "kind" | "who" | "waits_for">): string {
   const name = p.who?.name ?? "Ask";
   if (p.kind === "failed") return `${name} didn't finish`;
-  return `${name} ${p.waits_for === "answer" ? "needs your answer" : "needs your Go"}`;
+  return `${name} ${p.waits_for === "answer" ? "needs your answer" : "needs your approval"}`;
 }
 
 /**

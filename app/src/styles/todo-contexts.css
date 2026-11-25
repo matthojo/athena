@@ -302,12 +302,3 @@
   border-color: var(--ink);
   box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3.5px var(--ink);
 }
-
-/* The last bit of a to-do's meta and its "from Athena" sparkle wrap as one (components/loop-row.ts). */
-.loop__tail {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  white-space: nowrap;
-}

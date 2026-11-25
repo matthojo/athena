@@ -75,7 +75,7 @@ export function renderAssignment(ctx: { id: string }): { el: HTMLElement; destro
     if (s.status === "failed") p.append(h("p", { class: "trail__failed" }, `${s.who.name} didn't finish this stage.`));
     // Go tries that stage again (POST /:id/go), as its post in Team chat says.
     if (s.status === "failed" && a.status === "failed") {
-      const again = h("button", { class: "btn btn--primary btn--sm trail__keep", type: "button", "aria-label": `Go: try ${s.who.name}'s stage again` }, "Go") as HTMLButtonElement;
+      const again = h("button", { class: "btn btn--primary btn--sm trail__keep", type: "button", "aria-label": `Approve: try ${s.who.name}'s stage again` }, "Approve") as HTMLButtonElement;
       again.addEventListener("click", () => {
         if (again.disabled) return;
         again.disabled = true;
@@ -194,7 +194,7 @@ export function renderAssignment(ctx: { id: string }): { el: HTMLElement; destro
       tilesRow(a),
       wait.childElementCount ? wait : null,
       a.status === "done" || a.documents.length ? documentCard(a.title, a.note_id, a.documents, { openNote: !isSampleMode() }) : null,
-      active ? h("div", { class: "asg__set" }, sugg, take ? h("span", { class: "asg__set-note" }, "A change still waits for your Go.") : null) : null,
+      active ? h("div", { class: "asg__set" }, sugg, take ? h("span", { class: "asg__set-note" }, "A change still waits for your approval.") : null) : null,
       h("section", { class: "trail", "aria-labelledby": "asg-trail-h" }, h("div", { class: "section-head" }, h("h2", { id: "asg-trail-h" }, "The trail")), h("ol", { class: "trail__list" }, ...a.stages.map((s) => stageTrail(a, s)))),
     ];
     body.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));

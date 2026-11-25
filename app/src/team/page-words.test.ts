@@ -29,7 +29,7 @@ test("a desk's last run decides failed, waiting and idle", () => {
   assert.equal(deskFor(who(), [run({ id: "1", status: "failed", error: "Linear didn't answer" })], NOW).state, "failed");
   // A run skipped because it was paused isn't a failure worth showing.
   assert.equal(deskFor(who(), [run({ id: "1", status: "failed", error: "Paused before it ran." }), run({ id: "0" })], NOW).state, "idle");
-  const plan = run({ id: "2", summary: "Added a to-do. One change waits for you to tap Go." });
+  const plan = run({ id: "2", summary: "Added a to-do. One change waits for you to tap Approve." });
   assert.equal(deskFor(who(), [plan], NOW).state, "waiting");
   assert.equal(deskFor(who(), [plan], NOW, () => 0).state, "idle");
   // The server's count wins over the words, whatever the summary says, and has no day limit.
@@ -65,12 +65,14 @@ test("results read as sentences", () => {
   assert.equal(resultWords({ status: "done", summary: null, error: null }), "Done.");
   assert.equal(resultWords({ status: "failed", summary: null, error: "Linear didn't answer." }), "Didn't finish: Linear didn't answer.");
   assert.equal(resultWords({ status: "failed", summary: null, error: null }), "Didn't finish.");
+  assert.equal(waitsForGo({ status: "done", summary: "Setting that date waits for your approval." }), true);
+  // A run kept before the wording changed.
   assert.equal(waitsForGo({ status: "done", summary: "Setting that date waits for your Go." }), true);
   assert.equal(waitsForGo({ status: "done", summary: "Added two to-dos." }), false);
 });
 
 test("days and times", () => {
-  assert.equal(clock(iso(15, 8, 5), false), "8:05");
+  assert.equal(clock(iso(15, 8, 5), false), "08:05");
   assert.equal(clock(iso(15, 17, 0), true), "5:00 pm");
   assert.equal(dayWords(iso(15, 8), NOW), "Today");
   assert.equal(dayWords(iso(14, 8), NOW), "Yesterday");
@@ -85,7 +87,7 @@ test("what it waits for: the event, the next slot, or you", () => {
   assert.equal(nextSlot({ triggers: [fri] }, NOW)?.getDate(), 20);
   assert.equal(nextWords(who({ triggers: [fri] }), NOW, false), "Next run Friday at 17:00");
   assert.equal(nextWords(who({ triggers: [trig({ days: [], time: "18:00" })] }), NOW, false), "Next run today at 18:00");
-  assert.equal(nextWords(who({ triggers: [trig({ days: [], time: "08:00" })] }), NOW, false), "Next run tomorrow at 8:00");
+  assert.equal(nextWords(who({ triggers: [trig({ days: [], time: "08:00" })] }), NOW, false), "Next run tomorrow at 08:00");
   assert.equal(nextWords(who(), NOW), "Runs when you ask");
   assert.match(nextWords(who({ paused: true, triggers: [ev] }), NOW), /^Paused/);
 });
@@ -98,7 +100,7 @@ test("the page's one sentence", () => {
   ];
   const desk = (state: Desk["state"], today = 0, asks = false): Desk => ({ state, live: null, last: null, today: Array.from({ length: today }, (_, i) => run({ id: String(i) })), asks, waits: asks ? 1 : 0, dismissed: false });
   const lede = (m: Desk, d: Desk, w: Desk) => teamLede(team, new Map([["m", m], ["d", d], ["w", w]]));
-  assert.equal(lede(desk("working"), desk("waiting", 0, true), desk("idle")), "Moss is working. Dot needs your Go.");
+  assert.equal(lede(desk("working"), desk("waiting", 0, true), desk("idle")), "Moss is working. Dot needs your approval.");
   assert.equal(lede(desk("working"), desk("queued"), desk("failed")), "Moss and Dot are working. Wren couldn't finish a run.");
   assert.equal(lede(desk("idle", 2), desk("idle", 1), desk("idle")), "All quiet. Your team has run 3 times today.");
   assert.equal(lede(desk("idle", 1), desk("idle"), desk("idle")), "All quiet. Your team has run once today.");

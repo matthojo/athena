@@ -159,7 +159,7 @@ export function skillsListSection(nav: Nav): { el: HTMLElement; destroy: () => v
       h("div", { class: "src-head" }, h("h2", { class: "settings__heading", id: "settings-skills" }, icons.book(), "Skills"), add),
       h("p", { class: "settings__lede" }, "Instructions that change how Ask handles some kinds of request. They use the common SKILL.md format, so a skill moves between Athena and other agents unchanged."),
       list,
-      h("p", { class: "skills__rule" }, icons.shield(), h("span", {}, "A skill only changes how Ask goes about a request. It can't send anything, make a change without your Go, or read your transactions while that's off."))
+      h("p", { class: "skills__rule" }, icons.shield(), h("span", {}, "A skill only changes how Ask goes about a request. It can't send anything, make a change without your approval, or read your transactions while that's off."))
     ),
     destroy: unsub,
   };

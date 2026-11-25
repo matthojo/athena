@@ -10,6 +10,10 @@ export const ATHENA_REPO = "matthojo/athena";
 export const LATEST_RELEASE_API = `https://api.github.com/repos/${ATHENA_REPO}/releases/latest`;
 /** The README's "Updating" section. */
 export const UPDATING_URL = `https://github.com/${ATHENA_REPO}#updating`;
+/** The project's website and docs (GitHub Pages, built by scripts/build-site.ts from the README and guides). */
+export const DOCS_URL = `https://${ATHENA_REPO.split("/")[0]}.github.io/${ATHENA_REPO.split("/")[1]}/`;
+/** Getting started's "3. Sign in": where the access token comes from. */
+export const SIGN_IN_HELP_URL = `${DOCS_URL}getting-started.html#3-sign-in`;
 
 type Triple = [number, number, number];
 

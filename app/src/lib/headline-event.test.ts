@@ -11,7 +11,7 @@ const ev = (title: string, starts_at: string | null, extra: Partial<{ kind: stri
 
 test("the headline leads with the next thing today, not the first", () => {
   const day = [ev("Hospital appointment", "2026-11-12T09:00:00Z"), ev("Design review", "2026-11-12T15:00:00Z"), ev("Bins out", null), ev("Sam's birthday", null, { kind: "birthday" }), ev("Dentist", "2026-11-13T09:00:00Z", { days_until: 1 })];
-  const at = (t: string) => headlineEventWords(headlineEvent(day, new Date(`2026-11-12T${t}:00Z`)));
+  const at = (t: string) => headlineEventWords(headlineEvent(day, new Date(`2026-11-12T${t}:00Z`)), false);
   assert.equal(at("07:30"), "Hospital appointment at 09:00 is");
   assert.equal(at("09:20"), "Hospital appointment at 09:00 is"); // you may be in it
   assert.equal(at("09:31"), "Design review at 15:00 is");

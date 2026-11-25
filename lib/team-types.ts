@@ -178,7 +178,7 @@ export interface TeamAssistant {
   /** Its own thinking and picture models (docs/ai-models.md). Missing or empty: the same as Ask. Missing on older servers. */
   models?: AssistantModels;
   /**
-   * Someone else shared it and the owner imported it (migration 0086). Its runs and chats open only the connected
+   * Someone else shared it and the owner imported it (migration 0087). Its runs and chats open only the connected
    * accounts in `accounts` (lib/shared-limits.ts). Missing on older servers.
    */
   imported?: boolean;

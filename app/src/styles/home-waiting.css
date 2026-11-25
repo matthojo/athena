@@ -1,0 +1,78 @@
+/*
+ * Home's "Waiting for you" (components/home-waiting.ts): one card, a phrase
+ * for each place something waits. Quiet on purpose: the sunken pills are
+ * links, not alarms, and only an overdue to-do takes the warning ink.
+ */
+.home-waiting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.home-waiting[hidden] {
+  display: none;
+}
+
+.home-waiting__title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.home-waiting__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-waiting__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  padding: 0 var(--space-sm) 0 var(--space-md);
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.home-waiting__icon,
+.home-waiting__chevron {
+  display: inline-flex;
+  color: var(--ink-3);
+}
+
+.home-waiting__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.home-waiting__chevron svg {
+  width: 16px;
+  height: 16px;
+}
+
+.home-waiting__link[data-tone="late"],
+.home-waiting__link[data-tone="late"] .home-waiting__icon {
+  color: var(--warn);
+}
+
+@media (hover: hover) {
+  .home-waiting__link:hover {
+    background: var(--sunken-strong);
+  }
+}
+
+.home-waiting__link:active {
+  background: var(--sunken-strong);
+}

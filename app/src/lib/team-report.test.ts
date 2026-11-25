@@ -1,17 +1,19 @@
 // Run: npx tsx --test app/src/lib/team-report.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isQuiet, runWaits, jobsToday, saysNothing, jobsWords, liveRuns, ownWords, planWaits, reviewWords, splitReport, teamWorkingSentence, waitsWords, workingWords } from "./team-report";
+import { isQuiet, runWaits, jobsToday, saysNothing, jobsWords, liveRuns, ownWords, planWaits, reviewWords, splitReport, teamHomeLine, teamWorkingSentence, waitsWords, workingWords } from "./team-report";
 
 test("A run's summary loses the runner's Go line, which becomes a count", () => {
-  assert.deepEqual(splitReport("3 new issues: 2 to-dos added. One change waits for you to tap Go."), { said: "3 new issues: 2 to-dos added.", waits: 1 });
+  assert.deepEqual(splitReport("3 new issues: 2 to-dos added. One change waits for you to tap Approve."), { said: "3 new issues: 2 to-dos added.", waits: 1 });
+  assert.deepEqual(splitReport("Done. 4 changes wait for you to tap Approve."), { said: "Done.", waits: 4 });
+  // A run kept before the wording changed said "Go".
   assert.deepEqual(splitReport("Done. 4 changes wait for you to tap Go."), { said: "Done.", waits: 4 });
   assert.deepEqual(splitReport("Found the Lego Ferrari for £34."), { said: "Found the Lego Ferrari for £34.", waits: 0 });
   // The nudge's body is clipped at 180 characters: a cut-off Go line still counts.
   assert.deepEqual(splitReport("3 new issues. Two were already on your list. One change waits for…"), { said: "3 new issues. Two were already on your list.", waits: 1 });
   assert.deepEqual(splitReport("Done. 2 changes wait for you to…"), { said: "Done.", waits: 2 });
-  // Only the runner's own last sentence: a reply that mentions Go keeps its words.
-  assert.equal(splitReport("Tap Go when you're ready.").waits, 0);
+  // Only the runner's own last sentence: a reply that mentions Approve keeps its words.
+  assert.equal(splitReport("Tap Approve when you're ready.").waits, 0);
 });
 
 test("The conversation says whether a plan still waits", () => {
@@ -108,18 +110,26 @@ test("One count of what waits: the server's, the conversation's, the lower; else
   const gone = [{ role: "me" }, { role: "answer", text: "…", plan: { steps: [{}, {}], ran: { at: "x", results: [] } } }];
   // The server's count, on its own.
   assert.equal(runWaits({ ...done, waiting: 2 }, null, NOW), 2);
-  assert.equal(runWaits({ ...done, waiting: 0, summary: "One change waits for you to tap Go." }, null, NOW), 0);
+  assert.equal(runWaits({ ...done, waiting: 0, summary: "One change waits for you to tap Approve." }, null, NOW), 0);
   // A Go on this device lowers it before the server has said so.
   assert.equal(runWaits({ ...done, waiting: 2 }, gone, NOW), 0);
   // A Go elsewhere: the server knows first, the conversation here hasn't caught up.
   assert.equal(runWaits({ ...done, waiting: 0 }, open, NOW), 0);
   // An older server: the conversation, else the summary's words for a day.
   assert.equal(runWaits(done, open, NOW), 2);
-  assert.equal(runWaits({ ...done, summary: "Added a to-do. 3 changes wait for you to tap Go." }, null, NOW), 3);
+  assert.equal(runWaits({ ...done, summary: "Added a to-do. 3 changes wait for you to tap Approve." }, null, NOW), 3);
+  assert.equal(runWaits({ ...done, summary: "Setting that date waits for your approval." }, null, NOW), 1);
   assert.equal(runWaits({ ...done, summary: "Setting that date waits for your Go." }, null, NOW), 1);
-  assert.equal(runWaits({ ...done, summary: "One change waits for you to tap Go." }, null, NOW + 2 * 86_400_000), 0);
+  assert.equal(runWaits({ ...done, summary: "One change waits for you to tap Approve." }, null, NOW + 2 * 86_400_000), 0);
   // A conversation without a plan doesn't count either way.
-  assert.equal(runWaits({ ...done, summary: "One change waits for you to tap Go." }, [{ role: "me" }], NOW), 1);
+  assert.equal(runWaits({ ...done, summary: "One change waits for you to tap Approve." }, [{ role: "me" }], NOW), 1);
   // Only a finished run leaves anything.
   assert.equal(runWaits({ ...done, status: "running", waiting: 1 }, null, NOW), 0);
+});
+
+test("Home's line from the team says each name once, for the most pressing thing about it", () => {
+  assert.equal(teamHomeLine(["Moss"], ["Dot"], ["Dot", "Moss", "Wren"]), "Moss is working. Dot needs your approval. Wren reported back.");
+  assert.equal(teamHomeLine([], ["Dot", "Otto"], ["Dot", "Otto"]), "Dot and Otto need your approval.");
+  assert.equal(teamHomeLine([], [], ["Wren", "Moss", "Dot"]), "Wren, Moss and Dot reported back.");
+  assert.equal(teamHomeLine([], [], []), "");
 });

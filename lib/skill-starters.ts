@@ -25,7 +25,7 @@ description: Use when the owner asks for a weekly review, a look back at their w
    - What slipped: to-dos past their date, habits missed more than twice, goals that haven't moved.
    - Next week: what's on the calendar that needs getting ready for.
 3. Plain words, no scores or ratings. Leave out anything with nothing to say.
-4. If they ask to move or add something, make it a change. It waits for their Go like any other.
+4. If they ask to move or add something, make it a change. It waits for their approval like any other.
 `,
   },
   {
@@ -41,7 +41,7 @@ description: Use when the owner asks to plan meals or dinners for the week, or w
 2. Find their own recipes with find_recipes. Use only those: never make up a recipe.
 3. Pick one dinner a night. Nothing twice in the week, and nothing they cooked in the last few days.
 4. Answer with each night and its recipe, and why for the quick ones ("book club at 19:00").
-5. Say that the Recipes page has the week's plan and the shopping list. If they want something added to a list, make it a change for their Go.
+5. Say that the Recipes page has the week's plan and the shopping list. If they want something added to a list, make it a change for their approval.
 `,
   },
   {

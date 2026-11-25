@@ -217,11 +217,11 @@ export function personaPrompt(a: Pick<TeamAssistant, "name" | "job" | "instructi
   if (opts.readOnly) {
     lines.push(`Athena is checking with you on the owner's behalf, about your job. You can only look, not change anything, and there's nobody to ask back. Answer Athena in two or three plain sentences: what you know and what you found, and say so plainly if you don't know.`);
   } else {
-    if (opts.mode === "chat") lines.push(`The owner is here: a single change you make happens straight away, and two or more wait for their Go as a plan.${a.allow.length ? ` These also run without asking: ${a.allow.join(", ")}.` : ""}`);
-    else lines.push(a.allow.length ? `You may make these changes without asking: ${a.allow.join(", ")}. Every other change you queue waits for the owner's Go.` : `You make no change alone: every change you queue waits for the owner's Go.`);
+    if (opts.mode === "chat") lines.push(`The owner is here: a single change you make happens straight away, and two or more wait for their approval as a plan.${a.allow.length ? ` These also run without asking: ${a.allow.join(", ")}.` : ""}`);
+    else lines.push(a.allow.length ? `You may make these changes without asking: ${a.allow.join(", ")}. Every other change you queue waits for the owner's approval.` : `You make no change alone: every change you queue waits for the owner's approval.`);
     if (opts.mode === "run")
       lines.push(
-        `This turn was started by one of your triggers, with nobody watching. Do your job for what started it. Your reply is the card the owner reads on Home, from you: one or two sentences in your voice, with the specifics (the price, the name, the count).${a.web ? " A value you found online comes with its shop or site, and you cite its page. News comes first: a new best, a change in something tracked, or the owner's target reached." : ""} Say you did something only if a tool did it; a change that waits for Go hasn't happened, so say it's ready for their Go. If there was nothing to do and nothing new to tell, say so in a few words and set found to false.`,
+        `This turn was started by one of your triggers, with nobody watching. Do your job for what started it. Your reply is the card the owner reads on Home, from you: one or two sentences in your voice, with the specifics (the price, the name, the count).${a.web ? " A value you found online comes with its shop or site, and you cite its page. News comes first: a new best, a change in something tracked, or the owner's target reached." : ""} Say you did something only if a tool did it; a change that waits for approval hasn't happened, so say it's ready for their approval. If there was nothing to do and nothing new to tell, say so in a few words and set found to false.`,
       );
   }
   if (a.web) lines.push(TRACKING_RULE);
@@ -237,7 +237,7 @@ export function personaPrompt(a: Pick<TeamAssistant, "name" | "job" | "instructi
 export function assistantPlanRule(mode: "chat" | "run", allow: readonly string[]): string {
   if (mode === "chat") return allow.length ? `${PLAN_RULE} These always run straight away and don't count toward a plan: ${allow.join(", ")}.` : PLAN_RULE;
   const alone = allow.length ? `${allow.join(", ")} run${allow.length === 1 ? "s" : ""} straight away; every other tool that would change something` : "Every tool that would change something";
-  return `Changes wait for the owner: ${alone} answers "queued" and makes nothing yet; nobody is watching, so it goes to the owner as a plan to tick and run with Go. Find what you need, queue the changes the request needs, give each its step line, and reply in one short sentence saying what you did and what's waiting for Go (a queued change isn't done: never say it was added or made). Don't list the steps: the app shows them. A queued change's id stands for what it will make: use it in later changes.`;
+  return `Changes wait for the owner: ${alone} answers "queued" and makes nothing yet; nobody is watching, so it goes to the owner as a plan to tick and approve. Find what you need, queue the changes the request needs, give each its step line, and reply in one short sentence saying what you did and what's waiting for their approval (a queued change isn't done: never say it was added or made). Don't list the steps: the app shows them. A queued change's id stands for what it will make: use it in later changes.`;
 }
 
 /**
@@ -536,7 +536,7 @@ export async function runAssistantTurn(assistantId: string, prompt: string, opts
       // A run with nothing to do leaves memory as it was: nothing in it is worth remembering.
       if (!words.quiet && !opts.noMemory) {
         opts.onStep?.({ id: "team:memory", text: memoryStep(a), done: false });
-        const did = [changes.length ? `Changed: ${changeWords(changes)}.` : "", reply.plan?.steps.length ? `Waiting for the owner's Go: ${reply.plan.steps.map((x) => x.label).join("; ")}.` : ""].filter(Boolean).join(" ");
+        const did = [changes.length ? `Changed: ${changeWords(changes)}.` : "", reply.plan?.steps.length ? `Waiting for the owner's approval: ${reply.plan.steps.map((x) => x.label).join("; ")}.` : ""].filter(Boolean).join(" ");
         await refreshMemory(a.id, [{ asked: opts.shown?.trim() || said, said: words.text, did, run: true }], { client: opts.client }).catch((e) => console.warn("Athena team: memory refresh failed", e instanceof Error ? e.message : e));
       }
       return { assistant_id: a.id, thread_id: threadId, text: words.text, reply: kept, summary: words.summary, quiet: words.quiet, ...(reply.values ? { values: reply.values } : {}) };

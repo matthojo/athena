@@ -55,7 +55,7 @@ const ABOUT: Partial<Record<ViewId, string>> = {
 };
 
 /** Flows sits with More: not something Athena keeps, but something it does (flows/list.ts). */
-const FLOWS: LibraryItem = { view: "flows", label: "Flows", icon: "loop" };
+const FLOWS: LibraryItem = { view: "flows", label: "Flows", icon: "flow" };
 
 const RECORD_KIND: Partial<Record<ViewId, [RecordKind, string, string]>> = {
   people: ["person", "person", "people"],

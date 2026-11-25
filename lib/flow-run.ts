@@ -336,7 +336,7 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
       // A draft always waits for Go, whatever was saved: Go only writes it, and nothing is sent.
       if (changes && (step.go === "ask" || isDraftTool(step.tool))) {
         const plan_id = await fx.savePlan({ label: what, tool: step.tool, input });
-        line("waiting", "Waits for your Go", { pending: { text: what, plan_id } });
+        line("waiting", "Waits for your approval", { pending: { text: what, plan_id } });
         state.waiting = { step_id: step.id, kind: "go", plan_id, tool: step.tool, input };
         return { kind: "wait", w: { status: "waiting", waits_for: "go", plan_id } };
       }
@@ -422,7 +422,7 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
         await keepMade(state, ctx, fx, out.changes);
         if (out.plan && out.plan.steps.length && !ctx.dry) {
           const words = out.plan.steps.length === 1 ? out.plan.steps[0] : `${out.plan.steps.length} changes: ${out.plan.steps.join("; ")}`;
-          line("waiting", text || "Waits for your Go", { pending: { text: clip(words, 200), plan_id: out.plan.id } });
+          line("waiting", text || "Waits for your approval", { pending: { text: clip(words, 200), plan_id: out.plan.id } });
           state.waiting = { step_id: step.id, kind: "go", plan_id: out.plan.id, think: true };
           return { kind: "wait", w: { status: "waiting", waits_for: "go", plan_id: out.plan.id } };
         }
@@ -445,7 +445,7 @@ async function runStep(step: FlowStep, state: RunState, ctx: RunContext, fx: Flo
       state.touched = true;
       try {
         const a = await fx.draftAssignment(brief);
-        line("waiting", `Its lineup waits for your Go in Team chat: ${a.lineup}`);
+        line("waiting", `Its lineup waits for your approval in Team chat: ${a.lineup}`);
         state.waiting = { step_id: step.id, kind: "assignment", assignment_id: a.id };
         return { kind: "wait", w: { status: "waiting", waits_for: "assignment", assignment_id: a.id } };
       } catch (error) {
@@ -558,7 +558,7 @@ export async function settle(state: RunState, flow: Flow, s: Settle, fx: FlowEff
       const words = assistantStepDone(w.tool, w.input ?? {}, "", changes);
       line("done", words);
       state.values[step.id] = toolValues(step.gives, "", changes, words);
-    } else line("done", changes.length ? `You gave it your Go: ${changeWords(changes)}` : "You gave it your Go");
+    } else line("done", changes.length ? `You approved it: ${changeWords(changes)}` : "You approved it");
     moveOn(state, frame);
     return {};
   };
@@ -574,14 +574,14 @@ export async function settle(state: RunState, flow: Flow, s: Settle, fx: FlowEff
       return {};
     }
     case "go": {
-      if (w.kind !== "go" || s.step_id !== w.step_id || !w.plan_id) throw new AthenaInputError("That change isn't waiting for your Go");
+      if (w.kind !== "go" || s.step_id !== w.step_id || !w.plan_id) throw new AthenaInputError("That change isn't waiting for your approval");
       const out = await fx.goPlan(w.plan_id, { assistant: ctx.assistant, flowId: flow.id, runId: ctx.runId }, s.ticked);
       return doneWith(out.changes, out.error);
     }
     case "ran":
       return doneWith(s.changes, s.error);
     case "skip": {
-      if (w.kind !== "go" || s.step_id !== w.step_id) throw new AthenaInputError("That change isn't waiting for your Go");
+      if (w.kind !== "go" || s.step_id !== w.step_id) throw new AthenaInputError("That change isn't waiting for your approval");
       if (w.plan_id) await fx.dropPlan(w.plan_id);
       line("skipped", "Skipped: you tapped Skip");
       moveOn(state, frame);
@@ -609,15 +609,15 @@ export async function settle(state: RunState, flow: Flow, s: Settle, fx: FlowEff
 
 // ---------- words for the whole run ----------
 
-/** "Waits for your Go: Add a to-do: Decide on the renewal". What a waiting run waits on, in words. Pure. */
+/** "Waits for your approval: Add a to-do: Decide on the renewal". What a waiting run waits on, in words. Pure. */
 export function waitingWords(state: RunState): string {
   const w = state.waiting;
   const l = w ? state.lines.find((x) => x.step_id === w.step_id) : undefined;
   if (!w) return "";
-  if (w.kind === "go") return `Waits for your Go: ${l?.pending?.text ?? "a change"}`;
+  if (w.kind === "go") return `Waits for your approval: ${l?.pending?.text ?? "a change"}`;
   if (w.kind === "answer") return `Asks you: ${l?.question?.text ?? "a question"}`;
   if (w.kind === "time") return l?.line ?? "Waits for a time";
-  return "Waits for the assignment's lineup: tap Go in Team chat";
+  return "Waits for the assignment's lineup: tap Approve in Team chat";
 }
 
 /**

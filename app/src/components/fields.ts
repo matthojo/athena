@@ -8,6 +8,7 @@ import { h } from "../lib/dom";
 import { addDays } from "../../../lib/dates";
 import { localToday } from "../lib/time";
 import { longDate } from "../lib/record-story";
+import { clockOfDay } from "../lib/clock";
 
 let fieldSeq = 0;
 
@@ -39,7 +40,7 @@ export function select(label: string, options: { value: string; label: string }[
 
 /**
  * A date or time that reads the way the app writes it ("Tuesday 10 November",
- * "09:30"), whatever the browser's locale, and still edits with the system's
+ * "09:30" or "9:30 am" as lib/clock.ts has it), and still edits with the system's
  * own picker: the native input lies over the words, unseen, so a tap (or
  * Enter, or typing) goes to it. `input` is that native input, so callers read
  * .value and listen for "change" as before.
@@ -50,7 +51,7 @@ export function pickerInput(type: "date" | "time", value: string, attrs: Record<
   const words = h("span", { class: "prop__picker-text", "aria-hidden": "true" });
   const paint = () => {
     const v = native.value;
-    words.textContent = v ? (type === "date" ? longDate(v, localToday()) : v.slice(0, 5)) : empty;
+    words.textContent = v ? (type === "date" ? longDate(v, localToday()) : clockOfDay(v)) : empty;
     words.classList.toggle("is-empty", !v);
   };
   native.addEventListener("input", paint);

@@ -110,7 +110,7 @@ export function openStepSheet(o: StepSheetOptions): void {
     if (goLocked(s)) {
       // A draft always waits for your Go (owner, 21 Nov 2026): the switch shows it, locked.
       s.go = "ask";
-      const locked = segmented("When this step runs", [{ value: "ask", label: "Wait for my Go" }, { value: "auto", label: "Do it without asking" }] as const, "ask", () => undefined);
+      const locked = segmented("When this step runs", [{ value: "ask", label: "Wait for my approval" }, { value: "auto", label: "Do it without asking" }] as const, "ask", () => undefined);
       locked.classList.add("is-locked");
       locked.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button").forEach((x) => (x.disabled = true));
       sections.push(
@@ -119,7 +119,7 @@ export function openStepSheet(o: StepSheetOptions): void {
           { class: "flow-sheet__group" },
           h("span", { class: "flow-field__label" }, "When this step runs"),
           locked,
-          h("p", { class: "flow-note" }, flowIcon("lock"), "A draft always waits for your Go. Nothing is sent: it waits in your drafts.")
+          h("p", { class: "flow-note" }, flowIcon("lock"), "A draft always waits for your approval. Nothing is sent: it waits in your drafts.")
         )
       );
     } else if (changes(s, o.catalog)) {
@@ -129,7 +129,7 @@ export function openStepSheet(o: StepSheetOptions): void {
           "div",
           { class: "flow-sheet__group" },
           h("span", { class: "flow-field__label" }, "When this step runs"),
-          segmented("When this step runs", [{ value: "ask", label: "Wait for my Go" }, { value: "auto", label: verb }] as const, s.go, (v) => (s.go = v)),
+          segmented("When this step runs", [{ value: "ask", label: "Wait for my approval" }, { value: "auto", label: verb }] as const, s.go, (v) => (s.go = v)),
           h("p", { class: "flow-note" }, "You can undo anything a flow changes in What Ask did.")
         )
       );
@@ -274,7 +274,7 @@ export function openStepSheet(o: StepSheetOptions): void {
     paintGives();
     sections.push(h("div", { class: "flow-sheet__group" }, h("span", { class: "flow-field__label" }, "Values it gives later steps"), givesBox, addGive));
   } else if (step.kind === "assignment") {
-    sections.push(addField("brief", "The brief", step.brief, true, "What the lineup should do"), h("p", { class: "flow-note" }, "Starts a Team assignment. Its lineup waits for your Go, as it does from Ask."));
+    sections.push(addField("brief", "The brief", step.brief, true, "What the lineup should do"), h("p", { class: "flow-note" }, "Starts a Team assignment. Its lineup waits for your approval, as it does from Ask."));
   }
 
   // ---------- the preview ----------

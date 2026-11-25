@@ -91,7 +91,8 @@ export const ENCRYPTED: EncryptedTable[] = [
       compute: (p, row, s) => ({ value_bidx: identityIndex(s, row.kind as IdentityKind, p.value) }),
     },
   },
-  { table: "suggestions", key: ID, text: ["summary", "source_quote"], json: ["payload"] },
+  // The email a find came from (0086): sender, subject and account, one sealed JSON value.
+  { table: "suggestions", key: ID, text: ["summary", "source_quote"], json: ["payload", "email"] },
   { table: "assets", key: ID, text: ["name", "provider", "notes"] },
   { table: "reading_items", key: ID, text: ["title", "url", "author", "notes"], json: ["sync", "meta"] },
   { table: "goals", key: ID, text: ["title", "target", "notes"] },

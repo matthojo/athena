@@ -18,6 +18,7 @@ import { request } from "../db/api";
 import { makeKey } from "./api-keys";
 import "../styles/health-shortcut.css";
 import { sparkline } from "./sparkline";
+import { clockOfDay } from "../lib/clock";
 
 interface Series {
   points: Array<{ day: string; value: number }>;
@@ -309,7 +310,7 @@ export function healthShortcutPanel(opts: { manageKeys: () => void }): HTMLEleme
           field("alcohol_drinks", "Text", "Alcoholic Beverages"),
           field("mindful_minutes", "Text", "Mindful Minutes, then tap it and pick Duration")
         ),
-        h("p", { class: "shortcut__hint" }, "From the times, Athena works out your last coffee, how much caffeine you had after 2pm, and when you last ate. If Alcoholic Beverages isn't in Find Health Samples' list, leave alcohol_drinks out: Oura's alcohol tags can send drinks instead."),
+        h("p", { class: "shortcut__hint" }, `From the times, Athena works out your last coffee, how much caffeine you had after ${clockOfDay("14:00")}, and when you last ate. If Alcoholic Beverages isn't in Find Health Samples' list, leave alcohol_drinks out: Oura's alcohol tags can send drinks instead.`),
         h("p", { class: "hs-food__som" }, b("State of Mind, if you log it. "), "If ", b("State of Mind"), " is in Find Health Samples' list, find it with Start Date is yesterday, then add ", code("mood_valence"), " (its Valence) and ", code("mood_labels"), " (its Labels) as Text. If it isn't listed, skip this. A mood you set in Athena always comes first: State of Mind only fills a day you left blank, marked “from Health”.")
       )
     );

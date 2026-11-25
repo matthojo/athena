@@ -6,13 +6,13 @@ import { allowFor, allowSummary } from "./setup-allow";
 import type { TeamTrigger } from "../../../lib/team-types";
 
 test("schedule triggers read as sentences", () => {
-  assert.equal(triggerSentence({ kind: "schedule", days: [1, 2, 3, 4, 5], time: "08:00" }), "Every weekday at 8:00");
+  assert.equal(triggerSentence({ kind: "schedule", days: [1, 2, 3, 4, 5], time: "08:00" }), "Every weekday at 08:00");
   assert.equal(triggerSentence({ kind: "schedule", days: [5], time: "17:00" }), "Every Friday at 17:00");
   assert.equal(triggerSentence({ kind: "schedule", days: [0, 6], time: "10:30" }), "Every weekend at 10:30");
-  assert.equal(triggerSentence({ kind: "schedule", days: [1, 3, 5], time: "09:00" }), "Every Mon, Wed and Fri at 9:00");
+  assert.equal(triggerSentence({ kind: "schedule", days: [1, 3, 5], time: "09:00" }), "Every Mon, Wed and Fri at 09:00");
   assert.equal(daysWords([]), "Every day");
   assert.equal(daysWords("1,2"), "Every Mon and Tue");
-  assert.equal(clockWords("07:05", false), "7:05");
+  assert.equal(clockWords("07:05", false), "07:05");
 });
 
 test("event triggers read as sentences", () => {
@@ -33,7 +33,7 @@ const trig = (t: Partial<TeamTrigger>): TeamTrigger => ({ id: "t", assistant_id:
 test("the status line under a name", () => {
   const now = new Date(2026, 10, 12, 15, 0);
   assert.equal(statusLine({ paused: true, last_run_at: null, triggers: [] }, now), "Paused");
-  assert.equal(statusLine({ paused: false, last_run_at: new Date(2026, 10, 12, 9, 12).toISOString(), triggers: [] }, now, false), "Last ran 9:12");
+  assert.equal(statusLine({ paused: false, last_run_at: new Date(2026, 10, 12, 9, 12).toISOString(), triggers: [] }, now, false), "Last ran 09:12");
   // On a 12-hour device, as the assistant's page and the Team page write it.
   assert.equal(statusLine({ paused: false, last_run_at: new Date(2026, 10, 12, 9, 12).toISOString(), triggers: [] }, now, true), "Last ran 9:12 am");
   assert.equal(statusLine({ paused: false, last_run_at: null, triggers: [trig({ kind: "event", days: [], time: null, event: { source: "collected", connector: "linear" } })] }, now), "Watching Linear");

@@ -202,7 +202,7 @@ const STEPS: Array<Omit<CatalogEntry, "fields" | "gives"> & { gives?: FlowValue[
   { kind: "wait", group: "decide", label: "Wait", hint: "Pauses for some days, or until a set time before a date", changes: false },
   { kind: "notify", group: "tell", label: "Tell me", hint: "A push and a card on Home, outside quiet hours", changes: false },
   { kind: "think", group: "team", label: "Think about it", hint: "The assistant running this flow works something out", changes: false, needsAssistant: true, gives: [v("answer", "the answer", "text")] },
-  { kind: "assignment", group: "team", label: "Start an assignment", hint: "A lineup of assistants takes it on, after your Go", changes: false, gives: [v("note", "the work", "note")] },
+  { kind: "assignment", group: "team", label: "Start an assignment", hint: "A lineup of assistants takes it on, after your approval", changes: false, gives: [v("note", "the work", "note")] },
 ];
 
 /** Everything the Add a step sheet offers: Ask's tools a flow may use, then the steps that aren't tools. */

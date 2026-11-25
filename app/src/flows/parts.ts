@@ -160,7 +160,7 @@ export function switchInput(label: string, checked: boolean, onChange: (on: bool
   return sw;
 }
 
-/** Two or more buttons, one pressed: "Wait for my Go" · "Just add it". */
+/** Two or more buttons, one pressed: "Wait for my approval" ·"Just add it". */
 export function segmented<V extends string>(label: string, options: ReadonlyArray<{ value: V; label: string }>, value: V, onPick: (v: V) => void): HTMLElement {
   const el = h("div", { class: "flow-seg", role: "group", "aria-label": label });
   const paint = (cur: V) => el.querySelectorAll<HTMLButtonElement>("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.value === cur)));

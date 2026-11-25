@@ -586,7 +586,7 @@ function buildServer(): McpServer {
     "Remember a small, durable fact about a person, place, organisation or the owner ('me'): e.g. key 'Kids', value " +
       "'Maya (7) and Leo (4)'; 'Coffee order' → 'Oat flat white'; 'Dietary' → 'Vegetarian'. One current value per key: " +
       "a new value supersedes the old one (kept as history). Never store finance, health or ID numbers here. " +
-      "A fact about the owner ('me') isn't saved straight away: it goes to the owner's Review inbox, whatever the confidence, " +
+      "A fact about the owner ('me') isn't saved straight away: it goes to the owner's Inbox, whatever the confidence, " +
       "and the result is that suggestion. " +
       EXTRACTION_RULES,
     {

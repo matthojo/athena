@@ -12,12 +12,13 @@ import { onLive } from "../live";
 import { prepKey } from "../lib/prep-key";
 import { openTemplatePicker } from "./templates";
 import type { EntityKind } from "../types";
+import { clockTime } from "../lib/clock";
 
 function whenWords(iso: string): string {
   const at = new Date(iso);
   const now = new Date();
   const day = at.toDateString() === now.toDateString() ? "Today" : at.toDateString() === new Date(now.getTime() + 86_400_000).toDateString() ? "Tomorrow" : new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(at);
-  return `${day} at ${new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at)}`;
+  return `${day} at ${clockTime(at)}`;
 }
 
 const names = (people: PrepareSuggestion["people"]) =>

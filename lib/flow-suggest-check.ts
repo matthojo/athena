@@ -94,7 +94,7 @@ export function suggestionProblems(s: FlowSuggestion): string[] {
         case "tool":
           if (!SUGGESTED_TOOLS.has(step.tool)) out.push(`${at}: tool ${step.tool}`);
           if (step.go !== "auto" && step.go !== "ask") out.push(`${at}: go`);
-          else if (step.go === "auto" && !AUTO_BY_DEFAULT.has(step.tool)) out.push(`${at}: ${step.tool} must wait for Go`);
+          else if (step.go === "auto" && !AUTO_BY_DEFAULT.has(step.tool)) out.push(`${at}: ${step.tool} must wait for approval`);
           for (const [k, v] of Object.entries(step.input)) out.push(...textProblems(v, `${at}.${k}`, known));
           if (step.tool === "add_reminder" && (!step.input.text || !step.input.date)) out.push(`${at}: a reminder needs text and a date`);
           if (step.tool === "add_reminder" && step.input.time && !step.input.time.every((p) => typeof p !== "string" || HHMM.test(p))) out.push(`${at}: time`);

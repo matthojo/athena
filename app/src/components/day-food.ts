@@ -15,6 +15,7 @@ import { icons } from "./icons";
 import { foodLine, valenceWord } from "../../../lib/health-line";
 import type { FoodMind } from "../db/health";
 import "../styles/day-food.css";
+import { clockOfDay } from "../lib/clock";
 
 /** The Body block's Food and drink row, or null on a day with none of it. */
 export function foodRow(day: object | undefined): HTMLElement | null {
@@ -25,7 +26,7 @@ export function foodRow(day: object | undefined): HTMLElement | null {
   if (!words) return null;
   // Each figure stays whole ("1.8 L water"); the line breaks only between them.
   const line = words.split(" · ").map((p) => p.replace(/ /g, "\u00a0")).join("\u00a0· ");
-  const aside = [health.caffeine_mg && health.caffeine_last ? `Last coffee ${health.caffeine_last}` : "", health.last_meal ? `last meal ${health.last_meal}` : ""].filter(Boolean).join(", ").replace(/^l/, "L");
+  const aside = [health.caffeine_mg && health.caffeine_last ? `Last coffee ${clockOfDay(health.caffeine_last)}` : "", health.last_meal ? `last meal ${clockOfDay(health.last_meal)}` : ""].filter(Boolean).join(", ").replace(/^l/, "L");
   return h(
     "li",
     { class: "day-health__row day-health__row--food" },

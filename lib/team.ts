@@ -180,9 +180,9 @@ interface AssistantRow {
   web?: boolean | null;
   /** Its own models (0076). */
   models?: unknown;
-  /** 'shared' for an imported one (0086). */
+  /** 'shared' for an imported one (0087). */
   origin?: string | null;
-  /** Connected accounts ticked for an imported one (0086). */
+  /** Connected accounts ticked for an imported one (0087). */
   accounts?: string[] | null;
   paused: boolean;
   routine_id: string | null;
@@ -316,7 +316,7 @@ async function knownAccounts(ids: string[]): Promise<string[]> {
 
 let marking: Promise<void> | null = null;
 /**
- * Once: an assistant imported before migration 0086 whose own skill came from a file or a link (only an import
+ * Once: an assistant imported before migration 0087 whose own skill came from a file or a link (only an import
  * writes one so) is marked imported. Its words are sealed, so this is code, not SQL. Never throws.
  */
 function markImported(): Promise<void> {

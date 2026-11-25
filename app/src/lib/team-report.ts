@@ -8,10 +8,11 @@ import type { TeamRun } from "../../../lib/team-types";
 import { stepLine } from "./who-status";
 
 /**
- * The runner's last sentence when a run left a plan (lib/team-run.ts runSummary): "One change waits for you to tap Go."
+ * The runner's last sentence when a run left a plan (lib/team-run.ts runSummary): "One change waits for you to tap Approve."
  * The nudge's body is clipped at 180 characters, so the sentence may end early ("One change waits for…"): it still counts.
+ * A run kept before the wording changed ends "…to tap Go.": that counts too.
  */
-const WAITS = /\s*(?:One change waits|(\d+) changes wait)(?: for(?: you(?: to(?: tap(?: Go)?)?)?)?)?(?:\.|…)?\s*$/;
+const WAITS = /\s*(?:One change waits|(\d+) changes wait)(?: for(?: you(?: to(?: tap(?: (?:Approve|Go))?)?)?)?)?(?:\.|…)?\s*$/;
 
 /** A run's summary, split into what it said and how many changes wait for Go (0 when none). */
 export function splitReport(summary: string): { said: string; waits: number } {
@@ -33,8 +34,8 @@ export function planWaits(messages: readonly unknown[]): number | null {
   return null;
 }
 
-/** The summary says something waits for your Go, in the runner's words or in a reply's ("…waits for your Go"). */
-const SAYS_GO = /\b(?:tap|your) Go\b/;
+/** The summary says something waits for your approval, in the runner's words or in a reply's ("…waits for your approval"), or in the older "Go" wording. */
+const SAYS_GO = /\b(?:tap Approve|your approval|(?:tap|your) Go)\b/;
 
 /**
  * How many changes from a run still wait for your Go: the one count every
@@ -146,4 +147,24 @@ export function ownWords(messages: readonly unknown[], max = 240): string | null
     return out.trim() || `${plain.slice(0, max).replace(/\s+\S*$/, "")}…`;
   }
   return null;
+}
+
+const listed = (xs: readonly string[]) => (xs.length <= 1 ? xs.join("") : xs.length === 2 ? `${xs[0]} and ${xs[1]}` : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+
+/**
+ * Home's one line from the team, in the Team page's words: who's working,
+ * who needs you, then who reported back. "Moss is working. Dot needs your
+ * approval. Wren reported back." A name is said once, for the most pressing
+ * thing about it. Empty when there's nothing to say.
+ */
+export function teamHomeLine(working: readonly string[], waiting: readonly string[], reported: readonly string[]): string {
+  const uniq = (xs: readonly string[]) => [...new Set(xs)];
+  const w = uniq(working);
+  const a = uniq(waiting);
+  const r = uniq(reported).filter((n) => !a.includes(n) && !w.includes(n));
+  const parts: string[] = [];
+  if (w.length) parts.push(`${listed(w)} ${w.length === 1 ? "is" : "are"} working.`);
+  if (a.length) parts.push(`${listed(a)} ${a.length === 1 ? "needs" : "need"} your approval.`);
+  if (r.length) parts.push(`${listed(r)} reported back.`);
+  return parts.join(" ");
 }

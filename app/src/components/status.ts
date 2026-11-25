@@ -13,6 +13,7 @@ import { icons } from "./icons";
 import { plural, relativeTime } from "../lib/format";
 import type { SyncStatus } from "../db/data";
 import type { ViewId } from "./nav";
+import { clockTime } from "../lib/clock";
 
 // ---------- Sources' health, shared with Settings ----------
 
@@ -78,7 +79,7 @@ export function markSourcesStale(): void {
 /** "09:40", or "Tue 09:40" when it wasn't today. */
 export function healthTime(at: number): string {
   const d = new Date(at);
-  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const time = clockTime(d);
   return new Date().toDateString() === d.toDateString() ? time : `${d.toLocaleDateString([], { weekday: "short" })} ${time}`;
 }
 

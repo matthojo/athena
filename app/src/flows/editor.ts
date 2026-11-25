@@ -32,6 +32,7 @@ import { needsAssistant, unansweredWords } from "../../../lib/flow-share";
 import { refKey } from "./text";
 import { triggerWords } from "./words";
 import { catalogueStatus } from "../community/status";
+import { clockOfDay } from "../lib/clock";
 
 export interface EditorContext {
   id: string;
@@ -236,7 +237,7 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
       case "ask":
         return s.question.length ? textWithChips(s.question, look) : h("span", { class: "flow-card__empty" }, "Tap to write the question");
       case "wait": {
-        const at = s.at ? ` at ${s.at}` : "";
+        const at = s.at ? ` at ${clockOfDay(s.at)}` : "";
         if (s.before) return textWithChips([`Until ${s.days === 0 ? "the day of" : `${s.days} ${s.days === 1 ? "day" : "days"} before`} `, s.before, at], look);
         return h("span", {}, `For ${s.days} ${s.days === 1 ? "day" : "days"}${at}`);
       }
@@ -258,9 +259,9 @@ export function renderFlowEditor(ctx: EditorContext): { el: HTMLElement; destroy
     if (entry?.money) metas.push(h("span", { class: "flow-card__meta" }, flowIcon("lock"), flow.money ? "Reads your spending. Allowed in Settings." : "Reads your spending. This flow isn't allowed to yet."));
     if (thinking) metas.push(h("span", { class: "flow-card__meta" }, assistant ? `${s.web ? "Online · " : ""}Thinking step · uses AI credits` : "Needs an assistant to run this flow. Choose one, or remove this step."));
     if (s.kind === "ask") metas.push(h("span", { class: "flow-card__meta" }, `${s.choices.length} choices · waits for your answer`));
-    if (s.kind === "assignment") metas.push(h("span", { class: "flow-card__meta" }, "Its lineup waits for your Go"));
+    if (s.kind === "assignment") metas.push(h("span", { class: "flow-card__meta" }, "Its lineup waits for your approval"));
     if (broken) metas.push(h("span", { class: "flow-card__meta flow-card__meta--bad" }, "Uses a value from a step that has moved or gone. Tap to choose another."));
-    const tag = waitsForGo(s) ? badge({ tone: "you", words: "Waits for your Go" }) : changes(s, catalog) ? badge({ tone: "quiet", words: "Runs on its own" }) : null;
+    const tag = waitsForGo(s) ? badge({ tone: "you", words: "Waits for your approval" }) : changes(s, catalog) ? badge({ tone: "quiet", words: "Runs on its own" }) : null;
     const card = h(
       "button",
       { class: `flow-card flow-card--${thinking ? "think" : "step"}${broken ? " is-broken" : ""}`, type: "button", "aria-label": `${stepTitle(s, catalog, assistant?.name)}. Change this step` },

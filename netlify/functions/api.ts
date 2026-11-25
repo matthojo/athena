@@ -17,7 +17,8 @@
  *
  * Layer 2 (lib/memory.ts): /api/{commitments|interactions|facts|assets|reading|goals}[/:id]
  * with the same archive/unarchive suffixes, /api/identities, /api/suggestions
- * (/:id/accept, /:id/reject), /api/people/resolve, /api/people/:id/brief,
+ * (/:id/accept, /:id/reject, /:id/done for one dealt with elsewhere, /:id/ignore to add a
+ * mail rule from it), /api/people/resolve, /api/people/:id/brief,
  * /api/recall, /api/today and /api/review/week.
  *
  * GET /api/week-review?from&to&tz: the Days week and month in review's extras
@@ -228,6 +229,7 @@ import {
   personBrief,
   recall,
   rejectSuggestion,
+  finishSuggestion,
   removeIdentity,
   resolvePerson,
   updateFact,
@@ -254,6 +256,7 @@ import {
   type ReadingStatus,
   type SuggestionStatus,
 } from "../../lib/memory";
+import { ignoreLike, readIgnoreRule } from "../../lib/suggestion-ignore";
 import { weekReviewExtras } from "../../lib/week-review";
 
 const NOTE_TYPES = new Set<NoteType>(["note", "daily", "project", "area", "capture"]);
@@ -1023,8 +1026,12 @@ async function handleSuggestions(req: Request, url: URL, id: string | undefined,
     if (!SUGGESTION_STATUSES.includes(status)) return errorResponse(req, 400, "Invalid 'status'");
     return json(req, { items: await listSuggestions({ status, limit: parseLimit(url) }) });
   }
-  if (req.method !== "POST" || (action !== "accept" && action !== "reject")) return errorResponse(req, 404, "Not found");
+  if (req.method !== "POST" || (action !== "accept" && action !== "reject" && action !== "done" && action !== "ignore")) return errorResponse(req, 404, "Not found");
   if (action === "reject") return json(req, { suggestion: await rejectSuggestion(id) });
+  // Dealt with another way (Add to calendar): it leaves the Inbox, nothing applied.
+  if (action === "done") return json(req, { suggestion: await finishSuggestion(id) });
+  // Ignore emails like this: a mail rule on its account, and what it catches leaves the Inbox (lib/suggestion-ignore.ts).
+  if (action === "ignore") return json(req, await ignoreLike(id, readIgnoreRule(await parseJsonBody(req))));
   const body = (await parseJsonBody(req)) ?? {};
   const edits = body.edits && typeof body.edits === "object" && !Array.isArray(body.edits) ? (body.edits as Record<string, unknown>) : {};
   return json(req, await acceptSuggestion(id, edits));
@@ -1508,7 +1515,7 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
     const viaFlow = answering ? null : await goWaitingFlowPlan(body?.id, body?.ticked, { ports: { gmail: mailPort, slack: slackPort, ...ports }, handOff: (id) => handOffFlowRun(new URL(req.url).origin, id) });
     const went = viaFlow ?? (await goPlan(body?.id, body?.ticked, { run, log: logChanges, undo: (c) => applyUndo(c.undo, ports) }, answering ? { account: body!.account } : {}));
     // A stage of an assignment that waited on this plan moves on now, not at the next reminders pass (lib/assignment-run.ts).
-    await sweepAssignments().catch((error) => console.warn("Athena assignments: sweep after a Go failed", error instanceof Error ? error.message : error));
+    await sweepAssignments().catch((error) => console.warn("Athena assignments: sweep after an approval failed", error instanceof Error ? error.message : error));
     // A Go on a Team run's plan settles its post in Team chat (lib/team-posts.ts).
     await settlePlanPosts(body?.id).catch(() => 0);
     return json(req, went);

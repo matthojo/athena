@@ -118,7 +118,7 @@ test("a change with no Go setting gets its default; a draft set to run alone is 
   assert.equal((check.yes[0] as { go: string }).go, "ask");
   assert.equal((check.no[0] as { go: string }).go, "ask", "the owner's own setting stands");
   const draft = step("draft_email", { person_id: ["p-1"], about: ["Thanks"] }, "auto");
-  assert.throws(() => checkSteps([draft], manual), /always waits for your Go/);
+  assert.throws(() => checkSteps([draft], manual), /always waits for your approval/);
   assert.doesNotThrow(() => checkSteps(fillGo([step("draft_email", { person_id: ["p-1"], about: ["Thanks"] })]), manual));
 });
 

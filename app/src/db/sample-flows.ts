@@ -264,8 +264,8 @@ export function sampleCatalog(): CatalogEntry[] {
     { kind: "wait", group: "decide", label: "Wait", hint: "For some days, or until a day before a date", changes: false, fields: [], gives: [] },
     { kind: "ask", group: "decide", label: "Ask me", hint: "A question with choices, each one a branch", changes: false, fields: [], gives: [] },
     { kind: "notify", group: "tell", label: "Notification", hint: "On your phone and Home, within your quiet hours", changes: false, fields: [], gives: [] },
-    { kind: "tool", tool: "draft_email", group: "tell", label: "Draft an email", hint: "Never sent. It waits for your Go, then sits in your drafts.", changes: true, fields: [f("to", "To", "person"), f("subject", "Subject", "text"), f("body", "Email", "text")], gives: [v("draft", "the draft", "email")] },
-    { kind: "tool", tool: "draft_message", group: "tell", label: "Draft a message", hint: "Never sent. It waits for your Go, then sits in your drafts.", changes: true, fields: [f("to", "To", "person"), f("subject", "Subject", "text", false), f("body", "Message", "text")], gives: [v("draft", "the draft", "text")] },
+    { kind: "tool", tool: "draft_email", group: "tell", label: "Draft an email", hint: "Never sent. It waits for your approval, then sits in your drafts.", changes: true, fields: [f("to", "To", "person"), f("subject", "Subject", "text"), f("body", "Email", "text")], gives: [v("draft", "the draft", "email")] },
+    { kind: "tool", tool: "draft_message", group: "tell", label: "Draft a message", hint: "Never sent. It waits for your approval, then sits in your drafts.", changes: true, fields: [f("to", "To", "person"), f("subject", "Subject", "text", false), f("body", "Message", "text")], gives: [v("draft", "the draft", "text")] },
     { kind: "think", group: "team", label: "Let an assistant think", hint: "It thinks it through and gives you what it found", changes: false, needsAssistant: true, fields: [], gives: [v("answer", "the answer", "text")] },
     { kind: "assignment", group: "team", label: "Start an assignment", hint: "A lineup of assistants takes it from here", changes: false, fields: [], gives: [] },
   ];
@@ -342,7 +342,7 @@ export function walkSample(f: Pick<Flow, "steps">, decisions: Decisions, dry: bo
           else if (d === "skip") push({ step_id: s.id, status: "skipped", line: "You skipped this." });
           else if (s.go === "auto" || d === "go") push({ step_id: s.id, status: "done", line: `Added: ${what}` });
           else {
-            push({ step_id: s.id, status: "waiting", line: "Waits for your Go", pending: { text: what, plan_id: `sample-plan-${s.id}` } });
+            push({ step_id: s.id, status: "waiting", line: "Waits for your approval", pending: { text: what, plan_id: `sample-plan-${s.id}` } });
             return "go";
           }
           break;
@@ -384,7 +384,7 @@ export function walkSample(f: Pick<Flow, "steps">, decisions: Decisions, dry: bo
         case "assignment":
           if (dry) push({ step_id: s.id, status: "done", line: `Would start an assignment: ${textOf(s.brief, look)}` });
           else {
-            push({ step_id: s.id, status: "waiting", line: "Started an assignment. Its lineup waits for your Go on Team." });
+            push({ step_id: s.id, status: "waiting", line: "Started an assignment. Its lineup waits for your approval on Team." });
             return "assignment";
           }
           break;
@@ -435,7 +435,7 @@ export function sampleFlows(now = Date.now()): SampleFlows {
     store.runs.push(sampleRunFrom(store, seed.flow, { label: extra.label ?? seed.label, at: t, decisions, dry: false, summary: extra.summary ?? seed.summary, check: extra.check, id: extra.id }));
   };
   // Older runs first: the list keeps the newest per flow.
-  at(renewal, now - 37 * DAY, { decide: "go" }, { label: "An email from Pageturn Books", summary: "Pageturn Books: up 25%. You gave the to-do your Go." });
+  at(renewal, now - 37 * DAY, { decide: "go" }, { label: "An email from Pageturn Books", summary: "Pageturn Books: up 25%. You approved the to-do." });
   at(renewal, now - 18 * DAY, {}, { label: "An email from Hillside Home Insurance", summary: "Hillside Home Insurance: the same as last year. Reminder for 18 Nov.", check: { upcheck: "no" } });
   at(renewal, todayAt(8, 12, now), {});
   at(meet, todayAt(13, 30, now), {});
