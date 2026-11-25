@@ -1,5 +1,5 @@
 /**
- * Sample mode's shared items for the Add screen: made-up assistants, skills and flows behind made-up GitHub links,
+ * Sample mode's shared items for the Add screen: made-up assistants, skills, flows and check-in questions behind made-up GitHub links,
  * one for each state the screen has (each reach tier, an account that isn't connected, a long one, one made for a
  * newer Athena). No real person, account or place.
  */
@@ -8,6 +8,26 @@ import type { CatalogueFile } from "../../../lib/catalogue-types";
 const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`;
 
 const ITEMS: Record<string, { title: string; files: CatalogueFile[] }> = {
+  "wind-down": {
+    title: "Wind down, check-in questions for the evening",
+    files: [
+      {
+        path: "checkin.json",
+        text: json({
+          format: 1,
+          name: "Wind down",
+          version: "1.0",
+          author: "sample-author",
+          summary: "Three quiet questions to put the day down before bed.",
+          questions: [
+            { prompt: "What can wait until tomorrow?", kinds: ["evening"], type: "text", placeholder: "Write it here so you don't have to hold it.", deeper: false },
+            { prompt: "How settled do you feel?", kinds: ["evening"], type: "scale", lead: "Right now I feel", levels: ["restless", "a bit unsettled", "fairly settled", "settled", "completely at ease"], low: "Restless", high: "At ease" },
+            { prompt: "What are you grateful for?", kinds: ["morning", "evening"], type: "text", placeholder: "Something small counts.", deeper: false },
+          ],
+        }),
+      },
+    ],
+  },
   "plant-care": {
     title: "Plant care, a flow that stays inside Athena",
     files: [

@@ -9,9 +9,10 @@ import { listingIdOf } from "../../../lib/community-site";
 import { downloadWords, tierWords } from "../community/words";
 import type { Reach } from "../../../lib/reach";
 import type { ShareKind } from "../../../lib/share-kinds";
+import type { CheckinKind } from "../../../lib/checkin-types";
 import { FLOW_DRAFT_TOOLS, FLOW_LOOK_TOOLS, FLOW_SHARE_TOOLS, type FlowPick, type SharedFlowStep } from "../../../lib/flow-share";
 
-export const KIND_LABEL: Record<ShareKind, string> = { assistant: "Assistant", skill: "Skill", flow: "Flow" };
+export const KIND_LABEL: Record<ShareKind, string> = { assistant: "Assistant", skill: "Skill", flow: "Flow", checkin: "Check-in questions" };
 
 /** "From Community", with how often it was downloaded when the catalogue says; or "Not from Community" with where it did come from. */
 export function originWords(p: Pick<AddPreview, "from" | "listing">): { community: boolean; title: string; detail: string } {
@@ -52,6 +53,10 @@ const list = (xs: readonly string[]) => (xs.length <= 1 ? xs.join("") : `${xs.sl
 /** Its reach in plain words: the tier's name, as Community and the share sheet name it, and a line for each thing it uses. */
 export function reachWords(r: Reach, kind: ShareKind): { title: string; lines: string[] } {
   const lines: string[] = [];
+  if (kind === "checkin") {
+    if (!r.model) return { title: tierWords(r), lines: ["Its questions stay in your Athena, and so do your answers. Nothing is sent anywhere"] };
+    return { title: tierWords(r), lines: ["When you tap Go deeper on one of its questions, the question and what you wrote go to the AI model you chose, for one follow-up question"] };
+  }
   if (r.tier === 1) return { title: tierWords(r), lines: ["Every step stays inside your Athena. Nothing is sent anywhere"] };
   if (r.model) lines.push(kind === "flow" ? "Some of its steps send what they work on to the AI model you chose" : "It sends what it works on to the AI model you chose");
   for (const tool of r.lookups) {
@@ -69,11 +74,11 @@ export function addedWords(kind: ShareKind, name: string): { title: string; body
   return { title: `${name} is in your flows, off`, body: "It won't run until you switch it on. You can try it first from its page.", open: "Open the flow" };
 }
 
-const NOUN: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow" };
+const NOUN: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "check-in questions" };
 
 /** "You already have this": what's here, which version, and the button that opens it. */
 export function haveWords(kind: ShareKind, had: NonNullable<AddPreview["existing"]>, listed: string | null): { title: string; detail: string; open: string } {
-  const open = kind === "assistant" ? "Open yours" : `Open your ${NOUN[kind]}`;
+  const open = kind === "assistant" ? "Open yours" : kind === "checkin" ? "Open check-in settings" : `Open your ${NOUN[kind]}`;
   if (!had.newer) return { title: "You already have this", detail: had.version ? `You added version ${had.version}, the same as this one.` : "You added it from Community, and it hasn't changed since.", open };
   const yours = had.version ? `You have version ${had.version}` : "You have an earlier version";
   return { title: "You already have this", detail: `${yours}. ${listed ? `This is version ${listed}` : "This one is newer"}: look it over, then update yours.`, open };
@@ -81,6 +86,7 @@ export function haveWords(kind: ShareKind, had: NonNullable<AddPreview["existing
 
 /** The confirmation once an Update is done. */
 export function updatedWords(kind: ShareKind, name: string): { title: string; body: string; open: string } {
+  if (kind === "checkin") return { title: `${name} is updated`, body: "Its old questions came out and the new ones joined at the end. Answers you've already given stay on their days.", open: "Open check-in settings" };
   const open = kind === "assistant" ? `Open ${name}` : kind === "skill" ? "Open the skill" : "Open the flow";
   const off = kind === "assistant" ? "paused" : "off";
   return { title: `${name} is updated, and ${off}`, body: `Its name and history stay. Look it over on its page, then switch it back on.`, open };
@@ -88,6 +94,7 @@ export function updatedWords(kind: ShareKind, name: string): { title: string; bo
 
 /** Under the Update button: what it changes. */
 export function updateLandsWords(kind: ShareKind): string {
+  if (kind === "checkin") return "Its questions are swapped for the new ones. Your answers stay on their days.";
   return `Yours ${kind === "assistant" ? "pauses" : "goes off"} until you switch it back on. Its name and history stay.`;
 }
 
@@ -96,9 +103,41 @@ export const addLabel = (kind: ShareKind, name: string): string => (kind === "as
 
 /** Under the Add button: how it lands. */
 export function landsWords(kind: ShareKind): string {
+  if (kind === "checkin") return "They join your own questions, after the ones you have. Nothing you have moves, and you can remove them later.";
   if (kind === "assistant") return "It joins paused. Nothing runs until you switch it on.";
   if (kind === "skill") return "It starts off. Ask won't use it until you switch it on.";
   return "It starts off. Nothing runs until you switch it on.";
+}
+
+// ---------- check-in questions ----------
+
+const ROUTINE: Record<CheckinKind, string> = { morning: "morning preparation", evening: "evening reflection" };
+
+/** "Morning", "Evening", "Morning and evening": a group on the preview. Pure. */
+export const routinesWords = (kinds: readonly CheckinKind[]): string => (kinds.length > 1 ? "Morning and evening" : kinds[0] === "morning" ? "Morning" : "Evening");
+
+/** The note when a routine the questions join is switched off: it stays off. Null when none is. Pure. */
+export function offWords(off: readonly CheckinKind[]): string | null {
+  if (!off.length) return null;
+  const both = off.length > 1;
+  const which = both ? "Your morning preparation and evening reflection are" : `Your ${ROUTINE[off[0]]} is`;
+  return `${which} switched off. Adding these won't switch ${both ? "them" : "it"} on: ${both ? "they stay" : "it stays"} off until you do, in Settings.`;
+}
+
+/** Under a question the owner already has. */
+export const HAVE_QUESTION = "You already have this one, so it won't be added again";
+
+/** The confirmation once check-in questions are added: how many joined which routines, what was skipped, what's off. Pure. */
+export function checkinAddedWords(name: string, got: { added: number; skipped: readonly string[]; off: readonly CheckinKind[] }, joined: readonly CheckinKind[]): { title: string; body: string; open: string } {
+  const open = "Open check-in settings";
+  if (!got.added) return { title: `You already have every question in ${name}`, body: "Nothing new was added. It's listed in Settings, where you can remove it.", open };
+  const where = joined.length > 1 ? "your morning preparation and evening reflection" : `your ${ROUTINE[joined[0] ?? "evening"]}`;
+  const parts = [`${got.added === 1 ? "One question" : `${got.added} questions`} joined ${where}, after the ones you have.`];
+  if (got.skipped.length === 1) parts.push(`You already had “${got.skipped[0]}”, so it was left out.`);
+  else if (got.skipped.length > 1) parts.push(`You already had ${got.skipped.length} of them, so those were left out.`);
+  const off = offWords(got.off);
+  if (off) parts.push(off);
+  return { title: `${name} joined your check-ins`, body: parts.join(" "), open };
 }
 
 // ---------- a flow's steps ----------

@@ -5,9 +5,14 @@
  * the same way every time for a given date (seeded, like db/sample-days.ts),
  * and today waits to be done. Edits live until the page reloads. The mood
  * scale sets the sample day's mood, as the server's mirror would.
+ *
+ * One set of check-in questions came from Community: "Sunday reset", since taken down, so it's switched off and its
+ * two questions wait (db/sample-community.ts lists the withdrawal). Sets added from the `#/add` screen join here as
+ * the server's would (lib/checkin-share.ts joinSharedCheckins).
  */
 
-import { DEFAULT_CHECKIN_SETTINGS, PRESET_QUESTIONS, type Checkin, type CheckinKind, type CheckinQuestion, type CheckinSettings, type CheckinSettingsView, type CheckinSummary, type CheckinValue, type DeeperReply, type ScaleValue } from "../../../lib/checkin-types";
+import { DEFAULT_CHECKIN_SETTINGS, PRESET_QUESTIONS, type Checkin, type CheckinKind, type CheckinQuestion, type CheckinSet, type CheckinSettings, type CheckinSettingsView, type CheckinSummary, type CheckinValue, type DeeperReply, type ScaleValue } from "../../../lib/checkin-types";
+import { askable, joinSharedCheckins, removeSetFrom, readSharedCheckins, type SharedCheckins } from "../../../lib/checkin-share";
 import { pickPlan } from "../components/checkin-rules";
 import { localToday } from "../lib/time";
 
@@ -26,16 +31,31 @@ const OWN: CheckinQuestion = {
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 
+/** The set taken down from sample Community (db/sample-community.ts SAMPLE_WITHDRAWN_SET). */
+export const SAMPLE_SET_ID = "7d4c1e2a-3b5f-4a6d-8e9c-0f1a2b3c4d5e";
+const SUNDAY: CheckinQuestion[] = [
+  { id: "own_sunday1", type: "text", prompt: "What would you like to leave behind from this week?", kinds: ["evening"], placeholder: "Write it down, then let it go.", deeper: false, mirror: null, preset: false, set: SAMPLE_SET_ID },
+  { id: "own_sunday2", type: "text", prompt: "What would make next week feel a little lighter?", kinds: ["evening"], placeholder: "One small thing is plenty.", deeper: false, mirror: null, preset: false, set: SAMPLE_SET_ID },
+];
+
 let settings: CheckinSettings = {
   ...clone(DEFAULT_CHECKIN_SETTINGS),
   morning: { ...clone(DEFAULT_CHECKIN_SETTINGS.morning), enabled: true },
-  evening: { ...clone(DEFAULT_CHECKIN_SETTINGS.evening), enabled: true, questions: [...clone(DEFAULT_CHECKIN_SETTINGS.evening.questions), { id: OWN.id, pinned: false }] },
-  own: [clone(OWN)],
+  evening: { ...clone(DEFAULT_CHECKIN_SETTINGS.evening), enabled: true, questions: [...clone(DEFAULT_CHECKIN_SETTINGS.evening.questions), { id: OWN.id, pinned: false }, ...SUNDAY.map((q) => ({ id: q.id, pinned: false }))] },
+  own: [clone(OWN), ...clone(SUNDAY)],
 };
+
+let sets: CheckinSet[] = [
+  { id: SAMPLE_SET_ID, name: "Sunday reset", summary: "Two questions to close the week gently.", author: "slow-sundays", version: "1.1", paused: true, catalogue_id: "m4n8p2q6r1s5t9v3", added_at: "2026-10-04T18:00:00.000Z" },
+];
+/** Sample mode's catalogue_hash for each set, as the server keeps it. */
+const setHashes = new Map<string, string>([[SAMPLE_SET_ID, `sha256-${"3".repeat(64)}`]]);
 
 const store = new Map<string, Checkin>();
 const key = (date: string, kind: CheckinKind) => `${date}|${kind}`;
 const library = (): CheckinQuestion[] => [...PRESET_QUESTIONS, ...settings.own];
+/** What a day's plan may pick: a switched-off set's questions wait. */
+const askableNow = (): CheckinQuestion[] => askable(library(), new Set(sets.filter((x) => x.paused).map((x) => x.id)));
 const wait = (ms = 120) => new Promise((r) => setTimeout(r, ms));
 
 function addDays(date: string, n: number): string {
@@ -94,7 +114,7 @@ function plan(date: string, kind: CheckinKind): Checkin {
   const routine = settings[kind];
   // Earlier days first, so the turns work out the way the server's would.
   if (date > addDays(today, -21) && date < today) for (let d = addDays(today, -21); d < date; d = addDays(d, 1)) if (!store.has(key(d, kind))) plan(d, kind);
-  const c: Checkin = { date, kind, plan: clone(pickPlan(routine, library(), lastAsked(kind, date))), answers: {}, status: "open" };
+  const c: Checkin = { date, kind, plan: clone(pickPlan(routine, askableNow(), lastAsked(kind, date))), answers: {}, status: "open" };
   if (date < today && date >= addDays(today, -21) && c.plan.length) {
     const r = seeded(`${date}:${kind}`);
     const at = `${date}T${kind === "morning" ? "08:1" : "21:3"}${Math.floor(r() * 10)}:00`;
@@ -108,7 +128,64 @@ function plan(date: string, kind: CheckinKind): Checkin {
 
 export async function sampleCheckinSettings(): Promise<CheckinSettingsView> {
   await wait(60);
-  return { ...clone(settings), library: clone(library()) };
+  return { ...clone(settings), library: clone(library()), sets: clone(sets) };
+}
+
+// ---------- sets of questions (lib/checkin-share.ts), as lib/checkin-sets.ts keeps them ----------
+
+const newOwnId = () => `own_${Math.random().toString(36).slice(2, 10)}`;
+const newSetId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : "00000000-0000-4000-8000-000000000000".replace(/0/g, () => Math.floor(Math.random() * 16).toString(16)));
+
+export interface SampleAddedCheckins {
+  id: string;
+  added: number;
+  skipped: string[];
+  off: CheckinKind[];
+}
+
+/** Add a shared set, as the server's Add would: read again, joined after what's here. */
+export async function sampleAddCheckins(raw: SharedCheckins, listing?: { id: string; hash: string; version: string | null }): Promise<SampleAddedCheckins> {
+  await wait(200);
+  const shared = readSharedCheckins(raw);
+  const id = newSetId();
+  const j = joinSharedCheckins(settings, shared, { setId: id, newId: newOwnId });
+  settings = j.settings;
+  sets.push({ id, name: shared.name, summary: shared.summary, author: shared.author ?? null, version: shared.version ?? listing?.version ?? null, paused: false, catalogue_id: listing?.id ?? null, added_at: new Date().toISOString() });
+  if (listing) setHashes.set(id, listing.hash);
+  return { id, added: j.added.length, skipped: j.skipped, off: j.off };
+}
+
+/** Update a set to a newer listing: its questions out, the new version's in. It keeps whether it's switched off. */
+export async function sampleReplaceCheckins(id: string, raw: SharedCheckins, listing: { id: string; hash: string; version: string | null }): Promise<SampleAddedCheckins> {
+  await wait(200);
+  const shared = readSharedCheckins(raw);
+  const at = sets.findIndex((x) => x.id === id);
+  if (at < 0) throw new Error("That set of questions isn't there any more");
+  const j = joinSharedCheckins(removeSetFrom(settings, id), shared, { setId: id, newId: newOwnId });
+  settings = j.settings;
+  sets[at] = { ...sets[at], name: shared.name, summary: shared.summary, author: shared.author ?? null, version: listing.version, catalogue_id: listing.id };
+  setHashes.set(id, listing.hash);
+  return { id, added: j.added.length, skipped: j.skipped, off: j.off };
+}
+
+export async function sampleSetPaused(id: string, paused: boolean): Promise<CheckinSettingsView> {
+  await wait(80);
+  sets = sets.map((x) => (x.id === id ? { ...x, paused } : x));
+  return sampleCheckinSettings();
+}
+
+export async function sampleRemoveSet(id: string): Promise<CheckinSettingsView> {
+  await wait(80);
+  settings = removeSetFrom(settings, id);
+  sets = sets.filter((x) => x.id !== id);
+  setHashes.delete(id);
+  return sampleCheckinSettings();
+}
+
+/** A sample set as the Community check sees it: switched on or off, its listing and the hash it was added from. */
+export function sampleSetOf(id: string): (CheckinSet & { hash: string | null }) | null {
+  const x = sets.find((s) => s.id === id);
+  return x ? { ...clone(x), hash: setHashes.get(id) ?? null } : null;
 }
 
 export async function saveSampleCheckinSettings(next: CheckinSettings): Promise<CheckinSettingsView> {

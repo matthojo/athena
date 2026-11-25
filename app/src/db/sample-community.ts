@@ -14,6 +14,7 @@ import type { ShareKind } from "../../../lib/share-kinds";
 import type { UpdateCheck } from "../../../lib/community-api";
 import { SAMPLE_FLOW_IDS } from "./sample-flows";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
+import { SAMPLE_SET_ID, sampleSetOf } from "./sample-checkins";
 
 interface Seed {
   id: string;
@@ -37,9 +38,69 @@ const skillMd = (name: string, description: string, body: string) => `---\nname:
 
 const assistant = (o: Record<string, unknown>) => json({ format: 1, ...o });
 const flow = (o: Record<string, unknown>) => json({ format: 1, asks: [], needs: [], money: false, web: false, ...o });
+const checkins = (o: Record<string, unknown>) => json({ format: 1, ...o });
 
 /** Every item, newest first by `days` ago. Ids are made up, in the catalogue's alphabet. */
 const SEEDS: Seed[] = [
+  {
+    id: "j6k1m5n9p3q8r2s7",
+    kind: "checkin",
+    slug: "small-joys",
+    name: "Small joys",
+    summary: "Three gentle questions for the end of the day, about the good bits that are easy to miss.",
+    author: "quiet-desk",
+    version: "1.0",
+    reach: reach(1),
+    featured: true,
+    days: 1,
+    files: [
+      {
+        path: "checkin.json",
+        text: checkins({
+          name: "Small joys",
+          summary: "Three gentle questions for the end of the day, about the good bits that are easy to miss.",
+          version: "1.0",
+          author: "quiet-desk",
+          questions: [
+            { prompt: "What made you smile today?", kinds: ["evening"], type: "text", placeholder: "Something small counts.", deeper: false },
+            { prompt: "Who did you feel close to today?", kinds: ["evening"], type: "choices", options: ["Family", "A friend", "A neighbour", "A colleague", "Someone new"], more: ["A pet", "Nobody today", "Myself"] },
+            { prompt: "How kind were you to yourself?", kinds: ["evening"], type: "scale", lead: "Today I was", levels: ["hard on myself", "a bit harsh", "fair to myself", "kind to myself", "very kind to myself"], low: "Harsh", high: "Kind" },
+            { prompt: "What went well today?", kinds: ["evening"], type: "text", placeholder: "A few words is enough." },
+          ],
+        }),
+      },
+    ],
+  },
+  {
+    id: "b8c3d7f2g6h1j5k9",
+    kind: "checkin",
+    slug: "slow-mornings",
+    name: "Slow mornings",
+    summary: "A softer start: how you slept, what you're looking forward to, and one unhurried thing for today.",
+    author: "early-light",
+    version: "2.1",
+    reach: reach(2),
+    featured: false,
+    days: 5,
+    downloads: 860,
+    files: [
+      {
+        path: "checkin.json",
+        text: checkins({
+          name: "Slow mornings",
+          summary: "A softer start: how you slept, what you're looking forward to, and one unhurried thing for today.",
+          version: "2.1",
+          author: "early-light",
+          questions: [
+            { prompt: "How did you sleep?", kinds: ["morning"], type: "scale", lead: "Last night I slept", levels: ["badly", "on and off", "well enough", "well", "deeply"], low: "Badly", high: "Deeply" },
+            { prompt: "What are you looking forward to?", kinds: ["morning"], type: "text", placeholder: "However small.", deeper: true },
+            { prompt: "What's one thing you'll do slowly today?", kinds: ["morning"], type: "text", placeholder: "A cup of tea, a walk, a meal.", deeper: false },
+            { prompt: "Where would you like your attention to go?", kinds: ["morning"], type: "areas", options: ["Rest", "Family", "Friends", "Nature", "Creativity", "Health"], more: ["Home", "Learning", "Music", "Food"] },
+          ],
+        }),
+      },
+    ],
+  },
   {
     id: "k3m9p2q7r4s8t1v6",
     kind: "flow",
@@ -332,7 +393,11 @@ const SEEDS: Seed[] = [
 ];
 
 /** Taken down, with the catalogue's reasons. */
-const WITHDRAWN = [{ id: "z2a6b1c5d9f4g8h3", reason: "It stopped working after Linear changed how issues are labelled." }];
+const WITHDRAWN = [
+  { id: "z2a6b1c5d9f4g8h3", reason: "It stopped working after Linear changed how issues are labelled." },
+  // Sunday reset, which sample check-ins added before it was taken down (db/sample-checkins.ts SAMPLE_SET_ID).
+  { id: "m4n8p2q6r1s5t9v3", reason: "Its author asked for it to come down while they rewrite it." },
+];
 
 const DAY = 24 * 60 * 60 * 1000;
 const at = (days: number) => new Date(Date.UTC(2026, 10, 24, 9) - days * DAY).toISOString();
@@ -377,8 +442,8 @@ export async function sampleBundle(id: string): Promise<{ item: CatalogueItem; b
   return found ? { item: { ...found.item }, bundle: { ...found.bundle, files: found.bundle.files.map((f) => ({ ...f })) } } : null;
 }
 
-/** Sample items already added: Gift price watch (an older version) and Dot (taken down since). */
-export const SAMPLE_ADDED = ["q8r3s7t2v6w1x5y9", "z2a6b1c5d9f4g8h3"];
+/** Sample items already added: Gift price watch (an older version), Dot and Sunday reset (both taken down since). */
+export const SAMPLE_ADDED = ["q8r3s7t2v6w1x5y9", "z2a6b1c5d9f4g8h3", "m4n8p2q6r1s5t9v3"];
 const GIFT = "q8r3s7t2v6w1x5y9";
 
 /** One item here that came from a sample listing: what Add or Update made, and the files' hash it was made from. */
@@ -401,7 +466,7 @@ export const rememberSampleAdd = (catalogueId: string, item: SampleAdded): void 
 /** Every listing something here came from, for the list's "Added" marks: Dot's too, though it was taken down. */
 export const sampleAddedIds = (): string[] => [...new Set([...SAMPLE_ADDED, ...added.keys()])];
 
-/** What sample mode's own flow and assistant would hear from the daily check. */
+/** What sample mode's own flow, assistant and set of check-in questions would hear from the daily check. */
 export async function sampleUpdates(): Promise<UpdateCheck[]> {
   const gift = (await build()).find((a) => a.item.id === GIFT)!.item;
   const here = added.get(GIFT)!;
@@ -423,5 +488,7 @@ export async function sampleUpdates(): Promise<UpdateCheck[]> {
   return [
     ...newer,
     { kind: "assistant", id: SAMPLE_TEAM_IDS.dot, catalogue_id: WITHDRAWN[0].id, version: "1.0", hash: `sha256-${"2".repeat(64)}`, newer: null, withdrawn: { at: at(3), reason: WITHDRAWN[0].reason } },
+    // Until it's removed in Settings this visit.
+    ...(sampleSetOf(SAMPLE_SET_ID) ? [{ kind: "checkin" as const, id: SAMPLE_SET_ID, catalogue_id: WITHDRAWN[1].id, version: "1.1", hash: `sha256-${"3".repeat(64)}`, newer: null, withdrawn: { at: at(3), reason: WITHDRAWN[1].reason } }] : []),
   ];
 }

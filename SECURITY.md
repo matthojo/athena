@@ -2076,7 +2076,9 @@ words. They reach only what the owner ticked for them, enforced in code.
 - **Framed as someone else's words.** An imported assistant's instructions
   and skill go in as `<shared_instructions>` and `<shared_skill>` with a
   rule that they are suggestions to weigh, never the owner's requests;
-  `lib/team-chat.ts` and `lib/skills-ask.ts`.
+  `lib/team-chat.ts` and `lib/skills-ask.ts`. A check-in question added
+  from someone else's set goes to Go deeper's model as `<shared_question>`
+  with a rule of its own (`lib/checkin-deeper.ts`; Community, below).
 - **Seen and changed by the owner.** One tick per account on the import
   sheet (the accounts the file needs first), an imported assistant's page and
   an imported skill's page. After `0087`, Home names each imported skill that
@@ -2099,11 +2101,13 @@ words. They reach only what the owner ticked for them, enforced in code.
   mode's Dot keeps its extra asks.
 - **Tested** (`lib/shared-limits.test.ts`, `lib/ask-plans.test.ts`, `lib/shared-items.db.test.ts`).
 
-### Community (migration `0089`, `lib/community-*.ts`, `lib/flow-share*.ts`, `netlify/lib/community-*.ts`)
+### Community (migrations `0089`, `0090`, `lib/community-*.ts`, `lib/flow-share*.ts`, `lib/checkin-share.ts`, `lib/checkin-sets.ts`, `netlify/lib/community-*.ts`)
 
-Shared assistants, skills and flows are someone else's words. They reach
-Athena through one screen (`#/add`) and two routes, behind the bearer token,
-and start switched off. Nothing in a file is a permission.
+Shared assistants, skills, flows and check-in questions are someone else's
+words. They reach Athena through one screen (`#/add`) and two routes, behind
+the bearer token. Assistants, skills and flows start switched off; check-in
+questions join the owner's own but never switch a check-in on. Nothing in a
+file is a permission.
 
 **Reading the catalogue: what leaves the site.**
 
@@ -2149,11 +2153,17 @@ and start switched off. Nothing in a file is a permission.
   checks, and one that doesn't fit refuses the whole file. The bundle hash
   covers each file's path and text, so an extra key can't carry changed
   words past it.
+- **A kind Athena doesn't know is skipped.** An index item whose `kind` is a
+  word this copy doesn't know (a kind added after it was built) is left out
+  as the index is read, and the rest is read as usual: never shown, fetched
+  or added. A known kind that doesn't fit, or a `kind` that isn't a word,
+  still refuses the index.
 - **A withdrawn item is paused once** (assistant or flow paused, skill
-  switched off) and remembered in the plain settings row `community_paused`,
+  switched off, a set of check-in questions switched off so its questions
+  aren't asked) and remembered in the plain settings row `community_paused`,
   so switching it back on sticks. Nothing is deleted or updated by itself.
 - **Plain columns.** `catalogue_id`, `catalogue_hash` and `catalogue_version`
-  on `team_assistants`, `ask_skills` and `flows` hold the catalogue's public
+  on `team_assistants`, `ask_skills`, `flows` and `checkin_sets` hold the catalogue's public
   id, a SHA-256 of the item's files as added and the author's version:
   nothing the owner wrote.
 
@@ -2164,11 +2174,11 @@ and start switched off. Nothing in a file is a permission.
   the skill zip reader). Its files are cut down to the item's own folder,
   text only, within the catalogue's caps (32 files, 100 KB each, 500 KB in
   all), and read by its kind's own reader (`readShared`, `intakeEntries`,
-  `readSharedFlow`, then `checkSharedFlowSteps`). Kind, reach and hash are
+  `readSharedFlow`, then `checkSharedFlowSteps`, `readSharedCheckins`). Kind, reach and hash are
   worked out here from the files; the catalogue's or author's word for them
   is never used. A lone file renamed on the way is read by what it holds.
-- **Links** are GitHub only (`parseShareLink`, a `flow.json` read as its
-  folder), fetched once through the same guard as skill links. Any other
+- **Links** are GitHub only (`parseShareLink`, a `flow.json` or
+  `checkin.json` read as its folder), fetched once through the same guard as skill links. Any other
   host is refused, so a shared item can't point Athena at someone's own site.
 - **Catalogue listings.** A bundle is checked with `verifyBundle` against its
   own hash and the index's before it is read.
@@ -2237,6 +2247,61 @@ and start switched off. Nothing in a file is a permission.
 - **Tested** (`lib/flow-share*.test.ts`, `lib/flow-share-store.db.test.ts`,
   `netlify/lib/community-*.test.ts`, `app/src/db/sample-community.test.ts`),
   with fakes for the stores, the catalogue and GitHub.
+
+**Shared check-in questions** (`lib/checkin-share.ts`, `lib/checkin-sets.ts`,
+migration `0090`).
+
+- **What a set carries.** checkin.json, format 1: a name, a one-line summary,
+  the optional header (`version`, `author`, `based_on`) and the questions.
+  Each question carries its words, the routines it's asked in (morning,
+  evening or both), how it's answered and, for that type, the slider's
+  sentence and ends, the choices, or the empty box's hint and whether it
+  offers Go deeper. Never an id, an answer, a day, a pin, a count a day, or
+  where answers are copied to (`mirror`).
+- **Read as someone else's.** `readSharedCheckins` checks every word against
+  the owner's own question limits (40 questions, 200 characters a question,
+  40 a choice, 30 choices), keeps one line of each, drops unknown keys and
+  any field that belongs to another type of answer, and refuses an unknown
+  type of answer with words naming the question.
+- **Checked before it leaves.** `POST /api/checkins/share` takes only
+  questions the owner wrote (not Athena's, not ones added from someone
+  else's set), takes links into the site out (`scrubText`) and flags the
+  owner's people, places, addresses, contact details and private links
+  (`findPersonal`, the same terms as an assistant or a flow), in the name,
+  the summary and each question. Nothing downloads until each finding is
+  edited out or marked fine; the server checks again on download (409).
+- **Adding grants nothing and switches nothing on.** `addSharedCheckins`
+  reads the file again. Each question whose words the owner doesn't already
+  have becomes one of their own, `mirror: null` (its answers are copied
+  nowhere: not to the day's mood, the journal, Health or the briefing), and
+  joins the end of each routine it's asked in, unpinned. Nothing already
+  there moves or changes, a routine that's off stays off, and the screen
+  says so. A question whose words are already here is skipped and named.
+- **Stored plain, like the owner's own questions.** The questions live in
+  the plain `checkins` settings row, each naming its set in `set`; the set is
+  a `checkin_sets` row (name, summary, author, version, `paused`, the
+  catalogue columns). Answers to them are sealed in `checkins` as any answer.
+- **Switched off.** A set switched off (by the owner, or once by Community's
+  withdrawal check) keeps its questions but they're left out of every new
+  day's plan (`askable`) until it's switched back on. Removing a set takes
+  its questions out of both routines; answers already given stay on their
+  days.
+- **Reach: tier 1, or tier 2 with Go deeper.** Questions only ask, and their
+  answers stay in the owner's check-ins, so a set reaches nothing outside
+  Athena. Go deeper is the exception: when the owner taps it on a written
+  answer, the question and what they wrote go to their chosen model for one
+  follow-up question (`lib/checkin-deeper.ts`). So a set with any question
+  that offers Go deeper is tier 2 ("Uses AI"), worked out from the file
+  (`reachOfCheckins`), and the Add screen says when it goes: only when the
+  owner taps it. Otherwise it's tier 1 ("Stays in Athena").
+- **Framed as someone else's words.** A question from a set reaches the
+  model as `<shared_question>` with `SHARED_QUESTION_RULE` (someone else
+  wrote it; its words are only the topic and ask for nothing), after Jev's
+  injection check (`guardText`), as an imported skill's words are framed.
+  The owner's own questions go in as before.
+- **Tested** (`lib/checkin-share.test.ts`, `lib/checkin-deeper.test.ts`,
+  `lib/checkin-sets.db.test.ts`, `lib/catalogue-types.test.ts`,
+  `netlify/lib/community-add-routes.test.ts`).
 
 ### Ask's read tools, today's context and memory
 

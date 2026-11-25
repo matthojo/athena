@@ -8,6 +8,14 @@
  * change it, or delete it. Every change saves the whole set-up at once
  * (PUT /api/checkins/settings) and needs a connection. Times live with
  * Notifications (components/notification-settings.ts), linked from here.
+ *
+ * Sharing (lib/checkin-share.ts): "Share" under your questions opens a sheet
+ * to pick some and download them as a file (checkin-share-sheet.ts). Sets
+ * added from a file or Community are listed under "From other people", each
+ * with its questions, a switch (off: its questions wait) and Remove, and
+ * Community's word on it (an update, or that it was taken down). A question
+ * from a set says so in its routine. "Browse Community" opens the check-in
+ * questions there.
  */
 
 import "../styles/checkin.css";
@@ -17,7 +25,11 @@ import { openSheet } from "./sheet";
 import { showToast } from "./toast";
 import { confirmDialog } from "./confirm";
 import { moved, ownId, ownQuestionProblem, ROUTINE_NAME, TYPE_NAME } from "./checkin-rules";
-import { loadCheckinSettings, saveCheckinSettings, type CheckinSettings, type CheckinSettingsView } from "../db/checkins";
+import { loadCheckinSettings, removeCheckinSet, saveCheckinSettings, setCheckinSetPaused, type CheckinSet, type CheckinSettings, type CheckinSettingsView } from "../db/checkins";
+import { catalogueStatus } from "../community/status";
+import { communityHash } from "../community/words";
+import { forgetUpdates } from "../db/community";
+import { fromSetWords, setMetaWords, setSwitchWords } from "./checkin-share-words";
 import { AREAS, CHECKIN_KINDS, EMOTIONS, MAX_OWN_QUESTIONS, MAX_PER_DAY, MORE_AREAS, MORE_EMOTIONS, type CheckinKind, type CheckinQuestion, type QuestionType } from "../../../lib/checkin-types";
 
 export const TYPE_ICON: Record<QuestionType, IconName> = { scale: "sliders", choices: "tag", areas: "target", text: "pen" };
@@ -44,6 +56,13 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
 
   const library = (): CheckinQuestion[] => view?.library ?? [];
   const find = (id: string) => draft?.own.find((q) => q.id === id) ?? library().find((q) => q.id === id);
+  const setOf = (q: CheckinQuestion): CheckinSet | null => (q.set ? (view?.sets.find((x) => x.id === q.set) ?? null) : null);
+  /** "Yours", or the set it came from: a question's word on whose it is. Null for Athena's own. */
+  const whose = (q: CheckinQuestion): string | null => {
+    if (q.preset) return null;
+    const set = setOf(q);
+    return set ? fromSetWords(set.name, set.paused) : "Yours";
+  };
 
   async function save(next: CheckinSettings) {
     const before = draft;
@@ -106,9 +125,9 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
       remove.addEventListener("click", () => change((s) => s[kind].questions.splice(i, 1)));
       return h(
         "div",
-        { class: "row checkin-set__row", "data-id": x.id },
+        { class: `row checkin-set__row${setOf(q)?.paused ? " is-waiting" : ""}`, "data-id": x.id },
         h("span", { class: "tile tile--sm", "aria-hidden": "true" }, icons[TYPE_ICON[q.type]]()),
-        h("span", { class: "row__body" }, h("span", { class: "row__title" }, q.prompt), h("span", { class: "row__meta" }, [TYPE_NAME[q.type], q.preset ? null : "Yours", x.pinned ? "Every day" : null].filter(Boolean).join(" · "))),
+        h("span", { class: "row__body" }, h("span", { class: "row__title" }, q.prompt), h("span", { class: "row__meta" }, [TYPE_NAME[q.type], whose(q), x.pinned ? "Every day" : null].filter(Boolean).join(" · "))),
         h("span", { class: "checkin-set__tools" }, pin, arrow("up"), arrow("down"), remove)
       );
     });
@@ -132,7 +151,8 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
   }
 
   function ownCard(): HTMLElement {
-    const own = draft!.own;
+    const all = draft!.own;
+    const own = all.filter((q) => !q.set);
     const rows = own.map((q) => {
       const b = h(
         "button",
@@ -144,14 +164,101 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
       b.addEventListener("click", () => openEditor(q));
       return b;
     });
-    const add = h("button", { class: "btn btn--soft btn--sm", type: "button", disabled: own.length >= MAX_OWN_QUESTIONS }, icons.plus(), "Write your own");
+    const add = h("button", { class: "btn btn--soft btn--sm", type: "button", disabled: all.length >= MAX_OWN_QUESTIONS }, icons.plus(), "Write your own");
     add.addEventListener("click", () => openEditor(null));
+    const share = h("button", { class: "btn btn--ghost btn--sm", type: "button", disabled: !own.length }, icons.external(), "Share");
+    share.addEventListener("click", () => void import("./checkin-share-sheet").then((m) => m.openShareCheckins(draft?.own ?? [])));
     return h(
       "div",
       { class: "checkin-set__own" },
       h("h3", { class: "checkin-set__title" }, "Your questions"),
       own.length ? h("div", { class: "card card--flush list" }, ...rows) : h("p", { class: "checkin-set__hint" }, "Ask yourself something Athena's questions don't cover."),
-      h("div", { class: "settings__actions" }, add)
+      h("div", { class: "settings__actions" }, add, share)
+    );
+  }
+
+  // ---------- Sets from other people ----------
+  async function changeSet(fn: () => Promise<CheckinSettingsView>, done: string) {
+    try {
+      view = await fn();
+      if (dead) return;
+      draft = { morning: view.morning, evening: view.evening, own: view.own };
+      forgetUpdates();
+      paint();
+      showToast(done, { icon: "check" });
+    } catch (error) {
+      const offline = !navigator.onLine || error instanceof TypeError;
+      showToast(offline ? "Changing check-ins needs a connection" : error instanceof Error ? error.message : "That didn't save", { icon: "wifiOff", timeoutMs: 4000 });
+      paint();
+    }
+  }
+
+  function setCard(set: CheckinSet): HTMLElement {
+    const qs = draft!.own.filter((q) => q.set === set.id);
+    const id = `checkin-set-${set.id.slice(0, 8)}`;
+    const sw = h("input", { type: "checkbox", role: "switch", class: "switch", id, "aria-describedby": `${id}-sub` }) as HTMLInputElement;
+    sw.checked = !set.paused;
+    sw.addEventListener("change", () => {
+      sw.disabled = true;
+      void changeSet(() => setCheckinSetPaused(set.id, !sw.checked), sw.checked ? `${set.name} is on again` : `${set.name} is switched off`);
+    });
+    const remove = h("button", { class: "btn btn--ghost btn--sm", type: "button" }, icons.trash(), "Remove");
+    remove.addEventListener("click", async () => {
+      if (!(await confirmDialog({ title: `Remove ${set.name}?`, body: "Its questions come out of both check-ins. Answers you've already given stay on their days.", confirmLabel: "Remove", danger: true }))) return;
+      void changeSet(() => removeCheckinSet(set.id), `Removed ${set.name}`);
+    });
+    const questions = h(
+      "details",
+      { class: "checkin-set__qs" },
+      h("summary", {}, qs.length === 1 ? "Its question" : `Its ${qs.length} questions`, icons.chevronDown()),
+      h(
+        "div",
+        { class: "card card--flush list" },
+        ...qs.map((q) => {
+          const b = h(
+            "button",
+            { class: "row checkin-set__row", type: "button", "aria-label": `${q.prompt}. Edit` },
+            h("span", { class: "tile tile--sm", "aria-hidden": "true" }, icons[TYPE_ICON[q.type]]()),
+            h("span", { class: "row__body" }, h("span", { class: "row__title" }, q.prompt), h("span", { class: "row__meta" }, [TYPE_NAME[q.type], q.kinds.map((k) => (k === "morning" ? "Morning" : "Evening")).join(" and ")].join(" · "))),
+            h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight())
+          );
+          b.addEventListener("click", () => openEditor(q));
+          return b;
+        })
+      )
+    );
+    return h(
+      "article",
+      { class: `card checkin-set__set${set.paused ? " is-off" : ""}`, "data-set": set.id },
+      h(
+        "div",
+        { class: "checkin-set__set-head" },
+        h("span", { class: "tile tile--sm checkin-set__set-tile", "aria-hidden": "true" }, icons.chat()),
+        h("span", { class: "row__body" }, h("span", { class: "row__title" }, set.name), h("span", { class: "row__meta" }, setMetaWords(set, qs.length))),
+        h("label", { class: "visually-hidden", for: id }, `Ask the questions from ${set.name}`),
+        sw
+      ),
+      set.summary ? h("p", { class: "checkin-set__set-summary" }, set.summary) : null,
+      h("p", { class: "checkin-set__hint", id: `${id}-sub` }, setSwitchWords(set.paused)),
+      set.catalogue_id ? catalogueStatus("checkin", set.id, { actions: false }) : null,
+      qs.length ? questions : null,
+      h("div", { class: "settings__actions" }, remove)
+    );
+  }
+
+  function setsCard(): HTMLElement {
+    const sets = view?.sets ?? [];
+    const browse = h("a", { class: "btn btn--soft btn--sm", href: communityHash("checkin") }, icons.globe(), "Browse Community");
+    const file = h("a", { class: "btn btn--ghost btn--sm", href: "#/add" }, icons.plus(), "Add from a file");
+    return h(
+      "div",
+      { class: "checkin-set__own checkin-set__others" },
+      h("h3", { class: "checkin-set__title" }, "From other people"),
+      sets.length
+        ? h("p", { class: "checkin-set__hint" }, "Questions you added from Community or a file. Switch a set off and its questions wait; remove it and they go.")
+        : h("p", { class: "checkin-set__hint" }, "Other people share the questions they ask themselves. Have a look for some that suit you."),
+      ...sets.map(setCard),
+      h("div", { class: "settings__actions" }, browse, file)
     );
   }
 
@@ -165,7 +272,7 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
       );
       return;
     }
-    body.replaceChildren(...CHECKIN_KINDS.map(routineCard), ownCard());
+    body.replaceChildren(...CHECKIN_KINDS.map(routineCard), ownCard(), setsCard());
   }
 
   // ---------- Add from the library ----------
@@ -190,7 +297,7 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
                   "button",
                   { class: "row", type: "button" },
                   h("span", { class: "tile tile--sm", "aria-hidden": "true" }, icons[TYPE_ICON[q.type]]()),
-                  h("span", { class: "row__body" }, h("span", { class: "row__title" }, q.prompt), h("span", { class: "row__meta" }, q.preset ? TYPE_NAME[q.type] : `${TYPE_NAME[q.type]} · Yours`)),
+                  h("span", { class: "row__body" }, h("span", { class: "row__title" }, q.prompt), h("span", { class: "row__meta" }, [TYPE_NAME[q.type], whose(q)].filter(Boolean).join(" · "))),
                   h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.plus())
                 );
                 b.addEventListener("click", () => {
@@ -318,7 +425,8 @@ export function checkinSettingsSection(ctx: { openNotifications: () => void }): 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       // Only what this type uses is kept.
-      const out: CheckinQuestion = { id: q.id, type: q.type, prompt: q.prompt.trim(), kinds: q.kinds, mirror: null, preset: false };
+      // A question from a set stays that set's, so Remove and the switch still find it.
+      const out: CheckinQuestion = { id: q.id, type: q.type, prompt: q.prompt.trim(), kinds: q.kinds, mirror: null, preset: false, ...(q.set ? { set: q.set } : {}) };
       if (q.type === "scale") Object.assign(out, { lead: q.lead?.trim(), levels: q.levels?.map((l) => l.trim()), low: q.low?.trim() || "Not at all", high: q.high?.trim() || "Very" });
       if (q.type === "choices" || q.type === "areas") Object.assign(out, { options: q.options, more: q.more?.length ? q.more : undefined });
       if (q.type === "text") Object.assign(out, { placeholder: q.placeholder?.trim() || undefined, deeper: !!q.deeper });

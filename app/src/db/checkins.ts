@@ -15,9 +15,9 @@
 import { ApiError, isSampleMode, request } from "./api";
 import { getMeta, setMeta } from "./idb";
 import { withAnswer } from "../components/checkin-rules";
-import type { Checkin, CheckinKind, CheckinSettings, CheckinSettingsView, CheckinSummary, CheckinValue, DeeperReply } from "../../../lib/checkin-types";
+import type { Checkin, CheckinKind, CheckinSet, CheckinSettings, CheckinSettingsView, CheckinSummary, CheckinValue, DeeperReply } from "../../../lib/checkin-types";
 
-export type { Checkin, CheckinKind, CheckinSettings, CheckinSettingsView, CheckinSummary, CheckinValue };
+export type { Checkin, CheckinKind, CheckinSet, CheckinSettings, CheckinSettingsView, CheckinSummary, CheckinValue };
 
 const sample = () => import("./sample-checkins");
 const OUTBOX = "checkin-outbox";
@@ -71,6 +71,22 @@ export async function loadCheckinSettings(): Promise<CheckinSettingsView> {
 export async function saveCheckinSettings(next: CheckinSettings): Promise<CheckinSettingsView> {
   const body: CheckinSettings = { morning: next.morning, evening: next.evening, own: next.own };
   const view = isSampleMode() ? await (await sample()).saveSampleCheckinSettings(body) : await request<CheckinSettingsView>("/checkins/settings", { method: "PUT", body: JSON.stringify(body) });
+  if (!isSampleMode()) void setMeta(SETTINGS_KEY, JSON.stringify(view)).catch(() => undefined);
+  changed();
+  return view;
+}
+
+/** Switch a set of questions added from a file or Community off (its questions wait) or back on. Needs a connection. */
+export async function setCheckinSetPaused(id: string, paused: boolean): Promise<CheckinSettingsView> {
+  const view = isSampleMode() ? await (await sample()).sampleSetPaused(id, paused) : await request<CheckinSettingsView>(`/checkins/sets/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify({ paused }) });
+  if (!isSampleMode()) void setMeta(SETTINGS_KEY, JSON.stringify(view)).catch(() => undefined);
+  changed();
+  return view;
+}
+
+/** Remove a set and its questions. Answers already given stay on their days. Needs a connection. */
+export async function removeCheckinSet(id: string): Promise<CheckinSettingsView> {
+  const view = isSampleMode() ? await (await sample()).sampleRemoveSet(id) : await request<CheckinSettingsView>(`/checkins/sets/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!isSampleMode()) void setMeta(SETTINGS_KEY, JSON.stringify(view)).catch(() => undefined);
   changed();
   return view;
