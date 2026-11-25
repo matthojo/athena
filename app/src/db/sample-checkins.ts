@@ -4,7 +4,8 @@
  * one question of the owner's own; the last six months have answers, made
  * the same way every time for a given date (seeded, like db/sample-days.ts),
  * with a shape Health → Wellness can show (brighter weekends, less energy
- * by the evening, a lighter last few weeks), and today waits to be done. Edits live until the page reloads. The mood
+ * by the evening, a rough month or so in late summer, a lighter last few
+ * weeks), and today waits to be done. Edits live until the page reloads. The mood
  * scale sets the sample day's mood, as the server's mirror would.
  */
 
@@ -71,11 +72,11 @@ const WRITTEN: Record<string, string[]> = {
 };
 
 /** Each scale's usual answer, and how evenings, weekends and the last few weeks move it. */
-const SHAPE: Record<string, { base: number; evening?: number; weekend?: number; lately?: number }> = {
-  mood: { base: 3.4, evening: 0.3, weekend: 0.5, lately: 0.4 },
-  energy: { base: 3.4, evening: -0.6, weekend: 0.3, lately: 0.2 },
-  rested: { base: 3.1, weekend: 0.6, lately: 0.3 },
-  stress: { base: 3.2, evening: -0.3, weekend: -0.7, lately: -0.4 },
+const SHAPE: Record<string, { base: number; evening?: number; weekend?: number; lately?: number; rough?: number }> = {
+  mood: { base: 3.4, evening: 0.3, weekend: 0.5, lately: 0.4, rough: -1.5 },
+  energy: { base: 3.4, evening: -0.6, weekend: 0.3, lately: 0.2, rough: -1 },
+  rested: { base: 3.1, weekend: 0.6, lately: 0.3, rough: -0.8 },
+  stress: { base: 3.2, evening: -0.3, weekend: -0.7, lately: -0.4, rough: 1 },
   productive: { base: 3.4, weekend: -0.5 },
   own_walk: { base: 2.6, weekend: 1.2, lately: 0.3 },
 };
@@ -87,11 +88,11 @@ const WEIGHTS: Record<string, Record<string, number>> = {
   focus: { Work: 7, Family: 3, Fitness: 3, Learning: 2, Home: 2, "Self-care": 2, Creativity: 1, Friends: 1 },
 };
 
-function sampleValue(q: CheckinQuestion, r: () => number, ctx: { kind: CheckinKind; weekend: boolean; lately: boolean }): CheckinValue {
+function sampleValue(q: CheckinQuestion, r: () => number, ctx: { kind: CheckinKind; weekend: boolean; lately: boolean; rough: boolean }): CheckinValue {
   if (r() < 0.12) return { skipped: true };
   if (q.type === "scale") {
     const s = SHAPE[q.id] ?? { base: 3.2 };
-    const v = s.base + (ctx.kind === "evening" ? s.evening ?? 0 : 0) + (ctx.weekend ? s.weekend ?? 0 : 0) + (ctx.lately ? s.lately ?? 0 : 0) + (r() - 0.5) * 1.8;
+    const v = s.base + (ctx.kind === "evening" ? s.evening ?? 0 : 0) + (ctx.weekend ? s.weekend ?? 0 : 0) + (ctx.lately ? s.lately ?? 0 : 0) + (ctx.rough ? s.rough ?? 0 : 0) + (r() - 0.5) * 1.8;
     return { scale: Math.min(5, Math.max(1, Math.round(v))) as ScaleValue };
   }
   if (q.type === "text") {
@@ -136,7 +137,7 @@ function plan(date: string, kind: CheckinKind): Checkin {
   if (date < today && date >= addDays(today, -HISTORY) && c.plan.length) {
     const r = seeded(`${date}:${kind}`);
     const dow = new Date(`${date}T12:00:00Z`).getUTCDay();
-    const ctx = { kind, weekend: dow === 0 || dow === 6, lately: date >= addDays(today, -28) };
+    const ctx = { kind, weekend: dow === 0 || dow === 6, lately: date >= addDays(today, -28), rough: date >= addDays(today, -105) && date < addDays(today, -70) };
     const at = `${date}T${kind === "morning" ? "08:1" : "21:3"}${Math.floor(r() * 10)}:00`;
     for (const q of c.plan) c.answers[q.id] = { question_id: q.id, value: sampleValue(q, r, ctx), answered_at: at };
     c.status = "done";

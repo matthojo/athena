@@ -540,7 +540,8 @@ screen. The contract (types, the question library, the routes) is
   in `components/wellness-words.ts`) shows the answers over four weeks, six
   months or a year: a card per scale question (its average in the
   question's words, the change since the range before, a bar a day, week or
-  month, mornings against evenings), a card per word or area question (the
+  month, mornings against evenings; Mood draws coloured dots instead, a day,
+  week or month each, `components/mood-dots.ts`, colours `--mood-1` to `5`), a card per word or area question (the
   ones picked most), and the Mind card, which moved there from Body. Nothing
   is kept on the device. The day page and Settings → Check-ins link to it.
   `db/checkins.ts` caches settings and each check-in in `meta`.

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { topPicks, answeredDays, cardOrder, checkedInLine, levelWord, mornings, mornLine, oneplace, pickChange, questionTitle, rankPicks, scaleChange, scaleValues } from "./wellness-words";
+import { dotGrid, stepOf, topPicks, answeredDays, cardOrder, checkedInLine, levelWord, mornings, mornLine, oneplace, pickChange, questionTitle, rankPicks, scaleChange, scaleValues } from "./wellness-words";
 import { PRESET_QUESTIONS, type CheckinQuestion, type CheckinTrendDay } from "../../../lib/checkin-types";
 
 const q = (id: string): CheckinQuestion => PRESET_QUESTIONS.find((x) => x.id === id)!;
@@ -81,4 +81,44 @@ test("a tie at the top never reads as one winner", () => {
   assert.deepEqual(topPicks([{ word: "Calm", days: 4 }, { word: "Tired", days: 4 }, { word: "Happy", days: 1 }], noun), { value: "Calm and Tired", tied: 2 });
   assert.deepEqual(topPicks([{ word: "A", days: 3 }, { word: "B", days: 3 }, { word: "C", days: 3 }], noun), { value: "3 words", tied: 3 });
   assert.equal(topPicks([], noun), null);
+});
+
+test("mood dots, four weeks: a dot a day, Monday first, gaps before the range and after the last day", () => {
+  // Wednesday 25 Nov 2026; the range starts Thursday 29 Oct.
+  const g = dotGrid("4w", "2026-11-25", (d) => (d === "2026-11-24" ? [4, 5] : d === "2026-10-29" ? [2] : []));
+  assert.equal(g.kind, "days");
+  assert.deepEqual(g.columns, ["M", "T", "W", "T", "F", "S", "S"]);
+  assert.equal(g.rows.length, 5);
+  assert.equal(g.rows[0].label, "26 Oct");
+  assert.deepEqual(g.rows[0].cells.slice(0, 3), [null, null, null]);
+  assert.deepEqual(g.rows[0].cells[3], { key: "2026-10-29", label: "Thu 29 Oct", value: 2 });
+  const last = g.rows[4];
+  assert.equal(last.label, "23 Nov");
+  assert.deepEqual(last.cells[1], { key: "2026-11-24", label: "Tue 24 Nov", value: 4.5 });
+  assert.equal(last.cells[2]!.value, null, "today with nothing answered yet");
+  assert.deepEqual(last.cells.slice(3), [null, null, null, null]);
+  assert.equal(g.rows.flatMap((r) => r.cells).filter(Boolean).length, 28);
+});
+
+test("mood dots, six months: a dot a week, a month to a row; a year: a dot a month, six to a row", () => {
+  const six = dotGrid("6m", "2026-11-25", (d) => (d >= "2026-11-23" ? [3] : d >= "2026-11-16" && d < "2026-11-23" ? [5, 4] : []));
+  assert.equal(six.kind, "weeks");
+  assert.equal(six.rows.flatMap((r) => r.cells).length, 26);
+  assert.equal(six.rows[six.rows.length - 1].label, "Nov");
+  const nov = six.rows[six.rows.length - 1].cells;
+  assert.deepEqual(nov[nov.length - 1], { key: "2026-11-23", label: "This week so far", value: 3 });
+  assert.equal(nov[nov.length - 2]!.value, 4.5);
+  assert.equal(nov[nov.length - 2]!.label, "Week of 16 Nov");
+
+  const year = dotGrid("1y", "2026-11-25", (d) => (d.startsWith("2026-02") ? [1, 2] : []));
+  assert.equal(year.kind, "months");
+  assert.deepEqual(year.rows.map((r) => r.cells.length), [6, 6]);
+  const cells = year.rows.flatMap((r) => r.cells);
+  assert.deepEqual(cells.map((c) => c!.caption), ["Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov"]);
+  assert.equal(cells[2]!.value, 1.5);
+  assert.equal(cells[0]!.label, "December 2025");
+  assert.equal(cells[11]!.label, "November so far");
+  assert.equal(stepOf(1.5), 2);
+  assert.equal(stepOf(4.4), 4);
+  assert.equal(stepOf(0.2), 1);
 });

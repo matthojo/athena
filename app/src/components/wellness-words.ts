@@ -8,6 +8,8 @@
 
 import type { CheckinKind, CheckinQuestion, CheckinTrendDay } from "../../../lib/checkin-types";
 import { PRESET_QUESTIONS } from "../../../lib/checkin-types";
+import { addDays } from "../../../lib/dates";
+import { fmt, shortDay, type Range } from "./health-range";
 
 /** Short card titles for Athena's own questions; the owner's questions keep their wording. */
 const TITLES: Record<string, string> = {
@@ -134,3 +136,80 @@ export function checkedInLine(days: CheckinTrendDay[], of: string): string | nul
   const parts = [m ? `${m} ${m === 1 ? "morning" : "mornings"}` : null, e ? `${e} ${e === 1 ? "evening" : "evenings"}` : null].filter(Boolean);
   return `You checked in on ${dates.size} of ${of}: ${parts.join(" and ")}.`;
 }
+
+export interface DotCell {
+  key: string;
+  /** For the tooltip and the table: "Tue 24 Nov", "Week of 3 Nov", "November 2026". */
+  label: string;
+  /** The average, or null when nothing was answered then. */
+  value: number | null;
+  /** Under the dot, in the year's grid: "Nov". */
+  caption?: string;
+}
+
+export interface DotRow {
+  /** Before the row: the week's Monday ("3 Nov") or the month ("Jun"). Null in the year's grid. */
+  label: string | null;
+  /** null: a gap (a day before the range or after today). */
+  cells: Array<DotCell | null>;
+}
+
+export interface DotGrid {
+  kind: "days" | "weeks" | "months";
+  /** Above the columns: the weekdays, for the days grid. */
+  columns: string[] | null;
+  rows: DotRow[];
+}
+
+const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
+const dow = (date: string) => (new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7;
+
+/**
+ * Where each dot goes. Four weeks: a dot a day, Monday to Sunday, a week to
+ * a row. Six months: a dot a week, a month to a row (a week counts in the
+ * month its Monday falls in). A year: a dot a month, six to a row. `values`
+ * gives the answers on one day; an average is over every answer in the dot.
+ */
+export function dotGrid(range: Range, end: string, values: (date: string) => number[]): DotGrid {
+  const avg = (dates: string[]) => mean(dates.flatMap(values));
+  const datesFrom = (from: string, n: number) => Array.from({ length: n }, (_, i) => addDays(from, i)).filter((d) => d <= end);
+  if (range === "4w") {
+    const start = addDays(end, -27);
+    const rows: DotRow[] = [];
+    for (let monday = addDays(start, -dow(start)); monday <= end; monday = addDays(monday, 7)) {
+      rows.push({
+        label: fmt(monday, { day: "numeric", month: "short" }),
+        cells: Array.from({ length: 7 }, (_, i) => {
+          const d = addDays(monday, i);
+          return d < start || d > end ? null : { key: d, label: shortDay(d), value: avg([d]) };
+        }),
+      });
+    }
+    return { kind: "days", columns: WEEKDAYS, rows };
+  }
+  if (range === "6m") {
+    const last = addDays(end, -dow(end));
+    const rows: DotRow[] = [];
+    for (let i = 25; i >= 0; i--) {
+      const monday = addDays(last, -7 * i);
+      const month = fmt(monday, { month: "short" });
+      const cell: DotCell = { key: monday, label: i === 0 && addDays(monday, 6) > end ? "This week so far" : `Week of ${fmt(monday, { day: "numeric", month: "short" })}`, value: avg(datesFrom(monday, 7)) };
+      const row = rows[rows.length - 1];
+      if (row?.label === month) row.cells.push(cell);
+      else rows.push({ label: month, cells: [cell] });
+    }
+    return { kind: "weeks", columns: null, rows };
+  }
+  const [y, m] = end.split("-").map(Number);
+  const cells: DotCell[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const first = new Date(Date.UTC(y, m - 1 - i, 1, 12)).toISOString().slice(0, 10);
+    const days = new Date(Date.UTC(y, m - i, 0, 12)).getUTCDate();
+    const name = fmt(first, { month: "long", year: "numeric" });
+    cells.push({ key: first.slice(0, 7), label: i === 0 ? `${fmt(first, { month: "long" })} so far` : name, value: avg(datesFrom(first, days)), caption: fmt(first, { month: "short" }) });
+  }
+  return { kind: "months", columns: null, rows: [{ label: null, cells: cells.slice(0, 6) }, { label: null, cells: cells.slice(6) }] };
+}
+
+/** The step a dot is coloured by: the average rounded to the nearest answer, 1 to 5. */
+export const stepOf = (v: number): 1 | 2 | 3 | 4 | 5 => Math.min(5, Math.max(1, Math.round(v))) as 1 | 2 | 3 | 4 | 5;
