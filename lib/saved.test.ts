@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { captureIsLink, cleanTags, cleanUrl, leadingUrl, looksLikeCode, MAX_PAGE_BYTES, MAX_SAVED_TEXT, planSave, readingTime, savedUrlKey, SaveTooBig, siteOf } from "./saved-rules";
+import { captureIsLink, cleanSource, cleanTags, cleanUrl, leadingUrl, looksLikeCode, MAX_PAGE_BYTES, MAX_SAVED_TEXT, planSave, readingTime, SAVED_SOURCES, savedUrlKey, SaveTooBig, siteOf } from "./saved-rules";
 import { extractPage } from "./saved-extract";
 import { fetchPageHtml, fetchPageImage, pageDeps, PageFetchError } from "./saved-fetch";
 import { dataUrlBytes } from "../netlify/lib/saved/routes";
@@ -158,4 +158,15 @@ test("fetch: one deadline for the whole read", async (t) => {
   pageDeps.fetch = (_u, init) => new Promise((_, reject) => init?.signal?.addEventListener("abort", () => reject(new Error("aborted"))));
   t.after(() => (pageDeps.timeoutMs = before));
   await assert.rejects(fetchPageHtml("https://slow.example/"), (e: PageFetchError) => e.reason === "timeout");
+});
+
+test("a save's source: any short plain name a client gives, else the app's", () => {
+  for (const name of [...SAVED_SOURCES, "raycast", "my-script-2"]) assert.equal(cleanSource(name), name);
+  assert.equal(cleanSource(" Raycast "), "raycast");
+  for (const bad of [undefined, null, 7, "", "2fast", "-dash", "two words", "under_score", "a".repeat(41), "x'; DROP TABLE saved_items; --", "näme"]) {
+    assert.equal(cleanSource(bad), "app", String(bad));
+  }
+  // The column's CHECK (migration 0092) is the same rule, so what the code lets through, the database takes.
+  const sql = readFileSync(new URL("../netlify/database/migrations/0092_saved-source-open/migration.sql", import.meta.url), "utf8");
+  assert.ok(sql.includes("CHECK (source ~ '^[a-z][a-z0-9-]{0,39}$')"));
 });

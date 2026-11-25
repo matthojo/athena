@@ -9,8 +9,22 @@ import type { SavedFacts, SavedThing } from "./saved-kinds";
 export const SAVED_KINDS = ["link", "image", "quote", "snippet", "note"] as const;
 export type SavedKind = (typeof SAVED_KINDS)[number];
 
+/** The ways in that Athena ships itself. */
 export const SAVED_SOURCES = ["shortcut", "extension", "share-target", "app", "email"] as const;
-export type SavedSource = (typeof SAVED_SOURCES)[number];
+/**
+ * How an item arrived: one of Athena's own ways in, or the short name another client gives itself ("raycast").
+ * It's kept readable and nothing branches on it, so a new client needs no change here.
+ */
+export type SavedSource = (typeof SAVED_SOURCES)[number] | (string & {});
+
+/** A letter, then letters, digits or hyphens, 40 at most. The same rule as the column's CHECK (migration 0092). */
+const SOURCE_NAME = /^[a-z][a-z0-9-]{0,39}$/;
+
+/** The source a save names, lower-cased; "app" when it names none or one that isn't a short plain name. */
+export function cleanSource(raw: unknown): SavedSource {
+  const name = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  return SOURCE_NAME.test(name) ? name : "app";
+}
 
 /** Caps (docs/notes/saved.md): text, selection and note each; a title; an image; the whole request; the readable copy. */
 export const MAX_SAVED_TEXT = 20_000;
