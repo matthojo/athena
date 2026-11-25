@@ -28,6 +28,13 @@ jobs:
       - name: Browser extension tests
         working-directory: extension
         run: npm test
+      - name: Raycast extension typecheck, tests and build
+        working-directory: raycast
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
 
   migrations:
     name: Released migrations unchanged

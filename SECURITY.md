@@ -226,8 +226,8 @@ uses `age`, and there is no key pair to make or keep. The owner decided
   email, address, account number, calendar name or screenshot of a real
   account never goes into code, a fixture, a doc or a commit message.
 - **No production address is built in.** Where the code needs the site's
-  own address it reads Netlify's `URL` variable, and the browser extension
-  asks for it. Examples use `athena.example.com`.
+  own address it reads Netlify's `URL` variable, and the browser and Raycast
+  extensions ask for it. Examples use `athena.example.com`.
 - **Report a vulnerability privately** ("Reporting a vulnerability" at the
   top of this file), not in a public issue.
 - Only `.env.example` (placeholder values, safe to commit) belongs in the
@@ -318,7 +318,8 @@ full key.
 | Capture key (`athc_…`) | 401 | 401 | yes | 401 |
 
 - **Capture only** (`athc_…`): for an iPhone Shortcut (Siri, the share
-  sheet), which syncs through iCloud, and the browser extension. It opens
+  sheet), which syncs through iCloud, the browser extension, and the
+  Raycast extension's adding commands. It opens
   four things and nothing else: `POST /api/assistant/capture`,
   `POST /api/saved` with `GET /api/saved/ping`, `POST /api/health/day` and
   `POST /api/habits/log`. It files; it can't look anything up ("What a
@@ -330,6 +331,20 @@ full key.
 - **Full access** (`athk_…`): REST and MCP, like the app: for a device the
   app is signed in on, and the owner's own scripts. On REST that includes
   permanent delete and the archived list (§7).
+- **The Raycast extension** (`raycast/`) takes a capture key or a full
+  key, and refuses a Claude only key. With a capture key it only adds
+  (capture, Saved, a habit by name) and sends no read at all. Its reading
+  commands (search, to-dos, Coming up, habits, the menu bar) need a full
+  key, which the owner makes for it alone so it can be removed on its own.
+  The key is a Raycast password preference on that Mac, sent only to the
+  address the owner typed (`https://`, or `http://` for localhost), with
+  redirects refused. Of what a full key allows, the extension calls
+  `GET /api/mentions`, `/api/recall`, `/api/today`, `/api/upcoming` and
+  `/api/habits`, `POST` and `PATCH /api/commitments`, and
+  `PUT /api/habits/:id/days/:date`; it never deletes. The reading commands
+  keep their last answer (titles, dates, names) in Raycast's cache on that
+  Mac, in plain text, so a list shows while it reloads: a copy outside the
+  encryption in §11, removed with the extension.
 - **Managing keys takes the master token.** Listing, making and removing
   keys (`/api/api-keys`) answers `403 master_required` to any key, so a
   leaked key can't mint itself a replacement. Settings → API keys asks for

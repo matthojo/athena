@@ -105,7 +105,8 @@ the project never sees your data.
 - **Works offline:** it installs as an app and keeps a copy on the device.
   Changes made offline are sent when you're back online.
 - **Open to your other tools:** an MCP server for Claude, a REST API, iPhone
-  Shortcuts and a browser extension (with keys that can only add things),
+  Shortcuts, a browser extension and a Raycast extension (with keys that
+  can only add things),
   and an Obsidian-compatible markdown export.
 
 The [guide](GUIDE.md) goes through each of these in detail.
@@ -339,6 +340,8 @@ with search.
   vulnerability
 - [extension/README.md](extension/README.md): the "Save to Athena" browser
   extension
+- [raycast/README.md](raycast/README.md): the Raycast extension, for
+  capturing, searching and ticking things off from the keyboard
 - [CONTRIBUTING.md](CONTRIBUTING.md): setup, checks, and the rules for
   changes and releases
 - [SUPPORT.md](SUPPORT.md): where to ask for help

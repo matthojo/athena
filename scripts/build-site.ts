@@ -59,6 +59,7 @@ export const DOCS: DocPage[] = [
   { slug: "security", title: "Security model", group: "Reference", icon: "shield", file: "SECURITY.md" },
   { slug: "architecture", title: "Architecture", group: "Reference", icon: "graph", file: "ARCHITECTURE.md" },
   { slug: "extension", title: "Browser extension", group: "Reference", icon: "bookmark", file: "extension/README.md" },
+  { slug: "raycast", title: "Raycast extension", group: "Reference", icon: "sparkle", file: "raycast/README.md" },
   { slug: "contributing", title: "Contributing", group: "Project", icon: "pen", file: "CONTRIBUTING.md" },
   { slug: "changelog", title: "Changelog", group: "Project", icon: "clock", file: "CHANGELOG.md" },
   { slug: "support", title: "Getting help", group: "Project", icon: "chat", file: "SUPPORT.md" },

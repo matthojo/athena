@@ -49,6 +49,9 @@ npm run build
 cd extension && npm test
 ```
 
+For a change under `raycast/`, also run `npm ci && npm run typecheck && npm test`
+there.
+
 Files named `*.db.test.ts` skip themselves unless `ATHENA_TEST_DB_URL` points
 at a Postgres database with the migrations in `netlify/database/migrations/`
 applied; `npm run test:db` runs them. CI runs the rest on every pull request,
