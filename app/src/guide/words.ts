@@ -83,6 +83,7 @@ export const WORDS = {
       ["Open your site's environment variables in Netlify.", "Open environment variables"],
       ["Add a variable named ATHENA_DATA_KEY and tick Contains secret values.", null],
       ["Give it a value for Production only: choose a different value for each deploy context, paste the key under Production and leave the rest empty.", null],
+      ["While you're there, change MCP_BEARER_TOKEN, CONNECTOR_ENCRYPTION_KEY, SESSION_SECRET and SITE_PASSWORD to Production only as well, so the deploy preview of an update can't see them.", null],
       ["Start a new deploy so the key reaches your site: Deploys, then Trigger deploy.", "Open deploys"],
     ] as Array<[string, string | null]>,
     done: "I've added it and started a deploy",

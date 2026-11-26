@@ -55,6 +55,9 @@ interface Starter {
   category?: string;
 }
 
+/** An environment variable's name in a sentence, set as code. */
+const ENV_NAME = /\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b/;
+
 /** Sources' starters shown before "More": email, calendar, work and downtime. */
 const FIRST_STARTERS = 4;
 
@@ -341,7 +344,7 @@ export function renderGuide(opts: GuideOptions): HTMLElement {
           h(
             "li",
             { class: "guide__step" },
-            h("span", {}, ...line.split(/(ATHENA_DATA_KEY)/).map((part) => (part === "ATHENA_DATA_KEY" ? h("code", {}, part) : part))),
+            h("span", {}, ...line.split(ENV_NAME).map((part, j) => (j % 2 ? h("code", {}, part) : part))),
             link ? h("a", { class: "btn btn--soft btn--sm guide__out", href: netlifyPage(site, i === 0 ? "env" : "deploys"), target: "_blank", rel: "noopener noreferrer" }, link, icons.external()) : null
           )
         )
