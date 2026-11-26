@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "netlify dev",
     "dev:app": "vite --config app/vite.config.ts",
-    "build": "vite build --config app/vite.config.ts",
+    "build": "tsx scripts/check-preview-secrets.ts && vite build --config app/vite.config.ts",
     "preview": "vite preview --config app/vite.config.ts",
     "export:obsidian": "tsx scripts/export-obsidian.ts",
     "site:build": "tsx scripts/build-site.ts",

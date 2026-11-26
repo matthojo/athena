@@ -110,7 +110,8 @@ The [guide](https://athena-community.netlify.app/docs/guide/) goes through each 
 - **Encrypted at rest:** what you write is stored encrypted with AES-256-GCM,
   under a key you set for production functions alone. Deploy previews get a
   copy of the database but not the key, so they show "Encrypted — open on
-  your-site" instead of your content.
+  your-site" instead of your content, as long as your other keys are kept to
+  production too (step 2).
 - **Sensitive figures sealed apart:** health, location, money and home
   figures go in a table of their own and are opened only when a page asks
   for them.
@@ -138,10 +139,17 @@ Press **Deploy to Netlify** above. Netlify sets up a new site from this
 repository and asks for `SITE_PASSWORD`, `SESSION_SECRET`, `MCP_BEARER_TOKEN`
 and `CONNECTOR_ENCRYPTION_KEY`.
 
-### 2. Set the data key for production only
+### 2. Keep your keys to production
 
 Set `ATHENA_DATA_KEY` for the production context alone, keep a copy in your
 password manager, and redeploy. If you lose this key, you lose your data.
+
+Then, under **Site configuration → Environment variables**, change
+`MCP_BEARER_TOKEN`, `CONNECTOR_ENCRYPTION_KEY`, `SESSION_SECRET` and
+`SITE_PASSWORD` from every context to **Production** alone. Each update
+arrives as a pull request, and Netlify runs its deploy preview before you
+merge it, with whatever its context is given. A preview build that can see
+one of these stops and says which.
 
 ### 3. Sign in
 

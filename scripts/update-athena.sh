@@ -22,6 +22,12 @@
 #     release's files are copied over yours, and files the release removed
 #     since your version are removed. Changes you made to Athena's own files
 #     are replaced, and the pull request says so.
+#
+# Either way, your workflows (.github/workflows, .github/actions) stay as they
+# are. A workflow on the pushed branch could run at once, with your
+# repository's secrets, before anyone has read it, so the pull request lists
+# the workflows a release changes, for you to copy across once you've read
+# them.
 
 set -euo pipefail
 
@@ -49,6 +55,7 @@ if [[ "$(printf '%s\n%s\n' "$current" "$latest" | sort -V | tail -n1)" == "$curr
 fi
 
 start="$(git rev-parse --abbrev-ref HEAD)"
+base="$(git rev-parse HEAD)"
 branch="athena-update/v$latest"
 if [[ "$push" != 0 ]] && git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
   echo "$branch is already on your repository. Merge or close its pull request first."
@@ -83,6 +90,21 @@ else
   git commit --quiet -m "Update Athena to $latest"
 fi
 
+# Keep this copy's own workflows (see the top of this file).
+workflows="$(git diff --no-renames --name-only "$base" HEAD -- .github/workflows .github/actions)"
+if [[ -n "$workflows" ]]; then
+  while IFS= read -r file; do
+    if git cat-file -e "$base:$file" 2>/dev/null; then
+      git checkout --quiet "$base" -- "$file"
+    else
+      git rm -q -- "$file"
+    fi
+  done <<<"$workflows"
+  git commit --quiet -m "Keep this copy's own workflows"
+  echo "Kept your own workflows. The release changes these, for you to copy across once you've read them:"
+  sed 's/^/  /' <<<"$workflows"
+fi
+
 if [[ "$push" == 0 ]]; then
   echo "Made $branch here ($how). Not pushed: merge it into $start when you're ready."
   exit 0
@@ -101,8 +123,16 @@ body="$(mktemp)"
   else
     echo "The release was merged into your copy, so your own changes are kept."
   fi
+  if [[ -n "$workflows" ]]; then
+    echo
+    echo "**Workflows:** this release changes the workflows below. Your own are kept as they were, since a workflow on this branch could run before anyone has read it. Read each one at the release, then copy it across yourself if you want it:"
+    echo
+    while IFS= read -r file; do
+      echo "- [\`$file\`]($web/blob/v$latest/$file)"
+    done <<<"$workflows"
+  fi
   echo
-  echo "Netlify builds a deploy preview of this pull request against a copy of your database, so any new database migrations run there before they reach your live site. The preview can't show your content (it doesn't have your data key): check that it deployed, then merge, and Netlify updates your live site."
+  echo "Netlify builds a deploy preview of this pull request against a copy of your database, so any new database migrations run there before they reach your live site. The preview runs this release's code before you merge it, with whatever environment variables your deploy previews get. Keep \`ATHENA_DATA_KEY\`, \`MCP_BEARER_TOKEN\`, \`CONNECTOR_ENCRYPTION_KEY\`, \`SESSION_SECRET\` and \`SITE_PASSWORD\` to the Production context: then the preview can't read your content or sign in to your accounts, and its login page says it isn't set up. Check that it deployed, then merge, and Netlify updates your live site."
 } >"$body"
 
 if ! gh pr create --base "$start" --head "$branch" --title "Update Athena to $latest" --body-file "$body"; then

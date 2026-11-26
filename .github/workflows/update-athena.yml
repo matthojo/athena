@@ -26,12 +26,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # A token of your own is only needed when a release changes a file
-          # under .github/workflows, which GitHub's built-in token can't push.
-          token: ${{ secrets.ATHENA_UPDATE_TOKEN || github.token }}
+          # GitHub's built-in token is all this needs: an update never changes
+          # your workflows (the script keeps them and lists a release's changes
+          # in the pull request), so no token of your own is handed to it.
+          persist-credentials: true
       - name: Open a pull request for the newest release
         env:
-          GH_TOKEN: ${{ secrets.ATHENA_UPDATE_TOKEN || github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
