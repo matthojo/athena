@@ -735,3 +735,8 @@
 .theme-editor__share {
   margin-inline-start: auto;
 }
+
+/* The way out to Community's themes, under the tiles. */
+.appearance-more {
+  margin: var(--space-sm) 0 0;
+}
