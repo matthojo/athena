@@ -1,9 +1,9 @@
 /**
  * Sign out removes everything this browser holds: this device's key (on the
  * server too, so it stops working anywhere), the offline database, every athena-* cache, the push subscription and the
- * service worker. main.ts then goes to /logout, which clears the session
- * cookie. Unsent changes are counted first so main.ts can warn and offer to
- * send them.
+ * service worker. main.ts then posts to /logout, which clears the session
+ * cookie and asks the browser to clear the site's storage again. Unsent
+ * changes are counted first so main.ts can warn and offer to send them.
  *
  * Each step is best effort and none stops the rest: a browser without Cache
  * Storage or a worker still loses its key and database.

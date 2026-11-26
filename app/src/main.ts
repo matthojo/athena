@@ -254,7 +254,10 @@ function mountShell() {
     }
     signingOut = true;
     await wipeDevice();
-    location.assign("/logout");
+    // Sign out at the edge (netlify/edge-functions/site-auth.ts): only a POST from Athena's own page signs out there.
+    const form = h("form", { method: "POST", action: "/logout", hidden: true });
+    document.body.append(form);
+    form.submit();
   }
 
   const statusActions: StatusActions = {
