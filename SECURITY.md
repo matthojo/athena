@@ -2216,7 +2216,13 @@ it. Nothing in a file is a permission.
   that leaves it. The browser never contacts the catalogue.
 - **How often.** The index at most once a day (kept in the `community` blob
   store, plain: it's the catalogue's public list), and a bundle only when the
-  owner opens an item. The daily check (`netlify/functions/community-check.ts`)
+  owner opens an item. The index is read sooner in three cases: an item opened
+  isn't in the copy kept, or its bundle doesn't match it, and the copy is over
+  ten minutes old; the owner presses "Check for new items" and the copy is over
+  ten minutes old (after a failed read, the button fetches nothing for a
+  minute); or the copy was kept by an earlier Athena that knew fewer kinds of
+  item, once, after an update. Each is the same plain GET of `index.json`, and
+  off means none of them. The daily check (`netlify/functions/community-check.ts`)
   and the update check fetch nothing while nothing from the catalogue is
   added.
 - **The switch.** Nothing is fetched until the owner opens Community: the

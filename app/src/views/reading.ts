@@ -972,14 +972,18 @@ export function renderReading(ctx: { go: (view: ViewId) => void }): { el: HTMLEl
       const what = kindFilter ? (KIND_PLURAL[kindFilter] ?? "").toLowerCase() : "";
       const add = typed ? h("button", { class: "btn btn--primary btn--sm", type: "button" }, icons.plus(), `Add “${typed.length > 40 ? `${typed.slice(0, 40)}…` : typed}”`) : null;
       add?.addEventListener("click", addTyped);
+      // Back to All, named as the person sees it.
+      const all = !typed && kindFilter ? h("button", { class: "btn btn--soft btn--sm", type: "button" }, "See everything") : null;
+      all?.addEventListener("click", () => setKind(null));
       list.replaceChildren(
         h(
           "div",
           { class: "empty watch-empty" },
           h("span", { class: "tile" }, icons.search()),
           h("p", { class: "empty__title" }, typed ? "Not on the list yet" : `No ${what} on the list`),
-          h("p", { class: "empty__sub" }, typed ? (kindFilter ? `Nothing in ${KIND_PLURAL[kindFilter]} matches. Press Enter to add it.` : "Press Enter to add it.") : "Pick another kind above, or add one."),
-          add
+          h("p", { class: "empty__sub" }, typed ? (kindFilter ? `Nothing in ${KIND_PLURAL[kindFilter]} matches. Press Enter to add it.` : "Press Enter to add it.") : "Type a title above to add one."),
+          add,
+          all
         )
       );
       return;

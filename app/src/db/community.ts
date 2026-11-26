@@ -61,10 +61,15 @@ export function parseAddHash(hash: string): AddSource | null {
 /** Sample mode's switch: "on" or "off"; missing until Community is first opened. */
 export const SAMPLE_COMMUNITY_SWITCH = "athena.sample.community";
 /**
- * Sample mode only, to see each state of the screen: "none" (not set up), "down" (unreachable), "offline" or
- * "slow" (a long load). Missing: the sample catalogue answers.
+ * Sample mode only, to see each state of the screen: "none" (not set up), "down" (unreachable: a check then keeps
+ * the list and says why), "offline", "slow" (a long load) or "no-themes" (the list without its themes, for the empty
+ * state of a kind). Missing: the sample catalogue answers.
  */
 export const SAMPLE_CATALOGUE_STATE = "athena.sample.catalogue";
+/** Sample mode only: when the sample list was last "read", as an ISO time. Set on first open; a check past ten minutes moves it. */
+export const SAMPLE_CATALOGUE_READ = "athena.sample.catalogue.read";
+/** As the server's RECHECK_MS (netlify/lib/community-catalogue.ts): a check reads again only past this. */
+const SAMPLE_RECHECK_MS = 10 * 60 * 1000;
 
 const store = {
   get(key: string): string | null {
@@ -85,7 +90,17 @@ const store = {
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function sampleView(): Promise<CatalogueView> {
+/** When the sample list was last read; a check moves it to now once it's over ten minutes old. */
+function sampleReadAt(check: boolean): { at: string; read: boolean } {
+  const kept = store.get(SAMPLE_CATALOGUE_READ);
+  const age = kept ? Date.now() - Date.parse(kept) : Infinity;
+  if (kept && Number.isFinite(age) && (!check || (age >= 0 && age < SAMPLE_RECHECK_MS))) return { at: kept, read: false };
+  const at = new Date().toISOString();
+  store.set(SAMPLE_CATALOGUE_READ, at);
+  return { at, read: check };
+}
+
+async function sampleView(check = false): Promise<CatalogueView> {
   const state = store.get(SAMPLE_CATALOGUE_STATE);
   if (state === "offline") throw new TypeError("Failed to fetch");
   if (state === "slow") await wait(8000);
@@ -93,13 +108,16 @@ async function sampleView(): Promise<CatalogueView> {
   // Opening Community the first time switches the check on, as on a real Athena.
   if (configured && store.get(SAMPLE_COMMUNITY_SWITCH) === null) store.set(SAMPLE_COMMUNITY_SWITCH, "on");
   const on = store.get(SAMPLE_COMMUNITY_SWITCH) === "on";
-  const view: CatalogueView = { configured, on, host: configured ? new URL(COMMUNITY_SITE).host : null, generated_at: null, items: [], added: [], error: null };
+  const view: CatalogueView = { configured, on, host: configured ? new URL(COMMUNITY_SITE).host : null, generated_at: null, fetched_at: null, items: [], added: [], error: null };
   if (!configured || !on) return view;
-  if (state === "down") return { ...view, error: "Athena couldn't reach the Community catalogue." };
+  const down = state === "down" ? "Athena couldn't reach the Community catalogue." : null;
+  // Unreachable with nothing read before: no list. On a check, as on the server, the list already read stays.
+  if (down && (!check || !store.get(SAMPLE_CATALOGUE_READ))) return { ...view, error: down, ...(check ? { checked: "read" as const } : {}) };
+  const read = down ? { at: store.get(SAMPLE_CATALOGUE_READ)!, read: false } : sampleReadAt(check);
   const { sampleCatalogue, sampleAddedIds } = await import("./sample-community");
   const { sampleTemplateListings } = await import("./documents");
   const index = await sampleCatalogue();
-  const items = [...index.items].sort((a, b) => Date.parse(b.added_at) - Date.parse(a.added_at));
+  const items = [...index.items].filter((i) => state !== "no-themes" || i.kind !== "theme").sort((a, b) => Date.parse(b.added_at) - Date.parse(a.added_at));
   const { themeState } = await import("../lib/theme");
   const themeIds = themeState().themes.flatMap((t) => (t.origin?.catalogue_id ? [t.origin.catalogue_id] : []));
   // A theme's colours for its row, read from its files as the server reads them.
@@ -109,13 +127,24 @@ async function sampleView(): Promise<CatalogueView> {
     const text = (await sampleBundle(i.id))?.bundle.files.find((f) => f.path === THEME_FILE)?.text;
     if (text) swatches[i.id] = themeSwatches(readSharedTheme(JSON.parse(text)).theme);
   }
-  return { ...view, generated_at: index.generated_at, items, added: [...new Set([...sampleAddedIds(), ...(await sampleTemplateListings()).map((t) => t.catalogue_id), ...themeIds])], swatches };
+  return { ...view, generated_at: index.generated_at, fetched_at: read.at, error: down, ...(check ? { checked: down || read.read ? ("read" as const) : ("recent" as const) } : {}), items, added: [...new Set([...sampleAddedIds(), ...(await sampleTemplateListings()).map((t) => t.catalogue_id), ...themeIds])], swatches };
 }
 
 /** GET /api/community: the catalogue as the server last read it, and the owner's switch. */
 export async function fetchCatalogue(): Promise<CatalogueView> {
   if (isSampleMode()) return sampleView();
   const view = await request<CatalogueView>("/community");
+  updatesCache = null;
+  return view;
+}
+
+/**
+ * POST /api/community/check: "Check for new items". The server reads the list again only if its copy is over ten
+ * minutes old (`checked` says which), and reads nothing while the owner's switch is off.
+ */
+export async function checkCatalogue(): Promise<CatalogueView> {
+  if (isSampleMode()) return sampleView(true);
+  const view = await request<CatalogueView>("/community/check", { method: "POST" });
   updatesCache = null;
   return view;
 }

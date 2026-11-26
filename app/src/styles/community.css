@@ -950,3 +950,29 @@
 .cm-palette__dot + .cm-palette__dot {
   margin-inline-start: -3px; /* fixed: icon */
 }
+
+/* ---------- when the list was read, and "Check for new items" ---------- */
+
+.cm-fresh {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs) var(--space-sm);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+}
+
+.cm-fresh[hidden] {
+  display: none;
+}
+
+.cm-fresh__text {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.cm-fresh__btn {
+  margin-inline-start: auto;
+}

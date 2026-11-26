@@ -10,6 +10,7 @@
  * Routes (netlify/lib/community-routes.ts, then netlify/lib/community-add-routes.ts for preview and add):
  *
  * GET  /api/community                                → CatalogueView
+ * POST /api/community/check                          → CatalogueView, with `checked`
  * POST /api/community/preview   AddRequest           → { preview: AddPreview }   (files: multipart, field `files`)
  * POST /api/community/add       { preview, choices } → AddResult
  * GET  /api/community/updates                        → { updates: UpdateCheck[] }
@@ -46,6 +47,13 @@ export interface CatalogueView {
   host?: string | null;
   /** When the index was made, as it says. Null when none was read. */
   generated_at: string | null;
+  /** When Athena's server last read the index from the catalogue. Null when none was read. */
+  fetched_at: string | null;
+  /**
+   * Only on "Check for new items" (POST /api/community/check): "read" when the index was read again just now (or
+   * the read failed, with `error`), "recent" when the copy kept was under ten minutes old and nothing was fetched.
+   */
+  checked?: "read" | "recent";
   /** Items this Athena can read (formatReadable), newest first. Empty while off or not configured. */
   items: CatalogueItem[];
   /** Ids of listings already added here, so the list can say so. */

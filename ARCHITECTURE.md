@@ -2347,11 +2347,18 @@ permission.
   Community catalogue" switch (settings `community`), off until Community is
   first opened, so nothing is fetched before then.
 - **`netlify/lib/community-catalogue.ts`.** The index is fetched through
-  `publicFetch` and kept a day in the `community` blob store; `loadBundle(id)`
-  uses a bundle only when `verifyBundle` matches it to its files and the
+  `publicFetch` and kept a day in the `community` blob store, stamped with the
+  kinds the Athena that read it knew (`kinds`, from `SHARE_KINDS`). Items of an
+  unknown kind are dropped as the index is read, so a copy whose stamp lacks a
+  kind this Athena knows (or that has no stamp) is read again whatever its age.
+  `checkIndex` is "Check for new items": it reads again only when the copy is
+  over `RECHECK_MS` (ten minutes) old, and not again for `RETRY_MS` (a minute)
+  after a failed read. `loadBundle(id)` uses a bundle only when `verifyBundle` matches it to its files and the
   index. `compareInstalled` and `toPause` work out updates and withdrawals.
 - **`netlify/lib/community-routes.ts`.** `GET /api/community` (opening it the
-  first time switches the check on), `GET /api/community/updates` (pauses a
+  first time switches the check on), `POST /api/community/check` (the same view
+  through `checkIndex`, with `checked: "read" | "recent"`; nothing is fetched
+  while the switch is off), `GET /api/community/updates` (pauses a
   withdrawn item once) and `GET`/`PUT /api/community/settings` (the GET also
   gives `submit`, the site's `/submit/` page, without contacting it). It answers
   null for any other path, and `netlify/functions/api.ts` then tries the Add

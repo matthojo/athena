@@ -4,9 +4,10 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { bundleHash, CatalogueError, type CatalogueBundle, type CatalogueIndex, type CatalogueItem } from "../../lib/catalogue-types";
-import { catalogueDeps, compareInstalled, flowTier, getIndex, INDEX_TTL_MS, loadBundle, pauseKey, readableItems, toPause, type CachedIndex, type InstalledItem } from "./community-catalogue";
+import { catalogueDeps, checkIndex, compareInstalled, flowTier, getIndex, INDEX_TTL_MS, knowsAllKinds, loadBundle, RECHECK_MS, RETRY_MS, pauseKey, readableItems, toPause, type CachedIndex, type InstalledItem } from "./community-catalogue";
 import { catalogueView, communityUpdates, handleCommunityRoutes, type CommunityStore } from "./community-routes";
 import type { FlowStep } from "../../lib/flow-types";
+import { SHARE_KINDS } from "../../lib/share-kinds";
 
 const ROOT = "https://catalogue.example.com/v1";
 const T0 = new Date("2026-11-24T09:00:00Z");
@@ -313,7 +314,7 @@ test("with no catalogue set, the view says so, fetches nothing and leaves the sw
   const cat = use({});
   const { store, state } = memoryStore([], undefined);
   const view = await catalogueView(store);
-  assert.deepEqual(view, { configured: false, on: false, host: null, generated_at: null, items: [], added: [], error: null });
+  assert.deepEqual(view, { configured: false, on: false, host: null, generated_at: null, fetched_at: null, items: [], added: [], error: null });
   assert.deepEqual(state.saves, []);
   assert.equal(cat.seen.length, 0);
 });
@@ -365,4 +366,137 @@ test("the routes answer GET /api/community, /updates and PUT /settings", async (
   const bad = await handleCommunityRoutes(req("PUT"), ["api", "community", "settings"], async () => ({ on: "yes" }), json, store);
   assert.equal(bad!.status, 400);
   assert.equal(await handleCommunityRoutes(req("POST"), ["api", "community", "preview"], async () => null, json, store), null);
+});
+
+// ---------- a copy kept by an Athena that knew fewer kinds, and "Check for new items" ----------
+
+/** A theme listing, for the kind an older Athena didn't know. */
+const themeItem = (id: string, hash: string) => item(id, hash, { kind: "theme", slug: `theme-${id.slice(0, 4)}`, name: "Harbour" });
+const KINDS_BEFORE_THEMES = SHARE_KINDS.filter((k) => k !== "theme");
+
+test("a copy is stamped with the kinds this Athena knows", async () => {
+  const b = await skillBundle(ID_A);
+  use({ "index.json": index([item(ID_A, b.hash)]) });
+  await getIndex();
+  assert.deepEqual(kept?.kinds, [...SHARE_KINDS]);
+  assert.equal(knowsAllKinds(kept!), true);
+  assert.equal(knowsAllKinds({ kinds: KINDS_BEFORE_THEMES }), false);
+  assert.equal(knowsAllKinds({}), false);
+});
+
+test("a copy kept by an Athena that didn't know themes is read again, however fresh", async () => {
+  const b = await skillBundle(ID_A);
+  // An hour old, kept by the Athena before themes: it dropped the catalogue's themes as it read.
+  kept = { root: ROOT, fetched_at: new Date(T0.getTime() - 60 * 60 * 1000).toISOString(), index: index([item(ID_A, b.hash)]), kinds: KINDS_BEFORE_THEMES };
+  const cat = use({ "index.json": index([item(ID_A, b.hash), themeItem(ID_B, b.hash)]) });
+  const read = await getIndex();
+  assert.equal(cat.seen.length, 1);
+  assert.equal(read.cached, false);
+  assert.deepEqual(read.index.items.map((i) => i.kind).sort(), ["skill", "theme"]);
+  assert.deepEqual(kept?.kinds, [...SHARE_KINDS]);
+  // And now it's kept as usual.
+  assert.equal((await getIndex()).cached, true);
+  assert.equal(cat.seen.length, 1);
+});
+
+test("a copy with no stamp (kept before stamping) counts as stale, and still stands in when the catalogue is down", async () => {
+  const b = await skillBundle(ID_A);
+  kept = { root: ROOT, fetched_at: T0.toISOString(), index: index([item(ID_A, b.hash)]) };
+  let cat = use({ "index.json": index([item(ID_A, b.hash), themeItem(ID_B, b.hash)]) });
+  assert.equal((await getIndex()).index.items.length, 2);
+  assert.equal(cat.seen.length, 1);
+
+  kept = { root: ROOT, fetched_at: T0.toISOString(), index: index([item(ID_A, b.hash)]) };
+  cat = use({ "index.json": new TypeError("fetch failed") });
+  const read = await getIndex();
+  assert.equal(read.index.items.length, 1);
+  assert.match(read.error ?? "", /couldn't reach/);
+});
+
+test("check: the copy is used while it's under RECHECK_MS old, then read again", async () => {
+  const b = await skillBundle(ID_A);
+  const cat = use({ "index.json": index([item(ID_A, b.hash)]) });
+  await getIndex();
+  now = new Date(T0.getTime() + RECHECK_MS - 1000);
+  const recent = await checkIndex();
+  assert.equal(recent.cached, true);
+  assert.equal(recent.fetched_at, T0.toISOString());
+  assert.equal(cat.seen.length, 1);
+  now = new Date(T0.getTime() + RECHECK_MS + 1000);
+  const fresh = await checkIndex();
+  assert.equal(fresh.cached, false);
+  assert.equal(fresh.fetched_at, now.toISOString());
+  assert.equal(cat.seen.length, 2);
+});
+
+test("check: a failed read keeps the copy, says why, and fetches nothing more for RETRY_MS", async () => {
+  const b = await skillBundle(ID_A);
+  kept = { root: ROOT, fetched_at: new Date(T0.getTime() - 2 * RECHECK_MS).toISOString(), index: index([item(ID_A, b.hash)]), kinds: [...SHARE_KINDS] };
+  const cat = use({ "index.json": new TypeError("fetch failed") });
+  for (let i = 0; i < 5; i++) {
+    const read = await checkIndex();
+    assert.equal(read.index.items.length, 1);
+    assert.match(read.error ?? "", /couldn't reach/);
+  }
+  assert.equal(cat.seen.length, 1, "pressed five times, read once");
+  now = new Date(T0.getTime() + RETRY_MS + 1000);
+  await checkIndex();
+  assert.equal(cat.seen.length, 2);
+});
+
+test("check: with no copy and no answer, it throws words for the owner", async () => {
+  use({ "index.json": new TypeError("fetch failed") });
+  await assert.rejects(checkIndex(), /couldn't reach/);
+});
+
+test("check route: reads again only past RECHECK_MS, says which, and lists what's new", async () => {
+  const b = await skillBundle(ID_A);
+  const cat = use({ "index.json": index([item(ID_A, b.hash)]) });
+  const { store } = memoryStore([], { on: true });
+  const first = await catalogueView(store);
+  assert.equal(first.fetched_at, T0.toISOString());
+  assert.equal(first.checked, undefined);
+
+  now = new Date(T0.getTime() + 60 * 1000);
+  const recent = await catalogueView(store, { check: true });
+  assert.equal(recent.checked, "recent");
+  assert.equal(recent.fetched_at, T0.toISOString());
+  assert.equal(cat.seen.length, 1);
+
+  use({ "index.json": index([item(ID_A, b.hash), themeItem(ID_B, b.hash)]) });
+  now = new Date(T0.getTime() + RECHECK_MS + 1000);
+  const read = await catalogueView(store, { check: true });
+  assert.equal(read.checked, "read");
+  assert.equal(read.items.length, 2);
+  assert.equal(read.fetched_at, now.toISOString());
+});
+
+test("check route: off means nothing is fetched, and the switch isn't turned on", async () => {
+  const cat = use({ "index.json": index([]) });
+  const off = memoryStore([], { on: false });
+  const res = await handleCommunityRoutes(new Request("https://athena.example.com/api/community/check", { method: "POST" }), ["api", "community", "check"], async () => null, (d, s) => Response.json(d, { status: s ?? 200 }), off.store);
+  const view = (await res!.json()) as { on: boolean; items: unknown[]; checked?: string };
+  assert.equal(view.on, false);
+  assert.deepEqual(view.items, []);
+  assert.equal(view.checked, undefined);
+  const never = memoryStore([], undefined);
+  assert.equal((await catalogueView(never.store, { check: true })).on, false);
+  assert.deepEqual(never.state.saves, []);
+  assert.equal(cat.seen.length, 0);
+});
+
+test("check route: an unreachable catalogue answers in words with the copy kept", async () => {
+  const b = await skillBundle(ID_A);
+  kept = { root: ROOT, fetched_at: new Date(T0.getTime() - 2 * RECHECK_MS).toISOString(), index: index([item(ID_A, b.hash)]), kinds: [...SHARE_KINDS] };
+  use({ "index.json": 503 });
+  const view = await catalogueView(memoryStore([], { on: true }).store, { check: true });
+  assert.equal(view.checked, "read");
+  assert.equal(view.items.length, 1);
+  assert.equal(view.fetched_at, kept.fetched_at);
+  assert.match(view.error ?? "", /didn't send its list/);
+});
+
+test("check route: only POST", async () => {
+  const res = await handleCommunityRoutes(new Request("https://athena.example.com/api/community/check"), ["api", "community", "check"], async () => null, (d, s) => Response.json(d, { status: s ?? 200 }), memoryStore().store);
+  assert.equal(res!.status, 405);
 });

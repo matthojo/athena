@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CatalogueItem } from "../../../lib/catalogue-types";
-import { communityHash, downloadCount, submitSteps, downloadWords, filtered, hasDownloads, matches, ordered, readKind, readSort, tierWords, versionWords } from "./words";
+import { checkWords, emptyKindWords, lastReadWords, readWhen, communityHash, downloadCount, submitSteps, downloadWords, filtered, hasDownloads, matches, ordered, readKind, readSort, tierWords, versionWords } from "./words";
 
 const item = (over: Partial<CatalogueItem>): CatalogueItem => ({
   id: "a1b2c3d4e5f6g7h8",
@@ -123,4 +123,30 @@ test("Submit to Community names the kind and its file, and says Athena publishes
   assert.match(w.steps[1].title, /Community site/);
   assert.match(w.lede, /won't publish/);
   assert.match(submitSteps("skill", "SKILL.md").steps[0].detail, /SKILL\.md/);
+});
+
+const NOW = new Date("2026-11-26T15:00:00Z");
+
+test("when the list was read: today, yesterday, or the date, with the time", () => {
+  assert.equal(readWhen("2026-11-26T09:14:00Z", NOW, "UTC"), "today at 09:14");
+  assert.equal(readWhen("2026-11-25T21:03:00Z", NOW, "UTC"), "yesterday at 21:03");
+  assert.equal(readWhen("2026-11-24T09:14:00Z", NOW, "UTC"), "24 Nov at 09:14");
+  assert.equal(lastReadWords("2026-11-26T09:14:00Z", NOW, "UTC"), "Last read today at 09:14.");
+  assert.equal(lastReadWords(null, NOW, "UTC"), null);
+});
+
+test("a check says it's up to date, what's new, or why it failed", () => {
+  const before = new Set(["a"]);
+  const at = "2026-11-26T09:14:00Z";
+  assert.equal(checkWords({ checked: "recent", error: null, fetched_at: at, items: [{ id: "a" }] }, before, NOW, "UTC"), "Up to date as of today at 09:14.");
+  assert.equal(checkWords({ checked: "read", error: null, fetched_at: NOW.toISOString(), items: [{ id: "a" }, { id: "b" }] }, before, NOW, "UTC"), "Read just now. 1 new item.");
+  assert.equal(checkWords({ checked: "read", error: null, fetched_at: NOW.toISOString(), items: [{ id: "a" }, { id: "b" }, { id: "c" }] }, before, NOW, "UTC"), "Read just now. 2 new items.");
+  assert.equal(checkWords({ checked: "read", error: null, fetched_at: NOW.toISOString(), items: [{ id: "a" }] }, before, NOW, "UTC"), "Read just now. Nothing new.");
+  assert.equal(checkWords({ checked: "read", error: "Athena couldn't reach the Community catalogue.", fetched_at: at, items: [{ id: "a" }] }, before, NOW, "UTC"), "Athena couldn't reach the Community catalogue. Showing the list from today at 09:14.");
+  assert.equal(checkWords({ checked: "read", error: "Athena couldn't reach the Community catalogue.", fetched_at: null, items: [] }, before, NOW, "UTC"), "Athena couldn't reach the Community catalogue.");
+});
+
+test("an empty kind says when the list was read, not \"Try another kind\"", () => {
+  assert.deepEqual(emptyKindWords("theme", "2026-11-26T09:14:00Z", NOW, "UTC"), { title: "No themes yet", sub: "Last read today at 09:14." });
+  assert.deepEqual(emptyKindWords("checkin", null, NOW, "UTC"), { title: "No check-ins yet", sub: "" });
 });
