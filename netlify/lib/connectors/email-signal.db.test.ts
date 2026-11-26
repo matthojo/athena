@@ -34,9 +34,11 @@ async function setup(recipe = "email-digest", label = `signal${Math.random().toS
   return { writer, run, stats, source: `email-digest-${label}` };
 }
 
+/** Team events as Athena reads them: facets are sealed (lib/team-events.ts), so through q and facetsOf. */
 async function events(): Promise<Array<{ ref_kind: string; facets: Record<string, unknown> }>> {
-  const { qRaw } = await import("../../../lib/db");
-  return qRaw(`SELECT ref_kind, facets FROM team_events ORDER BY id`);
+  const { q } = await import("../../../lib/db");
+  const { facetsOf } = await import("../../../lib/team-events");
+  return (await q<{ ref_kind: string; facets: unknown }>(`SELECT ref_kind, facets FROM team_events ORDER BY id`)).map((r) => ({ ref_kind: r.ref_kind, facets: facetsOf(r.facets) }));
 }
 
 test("an email digest keeps notes for reference mail only", { skip: !url && "set ATHENA_TEST_DB_URL" }, async () => {

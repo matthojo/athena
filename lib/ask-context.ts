@@ -24,7 +24,7 @@ import { addDays, upcomingOccurrences, zonedParts } from "./dates";
 import { getOwnerTimeZone, listEvents, listReminders, notDeclined } from "./db";
 import { healthDays } from "./health";
 import { hoursMinutes, RECHARGE } from "./health-line";
-import { guardText } from "./jev";
+import { guardText, type Guarded } from "./jev";
 import { listCommitments, listDueCommitments, LOOP_KINDS, type Commitment } from "./memory";
 import { placeDays } from "./places-visits";
 import { travelLegs } from "./travel-day";
@@ -227,7 +227,7 @@ export async function loadAskContextData(now: Date, tz: string): Promise<AskCont
 
 // ---------- Cached ----------
 
-let cached: { key: string; block: Promise<string> } | null = null;
+let cached: { key: string; block: Promise<Guarded> } | null = null;
 
 /** Forget the cached block (tests, and after a write that changes the day). */
 export function clearAskContextCache(): void {
@@ -240,18 +240,23 @@ export function clearAskContextCache(): void {
  * through Jev's injection check once when it's built. "" when nothing loads.
  */
 export async function askContext(opts: { now?: Date; tz?: string } = {}): Promise<string> {
+  return (await askContextChecked(opts)).text;
+}
+
+/** askContext with what Jev made of it, kept with the block: an unattended run's guard takes it in (lib/answer.ts). */
+export async function askContextChecked(opts: { now?: Date; tz?: string } = {}): Promise<Guarded> {
   const now = opts.now ?? new Date();
   const tz = opts.tz ?? (await getOwnerTimeZone());
   const p = zonedParts(now, tz);
   const key = `${tz}|${p.date}T${p.time}`;
   if (cached?.key === key) return cached.block;
-  const block = (async () => {
+  const block = (async (): Promise<Guarded> => {
     try {
       const text = renderAskContext(await loadAskContextData(now, tz));
-      return (await guardText(text)).text;
+      return await guardText(text);
     } catch (error) {
       console.warn("Athena ask context:", error instanceof Error ? error.message : error);
-      return "";
+      return { text: "", flagged: false, unchecked: false };
     }
   })();
   cached = { key, block };

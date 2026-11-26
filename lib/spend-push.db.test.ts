@@ -91,7 +91,7 @@ test("the budget's pushes reach the device, encrypted, once each a day: at 80% a
   forgetBudget(true);
   pushDeps.allowed = () => true;
   process.env.MCP_BEARER_TOKEN ??= "test-master-token";
-  const credential = pushCredential(new Request("https://athena.test/", { headers: { authorization: `Bearer ${process.env.MCP_BEARER_TOKEN}` } }))!;
+  const credential = pushCredential({ id: "master" })!;
   await savePushSubscription({ endpoint: `${base}/push/phone`, p256dh: device.getPublicKey().toString("base64url"), auth: auth.toString("base64url") }, credential);
 
   const at = new Date();

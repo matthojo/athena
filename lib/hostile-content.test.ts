@@ -293,14 +293,26 @@ test("M5: a subscription endpoint must be on a known push service", () => {
   }
 });
 
-test("M5: a subscription's credential is a fingerprint of the request's token, never the token", () => {
-  const req = (token?: string) => new Request("https://athena.test/api/push/subscribe", { headers: token ? { authorization: `Bearer ${token}` } : {} });
-  const a = pushCredential(req("master-token-one"));
-  assert.match(a ?? "", /^[0-9a-f]{32}$/);
-  assert.equal(pushCredential(req("master-token-one")), a);
-  assert.notEqual(pushCredential(req("master-token-two")), a);
-  assert.ok(!a!.includes("master-token-one"));
-  assert.equal(pushCredential(req()), null);
+test("M5: a subscription's credential is the master token by a fingerprint of it, or an API key by its id, never a token", () => {
+  const was = process.env.MCP_BEARER_TOKEN;
+  try {
+    process.env.MCP_BEARER_TOKEN = "master-token-one";
+    const a = pushCredential({ id: "master" });
+    assert.match(a ?? "", /^[0-9a-f]{32}$/);
+    assert.equal(pushCredential({ id: "master" }), a);
+    assert.ok(!a!.includes("master-token-one"));
+    process.env.MCP_BEARER_TOKEN = "master-token-two";
+    assert.notEqual(pushCredential({ id: "master" }), a, "a new master token drops its subscriptions");
+    const key = pushCredential({ id: "key:5a3e0000-0000-4000-8000-000000000001" });
+    assert.match(key ?? "", /^[0-9a-f]{32}$/);
+    assert.notEqual(key, pushCredential({ id: "key:5a3e0000-0000-4000-8000-000000000002" }));
+    assert.equal(pushCredential({ id: "something else" }), null);
+    delete process.env.MCP_BEARER_TOKEN;
+    assert.equal(pushCredential({ id: "master" }), null);
+  } finally {
+    if (was === undefined) delete process.env.MCP_BEARER_TOKEN;
+    else process.env.MCP_BEARER_TOKEN = was;
+  }
 });
 
 // ---------- M4: the login limit ----------

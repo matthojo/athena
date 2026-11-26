@@ -13,6 +13,7 @@
  */
 import { qRaw } from "./db";
 import { needsReseal, open, seal, secretBoxConfigured } from "./secret-box";
+import { ART_ROW, artContext, loadSecretFormat } from "./secret-format";
 
 export type TileProvider = "maptiler" | "stadia";
 export const TILE_PROVIDERS: readonly TileProvider[] = ["maptiler", "stadia"];
@@ -38,9 +39,9 @@ export interface MapsArtStatus {
   setup: { encryption: boolean };
 }
 
-const ROW = "maps-art";
-/** What each key is sealed for (lib/secret-box.ts). */
-const sealedFor = (which: "tiles" | "tmdb") => `settings\nmaps-art\n${which}`;
+const ROW = ART_ROW;
+/** What each key is sealed for (lib/secret-box.ts, lib/secret-format.ts). */
+const sealedFor = artContext;
 
 async function load(): Promise<Stored> {
   const [row] = await qRaw<{ value: Stored }>(`SELECT value FROM settings WHERE key = $1`, [ROW]);
@@ -100,6 +101,7 @@ export async function setKeyStatus(which: "tiles" | "tmdb", status: KeyStatus): 
 
 async function opened(which: "tiles" | "tmdb", k: StoredKey | undefined): Promise<string | null> {
   if (!k) return null;
+  await loadSecretFormat();
   try {
     const key = open(k.key, sealedFor(which));
     // Sealed in the older format or under a previous key: seal again, unless it was replaced meanwhile.

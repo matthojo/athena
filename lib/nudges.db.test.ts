@@ -124,7 +124,7 @@ test("reminders: the evening prompt reaches the device once, and not on a kept d
   // The fake service is on localhost, and the subscription is the master token's.
   pushDeps.allowed = () => true;
   process.env.MCP_BEARER_TOKEN ??= "test-master-token";
-  const credential = pushCredential(new Request("https://athena.test/", { headers: { authorization: `Bearer ${process.env.MCP_BEARER_TOKEN}` } }))!;
+  const credential = pushCredential({ id: "master" })!;
   await savePushSubscription({ endpoint: `${base}/push/device-1`, p256dh: device.getPublicKey().toString("base64url"), auth: auth.toString("base64url") }, credential);
   // The morning briefing has its own tests; keep it out of these runs.
   for (const d of ["2026-11-04", "2026-11-05", "2026-11-06"]) await claimReminder(`briefing:${d}`);

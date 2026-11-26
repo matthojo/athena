@@ -64,7 +64,7 @@ import { whatAthenaKnows } from "../../lib/knows";
 import { loadAskMoney, saveAskMoney } from "../../lib/money";
 import { getOwnerProfile, loadAskWeb, loadProfileSetup, parseProfileEdits, parseSetupChange, saveAskWeb, saveOwnerProfile, saveProfileSetup } from "../../lib/profile";
 import type { Config, Context } from "@netlify/functions";
-import { authorized, checkBearer, credentialOf } from "../lib/mcp/bearer";
+import { authorized, checkBearer, credentialOf, signedInAs } from "../lib/mcp/bearer";
 import { corsOrigin, siteOrigin, siteOrigins } from "../lib/site-origin";
 import { bytesUpTo } from "../lib/body-limit";
 import { DataBoxError } from "../../lib/data-box";
@@ -1181,7 +1181,8 @@ async function handlePushSubscribe(req: Request): Promise<Response> {
   }
   // Known push services only, and the subscription is tied to the credential that registered it.
   if (!pushEndpoint(endpoint)) return errorResponse(req, 400, "This browser's push service isn't one Athena sends to");
-  const credential = pushCredential(req);
+  const who = await signedInAs(req);
+  const credential = who && pushCredential(who);
   if (!credential) return errorResponse(req, 401, "Unauthorized");
   if (keys.p256dh.length > 200 || keys.auth.length > 100) return errorResponse(req, 400, "Missing 'keys.p256dh' / 'keys.auth'");
   await savePushSubscription({ endpoint, p256dh: keys.p256dh, auth: keys.auth }, credential);
