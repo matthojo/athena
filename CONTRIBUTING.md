@@ -81,14 +81,14 @@ docs, screenshots and commit messages use made-up people and places only:
 sample mode. Nothing names a real site: where code needs the site's own
 address it reads Netlify's `URL`, and examples use `athena.example.com`.
 
-**Keep the docs true.** Athena's documentation lives in the
-[athena-community](https://github.com/matthojo/athena-community) repository,
-under `docs/`, and is published at https://athena-community.netlify.app/docs/. A change to what Athena
-does, a label people see, a route, an MCP tool or an environment variable
-needs a docs pull request there; link it from yours. If a change affects
-what's encrypted, who can read it, or what leaves the site, that includes
-the [security model](https://athena-community.netlify.app/docs/security/). Docs describe Athena as it is: no
-history of decisions, in the docs or in code comments.
+**Keep the docs true.** Athena's documentation is published at
+https://athena-community.netlify.app/docs/, from a separate repository that the
+maintainer keeps. If your change affects what Athena does, a label people see,
+a route, an MCP tool or an environment variable, say in your pull request
+what the docs need to say, and the maintainer updates them. That includes the
+[security model](https://athena-community.netlify.app/docs/security/) when a change
+affects what's encrypted, who can read it, or what leaves the site. Code
+comments describe Athena as it is, with no history of decisions.
 
 **Words people read** (app text, notes Athena writes, docs) follow
 `lib/writing-style.ts`: plain and specific, with no filler.

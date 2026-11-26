@@ -7,6 +7,8 @@
 - **Something's broken:** open a
   [bug report](https://github.com/matthojo/athena/issues/new/choose). Settings
   → About lists the details to copy into it.
+- **A problem with an item on Athena Community**, or a request to take one
+  down: [A problem with a Community item](https://github.com/matthojo/athena/issues/new?template=community_item.yml).
 - **An idea:** suggest it in
   [Discussions](https://github.com/matthojo/athena/discussions) or open a
   [feature request](https://github.com/matthojo/athena/issues/new/choose).

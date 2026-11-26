@@ -1,0 +1,45 @@
+name: A problem with a Community item
+description: An item listed on Athena Community that's broken, misleading or unsafe, or a request to take one down.
+labels: [community]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is for an assistant, skill, flow, set of check-in questions, template or theme listed on [Athena Community](https://athena-community.netlify.app/). For a problem with Athena itself, use a bug report.
+
+        If the item could do harm and describing it in public would help someone misuse it, [report it privately](https://github.com/matthojo/athena/security/advisories/new) instead.
+  - type: input
+    id: item
+    attributes:
+      label: The item
+      description: Its name, and its address on the Community site.
+      placeholder: https://athena-community.netlify.app/items/…
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What's wrong
+      options:
+        - It doesn't do what its summary says
+        - It asks for more than it needs
+        - It doesn't work in my Athena
+        - It holds someone's personal data
+        - It's mine and I'd like it taken down
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What you saw
+      description: What you expected, and what happened instead. For a take-down request, the reason in one plain sentence; everyone who added the item sees it.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you post
+      options:
+        - label: I've taken my own personal data out of this report.
+          required: true

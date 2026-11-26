@@ -22,9 +22,7 @@ Test only against a copy of Athena that you run yourself, and leave out any
 real personal data, yours or anyone else's.
 
 A problem in an item listed on Athena Community, or in the Community site
-itself, goes to the
-[Community repository](https://github.com/matthojo/athena-community/security)
-instead.
+itself, is reported here too. Say that it's about Community.
 
 ## What happens next
 
@@ -62,6 +60,6 @@ your site, and the known limits.
 ## Changing what's protected
 
 A pull request that changes what's encrypted, who can read it or what leaves
-the site updates the security model too: open a matching pull request on the
-[Community repository](https://github.com/matthojo/athena-community), where
-the docs live, and link it from yours.
+the site says so in its description, so the
+[security model](https://athena-community.netlify.app/docs/security/) can be updated to
+match.
