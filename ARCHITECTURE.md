@@ -15,15 +15,15 @@ and day-to-day usage, see `README.md`.
 The design went through a few rounds before landing here. The decisions that
 shaped the current shape:
 
-- **No iCloud folder as the data store.** No markdown vault, no file-based
+- **No synced local file store for the data.** No markdown vault, no file-based
   source of truth, no git-as-sync-bridge. This repository is an ordinary code
   repository (the Netlify site: dashboard, functions, schema, docs) — it
-  happening to sit in iCloud Drive is incidental, not architectural.
+  happening to sit in a synced local file store is incidental, not architectural.
 - **Netlify DB has no cost concern** for this project — it runs on an account
   where the usual credit-plan tradeoffs that push toward lighter-weight options
   don't apply. That removed a reason to hedge toward something smaller.
-- **Mobile access is a proper offline-capable app**, not "edit files that
-  happen to sync via iCloud." Local storage lives on-device and syncs to the
+- **Mobile access is a proper offline-capable app**, not "edit files in a
+  synced local file store." Local storage lives on-device and syncs to the
   cloud database.
 - **Obsidian is an export format**, not a live surface — useful for
   portability, backup, and occasional browsing, not something the architecture
@@ -303,7 +303,7 @@ in exactly one place.
 
 ## Mobile + offline: a proper local-first PWA
 
-This replaces "Obsidian pointed at an iCloud folder" as the mobile story. One
+This replaces "Obsidian pointed at a synced local file store" as the mobile story. One
 installable Progressive Web App (installs to the iPhone home screen like a
 native app, scaffolded under `app/`) provides:
 
@@ -2611,10 +2611,10 @@ Talk with one plain sentence and, where there's something to fix, a button
 to Connectors. With ElevenLabs connected, dictation uses Scribe v2 (batch)
 from the function and falls back to Gemini if ElevenLabs fails.
 
-### Why a PWA instead of Obsidian/iCloud sync
+### Why a PWA instead of Obsidian and a synced local file store
 
-The previous design iteration used an Obsidian vault synced via iCloud as the
-mobile surface. That approach ties correctness to iCloud's file-sync timing
+The previous design iteration used an Obsidian vault in a synced local file
+store as the mobile surface. That approach ties correctness to the store's file-sync timing
 (which is opaque and occasionally slow or conflict-prone across devices),
 requires a markdown-shaped data model that fights against a relational graph
 with typed edges and time-series metrics, and has no real offline-write queue
