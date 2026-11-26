@@ -4,17 +4,9 @@
  * The call carries the same bearer token as the rest of /api/*.
  */
 import { finishRun } from "../../../lib/connectors";
+import { HAND_OFF_MS, handedOff } from "./hand-off";
 
 export const RUN_PATH = "/api/collect-run";
-/** A hand-off waits this long for the background function to answer (it answers 202 at once). */
-export const HAND_OFF_MS = 5_000;
-
-/**
- * Did a background function take the hand-off? It answers 202 once deployed
- * and 204 under `netlify dev`. A redirect or a 200 is never it (the login
- * page, say), so neither counts.
- */
-export const handedOff = (status: number): boolean => status === 202 || status === 204;
 
 export async function triggerRuns(origin: string, runIds: string[], fetchImpl: typeof fetch = fetch): Promise<void> {
   if (runIds.length === 0) return;

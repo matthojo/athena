@@ -4,7 +4,8 @@
 import { afterEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { backfillTrigger, BACKFILL_PATH } from "./backfill";
-import { handedOff, RUN_PATH, triggerRuns } from "./trigger";
+import { handedOff } from "./hand-off";
+import { RUN_PATH, triggerRuns } from "./trigger";
 
 const g = globalThis as { Netlify?: unknown; fetch: typeof fetch };
 const realFetch = g.fetch;

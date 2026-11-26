@@ -32,7 +32,7 @@ import { zonedToday } from "../../../lib/dates";
 import { fillEntryHours, MAX_ENTRIES_PER_WRITE, writeEntries, type EntryInput } from "../../../lib/days";
 import { syncWatchRead, type WatchReadInput } from "../../../lib/watch-read-sync";
 import { directFor } from "./direct";
-import { HAND_OFF_MS, handedOff } from "./trigger";
+import { HAND_OFF_MS, handedOff } from "./hand-off";
 import { ServiceError } from "./feeds-shared";
 import { historyTarget } from "./youtube-history";
 
