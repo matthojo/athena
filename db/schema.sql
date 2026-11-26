@@ -331,7 +331,7 @@ CREATE INDEX facts_archived_idx ON facts (archived_at DESC) WHERE archived_at IS
 
 -- ---------- Identities: how to recognise a person in other systems ----------
 -- Values are normalised on write (emails lowercased, phones digits only, names
--- trimmed + lowercased) so agents can resolve "priya@acme.com" or a Slack
+-- trimmed + lowercased) so agents can resolve "priya@acme.example" or a Slack
 -- handle to one person. people.email/phone are also checked when resolving.
 CREATE TABLE identities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

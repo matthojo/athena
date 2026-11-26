@@ -32,7 +32,7 @@ const G_EVENTS: Record<string, Array<Record<string, unknown>>> = {
 G_EVENTS.primary = G_EVENTS["me@example.com"];
 
 // ---------- iCloud ----------
-const APPLE_ID = "jordan@icloud.com";
+const APPLE_ID = "jordan@ic.example";
 const PASSWORD = "abcd-efgh-ijkl-mnop";
 const CAL_HOME = "https://p42-caldav.icloud.com/123456789/calendars/";
 const INVITE_URL = `${CAL_HOME}8F3A2C10-WORK/DINNER-1.ics`;
@@ -50,7 +50,7 @@ const INVITE = [
   "SUMMARY:Dinner at Priya's",
   "ORGANIZER;CN=Priya Shah:mailto:priya@acme.example",
   "ATTENDEE;CN=Priya Shah;PARTSTAT=ACCEPTED;ROLE=CHAIR:mailto:priya@acme.example",
-  "ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:jordan@icloud.com",
+  "ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:jordan@ic.example",
   "ATTENDEE;CN=Sam Lee;PARTSTAT=TENTATIVE:mailto:sam@acme.example",
   "END:VEVENT",
   "END:VCALENDAR",
@@ -224,7 +224,7 @@ test("calendar parity: pick calendars on Google, read across them, and answer an
     assert.equal(puts().length, 1, "the pending Maybe went out on turning it on");
     assert.equal(puts()[0].ifMatch, '"e1"');
     assert.equal(onlyPartstatChanged(INVITE, puts()[0].body, [APPLE_ID]), true);
-    assert.match(state.ics, /ATTENDEE;CN=Jordan;PARTSTAT=TENTATIVE;RSVP=TRUE:mailto:jordan@icloud.com/);
+    assert.match(state.ics, /ATTENDEE;CN=Jordan;PARTSTAT=TENTATIVE;RSVP=TRUE:mailto:jordan@ic.example/);
     assert.equal((await getEvent(saved.id))!.rsvp_calendar, "maybe");
     assert.deepEqual(
       JSON.parse((await api("GET", `/connectors/${icloud.id}/calendars`)).text).calendars.filter((c: { chosen: boolean }) => !c.chosen).map((c: { id: string }) => c.id),
@@ -253,7 +253,7 @@ test("calendar parity: pick calendars on Google, read across them, and answer an
     assert.deepEqual(puts().map((p) => p.ifMatch), ['"e7"', '"e8"'], "If-Match each time, the retry on the fresh ETag");
     assert.equal(state.seen.filter((s) => s.method === "GET" && s.url === INVITE_URL).length, 2, "re-read once");
     assert.equal(onlyPartstatChanged(before, state.ics, [APPLE_ID]), true, "only your line changed");
-    assert.match(state.ics, /PARTSTAT=DECLINED;RSVP=TRUE:mailto:jordan@icloud.com/);
+    assert.match(state.ics, /PARTSTAT=DECLINED;RSVP=TRUE:mailto:jordan@ic.example/);
     assert.match(state.ics, /CN=Sam Lee;PARTSTAT=TENTATIVE/, "Sam's answer is untouched");
     dinner = (await getEvent(saved.id))!;
     assert.deepEqual([dinner.rsvp, dinner.rsvp_calendar, dinner.rsvp_error], ["declined", "declined", ""]);
