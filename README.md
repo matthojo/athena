@@ -150,7 +150,7 @@ Open your site, type your `SITE_PASSWORD`, choose **Connect** and paste your
 
 ### 4. Add what you use
 
-Connect accounts under **Settings → Your sources**, turn on notifications, and
+Connect accounts under **Settings → Sources**, turn on notifications, and
 connect Claude. [Your first week](https://athena-community.netlify.app/docs/start/first-week/) walks through it.
 
 New versions arrive as a pull request in your own repository every Monday
