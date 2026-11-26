@@ -1,9 +1,9 @@
 /**
- * Ask saves what it found (ask-past-sources, owner's call 8 Nov): when an
- * answer rests on an item in a connected account that Athena doesn't have,
- * usually because it's from before Athena started collecting (January's
- * flights, booked by email in December), that item is saved straight away,
- * with no extra tap, the way the account's collection would have saved it.
+ * Ask saves what it found: when an answer rests on an item in a connected
+ * account that Athena doesn't have, usually because it's from before Athena
+ * started collecting (January's flights, booked by email in December), that
+ * item is saved straight away, with no extra tap, the way the account's
+ * collection would have saved it.
  *
  * lib/answer.ts returns the cited account items as `imports`; the app sends
  * them to POST /api/assistant/import once the answer is on screen, and shows

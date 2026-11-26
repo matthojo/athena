@@ -1,10 +1,10 @@
 /**
- * Your activity, beyond plays and watches (owner decision, 12 Nov): the
- * hourly check's streams for every other Life log source with a direct
- * adapter. Each stream calls the account's own read tools (the same GETs a
- * Life log run makes, under the same "What Athena can read" allowlist) and
- * maps the rows the way the Life log recipe says (recipes.ts), so the
- * evening run only writes the day's line. No model.
+ * Your activity, beyond plays and watches: the hourly check's streams for
+ * every other Life log source with a direct adapter. Each stream calls the
+ * account's own read tools (the same GETs a Life log run makes, under the
+ * same "What Athena can read" allowlist) and maps the rows the way the Life
+ * log recipe says (recipes.ts), so the evening run only writes the day's
+ * line. No model.
  *
  * Ids, one per thing:
  *  - Goodreads: `book:r<review id>` finished, `started:r<review id>`,

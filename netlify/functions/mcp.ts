@@ -211,7 +211,7 @@ function buildServer(): McpServer {
     },
     safe(async ({ id, ...patch }) => {
       // An agent is a model: in a note the owner wrote, links it adds are plain (lib/links.ts modelWroteInto). On
-      // purpose for every MCP key, a Claude only one included (owner, 24 Nov 2026; SECURITY.md §10).
+      // purpose for every MCP key, a Claude only one included (SECURITY.md §10).
       const was = patch.body !== undefined ? await getNote(id) : null;
       const body = was && patch.body !== undefined ? modelWroteInto(was, patch.body) : patch.body;
       const note = await updateNote(id, { ...patch, ...(body !== undefined ? { body } : {}) }, { by: "mcp" });
