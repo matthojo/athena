@@ -1,5 +1,5 @@
 /**
- * Team: one assistant, #/team/<id> (docs/team.md, "Detail page"). It reads
+ * Team: one assistant, #/team/<id>. It reads
  * like a colleague's desk, not a settings form:
  *
  * - The hero: the character, its name and job (both editable where they

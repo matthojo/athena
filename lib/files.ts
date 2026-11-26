@@ -31,7 +31,7 @@ import { isEncryptedPlaceholder } from "./encrypted";
 import { DOCX_TYPE } from "./assignment-types";
 import type { StepSink } from "./steps";
 
-// ---------- Limits (docs/notes/attachments.md) ----------
+// ---------- Limits ----------
 
 /** Per file, after the app has shrunk any photo. Netlify Functions take about 6 MB per request. */
 export const MAX_FILE_BYTES = 4 * 1024 * 1024;

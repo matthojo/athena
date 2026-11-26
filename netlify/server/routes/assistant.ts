@@ -4,7 +4,7 @@
  * /api/assistant/capture, the token or a full key for the rest). 20 requests
  * a minute per IP: every request spends AI Gateway credits.
  *
- * What the server adds (docs/netlify-server-ask.md):
+ * What the server adds:
  *  - Runs that outlive the app. A streamed reply sent with X-Ask-Run: <uuid>
  *    runs under context.waitUntil and is kept (../assistant/runs.ts), so the
  *    same request sent again, or GET /api/assistant/runs/<id>, follows it or
@@ -113,7 +113,7 @@ export async function handleAssistant(req: Request, context: Context): Promise<R
     if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     const warming = warmUp();
     context.waitUntil(warming.then((w) => console.log(`Athena ask warm: ${w.accounts} accounts in ${w.ms} ms`, accounts().stats)));
-    // `wait` is for measuring (docs/netlify-server-ask.md); the app doesn't wait.
+    // `wait` is for measuring; the app doesn't wait.
     return jsonResponse({ ok: true, runs: true, ...(new URL(req.url).searchParams.has("wait") ? { ...(await warming), ...accounts().stats } : {}) });
   }
   if (req.method !== "OPTIONS" && third === "runs") {

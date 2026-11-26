@@ -3,7 +3,6 @@
  * GET /api/live/events is a Server-Sent Events stream that says which kinds
  * of thing changed (live/hub.ts, live/watch.ts); the app then pulls through
  * its usual sync. GET /api/live/ping says where the server ran.
- * See docs/netlify-server-live.md.
  */
 import { onShutdown, type Context } from "@netlify/server";
 import { qRaw } from "../../../lib/db";

@@ -40,7 +40,7 @@ import { MAP_APPS, type MapApp } from "../../../lib/embeds";
 import "../styles/days-art.css";
 import { isDark, onSchemeChange } from "../lib/appearance";
 
-/** Words on this page (docs/notes/days-art.md "New copy"). */
+/** Words on this page. */
 export const COPY = {
   heading: "Maps and artwork",
   lede: "Athena saves its own copy of each map, poster and cover. Your days load fast, and no other site sees what you open.",

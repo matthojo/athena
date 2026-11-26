@@ -3,7 +3,6 @@
  * limiter (Netlify Server has no `rateLimit` setting, so the limits the old
  * assistant.ts and talk.ts functions declared are counted here), and `warm`,
  * a place to keep clients and caches for the life of an instance.
- * See docs/netlify-server.md.
  */
 import { onShutdown } from "@netlify/server";
 import { authorized } from "../lib/mcp/bearer";

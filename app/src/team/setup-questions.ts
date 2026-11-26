@@ -1,5 +1,5 @@
 /**
- * Setup's questions (docs/team.md, "Skills"): 2–4 questions written for this
+ * Setup's questions: 2–4 questions written for this
  * job, each a row of answers to tap plus "Something else" for your own words.
  * Used by setup's second step and by "Give <Name> a skill" on an assistant's
  * page. Answers are kept by question id; answersFor turns them into what the

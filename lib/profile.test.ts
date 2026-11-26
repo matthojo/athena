@@ -42,7 +42,7 @@ function fact(key: string, value: string, extra: Partial<Fact> = {}): Fact {
 }
 
 test("catalogue: four steps, every field in one of them, keys unique", () => {
-  // You and your people first; work comes third (docs/notes/affection-2026-11.md, moment 3).
+  // You and your people first; work comes third.
   assert.deepEqual(PROFILE_STEP_IDS, ["about", "routines", "work", "help"]);
   // Examples are neutral, never the owner's own details.
   assert.deepEqual(PROFILE_FIELDS.filter((f) => f.step === "about").map((f) => f.key), ["Name", "Home town", "Region", "Lives with", "Important people"]);

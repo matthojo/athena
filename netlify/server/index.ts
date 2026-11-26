@@ -3,7 +3,6 @@
  * It claims only Ask, Talk, the live channel and Team chat's channel; everything else (REST CRUD,
  * /mcp, /api/voice/*, scheduled and background work) stays a function.
  * One module per area, so work on one never edits another's file.
- * See docs/netlify-server.md.
  */
 import type { Config, Context } from "@netlify/server";
 import { jsonResponse } from "./shared";

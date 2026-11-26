@@ -1,5 +1,5 @@
 /**
- * Saved for the app (lib/saved.ts on the server; contract in docs/notes/saved.md):
+ * Saved for the app (lib/saved.ts on the server):
  * GET /api/saved for the Library page and a day, GET /api/saved/:id for the
  * reader, POST /api/saved from the share target and the page's own box,
  * PATCH and DELETE to edit, archive and remove. Images come through the

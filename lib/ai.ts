@@ -27,7 +27,7 @@ export function aiConfigured(): boolean {
 
 /**
  * Running on the Netlify Server (netlify/server/shared.ts sets ATHENA_RUNTIME)? A request there isn't held
- * to a function's time limit, so Ask's time caps that only existed for it are longer (docs/netlify-server-ask.md).
+ * to a function's time limit, so Ask's time caps that only existed for it are longer.
  */
 export function onServer(): boolean {
   return env("ATHENA_RUNTIME") === "server";
@@ -61,7 +61,7 @@ export type DeniedWait = (ms: number, attempt: number) => void;
 /**
  * The gateway itself turned the request away before it reached the model: a 403
  * with no body, answered in under 2 ms. Seen in production since 11 Nov 2026, only
- * from the Netlify Server, in bursts of up to a minute (docs/notes/ask-gateway-403.md).
+ * from the Netlify Server, in bursts of up to a minute.
  * The cause isn't known, so it's treated as passing: each refusal is logged with what
  * is known (gatewayRefused), and the request is asked again. (A 403 from Claude or
  * Jev carries a body saying why, and isn't this. A credential the gateway doesn't

@@ -1,7 +1,7 @@
 /**
  * Drawing one link in one of its four modes (Mention, Link, Card, Embed) and
  * one of its states (loading, loaded, failed, offline). Lifted from the
- * approved prototype (docs/notes/rich-links.md); the editor's node views
+ * approved prototype; the editor's node views
  * (link-nodes.ts) and the read-only note view call these.
  *
  * A `Thing` is what's drawn: built from the link itself plus, when they've

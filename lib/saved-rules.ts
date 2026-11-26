@@ -26,7 +26,7 @@ export function cleanSource(raw: unknown): SavedSource {
   return SOURCE_NAME.test(name) ? name : "app";
 }
 
-/** Caps (docs/notes/saved.md): text, selection and note each; a title; an image; the whole request; the readable copy. */
+/** Caps: text, selection and note each; a title; an image; the whole request; the readable copy. */
 export const MAX_SAVED_TEXT = 20_000;
 export const MAX_SAVED_TITLE = 300;
 export const MAX_SAVED_IMAGE_BYTES = 10 * 1024 * 1024;

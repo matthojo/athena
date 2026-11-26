@@ -582,7 +582,7 @@ export interface FactWriter {
   byOwner?: boolean;
 }
 
-/** A `me` fact from anyone but the owner: always the Review inbox, whatever its confidence (docs/notes/profile-memory-plan.md). */
+/** A `me` fact from anyone but the owner: always the Review inbox, whatever its confidence. */
 function learnedAboutOwner(input: FactInput, writer: FactWriter): boolean {
   if (writer.byOwner) return false;
   const source = input.source ?? null;

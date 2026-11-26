@@ -1,5 +1,5 @@
 /**
- * Rich links' data on the device (docs/notes/rich-links-stage2s.md). The
+ * Rich links' data on the device. The
  * editor (stage 2E) draws links in notes from what this gives it:
  *
  *  - loadPreview(url): a web page's card. This device's copy first, keyed

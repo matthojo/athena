@@ -56,7 +56,7 @@ function present(r: Row): StoredNudge | null {
     actions: p.actions ?? [],
     ...(p.thread_id ? { thread_id: p.thread_id } : {}),
     ...(p.url ? { url: p.url } : {}),
-    // A Team run's card: who it's from, for its avatar (docs/team.md, Nudges).
+    // A Team run's card: who it's from, for its avatar.
     ...(p.assistant ? { assistant: p.assistant } : {}),
     expires_at: iso(r.expires_at)!,
     created_at: iso(r.created_at)!,

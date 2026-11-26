@@ -35,7 +35,7 @@ export const MAP_CACHE = "private, no-cache";
 
 const dataUri = (b: Buffer) => `data:image/webp;base64,${b.toString("base64")}`;
 
-/** Words for the app (docs/notes/days-art.md "New copy"). */
+/** Words for the app. */
 export const MAPS_ART_COPY = {
   noEncryption: "Athena can't keep keys here yet: its encryption key for sign-ins isn't set.",
   tileRejected: (p: TileProvider) => `${PROVIDERS[p].label} didn't accept that key. Copy it again from your ${PROVIDERS[p].label} account.`,

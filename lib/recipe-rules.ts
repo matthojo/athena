@@ -1,5 +1,5 @@
 /**
- * Recipes' shapes (migration 0053; contract in docs/notes/recipes.md), shared
+ * Recipes' shapes (migration 0053), shared
  * by the server (lib/recipes.ts), the API, Ask's tools and the app.
  */
 import type { Ingredient, UnitSystem } from "./recipe-units";
@@ -122,7 +122,7 @@ export function savedToMigrate(saved: Array<{ id: string; thing: string | null; 
   return saved.filter((s) => s.thing === "recipe" && !s.archived && !!s.url && !done.has(s.id)).map((s) => s.id);
 }
 
-// ---------- the API's shapes (docs/notes/recipes.md) ----------
+// ---------- the API's shapes ----------
 
 /** One line on the grocery list. */
 export interface GroceryItem {

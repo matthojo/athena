@@ -2,8 +2,7 @@
  * Meetings, chat, docs and files, sales and support, and automation services (Zoom, Dropbox, HubSpot…).
  * Joined into CONNECTOR_PRESETS by lib/connector-presets.ts; see there for the fields.
  *
- * Every entry is the vendor's own hosted MCP server, checked on 6 Nov 2026;
- * URLs, auth and sources are in docs/notes/connectors-business.md.
+ * Every entry is the vendor's own hosted MCP server, checked on 6 Nov 2026.
  * `readTools` holds only tools the vendor documents as reads. Where a server
  * publishes read-only OAuth scopes, `scope` asks for those alone.
  */

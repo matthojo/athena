@@ -9,7 +9,7 @@
  * (lib/skill-draft.ts) only opens the editor. A new skill starts off unless
  * the owner saves it on.
  *
- * An assistant's own skill (0069, docs/team.md "Skills") has `assistant_id`
+ * An assistant's own skill (0069) has `assistant_id`
  * set: Athena writes it for that Team assistant, its turns always load it,
  * and main Ask never lists or loads it (enabledSkills skips it; it stays off).
  * It doesn't count toward the owner's 50, and it goes with its assistant.

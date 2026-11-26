@@ -15,7 +15,7 @@ import { fetchActivity, undoActivity, type ActivityEntry } from "../db/ask-plans
 import { flowRunHref, flowRunOf, flowSourceWords, isFlowActivity, type FlowActivityFields } from "../flows/activity";
 import { clockTime } from "../lib/clock";
 
-/** #/settings/ask: Skills and What Ask did one step in. Routines moved to Team (docs/team.md). */
+/** #/settings/ask: Skills and What Ask did one step in. Routines moved to Team. */
 export function askSettingsSection(ctx: { open: (id: "ask-activity" | "skills") => void }): { el: HTMLElement; destroy: () => void } {
   const entry = h(
     "button",

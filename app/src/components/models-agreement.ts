@@ -1,5 +1,5 @@
 /**
- * The agreement (docs/ai-models.md, "The agreement"; owner, 17 Nov 2026: ask
+ * The agreement (owner, 17 Nov 2026: ask
  * once per company, then anything goes). Shown in the picker's own sheet the
  * first time the owner picks or tries a model from a company other than
  * Anthropic: what goes to that company, money and health included, and that

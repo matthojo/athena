@@ -4,7 +4,6 @@
  * query reads a watermark (newest timestamp + row count) per table, and a
  * kind whose watermark moved has changed. Nothing here reads personal
  * content: timestamps, counts and ids only.
- * See docs/netlify-server-live.md.
  */
 import { createHash } from "node:crypto";
 

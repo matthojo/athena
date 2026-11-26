@@ -1,5 +1,5 @@
 /**
- * Tracking: the pure rules (docs/team.md "Tracking"; the contract is lib/tracker-types.ts). Shared by the server
+ * Tracking: the pure rules (the contract is lib/tracker-types.ts). Shared by the server
  * (lib/trackers-store.ts, the routes, Ask's tools) and the app. No database, no network.
  *
  * A tracker follows one thing over time: a number with a label and a prefix or suffix ("£34", "12,400

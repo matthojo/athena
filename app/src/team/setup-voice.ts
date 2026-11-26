@@ -1,6 +1,6 @@
 /**
  * Team setup: what the new assistant says while you hire it, in its own
- * tone (docs/team.md, "Setup"). Pure, so it's tested without a page.
+ * tone. Pure, so it's tested without a page.
  *
  *   promiseLine("Finds a good price", [gift idea trigger]) → "When you save a gift idea, I'll find a good price."
  *   nextRun([{ kind: "schedule", days: [5], time: "17:00" }], wednesday) → "Friday at 17:00"

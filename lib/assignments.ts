@@ -1,5 +1,5 @@
 /**
- * Assignments: the store (docs/team.md, "Store"; migration 0076; the
+ * Assignments: the store (migration 0076; the
  * contract is lib/assignment-types.ts).
  *
  * `team_assignments.payload` seals the title and brief, and

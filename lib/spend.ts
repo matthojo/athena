@@ -1,5 +1,5 @@
 /**
- * AI spend (docs/ai-models.md, docs/notes/models-spend.md): what every model call cost, a daily budget for all of
+ * AI spend: what every model call cost, a daily budget for all of
  * Athena, and an optional cap for each assistant. Owner, 17 Nov 2026:
  *
  *  - The gateway reports tokens, not money, so a call's cost is its tokens times the published prices

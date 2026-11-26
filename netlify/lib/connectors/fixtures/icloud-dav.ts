@@ -3,8 +3,7 @@
  * namespaces and partition hosts, Calendar-written iCalendar with VTIMEZONE,
  * Contacts-written vCard 3.0 with item groups and X-ABLabel), trimmed, with
  * ids shortened and people replaced. Written from iCloud's replies as
- * CalDAV clients document them; not captured from a live account (see
- * docs/notes/icloud.md). Used by icloud.test.ts.
+ * CalDAV clients document them; not captured from a live account. Used by icloud.test.ts.
  */
 
 const ms = (body: string) => `<?xml version="1.0" encoding="UTF-8"?>\n<multistatus xmlns="DAV:">${body}</multistatus>`;

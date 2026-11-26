@@ -1,5 +1,5 @@
 /**
- * Link previews for rich links in notes (migration 0040; docs/notes/rich-links.md).
+ * Link previews for rich links in notes (migration 0040).
  * A web address shown as a Card, or as a Mention with its site's favicon,
  * needs a title, summary, site, picture and favicon. This reads them once
  * and keeps them, without making a Saved item.

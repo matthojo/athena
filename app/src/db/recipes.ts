@@ -1,6 +1,5 @@
 /**
- * Recipes for the app (lib/recipes.ts on the server; contract in
- * docs/notes/recipes.md): the grid, one recipe, importing from a link, the
+ * Recipes for the app (lib/recipes.ts on the server): the grid, one recipe, importing from a link, the
  * week plan, the grocery list and Settings → Recipes.
  *
  * Offline: the last copy of the grid, each recipe opened, the plan and the

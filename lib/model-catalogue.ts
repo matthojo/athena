@@ -1,5 +1,5 @@
 /**
- * The models the owner can choose from (docs/ai-models.md): Netlify AI
+ * The models the owner can choose from: Netlify AI
  * Gateway's public list, joined with Athena's own notes on the models it
  * knows.
  *

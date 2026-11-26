@@ -256,7 +256,7 @@ interface Chat {
   messages: Message[];
   saved: boolean;
   locked?: boolean;
-  /** One of the Team's assistants this conversation is with; null: Athena (docs/team.md). */
+  /** One of the Team's assistants this conversation is with; null: Athena. */
   assistant_id?: string | null;
 }
 
@@ -2049,7 +2049,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   let picked: AppSkill | null = null;
   /** The skill the message being sent right now goes with. */
   let askingSkill: string | null = null;
-  /** Who the conversation on screen is with (docs/team.md): Athena, or one of the Team's assistants. */
+  /** Who the conversation on screen is with: Athena, or one of the Team's assistants. */
   let who: Who = ATHENA;
   /** Whose conversations the list shows: Athena's (null) or one assistant's. Follows the open conversation. */
   let listWho: ThreadFilter = null;
@@ -2150,7 +2150,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
     );
   };
   const introMark = h("span", { class: "ask__intro-who" }, h("span", { class: "orb", "aria-hidden": "true" }));
-  /** A fresh conversation with an assistant: what it's done lately, each opening its conversation (docs/team.md, "Ask"). */
+  /** A fresh conversation with an assistant: what it's done lately, each opening its conversation. */
   const recentSlot = h("div", { class: "who-recent-slot" });
   const intro = h("div", { class: "ask__intro" }, introMark, introTitle, introLede, suggestionRow, recentSlot);
   async function paintRecent(of: Who) {
@@ -3425,7 +3425,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
         };
       }
     }
-    // An assignment (docs/team.md "Assignments"): the lineup comes back as a card for Go, as start_assignment's does.
+    // An assignment: the lineup comes back as a card for Go, as start_assignment's does.
     if (/\bassignment\b/i.test(plain)) {
       await playSampleSteps([["Picking a lineup", "Picked a lineup"]], step);
       const { lineup, fallback } = await draftLineup(plain.replace(/^.*?\bassignment\b[\s:,.-]*(?:to|for|on)?\s*/i, "") || plain);
@@ -3711,7 +3711,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
           const think = onlyModel(c).model ?? thinkingModel((await loadModels().catch(() => null))?.effective, c.assistant_id);
           return { text: `In sample mode I can keep and show ${names}, but not read ${one ? "it" : "them"}. Connect Athena and I'll read ${one ? "it" : "them"} for you.`, sources: [], related: [], searched: "Kept on this device", skipped: [], found: false, flagged: false, ...(think ? { model: think } : {}) } as AskReply;
         }
-        // Asking Athena about the Lego Ferrari: she checks with Moss, who watches gift prices (docs/team.md, "Checked with Moss").
+        // Asking Athena about the Lego Ferrari: she checks with Moss, who watches gift prices.
         if (!c.assistant_id && /\b(lego|ferrari)\b/i.test(q)) {
           await playSampleSteps([["Checking with Moss", "Checked with Moss"]], step);
           const said = "The Lego Ferrari is £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas.";

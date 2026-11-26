@@ -1,5 +1,5 @@
 /**
- * Home's Ask box (docs/team.md, Experience → Home): "Ask Athena…" with a row
+ * Home's Ask box: "Ask Athena…" with a row
  * of avatar chips under it, Athena's orb first, then each assistant. Picking
  * a chip is choosing a colleague: the box takes their face, asks "Ask Moss,
  * or give her a job…", and a line under the chips says what they do, or

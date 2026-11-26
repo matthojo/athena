@@ -1,5 +1,5 @@
 /**
- * A live price check through a web-enabled Team run (docs/team-notes/web-runs.md, "Live check"): the same loop,
+ * A live price check through a web-enabled Team run: the same loop,
  * budget, rule and region a scheduled run uses, against the real model and the real web. No database needed.
  *
  *   ANTHROPIC_API_KEY=… npx tsx scripts/web-run-check.ts "LEGO Technic Ferrari Daytona SP3 42143" "United Kingdom, GBP, English" Leeds

@@ -1,5 +1,5 @@
 /**
- * One run of a Team assistant (docs/team.md), and its record in `team_runs`.
+ * One run of a Team assistant, and its record in `team_runs`.
  *
  * A run is queued by a trigger (lib/team-triggers.ts) or Run now
  * (POST /api/team/:id/run) and run once by the background function

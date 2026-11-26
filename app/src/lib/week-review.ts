@@ -3,8 +3,8 @@
  * app loads: the period's Days, interactions, commitments, trips, event
  * records, and the server's extras (lib/week-review.ts: goals moved on,
  * events with a person at a place, places known before). Pure and DOM-free,
- * so it runs under `npx tsx --test`. Lifted from the approved prototype
- * (docs/notes/week-review.md), with the owner's decisions of 2026-11-08:
+ * so it runs under `npx tsx --test`. Lifted from the approved prototype,
+ * with the owner's decisions of 2026-11-08:
  *
  *  - Seen: logged catch-ups (in person, calls) plus calendar events with a
  *    named person at a place that period. Meetings, messages and emails
@@ -562,8 +562,7 @@ export function heldWhen(r: HabitRow, from?: string): string {
 }
 
 /**
- * What held, by name, in place of a percentage (docs/notes/affection-2026-11.md,
- * moment 6): "Evening walk every weekday. Read 20 pages on six days." A habit
+ * What held, by name, in place of a percentage: "Evening walk every weekday. Read 20 pages on six days." A habit
  * held when it was done on five or more days of a week (five in seven of a
  * month's days). Rows keep their order, four at most by name. When none held, the most-done one or
  * two are named with their days, so the line still says what happened; with

@@ -1,5 +1,5 @@
 /**
- * More of the Life log, from the connectors audit (docs/notes/connectors-audit.md):
+ * More of the Life log, from the connectors audit:
  * ListenBrainz, Raindrop.io and Eventbrite, reached through their own APIs
  * (netlify/lib/connectors/{listenbrainz,raindrop,eventbrite}-direct.ts),
  * GETs only. Joined into CONNECTOR_PRESETS by lib/connector-presets.ts; see

@@ -189,7 +189,7 @@ export async function draftFlow(sentence: string, deps: DraftDeps = {}): Promise
     const names = (f: (t: DraftTool) => boolean) => tools.filter(f).map((t) => t.name).join(", ") || "none";
     const system = `${SYSTEM.replace("<<TRIGGER_GIVES>>", givesLines(gives)).replace("<<RUNS_ALONE>>", names((t) => t.runsAlone)).replace("<<DRAFTS>>", names((t) => t.draft))}\n\nToday is ${today(deps.now ?? new Date(), deps.tz ?? "Europe/London")}.\n\nTools a tool step may use (fields marked * are needed):\n${toolLines(tools)}`;
     const res = await jobMessage(
-      // Drafting a flow is the same kind of careful work as drafting an assistant (docs/ai-models.md).
+      // Drafting a flow is the same kind of careful work as drafting an assistant.
       "team_draft",
       deps.client ?? new Anthropic(),
       {

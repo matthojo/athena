@@ -1,6 +1,6 @@
 /**
- * Team: "When it runs", edited as sentences (docs/team.md, setup step 2 and
- * the detail page). Each trigger reads as one line ("Every weekday at 8:00",
+ * Team: "When it runs", edited as sentences in setup and on the detail
+ * page. Each trigger reads as one line ("Every weekday at 8:00",
  * "When a Linear issue is assigned to you") with its controls under it:
  * weekday pills and a time for a schedule; a source, then filter chips, for
  * an event. The sentence follows every change.

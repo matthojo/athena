@@ -4,7 +4,7 @@
  * another device, a collection), and the pulls the app already has run
  * straight away. Events carry kinds and ids, never content. With the channel
  * down nothing is lost: the pulls on opening, on coming back to the app and
- * on reconnecting still happen. See docs/netlify-server-live.md.
+ * on reconnecting still happen.
  */
 import { getToken, hasToken, isSampleMode } from "../db/api";
 import { createLiveClient } from "./client";

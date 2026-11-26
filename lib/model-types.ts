@@ -1,6 +1,6 @@
 /**
- * Which AI model does which job: the shared types for "AI models"
- * (docs/ai-models.md). Imported by the server and by app/src, so nothing here
+ * Which AI model does which job: the shared types for "AI models".
+ * Imported by the server and by app/src, so nothing here
  * may touch the database, the environment or Node.
  *
  * Every model is reached through Netlify AI Gateway. A model is named by its

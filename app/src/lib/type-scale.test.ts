@@ -1,5 +1,5 @@
 /**
- * One type scale and one set of radii (docs/notes/night-e1.md). Every font
+ * One type scale and one set of radii. Every font
  * size and border radius in the stylesheets comes from tokens.css, like the
  * durations and easings in finish-motion.test.ts. Allowed as they are: 0,
  * 50% (a circle), 999px (a pill, better written --radius-pill), inherit, and

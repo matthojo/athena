@@ -55,7 +55,7 @@ export type LogoSize = "sm" | "md" | "lg";
 
 /**
  * Services with no mark Athena can draw faithfully: no official vector is
- * published, or the brand is a wordmark only (docs/notes/connectors-audit.md).
+ * published, or the brand is a wordmark only.
  * Rather than invent one, they show their preset's category icon. "custom"
  * is any MCP server, which shows the logo it advertises or a plug.
  */

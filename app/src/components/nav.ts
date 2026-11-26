@@ -1,6 +1,6 @@
 /**
  * Navigation in two forms, both owned by main.ts, arranged by how often
- * they're used (docs/notes/ia-review.md, option A):
+ * they're used:
  *  - dock(): the floating mobile pill (Home · Days · Ask orb · To do ·
  *    Library), the orb at its centre. Library opens its index. A new note on
  *    a phone starts from Home's own button (components/new-note-button.ts),
@@ -192,7 +192,7 @@ export function sidebar(
   ];
   // The Team entry keeps a pulse: a soft dot while an assistant works, and a count of what waits for you (team/page-pulse.ts).
   const teamItem = navItems.find((b) => b.dataset.id === "team")!;
-  // The count opens Team chat, where everything that waits is (docs/team.md "Team chat"); the name opens the Team page.
+  // The count opens Team chat, where everything that waits is; the name opens the Team page.
   teamItem.addEventListener("click", (e) => {
     if (!(e.target as Element).closest(".side-item__count")) return;
     e.stopImmediatePropagation();

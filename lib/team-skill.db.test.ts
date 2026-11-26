@@ -1,4 +1,4 @@
-// An assistant's own skill on real Postgres (migration 0069, docs/team.md "Skills"): written when the
+// An assistant's own skill on real Postgres (migration 0069): written when the
 // assistant is added (after the response) and owned by it; loaded into its chats and runs; never listed,
 // offered or loaded by main Ask; deleted with the assistant; and the update offer, which keeps the
 // owner's own edits unless they accept. The model is a fake client, or none (the plain skill).

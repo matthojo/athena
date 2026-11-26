@@ -5,6 +5,9 @@
   "description": "Browser extension that saves pages, quotes, images and links to your Athena.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "node scripts/build.mjs chrome firefox safari",
     "zip": "node scripts/build.mjs chrome firefox --zip",

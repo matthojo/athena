@@ -1,5 +1,5 @@
 /**
- * How the team reports back on Home and in Ask (docs/team.md, "Home"): an
+ * How the team reports back on Home and in Ask: an
  * assistant's run, said as that assistant telling you what it did, with
  * what waits on you pulled out so it can be one tap away. Pure, so Home,
  * Ask and the tests share it.

@@ -1,5 +1,5 @@
 /**
- * Home's word from the team (docs/team.md, "Home"): one card under "For you"
+ * Home's word from the team: one card under "For you"
  * that reads like colleagues reporting back. Whoever is on a job right now
  * comes first ("Wren is writing your week"), then each assistant's latest
  * report in its own words, with what waits on you one tap away ("Review 1

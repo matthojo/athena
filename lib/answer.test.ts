@@ -413,7 +413,7 @@ test("streamed: the words arrive in the finished shape with nothing taken back, 
   assert.deepEqual(web.map((s) => [s.text, s.done]), [["Searching the web", false], ["Searched the web for Lisbon weather March", true]]);
 });
 
-// ---------- looking things up online: region, pages (docs/team-notes/web-runs.md) ----------
+// ---------- looking things up online: region, pages ----------
 
 const LEEDS = { country: "GB", countryName: "United Kingdom", currency: "GBP", language: "en-GB", city: "Leeds", unread: [] };
 const fetched = (id: string, url: string, title: string, text: string): Block[] => [

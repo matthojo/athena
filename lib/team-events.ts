@@ -1,5 +1,5 @@
 /**
- * Team events (docs/team.md, `team_events`): something arrived in Athena that
+ * Team events (`team_events`): something arrived in Athena that
  * an assistant's event trigger may want. A collected item (the collector,
  * netlify/lib/connectors/runner.ts), a saved link or a saved action run on it
  * (lib/saved.ts, lib/saved-actions.ts), or a note made with tags (the API and

@@ -1,5 +1,5 @@
 /**
- * When Team assistants run (docs/team.md): the reminders job calls
+ * When Team assistants run: the reminders job calls
  * queueTeamRuns every 5 minutes, next to routines.
  *
  * - Schedule triggers use routines' slot maths (lib/routines.ts dueSlot): on

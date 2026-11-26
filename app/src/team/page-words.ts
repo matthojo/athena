@@ -1,5 +1,5 @@
 /**
- * The Team page in words (views/team.ts, docs/team.md "Experience"): what
+ * The Team page in words (views/team.ts): what
  * each assistant is doing now, what it did today, what waits for you, and
  * the one sentence at the top. Pure, so the tests can check the words.
  *

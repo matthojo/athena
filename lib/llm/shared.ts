@@ -1,5 +1,5 @@
 /**
- * What every provider adapter shares (docs/ai-models.md, lib/llm/index.ts): the environment, errors shaped like the
+ * What every provider adapter shares (lib/llm/index.ts): the environment, errors shaped like the
  * Anthropic SDK's, tool ids, tool input that arrives as broken JSON, and reading a server-sent event stream.
  * Nothing here logs a key, a prompt or a reply.
  */

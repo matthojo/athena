@@ -44,7 +44,7 @@ const NOT_LISTED: Record<string, string> = {
 
 /** Plain columns on tables that are listed for rotation: readable on purpose, with the reason. */
 const PLAIN_COLUMNS: Record<string, string> = {
-  "team_assistants.models": "model names from the gateway's list, { think?, image? } (0076, docs/ai-models.md)",
+  "team_assistants.models": "model names from the gateway's list, { think?, image? } (0076)",
   "team_runs.model": "the model name a run used (0076)",
   "team_runs.tried": "the model name that failed before a run fell back (0076)",
   "flows.schedule": "a trigger's days, times, counts and event facets, never its match words (0080, lib/flows.ts plainSchedule)",

@@ -2,8 +2,8 @@
  * Projects and tasks, engineering and design services (Atlassian, Asana, GitLab, Sentry…).
  * Joined into CONNECTOR_PRESETS by lib/connector-presets.ts; see there for the fields.
  *
- * Every entry is the vendor's own hosted MCP server, checked on 6–7 Nov 2026
- * (docs/notes/connectors-work.md has the evidence). `readTools` holds
+ * Every entry is the vendor's own hosted MCP server, checked on 6–7 Nov 2026.
+ * `readTools` holds
  * only tools the vendor documents as reads; anything else stays off until
  * the owner allows it. Where the vendor offers read-only OAuth scopes,
  * `scope` asks for just those, so the token itself can't write.

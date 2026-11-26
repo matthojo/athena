@@ -10,7 +10,7 @@
  * tests can hold it to the page (app/src/lib/week-review.test.ts).
  *
  * Nothing overdue or still open goes in: the headline never mentions what's
- * late, and neither does the push (docs/notes/affection-2026-11.md, "Don't do").
+ * late, and neither does the push.
  */
 
 import { addDays, zonedToday, zonedToInstant } from "./dates";

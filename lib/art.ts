@@ -1,7 +1,7 @@
 /**
  * Artwork for Days and Watch & read: film and show posters, book covers,
  * album art and game headers. Never people's photos. SECURITY.md §13 has the
- * rules; docs/notes/days-art.md the decisions.
+ * rules.
  *
  * Fetched once, by the server. The browser never asks a third party for an
  * image: it asks GET /api/art/:id, behind the app's token, and gets a copy
@@ -54,7 +54,7 @@ export type ArtHint =
   | { steam: number }
   | { own: { url: string; headers?: Record<string, string>; key: string } }
   | { spotify: string }
-  /** A YouTube video id: its thumbnail. Watch & read only (docs/notes/days-art.md). */
+  /** A YouTube video id: its thumbnail. Watch & read only. */
   | { youtube: string }
   | { letterboxd: string }
   | { isbn: string }

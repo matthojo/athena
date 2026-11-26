@@ -1,5 +1,5 @@
 /**
- * What each model costs, as published, in US dollars (docs/ai-models.md, docs/notes/models-spend.md). The gateway
+ * What each model costs, as published, in US dollars. The gateway
  * reports tokens, not money, so Athena's spend is tokens times these prices.
  *
  * Token prices are per million tokens: [input, output, cached input, audio input]. They are the providers' list

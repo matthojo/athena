@@ -1,5 +1,5 @@
 /**
- * Embeds for rich links (docs/notes/rich-links.md): which pasted addresses
+ * Embeds for rich links: which pasted addresses
  * have a player, and the player's official embed address. Pure and shared
  * with the app: no network, no DOM, no imports.
  *

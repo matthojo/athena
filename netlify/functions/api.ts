@@ -1618,7 +1618,7 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
   // Ask's train_status checks for a key without waiting (live-travel.ts liveTravelConfigured): read the stored ones first.
   await primeTravelKeys();
   const deps = { sources: answerSources, gmail: mailPort, slack: slackPort, calendar: calendarPort, scheduling: schedulingPort };
-  // A model for this message only (docs/ai-models.md): checked like a choice (agreement, listed, can think), never stored.
+  // A model for this message only: checked like a choice (agreement, listed, can think), never stored.
   let model: Awaited<ReturnType<typeof messageModel>>;
   try {
     model = await messageModel(body?.model);
@@ -1630,7 +1630,7 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
   const opts: AnswerOptions = { history, files, earlier, skill, thread_id, ...(model ? { model } : {}) };
   // An app left open across the deploy still sends { messages } and reads `changes` and `choices` as lists: they're always there for it.
   const shaped = async (reply: Promise<AskReply>): Promise<AskReply> => (lastTurn && !str(body ?? {}, "question") ? { changes: [], choices: [], ...(await reply) } : reply);
-  // Talking to one of the Team's assistants (docs/team.md): lib/team-chat.ts runs the same loop as it, with its persona, allowlist and memory.
+  // Talking to one of the Team's assistants: lib/team-chat.ts runs the same loop as it, with its persona, allowlist and memory.
   const assistantId = typeof body?.assistantId === "string" && UUID_RE.test(body.assistantId) ? body.assistantId : null;
   // AI spend: a chat with an assistant counts toward its cap. At the budget the reply says so, with Allow more (lib/spend.ts).
   // When the budget can't be checked, the reply offers Run anyway: this message again with its one-time `run_anyway`.
@@ -2001,7 +2001,7 @@ export default async (req: Request, _context: Context) => {
       const handled = await handleFlowDraftRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s));
       if (handled) return handled;
     }
-    // Team: assistants with their own triggers, memory and character (netlify/lib/team-routes.ts, docs/team.md).
+    // Team: assistants with their own triggers, memory and character (netlify/lib/team-routes.ts).
     if (first === "team") {
       // Team chat (netlify/lib/team-chat-routes.ts): what's typed goes to a waiting stage, an assistant or Ask.
       if (second === "chat" && (segments.length === 3 || (segments.length === 5 && segments[4] === "dismiss"))) {
@@ -2054,7 +2054,7 @@ export default async (req: Request, _context: Context) => {
       });
       if (handled) return handled;
     }
-    // AI models: which model does each job, and the owner's agreements (netlify/lib/models-routes.ts, docs/ai-models.md).
+    // AI models: which model does each job, and the owner's agreements (netlify/lib/models-routes.ts).
     if (first === "models") {
       const handled = await handleModelsRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s));
       if (handled) return handled;

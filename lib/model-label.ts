@@ -36,7 +36,7 @@ export function familyOf(ref: ModelRef): string {
 
 /**
  * The line under a reply that fell back: "Gemini 3.5 Flash didn't answer, so Claude Sonnet 5.5 did." It names the
- * model that didn't answer when the reply carries `tried` (docs/ai-models.md, HTTP); without it, "Your chosen model".
+ * model that didn't answer when the reply carries `tried`; without it, "Your chosen model".
  */
 export function fellBackLine(answered: ModelRef, tried?: ModelRef | null): string {
   const who = tried && !(tried.provider === answered.provider && tried.model === answered.model) ? modelLabel(tried) : "Your chosen model";

@@ -1,6 +1,5 @@
 /**
- * Assignments: the runner (docs/team.md, "How it runs" and "Checkpoints and
- * questions"). **It alone moves the work on, never an assistant.**
+ * Assignments: the runner. **It alone moves the work on, never an assistant.**
  *
  * Each stage is one Team run: a `team_runs` row with `stage_id`, run by the
  * same background function through `runAssistantTurn` in mode `run`

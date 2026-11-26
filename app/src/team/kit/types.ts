@@ -1,5 +1,5 @@
 /**
- * Mirrors the Team spec's avatar types (docs/team.md, "Shared types").
+ * Mirrors the Team spec's avatar types.
  * lib/team-types.ts is the canonical home; these are structurally identical
  * so either import satisfies the other. MouthId is spelled out here because
  * the spec only says "the 12 on the mouth sheet".
@@ -7,7 +7,7 @@
 
 export type Species = "cat" | "bear" | "fox" | "bunny" | "monster";
 
-/** The 12 on docs/team-art/mouths-sheet.svg, in sheet order. The last three are noses. */
+/** The 12 mouths, in the order of the original art sheet. The last three are noses. */
 export type MouthId =
   | "small-smile"
   | "big-laugh"

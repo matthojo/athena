@@ -312,9 +312,9 @@ export interface ReplyStream {
   threadId?: string;
   /** This reply's run, an id the app chose: sent again under it, the server follows the run and never repeats it (lib/ask-run.ts). */
   run?: string;
-  /** One of the Team's assistants this conversation is with (docs/team.md); the server answers as it. */
+  /** One of the Team's assistants this conversation is with; the server answers as it. */
   assistantId?: string;
-  /** This message only, in place of the chosen thinking model (docs/ai-models.md, HTTP): the owner picked it when warned the chosen one can't see a photo. */
+  /** This message only, in place of the chosen thinking model: the owner picked it when warned the chosen one can't see a photo. */
   model?: import("../../../lib/model-types").ModelRef;
 }
 
