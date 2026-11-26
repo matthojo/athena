@@ -8,7 +8,7 @@ import { onShutdown, type Context } from "@netlify/server";
 import { qRaw } from "../../../lib/db";
 import { createHub, type Hub } from "../live/hub";
 import { readChanges, readWatermarks } from "../live/watch";
-import { jsonResponse, rateLimit, requireAuth } from "../shared";
+import { ANON_LIMIT, fullCredential, jsonResponse, limitKey, rateLimit } from "../shared";
 
 let hub: Hub | undefined;
 const liveHub = () => (hub ??= createHub({ read: () => readWatermarks(qRaw), changes: (prev, next) => readChanges(qRaw, prev, next) }));
@@ -28,8 +28,8 @@ function databaseRegion(): string | null {
 }
 
 export async function handleLive(req: Request, context: Context): Promise<Response> {
-  const denied = await requireAuth(req);
-  if (denied) return denied;
+  const who = await fullCredential(req);
+  if (!who) return rateLimit(limitKey("live", null, context.ip), ANON_LIMIT) ?? jsonResponse({ error: "Unauthorized" }, 401);
   const { pathname } = new URL(req.url);
   if (pathname === "/api/live/ping") {
     if (req.method !== "GET") return jsonResponse({ error: "Method not allowed" }, 405);
@@ -44,7 +44,7 @@ export async function handleLive(req: Request, context: Context): Promise<Respon
   }
   if (pathname === "/api/live/events") {
     if (req.method !== "GET") return jsonResponse({ error: "Method not allowed" }, 405);
-    const limited = rateLimit("live:" + context.ip, 30);
+    const limited = rateLimit(limitKey("live", who, context.ip), 30);
     if (limited) return limited;
     // Each open stream is one of the instance's concurrent requests; Ask and Talk need the rest.
     return liveHub().open(req.signal) ?? jsonResponse({ error: "Too many live connections" }, 503, { "Retry-After": "30" });

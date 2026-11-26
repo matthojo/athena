@@ -182,7 +182,10 @@ export function attachTalkSession(socket: TalkSocket, deps: TalkSessionDeps): vo
   }
 
   socket.addEventListener("message", (event) => {
-    if (closed || typeof event.data !== "string" || event.data.length > MAX_TEXT * 4) return;
+    if (closed) return;
+    // The app sends small JSON text. A binary or oversized frame ends the session, before anything reads it.
+    if (typeof event.data !== "string") return socket.close(1003, "Text messages only");
+    if (event.data.length > MAX_TEXT * 4) return socket.close(1009, "Message too big");
     let m: { type?: unknown; id?: unknown; text?: unknown; voice_id?: unknown };
     try {
       m = JSON.parse(event.data) as typeof m;

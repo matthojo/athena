@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ElevenLabsError, type WarmSpeech } from "../../../lib/elevenlabs";
 import { attachTalkSession, closeTalkSessions, IDLE_MAX_MS, KEEP_ALIVE_MS, type TalkSessionDeps, type TalkSocket } from "./session";
-import { issueTicket, redeemTicket, TICKET_TTL_MS } from "./ticket";
+import { issueTicket, redeemTicket, ticketHolder, TICKET_TTL_MS } from "./ticket";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -24,6 +24,7 @@ function fakeSocket() {
     sent,
     closes,
     say: (m: unknown) => listeners.message.forEach((l) => l({ data: typeof m === "string" ? m : JSON.stringify(m) })),
+    raw: (data: unknown) => listeners.message.forEach((l) => l({ data })),
     json: () => sent.filter((s): s is string => typeof s === "string").map((s) => JSON.parse(s) as Record<string, unknown>),
     audio: () => sent.filter((s): s is Uint8Array => typeof s !== "string"),
   };
@@ -112,6 +113,26 @@ test("a ticket works once, from the IP it was issued to, for 30 seconds", () => 
   assert.equal(redeemTicket(null, "1.1.1.1", t), false);
   assert.equal(redeemTicket("made-up", "1.1.1.1", t), false);
   assert.notEqual(issueTicket("1.1.1.1", t), issueTicket("1.1.1.1", t));
+});
+
+test("a ticket carries the credential that asked for it, which the session is counted against", () => {
+  const t = 6_000_000;
+  assert.equal(ticketHolder(issueTicket("1.1.1.1", t, "key:abc"), "1.1.1.1", t), "key:abc");
+  assert.equal(ticketHolder(issueTicket("1.1.1.1", t), "1.1.1.1", t), "master");
+  assert.equal(ticketHolder(issueTicket("1.1.1.1", t, "key:abc"), "2.2.2.2", t), null);
+});
+
+test("a binary or oversized frame closes the session before it's read", async () => {
+  const bin = session();
+  bin.raw(new Blob([new Uint8Array(8)]));
+  assert.deepEqual(bin.closes, [[1003, "Text messages only"]]);
+  const big = session();
+  big.raw(JSON.stringify({ type: "speak", id: 1, text: "x".repeat(10_000) }));
+  assert.deepEqual(big.closes, [[1009, "Message too big"]]);
+  assert.equal(big.el.opened[0].texts.length, 0, "nothing was said");
+  big.say({ type: "speak", id: 2, text: "After" });
+  await settle();
+  assert.equal(big.el.opened[0].texts.length, 0, "and nothing after");
 });
 
 test("the session opens ElevenLabs once and says reply after reply on that one socket", async () => {
