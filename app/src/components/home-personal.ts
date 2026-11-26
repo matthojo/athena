@@ -65,7 +65,7 @@ export function rememberedName(): string | null {
   }
 }
 
-function rememberName(name: string | null) {
+export function rememberName(name: string | null) {
   try {
     if (name) localStorage.setItem(NAME_KEY(), name);
     else localStorage.removeItem(NAME_KEY());
