@@ -12,7 +12,7 @@
  *                                               google_route ("direct" or "mcp": how Gmail or Calendar reaches Google);
  *                                               custom servers: approve_tools: [names] (a changed tool, at its new text),
  *                                               use_in_ask and share_collections (booleans, both off by default)
- *   DELETE /api/connectors/:id                  remove it and its stored credentials
+ *   DELETE /api/connectors/:id                  remove it and its stored credentials, and revoke the sign-in where the provider can (revoke.ts)
  *   POST   /api/connectors/:id/sign-in          → { authorization_url } to open
  *   POST   /api/connectors/:id/check            list its tools now
  *   GET    /api/connectors/oauth/callback       (no bearer) provider redirect target
@@ -43,7 +43,6 @@ import {
   approveTools,
   createConnector,
   deleteCollection,
-  deleteConnector,
   getCollection,
   getConnector,
   getConnectorWithSecrets,
@@ -89,6 +88,7 @@ import {
 } from "../../../lib/connector-presets";
 import { isMicrosoftProvider } from "../../../lib/presets/microsoft";
 import { directFor } from "./direct";
+import { disconnectConnector } from "./revoke";
 import { LifeApiError } from "./lifelog-b-http";
 import { forgetBackfill } from "./money-sync";
 import { withoutAccount } from "../../../lib/presets/octopus-meters";
@@ -594,7 +594,7 @@ export async function handleConnectorRoutes(req: Request, url: URL, segments: st
         if ((await getBackfill(second))?.state === "blocked") await loadHistory(second, origin, { again: true });
         return json(patched);
       }
-      if (m === "DELETE") return (await deleteConnector(second)) ? json({ deleted: true }) : json({ error: "Not found" }, 404);
+      if (m === "DELETE") return (await disconnectConnector(second)) ? json({ deleted: true }) : json({ error: "Not found" }, 404);
       return json({ error: "Method not allowed" }, 405);
     }
     // Every calendar on the account, for choosing which ones Athena reads (iCloud saves the choice as `scope`, Google and Outlook as `calendars`).
