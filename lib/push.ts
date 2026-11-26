@@ -6,7 +6,7 @@
  * they win (VAPID_SUBJECT optional). Otherwise Athena makes its own pair the
  * first time it's needed and keeps it in the `settings` row `vapid`: the
  * public key readable (it's sent to every browser anyway), the private key
- * sealed under the data key (SECURITY.md §8, §11). So push works with no
+ * sealed under the data key (docs: security/outside-services, security/encryption). So push works with no
  * owner step. Without either, this logs one clear line and sends nothing.
  */
 
@@ -137,7 +137,7 @@ export async function pushConfigured(): Promise<boolean> {
   }
 }
 
-// ---------- Which endpoints, and whose (security review M5) ----------
+// ---------- Which endpoints, and whose ----------
 
 /**
  * A subscription endpoint Athena will send to, or null: https on a known

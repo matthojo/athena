@@ -1,8 +1,8 @@
 /**
  * Settings → Ask, and Ask's evening chip:
  *
- *   *      /api/routines[/<id>]       → 410 Gone, { error, use: "/api/team" }: routines are assistants now
- *                                        (owner, 13 Nov 2026). Nothing reads the list any more.
+ *   *      /api/routines[/<id>]       → 410 Gone, { error, use: "/api/team" }: routines are assistants now.
+ *                                        Nothing reads the list any more.
  *   GET    /api/activity?before=&limit= → { entries }: What Ask did, newest first (lib/ask-activity.ts)
  *   POST   /api/activity/<id>/undo    → the entry, undone (or 4xx: couldn't undo, and it's marked so)
  *   GET    /api/watch-tonight         → { free, picks }: tonight's picks from the owner's own list (lib/watch-tonight.ts)
@@ -33,7 +33,7 @@ export async function handleAskRoutes(
   const method = req.method;
   const nope = () => json({ error: "Method not allowed" }, 405);
 
-  // Closed (owner, 13 Nov 2026): every method and path answers 410 and points at the Team API.
+  // Closed: every method and path answers 410 and points at the Team API.
   if (first === "routines") return json(ROUTINES_GONE, 410);
 
   if (first === "activity") {

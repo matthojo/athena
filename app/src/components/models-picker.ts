@@ -1,11 +1,11 @@
 /**
- * The model picker: a sheet on a
- * phone, a dialog on a wide screen. Every model the gateway lists, by company,
- * newest first, with search and a company filter; no recommended group (owner,
- * 17 Nov 2026). A newer version of the chosen model is offered at the top, and
- * a chosen model the gateway no longer lists is still named there. Choosing a model shows what it can do beside the list (below
- * it on a phone), with Try it and Use. A company the owner hasn't agreed to
- * asks first (models-agreement.ts), in the same sheet.
+ * The model picker: a sheet on a phone, a dialog on a wide screen. Every model
+ * the gateway lists, by company, newest first, with search and a company
+ * filter; no recommended group. A newer version of the chosen model is offered
+ * at the top, and a chosen model the gateway no longer lists is still named
+ * there. Choosing a model shows what it can do beside the list (below it on a
+ * phone), with Try it and Use. A company the owner hasn't agreed to asks first
+ * (models-agreement.ts), in the same sheet.
  *
  * Keyboard: the list is one listbox. Up, Down, Home, End, Page Up and Page
  * Down move; typing jumps by name (models-keys.ts); Enter or Space chooses.

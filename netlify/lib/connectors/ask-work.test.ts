@@ -74,7 +74,7 @@ test("“What's on Priya's plate?” is answered from Linear, live, and nothing 
   assert.deepEqual(reply.sources.map((s) => s.account), ["Linear", "Linear"]);
   // Nothing offered for saving: a Linear item is read live only.
   assert.equal(reply.imports, undefined);
-  // Kept in the chat like any other answer (owner, 12 Nov: LIVE_ANSWERS_NOT_KEPT is off).
+  // Kept in the chat like any other answer (LIVE_ANSWERS_NOT_KEPT is off).
   assert.equal(reply.live_only, undefined);
   // The scrub still works for an answer marked live_only, should the switch go back on.
   const { scrubLiveOnly } = await import("../../../lib/ask-threads");

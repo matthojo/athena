@@ -63,8 +63,8 @@ export const DEFAULT_MODELS: { think: ModelRef; image: ModelRef | null; everyday
 };
 
 /**
- * The owner's choices, kept in one `settings` row (key `ai_models`). Missing means "the default". Owner, 17 Nov 2026:
- * before the first choice on a provider other than Anthropic, the app asks once and records it in `consent`; after
+ * The owner's choices, kept in one `settings` row (key `ai_models`). Missing means "the default".
+ * Before the first choice on a provider other than Anthropic, the app asks once and records it in `consent`; after
  * that, anything that model's role reads may go to that provider.
  */
 export interface ModelSettings {
@@ -111,7 +111,7 @@ export interface CatalogueModel {
   /** Relative cost, 1 (cheapest) to 4. Null when unknown. */
   cost: 1 | 2 | 3 | 4 | null;
   abilities: ModelAbilities;
-  /** Always false. Owner, 17 Nov 2026: Athena doesn't recommend models. Kept so the shape doesn't change. */
+  /** Always false: Athena doesn't recommend models. Kept so the shape doesn't change. */
   recommended: boolean;
   /** Its id says preview or experimental (the gateway's list has no such mark). */
   preview: boolean;

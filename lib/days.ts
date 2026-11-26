@@ -1,7 +1,7 @@
 /**
  * Days: one record per calendar day in the owner's time zone (migration
  * 0032; the shapes are lib/day-types.ts). Days replace the Life log's day
- * notes (owner decision, 7 Nov 2026).
+ * notes.
  *
  * What a day holds, and where each part lives:
  *  - entries (day_entries): what was watched, listened to, read, played,
@@ -1314,7 +1314,7 @@ export function isMoodQuestion(text: string): boolean {
   return /\b(mood|moods|feel|feels|felt|feeling|feelings|happy|happier|sad|low|down|journal|journaled|diary|stress(ed|ful)?|anxious|anxiety|good days?|bad days?|great days?|rough days?|best days?|worst days?)\b/i.test(text);
 }
 
-/** Global search (lib/memory.ts recall): the best match on each day, from entries, day lines and journals (searched like any note body, owner 7 Nov). */
+/** Global search (lib/memory.ts recall): the best match on each day, from entries, day lines and journals (searched like any note body). */
 export async function dayRecallHits(query: TextQuery, limit = 20): Promise<Array<{ date: string; title: string; snippet: string; rank: number }>> {
   const hits = await searchDays(query, { limit: 200, journal: true });
   const byDay = new Map<string, { date: string; title: string; snippet: string; rank: number; more: number }>();

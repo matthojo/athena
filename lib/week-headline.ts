@@ -45,7 +45,7 @@ export type Source = "mood" | "people" | "places" | "done" | "health" | "media" 
 
 export interface Headline {
   text: string;
-  /** What the line was built from, in order. Not shown (the caption came out, 2026-11-08); the tests read it. */
+  /** What the line was built from, in order. Not shown; the tests read it. */
   from: Source[];
 }
 

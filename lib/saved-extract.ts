@@ -114,7 +114,7 @@ function plainText(html: string): string {
 
 const wordCount = (s: string) => (s.match(/\S+/g) ?? []).length;
 
-// ---------- hostile shapes (security review M21) ----------
+// ---------- hostile shapes ----------
 
 /** A real page nests a few dozen levels. Past this, linkedom's parse and Readability both go quadratic, so the page isn't parsed at all. */
 export const MAX_PAGE_DEPTH = 300;

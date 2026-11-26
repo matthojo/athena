@@ -9,7 +9,7 @@
  * microdata (lib/recipe-parse.ts), without a model. Only "Try harder", which
  * the owner taps, sends the page's text to the model.
  *
- * Sealed (SECURITY.md §11, ENCRYPTED in lib/encryption.ts): a recipe's title,
+ * Sealed (docs: security/encryption, ENCRYPTED in lib/encryption.ts): a recipe's title,
  * address, body (ingredients, steps, notes as one JSON value) and tags, and
  * each grocery line's text. Readable: minutes, servings, dates, amounts and
  * aisles. The address has a blind index of its canonical form, so importing
@@ -403,7 +403,7 @@ async function fileSaved(savedId: string, recipeId: string): Promise<void> {
   await qRaw(`UPDATE saved_items SET filed_at = now(), filed_to = $2, updated_at = now() WHERE id = $1 AND filed_at IS NULL`, [savedId, s.text(JSON.stringify(filedTo(recipeId)))]);
 }
 
-/** The page's HTML, or null when it can't be read (the guarded fetch: SECURITY.md "Recipes"). */
+/** The page's HTML, or null when it can't be read (the guarded fetch: docs: security/outside-services. */
 async function pageHtml(url: string): Promise<{ html: string; url: string } | null> {
   try {
     return await fetchPageHtml(url);

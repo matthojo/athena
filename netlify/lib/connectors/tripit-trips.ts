@@ -4,8 +4,8 @@
  * email digest uses (lib/trips.ts saveBooking). No model is involved:
  * TripIt's data is already structured.
  *
- *  - First runs after connecting: every past trip, once (the owner's choice,
- *    7 Nov), up to tripitImport.pagesPerRun of TripIt's pages a run. Where it got to is
+ *  - First runs after connecting: every past trip, once, up to
+ *    tripitImport.pagesPerRun of TripIt's pages a run. Where it got to is
  *    kept in the account's sealed credentials after each page, so a run cut
  *    short or a big history carries on next time. The run summary says how far.
  *  - Every run: everything upcoming, and trips that ended in the last PAST_DAYS.

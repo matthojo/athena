@@ -1,7 +1,7 @@
 /**
  * Ranked text search, run in the Function. Recall used Postgres full-text
  * search, but Postgres can't index what it can't read: with content
- * encrypted at rest (SECURITY.md §11) the Function decrypts the candidates
+ * encrypted at rest (docs: security/encryption) the Function decrypts the candidates
  * and ranks them here instead. At personal scale (thousands of rows) that's
  * quick, and it keeps what recall did:
  *

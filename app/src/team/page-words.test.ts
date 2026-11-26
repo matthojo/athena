@@ -111,7 +111,7 @@ test("the page's one sentence", () => {
 test("runs group by day, live ones under Today", () => {
   const groups = byDay([run({ id: "l", status: "running", started_at: iso(14, 23, 59), finished_at: null }), run({ id: "1" }), run({ id: "2", started_at: iso(14, 9), finished_at: iso(14, 9, 1) })], NOW);
   assert.deepEqual(groups.map(([k, rs]) => [k, rs.map((r) => r.id)]), [["Today", ["l", "1"]], ["Yesterday", ["2"]]]);
-  // The assistant's page uses the same headings (owner, 16 Nov 2026): a weekday this week, a date before.
+  // The assistant's page uses the same headings: a weekday this week, a date before.
   const older = byDay([run({ id: "3", started_at: iso(12, 9), finished_at: iso(12, 9, 1) }), run({ id: "4", started_at: iso(3, 9), finished_at: iso(3, 9, 1) })], NOW);
   assert.deepEqual(older.map(([k]) => k), [dayWords(iso(12, 9), NOW), "3 Nov"]);
   assert.match(older[0][0], /^[A-Z][a-z]+day$/);

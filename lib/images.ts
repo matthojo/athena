@@ -13,8 +13,8 @@
  * the prompt capped, and the result kept under the file store's 4 MB. Neither the prompt nor the provider's
  * reply is logged: only the status.
  *
- * The `make_image` tool (lib/answer.ts runs it) is a change: logged in What Ask did, and Undo archives the picture
- * (owner, 17 Nov 2026): it leaves the conversation and waits on the Archived page, to be restored or deleted for good.
+ * The `make_image` tool (lib/answer.ts runs it) is a change: logged in What Ask did, and Undo archives the picture:
+ * it leaves the conversation and waits on the Archived page, to be restored or deleted for good.
  */
 import { randomUUID } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
@@ -314,7 +314,7 @@ export function parseMakeImage(raw: unknown): { prompt: string; alt: string; sha
   return { prompt: prompt.slice(0, MAX_PROMPT_CHARS), alt, shape, from };
 }
 
-/** Undo of a made picture: archived, like everything else (owner, 17 Nov 2026). It leaves the conversation and waits on the Archived page. */
+/** Undo of a made picture: archived, like everything else. It leaves the conversation and waits on the Archived page. */
 export interface PictureUndo {
   op: "remove_picture";
   file_id: string;
@@ -364,7 +364,7 @@ export async function restorePicture(rawThreadId: unknown, rawFileId: unknown): 
 }
 
 /**
- * Delete for good, from the Archived page (the app only, SECURITY.md §7): out of the conversation, and the file
+ * Delete for good, from the Archived page (the app only, docs: security/sign-in-and-keys): out of the conversation, and the file
  * and its bytes go unless a note or another conversation still has it. True when the file itself was deleted.
  */
 export async function deletePictureForGood(rawThreadId: unknown, rawFileId: unknown): Promise<boolean> {

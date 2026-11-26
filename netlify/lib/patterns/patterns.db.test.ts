@@ -50,7 +50,7 @@ test("Patterns: found from sealed days, served to the owner only, nothing writte
     if (i % 3 === 0) yoga.add(date);
     if (i % 4 === 1) late.add(date);
   }
-  // Meetings have someone else on them (an edge to a person); a solo appointment doesn't count (owner, 7 Nov).
+  // Meetings have someone else on them (an edge to a person); a solo appointment doesn't count.
   const [priya] = await qRaw<{ id: string }>(`INSERT INTO people (name) VALUES ('Priya Shah') RETURNING id`);
   const meeting = async (date: string, time: string, title: string) => {
     const [ev] = await qRaw<{ id: string }>(`INSERT INTO events (title, kind, date, starts_at) VALUES ($3, 'other', $1::date, $2::timestamptz) RETURNING id`, [date, zonedToInstant(date, time, TZ).toISOString(), title]);

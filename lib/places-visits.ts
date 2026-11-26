@@ -4,7 +4,7 @@
  * netlify/lib/connectors/swarm-sync.ts) and visits added by hand (for
  * someone with neither), merged, named, linked to Places, and written as
  * one line in the Life log with the day's weather.
- * SECURITY.md §1 "Places and visits" has the rules.
+ * docs: security/encryption has the rules.
  *
  * Storage (migration 0031). Each (day, source) is one sensitive_blobs row,
  * domain 'location', sealed JSON: 'timeline' (the visits as imported),

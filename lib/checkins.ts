@@ -140,7 +140,7 @@ function readOwnQuestion(raw: unknown, i: number): CheckinQuestion {
   if (!Array.isArray(o.kinds) || !o.kinds.length || !o.kinds.every(isKind) || new Set(o.kinds).size !== o.kinds.length) throw new AthenaInputError(`${at}.kinds: morning, evening or both`);
   if (o.set !== undefined && o.set !== null && (typeof o.set !== "string" || !SET_ID.test(o.set))) throw new AthenaInputError(`${at}.set: the id of the set it was added from`);
   // Athena decides where answers go, by type (ownMirror), for the owner's own questions and a set's alike: a `mirror`
-  // that's sent is read past, so no request points one at the day's mood, Health or the briefing (owner, 25 Nov 2026).
+  // that's sent is read past, so no request points one at the day's mood, Health or the briefing.
   const mirror = ownMirror(type);
   const q: CheckinQuestion = { id: o.id, type, prompt: words(o.prompt, `${at}.prompt`, 200, { required: true })!, kinds: CHECKIN_KINDS.filter((k) => (o.kinds as string[]).includes(k)), mirror, preset: false, ...(typeof o.set === "string" ? { set: o.set.toLowerCase() } : {}) };
   const extra = (fields: string[]) => {

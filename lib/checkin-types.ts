@@ -3,7 +3,7 @@
  * question per screen, both optional and both the owner's to shape (which
  * questions, how many a day, in what order, plus questions of their own).
  *
- * Owner's decisions, 17 Nov 2026:
+ * How they work:
  *  - Storage: answers live in their own sealed store (health tier, refused
  *    without the key). Some answers are also copied out ("mirrored"): the
  *    mood scale sets the day's mood, written answers go into the day's
@@ -249,8 +249,8 @@ export const PRESET_QUESTIONS: CheckinQuestion[] = [
 ];
 
 /**
- * Where answers to a question that isn't one of Athena's go: the owner's own and one from a shared set alike
- * (owner, 25 Nov 2026). The day's journal when Athena's own questions of that type go there (written answers),
+ * Where answers to a question that isn't one of Athena's go: the owner's own and one from a shared set alike.
+ * The day's journal when Athena's own questions of that type go there (written answers),
  * otherwise nowhere. Athena decides by type: never the day's mood, Health or the briefing, whatever a file or a
  * settings request says. A day's plan keeps each question as it was asked, so a day planned before this rule keeps
  * its answers where they were. Pure.

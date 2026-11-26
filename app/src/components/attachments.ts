@@ -37,7 +37,7 @@ import "../styles/attachments.css";
 
 export const MAX_FILE_BYTES = 4 * 1024 * 1024;
 export const MAX_FILES = 5;
-// About 2.5 megapixels (answered 6 Nov): sharper photos, about 3,300 tokens each.
+// About 2.5 megapixels: sharper photos, about 3,300 tokens each.
 const MAX_EDGE = 2576;
 const MAX_PIXELS = 2_500_000;
 const THUMB_EDGE = 480;
@@ -778,7 +778,7 @@ export function noteFilesSection(opts: { readOnly?: boolean } = {}): NoteFilesSe
     hint.hidden = !hint.textContent;
   }
 
-  // ---------- Athena's summary under each file (answered 6 Nov) ----------
+  // ---------- Athena's summary under each file ----------
   // One line under the file; tap for the whole summary, which opens across the
   // full width below that row (the grid packs densely, so the file stays put
   // and the words get room to read). Nothing while it's being written, or if
@@ -957,7 +957,7 @@ export function noteFilesSection(opts: { readOnly?: boolean } = {}): NoteFilesSe
   };
 }
 
-// ---------- Deleting a note for good: its files too? (answered 6 Nov: the note view and Archived) ----------
+// ---------- Deleting a note for good: its files too? (the note view and Archived) ----------
 
 /** A note's files a conversation still has, asked fresh. None offline, in sample mode, or if the server is slow: the files stay. */
 export async function heldNoteFiles(noteId: string): Promise<AskFile[]> {

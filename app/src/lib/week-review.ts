@@ -3,8 +3,7 @@
  * app loads: the period's Days, interactions, commitments, trips, event
  * records, and the server's extras (lib/week-review.ts: goals moved on,
  * events with a person at a place, places known before). Pure and DOM-free,
- * so it runs under `npx tsx --test`. Lifted from the approved prototype,
- * with the owner's decisions of 2026-11-08:
+ * so it runs under `npx tsx --test`. It works like this:
  *
  *  - Seen: logged catch-ups (in person, calls) plus calendar events with a
  *    named person at a place that period. Meetings, messages and emails

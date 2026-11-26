@@ -28,7 +28,7 @@ export function themeFindingsLede(n: number): string {
 
 /**
  * "From Community · by @lamplight-co · version 1.0", "From a file": where an added theme came from, in the words the
- * other kinds use. Never a bare "Shared", which could read as something the person shared out (owner, 25 Nov 2026).
+ * other kinds use. Never a bare "Shared", which could read as something the person shared out.
  * Pure.
  */
 export function themeFromWords(o: Pick<ThemeOrigin, "catalogue_id" | "author" | "version">): string {

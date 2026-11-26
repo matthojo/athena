@@ -125,7 +125,7 @@ export function dock(actions: NavActions): { el: HTMLElement; setActive: (view: 
   const ask = h("button", { class: "dock__orb", type: "button", "data-id": "ask", "aria-label": NAV_LABELS.ask }, orb());
   ask.addEventListener("click", () => actions.go("ask"));
 
-  // Two tabs either side of the orb, so it sits at the centre. Team is on Home, above the Ask box (owner, 13 Nov 2026).
+  // Two tabs either side of the orb, so it sits at the centre. Team is on Home, above the Ask box.
   const el = h(
     "nav",
     { class: "dock", "aria-label": "Primary" },
@@ -187,7 +187,7 @@ export function sidebar(
     navItem("loops", NAV_LABELS.loops, icons.loop()),
     navItem("ask", NAV_LABELS.ask, orb()),
     navItem("team", NAV_LABELS.team, icons.team()),
-    // Flows, under Team: something Athena does for you, like Team (owner, 21 Nov 2026). Home's pill and Library's row stay.
+    // Flows, under Team: something Athena does for you, like Team. Home's pill and Library's row stay.
     navItem("flows", NAV_LABELS.flows, icons.flow()),
   ];
   // The Team entry keeps a pulse: a soft dot while an assistant works, and a count of what waits for you (team/page-pulse.ts).

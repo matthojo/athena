@@ -15,7 +15,7 @@
  * its conversation is still in Ask.
  *
  * Per-run budget: the loop's longer limits (AnswerOptions.long: 10 model
- * calls, 24 lookups, wrap-up at 60 s, stop at 120 s; owner, 12 Nov 2026),
+ * calls, 24 lookups, wrap-up at 60 s, stop at 120 s),
  * and, once it starts queuing changes, up to 14 model calls in four minutes.
  * Under five minutes of the background function's 15. reminders.ts claims
  * each slot once (claimSlot) and hands the run to a background function

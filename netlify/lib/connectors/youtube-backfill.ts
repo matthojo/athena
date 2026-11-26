@@ -12,7 +12,7 @@
  *
  * Liked videos also go into Watch & read as watched videos, and playlist
  * videos as saved (to watch), with the channel as who made it, so the
- * media profile has them (owner decision, 9 Nov). Subscriptions are
+ * media profile has them. Subscriptions are
  * channels, not videos: Days only.
  *
  * Watch history isn't in the API (closed to apps in 2016); it comes from

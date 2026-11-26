@@ -4,7 +4,7 @@
  * arrives under two ids became two events: it's on two of the owner's
  * calendars, two collections both read it, or one occurrence of a series
  * was edited and the calendar gave it a new id. Home then offered "Prepare
- * notes" for it twice (12 Nov).
+ * notes" for it twice.
  *
  * Two synced events are the same meeting when they have the same title and
  * start at the same instant (or are all-day on the same date). Titles are

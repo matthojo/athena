@@ -14,7 +14,7 @@
  * sentence and ends, the choices, or the hint and whether it offers Go deeper. Never an id, an answer, a day, a
  * pin, a count a day, or where answers are copied to (`mirror`).
  *
- * Where answers go is Athena's to decide, never the file's (owner, 25 Nov 2026): lib/checkin-types.ts `ownMirror`,
+ * Where answers go is Athena's to decide, never the file's: lib/checkin-types.ts `ownMirror`,
  * the same rule as for the questions the owner writes. A written answer is copied into that day's journal, as
  * Athena's own written questions' are (`day_journal`, lib/checkin-journal.ts). A scale, choices or areas answer stays
  * in the check-in. No shared question ever sets the day's mood, Health's energy, stress or mood words, or the briefing.
@@ -26,7 +26,7 @@
  * Adding a set never replaces or reorders what's there: each question joins the owner's own questions and the end of
  * each routine it's asked in, unpinned. A question whose words the owner already has is skipped. A routine that's off
  * stays off. When the owner's own questions would go past MAX_OWN_QUESTIONS, questions are added in the set's order
- * until there's no room, and the rest are named as left out (owner, 25 Nov 2026).
+ * until there's no room, and the rest are named as left out.
  */
 import { CHECKIN_KINDS, MAX_OWN_QUESTIONS, ownMirror, PRESET_QUESTIONS, type CheckinKind, type CheckinQuestion, type CheckinSettings, type QuestionType } from "./checkin-types";
 import { readHeader, type ShareHeader } from "./share-kinds";

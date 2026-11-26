@@ -1,6 +1,6 @@
 /**
- * Themes: the data, and the reader every theme goes through (ARCHITECTURE.md,
- * "Themes").
+ * Themes: the data, and the reader every theme goes through (docs:
+ * architecture/theming).
  *
  * A theme is a small, versioned piece of JSON, the same shape whether it is
  * built in, made in Settings → Appearance, or shared through Community as a

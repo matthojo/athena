@@ -1,5 +1,5 @@
 /**
- * Settings → Ask: "Let Ask search the web" (owner, 12 Nov 2026). On by
+ * Settings → Ask: "Let Ask search the web". On by
  * default. While it's on, a question your own notes and accounts don't
  * answer can be looked up on the web; the answer says it came from there and
  * its sources are the pages (lib/ask-contract.ts). While it's off, Ask

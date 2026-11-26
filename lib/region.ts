@@ -35,7 +35,7 @@ export interface SearchLocation {
   type: "approximate";
   country?: string;
   city?: string;
-  /** IANA, the owner's own setting (owner, 16 Nov 2026): sent with a place, never used to find one. */
+  /** IANA, the owner's own setting: sent with a place, never used to find one. */
   timezone?: string;
 }
 
@@ -219,7 +219,7 @@ export function regionLine(r: Region | null): string {
   return [[r.city, r.countryName].filter(Boolean).join(", "), r.currency, lang].filter(Boolean).join(" · ");
 }
 
-// ---------- choosing one (the profile's three dropdowns; owner, 16 Nov 2026) ----------
+// ---------- choosing one (the profile's three dropdowns) ----------
 
 export interface RegionOption {
   /** "GB", "GBP", "en". */

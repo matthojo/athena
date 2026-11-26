@@ -1,5 +1,5 @@
-// reminder_log keys for payment nudges hold a blind index of the merchant, never its name (security
-// review M15): rows written under the old readable format are moved, and a nudge that was sent stays
+// reminder_log keys for payment nudges hold a blind index of the merchant, never its name: rows
+// written under the old readable format are moved, and a nudge that was sent stays
 // sent, across the move and across a data key rotation.
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/reminder-keys.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL.

@@ -432,7 +432,7 @@ export function openSetup(opts: SetupOptions): SheetHandle {
         triggers: p.triggers?.length ? p.triggers : triggersFromText(text),
         offered: allowFor(`${text} ${p.job}`, p.allow ?? []),
         allow: [],
-        // Off by default; proposed, switched on, when the job needs something online (owner, 16 Nov 2026).
+        // Off by default; proposed, switched on, when the job needs something online.
         webSuggested: draftWantsWeb(p),
         web: draftWantsWeb(p),
         avatar: keep ? d.avatar : avatarFromSeed(seed),

@@ -123,7 +123,7 @@ test("health compared with the two weeks before", () => {
   assert.equal(healthSentences({ sleep_minutes: 400 }, before.slice(0, 2))[0].aside, undefined);
 });
 
-test("sleep names deep sleep when the night has it (owner, 7 Nov)", () => {
+test("sleep names deep sleep when the night has it", () => {
   assert.equal(healthSentences({ sleep_minutes: 460, sleep_stages: { deep: 85, rem: 110, core: 265 } }, [])[0].text.replace(/\u00a0/g, " "), "Slept 7h 40m (1h 25m deep)");
   // Held together: a narrow row breaks before the bracket, never inside it.
   assert.match(healthSentences({ sleep_minutes: 460, sleep_stages: { deep: 85 } }, [])[0].text, /^Slept 7h 40m \(1h\u00a025m\u00a0deep\)$/);

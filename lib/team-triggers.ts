@@ -18,11 +18,11 @@
  * (netlify/functions/team-run.ts) runs it.
  *
  * Things the owner does (a save, a gift idea, a tagged note) don't wait for
- * the pass (owner, 15 Nov: "Yes, at once for my own actions"): startTeamEvent
- * claims that one event, queues its runs and hands them off straight away.
- * Flows hear about the same actions through onOwnerEvent (lib/flow-triggers-db.ts).
- * Collected items stay on the pass, where batching matters. Paused assistants and triggers
- * don't fire, nor do triggers on events from before they were made.
+ * the pass: startTeamEvent claims that one event, queues its runs and hands
+ * them off straight away. Flows hear about the same actions through
+ * onOwnerEvent (lib/flow-triggers-db.ts). Collected items stay on the pass,
+ * where batching matters. Paused assistants and triggers don't fire, nor do
+ * triggers on events from before they were made.
  *
  * Once a trigger has moved to its flow (lib/team-flows.ts, `moved_at`), it never fires here: its flow does
  * (lib/flow-triggers.ts). An assistant's triggers that are flows (`flow_id`) are left to Flows too.

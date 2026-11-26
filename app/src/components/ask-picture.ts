@@ -6,7 +6,7 @@
  *   at the picture's own shape, and the picture fades in where it stood as soon as it's made.
  * - In the finished reply: the picture at its own shape, alt text from what was asked for, tap to open it full
  *   size, Save to a note (a sheet with search, or a new note), Download, and Undo, which archives it: it waits
- *   on the Archived page, and Restore here or there puts it back (owner, 17 Nov 2026).
+ *   on the Archived page, and Restore here or there puts it back.
  * - "Answered with Gemini 3.5 Flash" under a reply on a model other than the default, and when the chosen model
  *   didn't answer, a line naming it: "Gemini 3.5 Flash didn't answer, so Claude Sonnet 5.5 did."
  * - Sample mode paints its pictures on the device (no model): a lighthouse at dusk, and the same at night.
@@ -302,7 +302,7 @@ export function modelLine(reply: ModelNote | null | undefined): HTMLElement | nu
 /**
  * Sample mode has no picture model. It paints two pictures on the device so the feature can be seen: a lighthouse
  * at dusk, and the same at night when asked to change it. Which model it says made them, or that pictures are off,
- * follows the sample's AI models settings (db/sample-models.ts; owner, 17 Nov 2026): Settings, AI models, Pictures.
+ * follows the sample's AI models settings (db/sample-models.ts): Settings, AI models, Pictures.
  * Staging for screenshots, like ask-sample-faults.ts:
  *
  *   sessionStorage.setItem("athena.ask.sampleFellBack", "gemini")    // the next reply fell back from Gemini to Claude

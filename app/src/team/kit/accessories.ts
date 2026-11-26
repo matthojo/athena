@@ -9,7 +9,7 @@ import { INK } from "./palette";
 
 export type Slot = "head" | "face" | "neck";
 
-// The sheet's colours, muted with the palette (16 Nov): still recognisable props, no longer stickers.
+// The sheet's colours, muted with the palette: still recognisable props, no longer stickers.
 const BLUE = "#436ed1";
 const BLUE_DEEP = "#3059ba";
 const YELLOW = "#f0d17d";

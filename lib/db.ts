@@ -7,11 +7,10 @@
  * everything else just calls functions.
  *
  * Uses @netlify/database's getDatabase(), the officially recommended access path
- * from Netlify Functions (see ARCHITECTURE.md for why: it sidesteps the
- * undocumented question of whether Netlify DB is reachable from outside
- * Netlify's own runtime, by never needing to find out).
+ * from Netlify Functions, so nothing here depends on whether Netlify DB is
+ * reachable from outside Netlify's own runtime.
  *
- * Personal content is encrypted at rest (SECURITY.md §11, lib/data-box.ts):
+ * Personal content is encrypted at rest (docs: security/encryption, lib/data-box.ts):
  * writes seal text through sealer(), and q() opens every sealed value in what
  * it returns, so callers only ever see plaintext. SQL can't compare, sort or
  * search ciphertext, so those steps happen here in TypeScript, or against a
@@ -374,7 +373,7 @@ export async function tx<T>(fn: (run: Run) => Promise<T>): Promise<T> {
   }
 }
 
-// ---------- Encryption at rest (SECURITY.md §11) ----------
+// ---------- Encryption at rest (docs: security/encryption) ----------
 
 /** How a write stores text: see sealer(). */
 export interface Sealer {
@@ -668,7 +667,7 @@ export async function searchNotesByKeyword(query: string, limit = 20): Promise<N
 /**
  * Semantic search over note_chunks via pgvector cosine distance (`<=>`).
  * Chunk text is encrypted like the note it came from; the embedding can't
- * be (SECURITY.md §11), and nothing writes chunks yet.
+ * be (docs: security/encryption), and nothing writes chunks yet.
  */
 export async function searchNotesBySimilarity(
   embedding: number[],
@@ -1966,7 +1965,7 @@ export interface PushSubscriptionRow {
   auth: string;
 }
 
-/** At most this many devices; a new one past it replaces the one unused longest (security review M5). */
+/** At most this many devices; a new one past it replaces the one unused longest. */
 export const MAX_PUSH_SUBSCRIPTIONS = 10;
 
 /** `credential`: the fingerprint of the token or key the request carried (lib/push.ts). */

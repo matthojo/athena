@@ -11,7 +11,7 @@
  * The API key is sealed with AES-256-GCM under CONNECTOR_ENCRYPTION_KEY
  * (lib/secret-box.ts, the same as connector sign-ins) and only ever opened
  * inside a Function to call ElevenLabs. Nothing here returns it to the API:
- * voiceStatus() is what the app sees. See SECURITY.md §12.
+ * voiceStatus() is what the app sees. See docs: security/outside-services.
  */
 
 import { qRaw } from "./db";

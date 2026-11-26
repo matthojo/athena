@@ -95,7 +95,7 @@ export async function importViewing(target: HistoryTarget, days: NetflixDay[], o
   const added = created.length;
   const addedFilms = created.filter((o) => !o.entry.group).length;
   // One Watch & read item per show and film in this batch, on the first day it was watched.
-  // A show stays Watching until the owner says it's done (owner decision 7 Nov); a film is Watched.
+  // A show stays Watching until the owner says it's done; a film is Watched.
   const items = new Map<string, WatchReadInput>();
   for (const d of days)
     for (const w of d.watched) {

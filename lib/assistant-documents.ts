@@ -138,7 +138,7 @@ export async function runDocumentTool(name: string, raw: unknown, ctx: { record:
     return JSON.stringify({ ...JSON.parse(receipt), filled: filled.filled.map((f) => f.name), left_blank: filled.blanks });
   }
   if (name === "send_note") {
-    // Prepared for the owner to confirm (security review M7): nothing is made in Google Docs or Notion here.
+    // Prepared for the owner to confirm: nothing is made in Google Docs or Notion here.
     const input = inputs.send_note.parse(raw);
     const note = await getNote(input.note_id);
     if (!note) throw new AthenaInputError("That note isn't there any more");

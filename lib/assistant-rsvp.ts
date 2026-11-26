@@ -4,7 +4,7 @@
  * beside lib/assistant.ts, which lists answer_invite with its own tools,
  * runs it through runRsvpTool() and undoes it through applyRsvpUndo().
  *
- * The assistant never answers on its own (security review M7): the tool
+ * The assistant never answers on its own: the tool
  * prepares a card, and the answer is saved and sent only when the owner
  * taps it (POST /api/events/:id/rsvp, lib/rsvp.ts), so it's sent to the
  * calendar only for an account with "Let Athena answer invites" on.

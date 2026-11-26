@@ -3,7 +3,7 @@
  * TfL and National Rail. One place reads them, in this order:
  *
  *  1. the key pasted into Sources, sealed with the account's other secrets
- *     (lib/connectors.ts, SECURITY.md §1), newest account first;
+ *     (lib/connectors.ts, docs: security/encryption), newest account first;
  *  2. the old environment variable (ATHENA_GOOGLE_ROUTES_KEY, ATHENA_TFL_KEY,
  *     ATHENA_RDM_KEY), so a deploy that set one keeps working;
  *  3. nothing: that half of live travel is off, and callers say so.

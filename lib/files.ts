@@ -283,8 +283,8 @@ export async function noteFilesInConversations(rawNoteId: unknown): Promise<Set<
 }
 
 /**
- * Delete files outright, wherever they're used: the owner chose to when
- * deleting a note for good (answered 6 Nov). Conversations that had them
+ * Delete files outright, wherever they're used, when the owner chooses to
+ * on deleting a note for good. Conversations that had them
  * show them as removed. Only with the key, like sweepFiles.
  */
 export async function deleteFilesForGood(ids: string[]): Promise<string[]> {
@@ -479,7 +479,7 @@ export async function fileBlocks(ids: string[], budget: { pages: number } = { pa
   return out;
 }
 
-// ---------- Summaries (answered 6 Nov: keep a summary, read the original on demand) ----------
+// ---------- Summaries (keep a summary, read the original on demand) ----------
 
 /** A summary is a few sentences; the words kept from a PDF or text file stop here. */
 const MAX_SUMMARY_CHARS = 1_200;

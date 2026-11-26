@@ -1,6 +1,6 @@
 /**
- * The Life log's daily counts for what Your activity reads (owner decision,
- * 12 Nov): books_finished_day, game_minutes_day, chess_games_day,
+ * The Life log's daily counts for what Your activity reads:
+ * books_finished_day, game_minutes_day, chess_games_day,
  * posts_made_day, highlights_made_day and the film, episode, video and
  * track counts, worked out from the day's entries in Days, never by Claude.
  * Written under the Life log's own name and source (its label as the

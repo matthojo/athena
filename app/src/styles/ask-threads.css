@@ -479,7 +479,7 @@
 
 /* On a wide screen the page scrolls inside .main, and a sticky box is held clear of that scroller's bottom
    padding as well as its own offset: it sits 24px higher than where it falls in the column, which closed the gap
-   under the last reply. This gives the column that 24px back, so the last reply clears the box (owner, 12 Nov 2026). */
+   under the last reply. This gives the column that 24px back, so the last reply clears the box. */
 @media (min-width: 1024px) {
   .ask__col {
     padding-bottom: var(--space-lg);

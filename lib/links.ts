@@ -243,7 +243,7 @@ export function parseWebLinks(markdown: string): WebLink[] {
   return out;
 }
 
-// ---------- Links Athena wrote (security review M6) ----------
+// ---------- Links Athena wrote ----------
 
 /**
  * Text a model wrote (an Ask reply, an answer, the briefing): every web

@@ -733,11 +733,10 @@ async function startTeamRun(stored: StoredRun, ctx: RunContext, state: RunState,
 }
 
 /**
- * Whether a failed run of an assistant's flow is tried once more, as Team's runs were (owner, 15 Nov: "Try once
- * more, then tell me"; 21 Nov: the same for flows it runs). Only a run a trigger started (not Run now or a try),
- * not tried already, that failed before anything ran: nothing changed, no plan kept, no card owed, and no step
- * that might have changed something (lib/flow-run.ts marks it `touched`). Not when its assistant is paused or
- * gone, or the budget or its cap ran out: those fail the same way again. Pure.
+ * Whether a failed run of an assistant's flow is tried once more, then reported, as Team's runs were. Only a run a
+ * trigger started (not Run now or a try), not tried already, that failed before anything ran: nothing changed, no
+ * plan kept, no card owed, and no step that might have changed something (lib/flow-run.ts marks it `touched`). Not
+ * when its assistant is paused or gone, or the budget or its cap ran out: those fail the same way again. Pure.
  */
 export function triesAgain(state: RunState, out: Walked, ctx: Pick<RunContext, "assistant" | "dry" | "byHand">): boolean {
   if (out.status !== "failed" || !ctx.assistant || ctx.dry || ctx.byHand || state.retried || state.touched) return false;
@@ -761,7 +760,7 @@ async function tryAgain(stored: StoredRun, from: RunState, fx: FlowEffects): Pro
 
 /**
  * Its assistant was paused on Team after the run was queued, or while it waited: it stops here, saying so, and
- * nothing more of it happens (owner, 21 Nov: pausing an assistant stops every flow it runs). A run tried once more
+ * nothing more of it happens: pausing an assistant stops every flow it runs. A run tried once more
  * and not yet picked up ends on Team as Team's did ("Paused before it ran."), with no card and no post.
  */
 async function stopPaused(stored: StoredRun, state: RunState, ctx: RunContext, fx: FlowEffects): Promise<FlowRun | null> {

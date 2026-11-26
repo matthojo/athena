@@ -1,7 +1,7 @@
 /**
- * The editor's LinkData from the real data layer (app/src/db/rich-links.ts,
- * stage 2S). main.ts plugs it in once with `setLinkData(realLinkData)`. In
- * sample mode 2S answers live cards from the sample data, and previews come
+ * The editor's LinkData from the real data layer (app/src/db/rich-links.ts).
+ * main.ts plugs it in once with `setLinkData(realLinkData)`. In sample mode
+ * the data layer answers live cards from the sample data, and previews come
  * from the editor's sample pages.
  *
  * 2S's LiveCard is mapped to the editor's union here (`toEditorCard`), so the

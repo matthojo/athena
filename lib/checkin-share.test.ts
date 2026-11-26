@@ -266,7 +266,7 @@ test("the file's questions type-check as shared questions", () => {
   assert.equal(s.format, 1);
 });
 
-// ---------- where answers go (owner, 25 Nov 2026) ----------
+// ---------- where answers go ----------
 
 test("ownMirror: written answers go to the journal, as Athena's own written ones do; nothing else goes anywhere", () => {
   assert.equal(ownMirror("text"), "day_journal");
@@ -322,7 +322,7 @@ test("removing a set leaves a past day's plan, and so its journal section, as th
   assert.deepEqual(swapJournalSection(`Mine.\n\n${before}`, before, before), { journal: `Mine.\n\n${before}`, section: before });
 });
 
-// ---------- the owner's own written questions (owner, 25 Nov 2026) ----------
+// ---------- the owner's own written questions ----------
 
 test("journal: built-in, own and shared written answers share the check-in's section; an own scale stays out", () => {
   const j = joinSharedCheckins(settings(), readSharedCheckins(FILE), { setId: SET_ID, newId });

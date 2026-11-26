@@ -1,7 +1,7 @@
 /**
  * The owner's skills (migration 0058, `ask_skills`): SKILL.md text, reference
  * files and where each came from, sealed in `payload` under the data key
- * (SECURITY.md §11). Readable columns are only the on switch, the starter key,
+ * (docs: security/encryption). Readable columns are only the on switch, the starter key,
  * the use count and times. Names are unique, checked here (they're sealed).
  *
  * Nothing is saved without the owner: an import is a preview first

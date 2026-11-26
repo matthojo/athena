@@ -32,12 +32,12 @@
  *        What the import created: entries hidden, Watch & read items archived.
  *
  * Mood: written to `days.private` only on a day with no mood: Athena's own
- * mood always wins (integrator, 7 Nov). Journal: Daylio's notes go under
- * "From Daylio" at the end of the day's journal, once (a note already there
- * isn't added again). Bearable's symptoms and energy are health: sealed in
- * `sensitive_blobs` (domain health, source bearable), never in Days, and
- * ignored by the health merge (bearable isn't a figure source). Charges in a
- * TfL file never reach the server. Nothing here logs a value.
+ * mood always wins. Journal: Daylio's notes go under "From Daylio" at the
+ * end of the day's journal, once (a note already there isn't added again).
+ * Bearable's symptoms and energy are health: sealed in `sensitive_blobs`
+ * (domain health, source bearable), never in Days, and ignored by the
+ * health merge (bearable isn't a figure source). Charges in a TfL file
+ * never reach the server. Nothing here logs a value.
  */
 import { AthenaInputError, archiveEntity, getOwnerTimeZone, q, qRaw } from "../../../lib/db";
 import { dataKeyConfigured, DataBoxError, DataKeyMissing, openStrict, sealText } from "../../../lib/data-box";

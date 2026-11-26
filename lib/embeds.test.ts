@@ -74,7 +74,7 @@ test("Apple Music: albums, songs, a track in an album, playlists and music video
 test("Google Maps: places, views, searches and its own embed address; coordinates for the still, never a player", () => {
   const place = embedFor("https://www.google.com/maps/place/Dishoom+King's+Cross/@51.5362,-0.1259,17z/data=!3m1!4b1!4m6!3m5!1s0x0:0x0!8m2!3d51.536214!4d-0.125672")!;
   assert.equal(place.provider, "google-maps");
-  assert.equal(place.embedUrl, null, "nothing loads from Google in a note (owner's answer)");
+  assert.equal(place.embedUrl, null, "nothing loads from Google in a note");
   assert.deepEqual([place.kind, place.allow, place.aspect], ["map", "", 4 / 3]);
   assert.equal(place.title, "Dishoom King's Cross");
   assert.deepEqual(place.at, { lat: 51.536214, lng: -0.125672 }, "the pin's own spot beats the view's centre");

@@ -58,7 +58,7 @@ function kindActions(t: Thing, offline: boolean): MenuAction[] {
   const data = linkData();
   const live = t.live;
   // A web page has no action of its own until the reader view exists; Open
-  // opens a new tab (owner's answers, 2026-11-08).
+  // opens a new tab.
   if (t.target.target === "web") return [];
   const id = t.target.id;
   switch (t.target.kind) {

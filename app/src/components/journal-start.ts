@@ -3,8 +3,8 @@
  * there only while the page is empty: the moment the owner types, it goes, and it comes back if they clear the page.
  * It never takes the focus.
  *
- * It opens a sheet of every template: the ones the owner wrote and added first, under "Yours", then Athena's starters
- * (owner, 25 Nov 2026). The sheet scrolls on its own, so a long list stays in reach on a phone. Picking one fills the journal with it
+ * It opens a sheet of every template: the ones the owner wrote and added first, under "Yours", then Athena's starters.
+ * The sheet scrolls on its own, so a long list stays in reach on a phone. Picking one fills the journal with it
  * (lib/templates.ts journalFromTemplate: the opening heading left out, dates as this day's) and saves, with Undo. It
  * never replaces words: if the page has any by the time one is picked, nothing changes and a toast says so, and
  * Undo only empties the page while it still holds exactly what the template put there.

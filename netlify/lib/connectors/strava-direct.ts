@@ -11,7 +11,7 @@
  * Read limits are 100 requests per 15 minutes. Calories are only on an
  * activity's own page, so a call reads at most DETAIL_CAP of those.
  *
- * Figures are health content (SECURITY.md §1): they go back to the run only,
+ * Figures are health content (docs: security/encryption): they go back to the run only,
  * never into an error or a log line.
  */
 import { STRAVA_API_URL, STRAVA_SCOPE } from "../../../lib/presets/health";

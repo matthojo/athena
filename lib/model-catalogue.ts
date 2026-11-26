@@ -8,15 +8,14 @@
  * row `ai_gateway_models`, and when it can't be read Athena uses the last copy
  * it has, else the snapshot committed beside this file.
  *
- * Owner, 17 Nov 2026: only the newest version of each model family is
- * offered (familyOf, shownModels); "newest only", which replaced an earlier
- * "newest and the one before". Dated snapshots and
- * aliases are hidden, and on OpenRouter only a short list of well-known makers
- * is offered. A hidden model the owner already chose stays valid: `listed`
- * reads the whole list, not the shown part.
+ * Only the newest version of each model family is offered (familyOf,
+ * shownModels). Dated snapshots and aliases are hidden, and on OpenRouter
+ * only a short list of well-known makers is offered. A hidden model the
+ * owner already chose stays valid: `listed` reads the whole list, not the
+ * shown part.
  *
- * Owner, 17 Nov 2026: a family whose newest version is itself old is hidden
- * by name (HIDDEN, each with its reason).
+ * A family whose newest version is itself old is hidden by name (HIDDEN,
+ * each with its reason).
  *
  * Notes are written by hand, one per exact model id. A model with no notes
  * gets a plain name from its id (plainName: "Gemini 3.8 Flash") and "unknown"
@@ -139,7 +138,7 @@ function plainWord(w: string): string {
 }
 
 /**
- * A name read from a model's id, for a model with no notes (owner, 17 Nov 2026): "gemini-3.8-flash" is "Gemini 3.8
+ * A name read from a model's id, for a model with no notes: "gemini-3.8-flash" is "Gemini 3.8
  * Flash", "qwen/qwen3.8-27b" is "Qwen3.8 27B", "claude-opus-4-5" is "Claude Opus 4.5". Only the name: no blurb, speed
  * or cost is read from an id.
  */
@@ -216,10 +215,10 @@ const VARIANT = /:/;
 const NOT_FOR_CHAT = /(^|-)(guard|safeguard|content-safety)(-|$)/;
 
 /**
- * OpenRouter's makers Athena offers, each with the lines it offers (null: all of them). Owner, 17 Nov 2026: well-known
- * makers only. The brief's list (DeepSeek, Qwen, Mistral, Moonshot's Kimi, Google's Gemma, Cohere, Meta's Llama) plus
- * xAI's Grok, Z.ai's GLM, MiniMax and OpenAI's open-weight gpt-oss: large labs whose models are widely used with
- * tools. Gemini, GPT and Meta's Muse are offered through their own providers, so not again here.
+ * OpenRouter's makers Athena offers, each with the lines it offers (null: all of them). Well-known
+ * makers only: DeepSeek, Qwen, Mistral, Moonshot's Kimi, Google's Gemma, Cohere, Meta's Llama, xAI's Grok, Z.ai's
+ * GLM, MiniMax and OpenAI's open-weight gpt-oss: large labs whose models are widely used with tools. Gemini, GPT
+ * and Meta's Muse are offered through their own providers, so not again here.
  */
 export const OPENROUTER_MAKERS: Readonly<Record<string, RegExp | null>> = {
   deepseek: null,
@@ -236,7 +235,7 @@ export const OPENROUTER_MAKERS: Readonly<Record<string, RegExp | null>> = {
 };
 
 /**
- * Families whose newest version is itself old, hidden by name (owner, 17 Nov 2026). The gateway gives no release dates,
+ * Families whose newest version is itself old, hidden by name. The gateway gives no release dates,
  * so each is one the snapshot itself shows a newer model for. Still runs if already chosen: `listed` reads every id.
  */
 export const HIDDEN: Readonly<Record<string, string>> = {
@@ -247,7 +246,7 @@ export const HIDDEN: Readonly<Record<string, string>> = {
   "openrouter/qwen/qwen3-235b-a22b-thinking-2507": "Qwen3 from July 2025 (the 2507 in its id); Qwen3.8 is listed.",
   "openrouter/deepseek/deepseek-r1-0528": "DeepSeek R1 from May 2025 (the 0528 in its id); DeepSeek V4 Pro is listed.",
   "openrouter/moonshotai/kimi-k2-thinking": "Kimi K2's thinking build; Kimi K3 and K2.6 are listed.",
-  // Owner, 17 Nov 2026 (Q8): alone in their line and old by their ids or age, hidden although nothing newer in the line is listed.
+  // Alone in their line and old by their ids or age, hidden although nothing newer in the line is listed.
   "openai/o3": "OpenAI's o3 reasoning model; GPT-5.5 and GPT-5.5 Pro succeed it.",
   "openrouter/mistralai/mistral-saba": "An early regional Mistral model; Mistral Small 4 and Large 4 are listed.",
   "openrouter/mistralai/codestral-2508": "Codestral from August 2025 (the 2508 in its id).",
@@ -369,7 +368,7 @@ function offered(ref: ModelRef): boolean {
   return (!only || only.test(line)) && !NOT_FOR_CHAT.test(line);
 }
 
-/** The models the catalogue shows: in each family, the newest version only (every size of it). Owner, 17 Nov 2026. */
+/** The models the catalogue shows: in each family, the newest version only (every size of it). */
 export function shownModels(list: GatewayList): ModelRef[] {
   const out: ModelRef[] = [];
   for (const group of families(list).values()) {

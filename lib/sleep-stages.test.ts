@@ -8,19 +8,19 @@ import { readLength, readStages, readWhen, stageOf, StagesWithoutTimes } from ".
 const today = "2026-11-07";
 const ctx = { today, source: "apple_health" as const };
 
-// What the owner's Shortcut sent on 7 Nov: the Sleep Analysis samples dropped into the sleep_minutes Number field.
-const OWNER_SLEEP = "Deep\nCore\nREM\nCore\nAwake\nCore\nIn Bed\nDeep\nCore\nREM\nCore\nAwake\nCore\nREM\nCore";
-const OWNER = { steps: 9213.0, sleep_minutes: OWNER_SLEEP, resting_hr: 52 };
+// What an iPhone Shortcut sends: the Sleep Analysis samples dropped into the sleep_minutes Number field.
+const SHORTCUT_SLEEP = "Deep\nCore\nREM\nCore\nAwake\nCore\nIn Bed\nDeep\nCore\nREM\nCore\nAwake\nCore\nREM\nCore";
+const OWNER = { steps: 9213.0, sleep_minutes: SHORTCUT_SLEEP, resting_hr: 52 };
 
 test("the owner's exact payload: once refused, now the day saves and says what to change", () => {
   // Before: `sleep_minutes: send a number, not "Deep\nCore\nREM\nCore\nAwake\nCore\nIn Bed\nDee"`. The same text that refused it:
-  assert.equal(JSON.stringify(OWNER_SLEEP.slice(0, 40)), JSON.stringify("Deep\nCore\nREM\nCore\nAwake\nCore\nIn Bed\nDee"));
+  assert.equal(JSON.stringify(SHORTCUT_SLEEP.slice(0, 40)), JSON.stringify("Deep\nCore\nREM\nCore\nAwake\nCore\nIn Bed\nDee"));
   const { day, skipped } = readHealthDayNoting(OWNER, ctx);
   assert.deepEqual(day, { date: "2026-11-06", source: "apple_health", steps: 9213, resting_hr: 52 });
   assert.equal(skipped.length, 1);
   assert.match(skipped[0], /Sleep wasn't saved: Athena got the stage names but not their times\. In the Shortcut, send sleep_stages as the Stages text \(Settings → From your iPhone → Health, step 3\)\./);
   // Nothing but the names: a plain error naming the fix.
-  assert.throws(() => readHealthDay({ sleep_minutes: OWNER_SLEEP }, ctx), /stage names but not their times\. In the Shortcut/);
+  assert.throws(() => readHealthDay({ sleep_minutes: SHORTCUT_SLEEP }, ctx), /stage names but not their times\. In the Shortcut/);
   // A real number in sleep_minutes is still read, and nonsense is still refused.
   assert.equal(readHealthDay({ sleep_minutes: "461.5" }, ctx).sleep_minutes, 462);
   assert.throws(() => readHealthDay({ sleep_minutes: "lots" }, ctx), /sleep_minutes: send a number, not "lots"/);
@@ -139,7 +139,7 @@ test("across sources: the breakdown comes from the app sleep comes from, never m
   assert.equal(stagesWords(oura.sleep_stages), "1h 20m deep · 4h 20m core · 1h 50m REM · 30m awake · 8h in bed");
 });
 
-test("the day's line names deep sleep when the night has it (owner, 7 Nov), and still reads as a health line", () => {
+test("the day's line names deep sleep when the night has it, and still reads as a health line", () => {
   const { healthLine, isHealthLine, withoutHealth } = H;
   const staged = { sleep_minutes: 460, sleep_stages: { deep: 85, core: 265, rem: 110 }, steps: 6241, resting_hr: 52 };
   const line = healthLine(staged)!;

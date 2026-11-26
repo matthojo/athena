@@ -90,7 +90,7 @@ export async function habitSummaries(from: string, to: string, today: string): P
   return [...own, ...imported];
 }
 
-/** Per day: the share of habits done (0–1), for Patterns. Days with no habit logged are left out; an Athena habit's unticked due day counts as not done (owner, 8 Nov). */
+/** Per day: the share of habits done (0–1), for Patterns. Days with no habit logged are left out; an Athena habit's unticked due day counts as not done. */
 export async function habitRates(from: string, to: string, today?: string): Promise<Map<string, number>> {
   const rows = await q<{ date: string; done: number; all: number }>(
     `SELECT to_char(date, 'YYYY-MM-DD') AS date, count(*) FILTER (WHERE count > 0)::int AS done, count(*)::int AS all FROM day_entries

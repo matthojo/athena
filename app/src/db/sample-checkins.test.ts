@@ -1,7 +1,7 @@
-// Sample check-ins (app/src/db/sample-checkins.ts) with a shared set, as the owner decided on 25 Nov 2026: a set is
-// added asking or switched off, a routine that's off stays off, and a written answer, to a shared question or to one
-// the owner wrote, goes into that day's journal, is changed and undone with it, and stays there when the set is
-// removed. The owner's own scale stays out, and days already answered aren't back-filled. Made-up words only.
+// Sample check-ins (app/src/db/sample-checkins.ts) with a shared set: a set is added asking or switched off, a
+// routine that's off stays off, and a written answer, to a shared question or to one the owner wrote, goes into that
+// day's journal, is changed and undone with it, and stays there when the set is removed. The owner's own scale stays
+// out, and days already answered aren't back-filled. Made-up words only.
 // Run: npx tsx --test app/src/db/sample-checkins.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -480,7 +480,7 @@ export const BUSINESS_PRESETS: ConnectorPreset[] = [
     help: "Signs in with your Help Scout account, read-only. Help Scout doesn't publish its tool list, so after you connect, go to What Athena can read and turn on the tools that only read.",
   },
   // ---- Automation ----
-  // Zapier labels execute_zapier_read_action a read (owner, 7 Nov). Every
+  // Zapier labels execute_zapier_read_action a read. Every
   // other Zapier tool stays unknown or write.
   {
     id: "zapier",

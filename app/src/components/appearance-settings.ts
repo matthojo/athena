@@ -1,6 +1,5 @@
 /**
- * Settings → Appearance (ARCHITECTURE.md, "Appearance and the theme surface"
- * and "Themes"):
+ * Settings → Appearance (docs: architecture/theming):
  *
  * - Mode: System, Light or Dark, for this device (lib/appearance.ts).
  * - Theme: Athena's own, the built-in themes and the person's own, each a

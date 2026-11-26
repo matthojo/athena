@@ -190,7 +190,7 @@ test("a run started by something that arrived: other people's words, and an allo
   });
   const r = await runAssistantTurn(moss.id, "Check the price of the scarf", { mode: "run", event: { kind: "saved", ref_kind: "saved", facets: { title: "Green scarf", savedAction: "gift-idea" } }, client });
   assert.match(JSON.stringify(calls[0].messages[0].content), /Green scarf/);
-  // The allowlist is the owner's standing request (owner, 13 Nov 2026).
+  // The allowlist is the owner's standing request.
   assert.deepEqual((r.reply.changes ?? []).map((c) => c.kind), ["commitment"], "add_todo is allowed: it ran");
   assert.equal(r.reply.plan?.steps.length, 1, "save_note isn't: it waits");
   assert.equal(r.reply.plan?.why, "read");

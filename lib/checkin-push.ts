@@ -59,7 +59,7 @@ export const checkinDone = (c: Checkin | null): boolean => c?.status === "done";
  * Send the morning check-in push now? The switch is on, the morning routine is
  * on, today's morning check-in isn't done, it's not quiet hours, and it's
  * morning_at or later that day (so quiet hours that end after morning_at only
- * delay it; owner, 17 Nov 2026). Once a day is the caller's claim key.
+ * delay it). Once a day is the caller's claim key.
  */
 export function morningPushDue(o: {
   now: Date;

@@ -1,4 +1,4 @@
-// Real path for rich links, stage 1: the real /api function on Postgres with every migration (0040 included) and a
+// Real path for rich links: the real /api function on Postgres with every migration (0040 included) and a
 // local Netlify Blobs server. Pages come from a local server through Saved's guarded page reader (its seams opened
 // for 127.0.0.1); tiles from a stubbed provider. Covers link previews (read, kept, sealed, the address not kept,
 // pictures and their headers, refresh after 30 days, a failed refresh keeping the last good one, failures kept

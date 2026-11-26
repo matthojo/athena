@@ -1,5 +1,5 @@
 /**
- * New note, on a phone's Home (owner, 12 Nov 2026): the dock no longer has a
+ * New note, on a phone's Home: the dock no longer has a
  * floating + beside it, so Home carries its own button. Wide screens hide it:
  * the sidebar's New note (C) is there.
  */

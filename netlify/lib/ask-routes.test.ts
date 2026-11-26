@@ -1,5 +1,5 @@
 // Run: npx tsx --test netlify/lib/ask-routes.test.ts
-// /api/routines is closed (owner, 13 Nov 2026): every method and path answers 410 and points at /api/team.
+// /api/routines is closed: every method and path answers 410 and points at /api/team.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { handleAskRoutes, ROUTINES_GONE } from "./ask-routes";
