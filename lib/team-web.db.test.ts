@@ -100,7 +100,12 @@ test("a scheduled run searches where the owner lives, opens the shop's page and 
   assert.equal(fetch.type, "web_fetch_20250910");
   assert.equal(fetch.max_uses, 5);
   assert.equal(fetch.max_content_tokens, 10_000);
-  assert.deepEqual(fetch.url_sources, { user_input: { type: "all" }, server_tool_results: { type: "all" }, client_tool_results: { type: "only", tools: [{ type: "tool_reference", name: "find_saved" }] } });
+  // A run: a link on a page it opened isn't one it may open next, only search results, its message and find_saved.
+  assert.deepEqual(fetch.url_sources, {
+    user_input: { type: "all" },
+    server_tool_results: { type: "except", tools: [{ type: "tool_reference", name: "web_fetch" }] },
+    client_tool_results: { type: "only", tools: [{ type: "tool_reference", name: "find_saved" }] },
+  });
   // Its own rule for what goes in a search, in place of main Ask's.
   const system = String(m.sent[0].system);
   assert.ok(system.includes(ASSISTANT_WEB_RULE), "the assistant's rule, word for word");
@@ -265,6 +270,8 @@ test("a chat with a web-enabled assistant reads pages under its rule, as when it
   const m = scripted([[answer({ text: "£339.99 at Shop.", general: true })]]);
   await runAssistantTurn(pip.id, "What's the Lego Ferrari at now?", { mode: "chat", client: m.client, now: NOW });
   assert.equal(m.tools(0).find((t) => t.name === "web_fetch")?.max_uses, 5);
+  // The owner is there: a link on a page it opened may be opened next, as in Ask.
+  assert.deepEqual((m.tools(0).find((t) => t.name === "web_fetch") as unknown as { url_sources: { server_tool_results: unknown } }).url_sources.server_tool_results, { type: "all" });
   assert.equal(m.tools(0).find((t) => t.name === "web_search")?.max_uses, 5);
   assert.ok(String(m.sent[0].system).includes(ASSISTANT_WEB_RULE));
 

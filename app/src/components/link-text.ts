@@ -8,7 +8,8 @@
  *  - A web page: always its label as a plain link, whatever mode its title
  *    asks for. Ask's text is written by a model, so a link in it never gets
  *    a card, a favicon or a preview: nothing is fetched until the owner
- *    clicks it.
+ *    clicks it. The label is the model's words too, so the site it goes to
+ *    follows it ("Your receipt · shop.example"), unless the label names it.
  *
  * Built from text nodes and elements only, never HTML.
  */
@@ -16,7 +17,7 @@
 import { h } from "../lib/dom";
 import { mentionChip } from "./mention-input";
 import { linkDisplayLabel } from "../lib/markdown-text";
-import { linkPieces } from "../db/rich-links-rules";
+import { linkHostAfter, linkPieces } from "../db/rich-links-rules";
 import type { LinkKind } from "../../../lib/links";
 import "../styles/link-text.css";
 
@@ -43,6 +44,9 @@ export function linkTextNodes(text: string, open: (kind: LinkKind, id: string) =
     if (p.target === "web") {
       // Always a plain link, whatever mode its title asks for: this text may be a model's, and a preview would read the page.
       out.push(h("a", { class: "text-link", href: p.url, target: "_blank", rel: "noopener noreferrer" }, p.label || hostOf(p.url)));
+      // Where it really goes, after the label a model wrote.
+      const host = linkHostAfter(p.label, p.url);
+      if (host) out.push(h("span", { class: "text-link__host" }, ` · ${host}`));
       continue;
     }
     const el = p.mode === "link" ? h("span", { class: "text-link", role: "link", tabindex: "0", "data-athena-link": "", "data-kind": p.kind, "data-id": p.id }, linkDisplayLabel(p.kind, p.label).replace(/^@/, "")) : mentionChip(p.kind, p.id, p.label);

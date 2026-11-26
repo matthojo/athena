@@ -326,7 +326,7 @@ export interface StageTurn {
   /** The stage's message, in place of a trigger's. */
   prompt: string;
   /** Options for runAssistantTurn beside the usual: held like the stages before it, and a guest's memory left alone. */
-  options: Pick<TurnOptions, "others" | "flagged" | "noMemory">;
+  options: Pick<TurnOptions, "others" | "flagged" | "unchecked" | "noMemory">;
   /** Run the turn as this stage, so its tools are offered. */
   wrap<T>(fn: () => Promise<T>): Promise<T>;
   /** The turn ended: what it handed off or asked decides what happens next. Never throws. */
@@ -354,12 +354,12 @@ export async function stageTurn(runId: string): Promise<StageTurn | null> {
   // Held like the stages before it: one that read other people's words holds every stage after it, and what they
   // pass on is checked by Jev like any text someone else wrote. Athena's own lead-in isn't (lib/team-chat.ts).
   const held = stage.words.held === true || stages.some((s) => s.position < stage.position && s.words.held);
-  const guarded = held ? await guardText(message.data).catch(() => ({ text: message.data, flagged: false })) : { text: message.data, flagged: false };
+  const guarded = held ? await guardText(message.data).catch(() => ({ text: message.data, flagged: false, unchecked: true })) : { text: message.data, flagged: false, unchecked: false };
   const who = await whoOf(stage.assistant_id);
   const desk: StageDesk = newDesk({ position: stage.position, earlier: earlier.map((e) => ({ position: e.position, label: e.label })), canSendBack, canAsk });
   return {
     prompt: `${message.lead}\n\n${guarded.text}`,
-    options: { ...(held ? { others: true, flagged: guarded.flagged } : {}), ...(who?.guest ? { noMemory: true } : {}) },
+    options: { ...(held ? { others: true, flagged: guarded.flagged, unchecked: guarded.unchecked } : {}), ...(who?.guest ? { noMemory: true } : {}) },
     wrap: (fn) => asStage(desk, fn),
     done: (out) => stageDone(head.id, stage.id, desk, out).catch(warn("couldn't settle a stage")),
     failed: async (why) => {

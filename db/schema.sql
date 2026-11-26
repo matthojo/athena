@@ -1337,14 +1337,17 @@ CREATE TABLE IF NOT EXISTS ask_skills (
 
 -- What a note held before each change to its title or body, whoever made it
 -- (the owner's typing grouped to one per 10 minutes): lib/note-versions.ts.
--- `title` and `body` are sealed like the note's; the newest 20 per note are kept.
+-- `title` and `body` are sealed like the note's. `changed_by` is what replaced
+-- a version, `written_by` what wrote it (0094; null when unknown). The newest
+-- 20 the owner wrote and the newest 30 anyone else wrote are kept per note.
 CREATE TABLE IF NOT EXISTS note_versions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   note_id UUID NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   body TEXT NOT NULL,
   changed_by TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  written_by TEXT
 );
 CREATE INDEX IF NOT EXISTS note_versions_note_idx ON note_versions (note_id, created_at DESC);
 

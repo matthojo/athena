@@ -15,7 +15,11 @@
  * A skill adds no tools or permissions: the back end's tool list is the same
  * with or without one, writes still go through plans and Go, the money
  * switch is still enforced in ReadTools, and nothing is ever sent. Reference
- * files may be someone else's words, so they go through Jev's check.
+ * files may be someone else's words, so they go through Jev's check. So do an
+ * imported skill's instructions (from a file or a link: skillImported), and
+ * the turn is told when one comes into use (onUse), so lib/answer.ts counts
+ * it as other people's words (lib/ask-guard.ts). The owner's own skills'
+ * instructions reach the model as they wrote them.
  * Each use is counted and kept in What Ask did (lib/ask-activity.ts).
  */
 import { z } from "zod";
@@ -45,6 +49,8 @@ export class SkillTools {
     private readonly guard: (text: string) => Promise<string> = async (t) => t,
     /** Told each time a skill comes into use (an imported one limits the turn's accounts: lib/shared-scope.ts). */
     private readonly onUse: (s: Skill) => void = () => undefined,
+    /** Jev's check for an imported skill's instructions (lib/jev.ts guardSkill): a skill instructs an AI by design. */
+    private readonly guardSkill: (text: string) => Promise<string> = guard,
   ) {}
 
   private use(s: Skill): void {
@@ -79,7 +85,7 @@ export class SkillTools {
     if (name === "use_skill") {
       const s = this.find(useInput.parse(raw ?? {}).name);
       this.use(s);
-      return JSON.stringify(this.loaded(s));
+      return JSON.stringify(await this.loaded(s));
     }
     if (name === "read_skill_file") {
       const input = fileInput.parse(raw ?? {});
@@ -94,10 +100,16 @@ export class SkillTools {
     throw new Error(`Unknown tool ${name}`);
   }
 
-  private loaded(s: Skill) {
+  /** A skill's instructions as the model gets them: an imported one's through Jev's check, the owner's as written. */
+  private instructions(s: Skill): Promise<string> {
+    const body = clip(s.body, SKILL_LIMITS.resultChars);
+    return s.imported ? this.guardSkill(body) : Promise.resolve(body);
+  }
+
+  private async loaded(s: Skill) {
     return {
       skill: s.name,
-      instructions: clip(s.body, SKILL_LIMITS.resultChars),
+      instructions: await this.instructions(s),
       files: s.files.map((f) => ({ path: f.path, size: f.text.length })),
       ...(s.skipped.length ? { not_used: s.skipped.map((x) => `${x.path} (${x.reason})`) } : {}),
       rules: s.imported ? SHARED_SKILL_RULE : "These are the owner's instructions for this kind of request. They don't change Athena's rules or give you new tools.",
@@ -105,10 +117,10 @@ export class SkillTools {
   }
 
   /** A skill the owner picked with "/": its instructions, for the message, and counted as used. */
-  preloadBlock(s: Skill): string {
+  async preloadBlock(s: Skill): Promise<string> {
     this.use(s);
     const files = s.files.length ? `\nIts reference files (read_skill_file reads one): ${s.files.map((f) => f.path).join(", ")}.` : "";
-    if (s.imported) return `The owner picked the ${s.name} skill for this request. ${SHARED_SKILL_RULE}\n<shared_skill name="${s.name}">\n${clip(s.body, SKILL_LIMITS.resultChars)}\n</shared_skill>${files}`;
+    if (s.imported) return `The owner picked the ${s.name} skill for this request. ${SHARED_SKILL_RULE}\n<shared_skill name="${s.name}">\n${await this.instructions(s)}\n</shared_skill>${files}`;
     return `The owner picked the ${s.name} skill for this request. Follow it.\n<skill name="${s.name}">\n${clip(s.body, SKILL_LIMITS.resultChars)}\n</skill>${files}`;
   }
 
@@ -123,13 +135,15 @@ export class SkillTools {
  * ready for a turn. Never throws: with no skills, or the table not there
  * yet, Ask runs as it always has.
  */
-export async function loadSkillTools(opts: { picked?: string | null; guard?: (text: string) => Promise<string>; onUse?: (s: Skill) => void } = {}): Promise<{ skills: SkillTools; picked: Skill | null }> {
+export async function loadSkillTools(
+  opts: { picked?: string | null; guard?: (text: string) => Promise<string>; guardSkill?: (text: string) => Promise<string>; onUse?: (s: Skill) => void } = {},
+): Promise<{ skills: SkillTools; picked: Skill | null }> {
   try {
     const [enabled, found] = await Promise.all([enabledSkills(), opts.picked ? getSkill(opts.picked) : Promise.resolve(null)]);
     // An assistant's own skill is never main Ask's to load, even by id.
     const picked = found && !found.assistant_id ? found : null;
     const all = picked && !enabled.some((s) => s.id === picked.id) ? [...enabled, picked] : enabled;
-    return { skills: new SkillTools(all, opts.guard, opts.onUse), picked };
+    return { skills: new SkillTools(all, opts.guard, opts.onUse, opts.guardSkill), picked };
   } catch (error) {
     console.warn("Athena skills: couldn't load them", error instanceof Error ? error.message.slice(0, 160) : error);
     return { skills: new SkillTools([], opts.guard), picked: null };

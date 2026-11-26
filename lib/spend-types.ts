@@ -166,6 +166,23 @@ export function budgetState(spent: number, limit: number | null): BudgetState {
   return "under";
 }
 
+/**
+ * How far past today's budget, and past an assistant's cap, Jev's injection check may still run, in dollars
+ * (lib/jev.ts guardText). At $0.04 per million tokens that's some 6 million tokens a day: thousands of checks. Once
+ * it's used too, what the check would have read counts as unchecked and unattended runs hold their changes for Go.
+ */
+export const GUARD_HEADROOM_USD = 0.25;
+
+/**
+ * Which of today's limits (in dollars; null when not set) spend has reached, after `headroom` dollars past each. Pure.
+ */
+export function overLimits(spent: { all: number; mine: number }, limits: { all: number | null; mine: number | null }, headroom = 0): { all: boolean; mine: boolean } {
+  return {
+    all: limits.all !== null && spent.all >= limits.all + headroom - 1e-9,
+    mine: limits.mine !== null && spent.mine >= limits.mine + headroom - 1e-9,
+  };
+}
+
 /** What "Allow more" adds: 1 of the currency, or for a currency worth much less than a dollar, a round amount near $1. Pure. */
 export function allowStep(rate: number): number {
   if (!(rate > 3)) return 1;

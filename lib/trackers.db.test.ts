@@ -30,6 +30,10 @@ const CHANNEL = "https://video.example.com/@sample-channel";
 
 before(async () => {
   if (!url) return;
+  // Jev checks what runs read and finds nothing aimed at an AI: without it, a run's allowlisted changes wait for Go.
+  (await import("./jev")).useJevClient({
+    systemOne: async (req: { questions: Record<string, unknown> }) => ({ answers: Object.fromEntries(Object.keys(req.questions).map((k) => [k, { noul: 0.02 }])) }),
+  } as never);
   const { qRaw } = await import("./db");
   await qRaw(`DELETE FROM trackers`);
   await qRaw(`DELETE FROM ask_activity`);

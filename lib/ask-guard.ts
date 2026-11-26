@@ -23,6 +23,12 @@
  *    flag still takes every write tool away, allowlisted or not. The guard
  *    is given the allowlist when the turn starts; nothing reads it from a
  *    tool result. A chat has none: the owner's own message decides.
+ *  - Text Jev couldn't check (it's off, past its budget, slow or failing)
+ *    is `unchecked`. In an unattended run, an allowlisted change queued after
+ *    reading it waits for Go, as one would after a flag, but the write tools
+ *    stay: nothing is known to be wrong. A chat goes on as before: the owner
+ *    is there, a change their message didn't plainly ask for already waits
+ *    once others' words are read, and one it did ask for is theirs.
  *
  * Erring here costs the owner one tap (a plan card with one step), never a
  * change they didn't ask for.
@@ -175,17 +181,18 @@ export function needsOwnersGo(tool: string, input: unknown): boolean {
 
 /**
  * Why a change is waiting for Go rather than made: the turn read other people's words first, something it read was
- * flagged, or it sets a link a model chose (needsOwnersGo).
+ * flagged, an unattended run read text Jev couldn't check, or it sets a link a model chose (needsOwnersGo).
  */
-export type HeldWhy = "read" | "flagged" | "link";
+export type HeldWhy = "read" | "flagged" | "unchecked" | "link";
 
-/** One turn's guard: what the owner asked for, what's been read, and whether anything read was flagged. */
+/** One turn's guard: what the owner asked for, what's been read, and whether anything read was flagged or unchecked. */
 export class TurnGuard {
   /** What the owner's own message asks for. Fixed when the turn starts. */
   readonly asked: ReadonlySet<Asked>;
   /** What's been read so far that other people wrote. */
   readonly read = new Set<ReadFrom>();
   private raised = false;
+  private doubted = false;
   /** Queued changes (by the stand-in id the plan gave them) that must wait for Go, and why. */
   private readonly held = new Map<string, HeldWhy>();
 
@@ -195,11 +202,13 @@ export class TurnGuard {
   /**
    * `flaggedNow`: whether anything read so far was flagged (lib/answer.ts keeps that with its evidence).
    * `standing`: the assistant's allowlist, for an unattended Team run only.
+   * `uncheckedNow`: whether anything read so far was text Jev couldn't check (kept with the evidence too).
    */
   constructor(
     ownerText: string,
     private readonly flaggedNow: () => boolean = () => false,
     standing: Iterable<string> = [],
+    private readonly uncheckedNow: () => boolean = () => false,
   ) {
     this.asked = askedFor(ownerText);
     this.standing = new Set(standing);
@@ -209,6 +218,12 @@ export class TurnGuard {
   get flagged(): boolean {
     if (!this.raised && this.flaggedNow()) this.raised = true;
     return this.raised;
+  }
+
+  /** Something read couldn't be checked by Jev. Once true it stays true for the turn. */
+  get unchecked(): boolean {
+    if (!this.doubted && this.uncheckedNow()) this.doubted = true;
+    return this.doubted;
   }
 
   /** The turn has read something other people wrote. */
@@ -221,6 +236,11 @@ export class TurnGuard {
     this.raised = true;
   }
 
+  /** Something read couldn't be checked: an unattended run's allowlisted changes wait for Go from here. */
+  uncheck(): void {
+    this.doubted = true;
+  }
+
   /** May the model still be offered, and call, this tool? */
   allows(tool: string): boolean {
     return !(this.flagged && isWriteTool(tool));
@@ -231,11 +251,12 @@ export class TurnGuard {
    * this moment: a change queued before anything of other people's was read
    * can't have been caused by it. In an unattended run, a change on the
    * allowlist was asked for by the owner ahead of time, so reading other
-   * people's words doesn't hold it; a flag does.
+   * people's words doesn't hold it; a flag does, and so does text Jev
+   * couldn't check, since nobody knows whether it would have been flagged.
    */
   mustWait(tool: string): HeldWhy | null {
     if (this.flagged) return "flagged";
-    if (this.standing.has(tool)) return null;
+    if (this.standing.has(tool)) return this.unchecked ? "unchecked" : null;
     if (this.read.size && !plainlyAsked(this.asked, tool)) return "read";
     return null;
   }
@@ -244,10 +265,13 @@ export class TurnGuard {
     this.held.set(standIn, why);
   }
 
-  /** Why the queued changes wait for Go, if any of them must: a flag outranks a read, and a read a model's link. */
+  /**
+   * Why the queued changes wait for Go, if any of them must: a flag outranks the rest, then an allowlisted change
+   * held for text that wasn't checked (the owner expected it to run alone), then a read, then a model's link.
+   */
   why(standIns: readonly string[]): HeldWhy | null {
     if (this.flagged && standIns.length) return "flagged";
     const held = standIns.map((id) => this.held.get(id)).filter((w): w is HeldWhy => !!w);
-    return held.includes("read") ? "read" : held.length ? "link" : null;
+    return held.includes("unchecked") ? "unchecked" : held.includes("read") ? "read" : held.length ? "link" : null;
   }
 }

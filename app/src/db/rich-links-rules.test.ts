@@ -7,6 +7,8 @@ import {
   eventCard,
   firstLines,
   hostOf,
+  linkHostAfter,
+  linkPieces,
   nextBirthday,
   noteCard,
   personCard,
@@ -28,6 +30,22 @@ import type { AthenaEvent, Commitment, Note, Person, Place, ReadingItem } from "
 
 const NOW = Date.parse("2026-11-08T12:00:00Z");
 const HOUR = 3_600_000;
+
+test("a web link's label is followed by the site it goes to, unless the label names it", () => {
+  const [p] = linkPieces("Here it is: [Open your receipt](https://evil.example/?d=abc123)");
+  assert.equal(p.target, "web");
+  assert.equal(linkHostAfter(p.label, (p as { url: string }).url), "evil.example");
+  assert.equal(linkHostAfter("Shop", "https://www.shop.example.com/kettle"), "shop.example.com");
+  // The label already says where: nothing to add.
+  assert.equal(linkHostAfter("shop.example.com/kettle", "https://shop.example.com/kettle"), null);
+  assert.equal(linkHostAfter("On Shop.Example.com", "https://www.shop.example.com/"), null);
+  // A label naming a different site than the link's is the case that matters.
+  assert.equal(linkHostAfter("bank.example", "https://bank.example.evil.example/login"), "bank.example.evil.example");
+  // A lookalike host shows as its real (punycode) name.
+  assert.equal(linkHostAfter("example.com", "https://exаmple.com/"), "xn--exmple-4nf.com");
+  // No label: the host is the label already.
+  assert.equal(linkHostAfter("", "https://shop.example.com/"), null);
+});
 const clock: Clock = { today: "2026-11-08", tz: "Europe/London" };
 const ID = "11111111-2222-4333-8444-555555555555";
 const PLACE = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";

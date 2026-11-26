@@ -227,13 +227,16 @@ test("MCP reads are labelled as content, and an overwrite keeps the earlier vers
   // An MCP-only key can't reach the versions over REST.
   assert.equal((await rest("GET", `/notes/${note.id}/versions`, mcpKey)).status, 401);
 
-  // Only the newest 20 stay.
+  // Changes that don't say who made them keep the newest 30 of their own; the owner's words stay (0094).
   const { updateNote } = await import("../../../lib/db");
-  for (let i = 1; i <= 25; i++) await updateNote(note.id, { body: `Draft ${i}` });
+  for (let i = 1; i <= 35; i++) await updateNote(note.id, { body: `Draft ${i}` });
   kept = await versions();
-  assert.equal(kept.length, 20);
-  assert.equal(kept[0].body, "Draft 24");
-  assert.equal(kept[19].body, "Draft 5");
+  const drafts = kept.filter((v) => v.body.startsWith("Draft "));
+  assert.equal(drafts.length, 30);
+  assert.equal(drafts[0].body, "Draft 34");
+  assert.equal(drafts[29].body, "Draft 5");
+  assert.deepEqual(kept.filter((v) => v.body === "My own edit.").length, 2, "the owner's edit, and the same words put back by the restore");
+  assert.equal(kept.length, 32);
 
   // They go with the note when it's deleted for good.
   assert.equal((await rest("DELETE", `/notes/${note.id}`, MASTER)).status, 200);

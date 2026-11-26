@@ -122,13 +122,21 @@ export async function handOffFetch(id: string, input: Record<string, unknown>, d
   }
 }
 
-type Source = { type: "all" } | { type: "none" } | { type: "only"; tools: Array<{ name: string }> };
+type Source = { type: "all" } | { type: "none" } | { type: "only" | "except"; tools: Array<{ name: string }> };
 export type UrlSources = { user_input?: Source; server_tool_results?: Source; client_tool_results?: Source };
 
-/** Every link in the conversation, by where it came from: the owner's words, a web result, or a named tool's result. */
+/** Does a result of `tool` count, under `s`? `fallback` when the source isn't given. Pure. */
+function counts(s: Source | undefined, fallback: boolean, tool: string): boolean {
+  if (!s) return fallback;
+  if (s.type === "all" || s.type === "none") return s.type === "all";
+  const named = s.tools.some((t) => t.name === tool);
+  return s.type === "only" ? named : !named;
+}
+
+/** Every link in the conversation, by where it came from: the owner's words, a web search or page (by tool), or a named tool's result. */
 export class SeenLinks {
   private user: string[] = [];
-  private server: string[] = [];
+  private server: Array<{ tool: "web_search" | "web_fetch"; text: string }> = [];
   private client: Array<{ tool: string; text: string }> = [];
 
   constructor(messages: Anthropic.MessageParam[]) {
@@ -149,21 +157,17 @@ export class SeenLinks {
 
   /** A web result this call has had so far counts as soon as it's in. */
   add(b: Block): void {
-    if (b.type === "web_search_tool_result" || b.type === "web_fetch_tool_result") this.server.push(JSON.stringify(b.content));
+    if (b.type === "web_search_tool_result") this.server.push({ tool: "web_search", text: JSON.stringify(b.content) });
+    else if (b.type === "web_fetch_tool_result") this.server.push({ tool: "web_fetch", text: JSON.stringify(b.content) });
   }
 
   allows(url: string, sources?: UrlSources): boolean {
     const forms = [url, url.replace(/\/+$/, ""), url.replace(/\/+$/, "") + "/"];
     const has = (texts: string[]) => texts.some((t) => forms.some((f) => t.includes(f) || t.includes(JSON.stringify(f).slice(1, -1))));
-    const pick = (s: Source | undefined, fallback: boolean): boolean | string[] => (!s ? fallback : s.type === "all" ? true : s.type === "none" ? false : s.tools.map((t) => t.name));
     // With no url_sources, as Anthropic: any link already in the conversation.
-    const user = pick(sources?.user_input, true);
-    const server = pick(sources?.server_tool_results, true);
-    const client = pick(sources?.client_tool_results, !sources);
-    if (user === true && has(this.user)) return true;
-    if (server === true && has(this.server)) return true;
-    if (client === true && has(this.client.map((c) => c.text))) return true;
-    if (Array.isArray(client) && has(this.client.filter((c) => client.includes(c.tool)).map((c) => c.text))) return true;
+    if (counts(sources?.user_input, true, "") && has(this.user)) return true;
+    if (has(this.server.filter((r) => counts(sources?.server_tool_results, true, r.tool)).map((r) => r.text))) return true;
+    if (has(this.client.filter((c) => counts(sources?.client_tool_results, !sources, c.tool)).map((c) => c.text))) return true;
     return false;
   }
 }
