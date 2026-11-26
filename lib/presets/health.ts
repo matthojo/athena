@@ -1,5 +1,5 @@
 /**
- * Health services (Strava, Oura, Withings, Whoop, Polar) reached through their own APIs. Figures are sealed (SECURITY.md).
+ * Health services (Strava, Oura, Withings, Whoop, Polar) reached through their own APIs. Figures are sealed (docs: security/encryption).
  * Joined into CONNECTOR_PRESETS by lib/connector-presets.ts; see there for the fields.
  *
  * None runs an MCP server, so Athena calls each API itself

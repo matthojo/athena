@@ -1,4 +1,4 @@
-// Real path for custom MCP servers (security review M9, M10): stored allowlists, pins, the two switches,
+// Real path for custom MCP servers: stored allowlists, pins, the two switches,
 // the collection rule and Ask's sources, against Postgres with every migration applied.
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test netlify/lib/connectors/custom-mcp.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL. Uses fixed test keys; empties the connector tables first. No server is ever called.

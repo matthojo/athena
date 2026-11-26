@@ -885,7 +885,7 @@ function assistantEl(m: AssistantMessage, ctx: AskContext, choose: (text: string
 /**
  * What a reply did, as the pieces that go with its words. `within` sits in the bubble under the text: what it
  * remembered ("Remembered · Undo") and the choices it's waiting on. `cards` follow the bubble: times to pick, what
- * would leave Athena (each waits for a tap, security review M7) and a plan. `changes` is the receipts, each with
+ * would leave Athena (each waits for a tap) and a plan. `changes` is the receipts, each with
  * Open and Undo.
  */
 function actedEls(m: Acting, ctx: AskContext, choose: (text: string) => void, repaint: () => void, save: () => void): { within: HTMLElement[]; cards: HTMLElement[]; changes: HTMLElement | null } {
@@ -3465,7 +3465,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
         ? { ...none, text: "Done. Every Friday at 16:00 I'll look at what slipped and send it to your phone. You can pause or change it in Settings → Ask.", changes: [sampleRoutineChange()] }
         : { ...none, text: "Here's the plan: three changes, and nothing happens until you tap Approve.", plan: samplePlan() };
     }
-    // What would leave Athena waits as a card for a tap, as a real request does (security review M7); a drafting request gets a sample draft to open.
+    // What would leave Athena waits as a card for a tap, as a real request does; a drafting request gets a sample draft to open.
     const waiting = (await sampleLog(plain)) ?? sampleConfirm(plain);
     const drafted = waiting ? null : sampleDraftChange(plain, samplePeople());
     if (!waiting && !drafted) return null;

@@ -6,7 +6,7 @@
  *
  * Only sources a tool really returned get here (answer.ts drops the rest),
  * and nothing is fetched from the source's own address. The art comes the
- * way Days' and Watch & read's does (lib/art.ts, SECURITY.md §13): from the
+ * way Days' and Watch & read's does (lib/art.ts, docs: security/outside-services): from the
  * id in a Spotify, YouTube, Letterboxd or Steam link, or by title from TMDB
  * and Open Library, off the fixed list of hosts, kept sealed and served by
  * GET /api/art/:id. An artist gets none: that would be a person's photo.

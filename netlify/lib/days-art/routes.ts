@@ -1,6 +1,6 @@
 /**
  * Artwork, day maps and their keys over REST. Every route needs full access
- * (the app's token or a full key). SECURITY.md §13.
+ * (the app's token or a full key). docs: security/outside-services.
  *
  *  - GET    /api/art/:id?size=sm|lg       a kept image (WebP). The bytes for an id never
  *                                         change, so it's cached for a year.

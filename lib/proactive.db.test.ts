@@ -94,7 +94,7 @@ test("reminders: meeting prep, then how it went, from seeded data; deduped, mute
   await qRaw(`DELETE FROM reminder_log WHERE key LIKE 'event:%' OR key LIKE 'briefing%' OR key LIKE 'reply-scan:%'`);
   await qRaw(`DELETE FROM settings WHERE key IN ('notifications', 'proactive', 'days_working_hours')`);
   await qRaw(`INSERT INTO settings (key, value) VALUES ('timezone', '"Europe/London"'::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`);
-  // The fake service is on localhost, and the subscription is the master token's (security review M5).
+  // The fake service is on localhost, and the subscription is the master token's.
   pushDeps.allowed = () => true;
   process.env.MCP_BEARER_TOKEN ??= "test-master-token";
   const credential = pushCredential(new Request("https://athena.test/", { headers: { authorization: `Bearer ${process.env.MCP_BEARER_TOKEN}` } }))!;

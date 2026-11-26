@@ -18,7 +18,7 @@
  * the device takes it. Pulls read `synced_at` (the server's clock) and also
  * get every live id, so a chat deleted on one device leaves the others.
  *
- * Encrypted at rest (SECURITY.md §11): `title` is sealed text and
+ * Encrypted at rest (docs: security/encryption): `title` is sealed text and
  * `messages` one sealed JSON string; q() opens both.
  */
 import { AthenaInputError, q, sealer } from "./db";

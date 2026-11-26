@@ -1,6 +1,6 @@
 /**
  * Themes in the app: which one is chosen, the person's own, and putting the
- * chosen one on the page (ARCHITECTURE.md, "Themes").
+ * chosen one on the page (docs: architecture/theming).
  *
  * Where they live. The choice and the person's own themes are one row in the
  * server's settings table (`theme`, GET/PUT /api/settings), like the Days

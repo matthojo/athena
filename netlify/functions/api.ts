@@ -11,7 +11,7 @@
  *
  * Unlike MCP, this API can permanently delete (DELETE /api/<kind>/:id) and
  * list archived items (GET /api/archived): both exist for the app's own
- * manual Archived page and nothing else. See SECURITY.md ("Archive vs delete").
+ * manual Archived page and nothing else. See docs: security/sign-in-and-keys.
  * Merging people (POST /api/people/:id/merge) and forgetting an identity are
  * app-only for the same reason.
  *
@@ -54,7 +54,7 @@
  * rate-limits it in code and calls this handler; /api/elevenlabs is the
  * connection itself (netlify/lib/voice/routes.ts).
  *
- * Content is encrypted at rest (SECURITY.md §11): lib/db.ts seals and opens
+ * Content is encrypted at rest (docs: security/encryption): lib/db.ts seals and opens
  * it, so responses carry plaintext over HTTPS as before. GET /api/encryption
  * reports progress; a write this deploy can't seal answers 503 (no key) and
  * one that would overwrite an undecryptable value answers 409.
@@ -643,7 +643,7 @@ async function handleLinks(req: Request): Promise<Response> {
 
 /**
  * GET /api/pictures/archived, POST /api/pictures/:thread/:file/restore, DELETE /api/pictures/:thread/:file: a picture
- * Ask made and the owner undid waits here, like anything archived (SECURITY.md §7). Delete is the app's only.
+ * Ask made and the owner undid waits here, like anything archived (docs: security/sign-in-and-keys). Delete is the app's only.
  */
 async function handleArchivedPictures(req: Request, rest: string[]): Promise<Response> {
   if (rest.length === 1 && rest[0] === "archived") {
@@ -1175,7 +1175,7 @@ async function handlePushSubscribe(req: Request): Promise<Response> {
   if (!keys || typeof keys.p256dh !== "string" || typeof keys.auth !== "string") {
     return errorResponse(req, 400, "Missing 'keys.p256dh' / 'keys.auth'");
   }
-  // Known push services only, and the subscription is tied to the credential that registered it (security review M5).
+  // Known push services only, and the subscription is tied to the credential that registered it.
   if (!pushEndpoint(endpoint)) return errorResponse(req, 400, "This browser's push service isn't one Athena sends to");
   const credential = pushCredential(req);
   if (!credential) return errorResponse(req, 401, "Unauthorized");
@@ -1697,7 +1697,7 @@ async function handleCapture(req: Request, url: URL): Promise<Response> {
   };
   if (!aiConfigured()) return keep("Athena's assistant isn't set up.");
   try {
-    // A capture key files only (security review H1): no mail, Slack or calendar port, and the reply is a fixed line
+    // A capture key files only: no mail, Slack or calendar port, and the reply is a fixed line
     // built by code (lib/assistant.ts captureConfirmation), with the kind and id of what was made. Never model text.
     const answer = await runCapture(text);
     if (!answer.text) return keep("");

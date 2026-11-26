@@ -1,6 +1,6 @@
 /**
  * What a field shows when it's encrypted at rest and can't be opened where
- * it's being read (SECURITY.md §11). Shared by the server (lib/data-box.ts
+ * it's being read (docs: security/encryption). Shared by the server (lib/data-box.ts
  * puts these in place of the value) and the PWA (which shows such notes
  * read-only). Pure, no imports.
  *

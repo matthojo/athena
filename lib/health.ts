@@ -3,7 +3,7 @@
  * weight, from Apple Health (the iPhone Shortcut, POST /api/health/day) and
  * from health accounts a collection reads (Strava, Oura, Withings, Whoop,
  * Polar, through
- * the runner's athena_health_day). SECURITY.md §1 has the rules.
+ * the runner's athena_health_day). docs: security/encryption has the rules.
  *
  * Storage. Each (day, source) is one row in sensitive_blobs (domain
  * 'health', migration 0028 adds `day` and `source`): the figures as JSON,
@@ -272,7 +272,7 @@ export function readHealthDayNoting(raw: unknown, ctx: { today: string; source?:
   if (!isHealthSource(source) || source === CHECKIN_HEALTH) throw new HealthInputError(`source: one of ${HEALTH_SOURCES.filter((s) => s !== CHECKIN_HEALTH).join(", ")}`);
   const day: HealthDay = { date, source };
   const skipped: string[] = [];
-  // Stage samples in sleep_minutes (the owner's Shortcut, 7 Nov) are read as the breakdown.
+  // Stage samples in sleep_minutes (as an iPhone Shortcut sends them) are read as the breakdown.
   let stagesRaw = o.sleep_stages;
   let stagesField = "sleep_stages";
   if (looksLikeStages(o.sleep_minutes) && (stagesRaw === undefined || stagesRaw === null || stagesRaw === "")) {

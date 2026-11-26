@@ -1,6 +1,6 @@
 /**
  * Money and home: a day's spending from bank accounts (Monzo, Starling) and
- * its electricity and gas from Octopus Energy. SECURITY.md §1 has the rules.
+ * its electricity and gas from Octopus Energy. docs: security/encryption has the rules.
  *
  * Storage. Each (day, source) is one row in sensitive_blobs: domain 'money'
  * (spend per category, the count, and each card payment's merchant, time and

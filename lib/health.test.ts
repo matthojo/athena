@@ -205,7 +205,7 @@ test("isHealthQuestion: health, sleep and exercise questions only", () => {
 
 test("steps sent as samples (Find Health Samples without Group By) are added up; readings are averaged", () => {
   const ctx = { today: "2026-11-07", source: "apple_health" as const };
-  // The owner's Shortcut on 7 Nov: `steps: send a number, not "12\n10\n12\n8\n104\n19\n117\n44\n7\n326\n58\n58\n300"`.
+  // An iPhone Shortcut sending a list: `steps: send a number, not "12\n10\n12\n8\n104\n19\n117\n44\n7\n326\n58\n58\n300"`.
   const steps = "12\n10\n12\n8\n104\n19\n117\n44\n7\n326\n58\n58\n300";
   assert.equal(readHealthDay({ steps }, ctx).steps, 1075);
   assert.equal(readHealthDay({ steps: [1200, "3,400", 400] }, ctx).steps, 5000);

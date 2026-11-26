@@ -15,7 +15,7 @@
  * No keyword gate: health, places, mood and money used to be readable only
  * when the question's words matched a list (isHealthQuestion and friends).
  * Now the model picks the tool, and only these tools open those rows.
- * SECURITY.md §10 ("Ask's read tools") has the rules.
+ * docs: security/ai-and-ask has the rules.
  */
 import { z } from "zod";
 import type { Anthropic } from "./ai";

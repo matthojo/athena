@@ -17,7 +17,7 @@
  * ProseMirror's schema (the editor) or as text nodes (the loading preview).
  *
  * A note whose text this copy of Athena can't decrypt (a deploy preview, see
- * SECURITY.md §11) arrives with a placeholder in place of its title or body.
+ * docs: security/encryption) arrives with a placeholder in place of its title or body.
  * It opens read-only, so the placeholder can never be saved over it.
  */
 
@@ -190,7 +190,7 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
   let tags = [...(initial?.tags ?? [])];
   const seed = initial ? "" : (ctx.seed ?? "");
   let body = initial?.body ?? seed;
-  // A note the owner didn't write (a collection, the assistant, a Shortcut): its web links load no preview (security review M6).
+  // A note the owner didn't write (a collection, the assistant, a Shortcut): its web links load no preview.
   const athenaWrote = !!initial && !ownerWroteNote(initial.source);
 
   // ---------- Title ----------

@@ -1,7 +1,7 @@
 /**
  * lib/answer.ts's SourcesPort: the owner's connected accounts, opened with
  * their stored sign-ins for the length of one answer. Same rules as
- * collections (SECURITY.md §9):
+ * collections (docs: security/connectors):
  *
  *  - only the tools the owner allowed for an account, re-checked as reads when
  *    they're listed (listAllowedTools), and a call to anything else is refused;

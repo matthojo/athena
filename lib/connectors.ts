@@ -8,7 +8,7 @@
  * a credential to a caller outside netlify/lib/connectors/.
  *
  * Collected items' titles and runs' summaries quote your content, so they're
- * encrypted at rest like the notes they describe (SECURITY.md §11): those
+ * encrypted at rest like the notes they describe (docs: security/encryption): those
  * queries go through lib/db.ts's q(), which opens them.
  */
 import { addDays, DEFAULT_TZ, zonedParts, zonedToInstant, zonedToday } from "./dates";

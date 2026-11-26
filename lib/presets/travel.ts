@@ -4,8 +4,8 @@
  * lib/connector-presets.ts; see there for the fields.
  *
  * Athena reads check-ins only (netlify/lib/connectors/swarm-direct.ts) and
- * never checks in. Where you've been is sealed (SECURITY.md §1 "Places and
- * visits"): check-ins go straight into lib/places-visits.ts, never through
+ * never checks in. Where you've been is sealed (docs: security/encryption):
+ * check-ins go straight into lib/places-visits.ts, never through
  * Claude (netlify/lib/connectors/swarm-sync.ts). Google Maps Timeline isn't
  * an account: it's a file, imported from the Places page.
  */

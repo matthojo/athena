@@ -170,7 +170,7 @@ test("classifyTool: CamelCase names and manage are writes, even when a server sa
     assert.equal(classifyTool("custom", t, { readOnlyHint: true }), "write", `${t} with readOnlyHint`);
   }
   for (const t of ["GetFolder", "ListMeetings", "getJiraIssue", "searchConfluence", "HTMLSummary"]) assert.notEqual(classifyTool("custom", t), "write", t);
-  // A custom server's own readOnlyHint isn't trusted (security review M10): unknown, so off until the owner allows it.
+  // A custom server's own readOnlyHint isn't trusted: unknown, so off until the owner allows it.
   assert.equal(classifyTool("custom", "GetFolder", { readOnlyHint: true }), "unknown");
   assert.equal(classifyTool("dropbox", "GetFolder", { readOnlyHint: true }), "read");
 });

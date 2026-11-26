@@ -1,5 +1,5 @@
 /**
- * What Ask's assistant may not do on its own (security review M7): answer
+ * What Ask's assistant may not do on its own: answer
  * an invite, save a draft to Gmail or Outlook, or send a note to Google
  * Docs or Notion. Each of those tools now only prepares a card; the app
  * shows it and acts when the owner taps, through the same routes the rest

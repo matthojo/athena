@@ -193,7 +193,7 @@ export interface OwnSkill {
 /** The system-prompt block for an assistant. Pure. */
 export function personaPrompt(a: Pick<TeamAssistant, "name" | "job" | "instructions" | "personality" | "memory" | "allow"> & { skill?: OwnSkill | null; web?: boolean; shared?: boolean }, opts: PersonaOptions): string {
   const p = a.personality;
-  // Someone else wrote an imported assistant's instructions and skill: words to weigh, never the owner's request (SECURITY.md §10).
+  // Someone else wrote an imported assistant's instructions and skill: words to weigh, never the owner's request (docs: security/automation).
   if (a.shared) return sharedPersonaPrompt(a, opts);
   const lines = [
     `You are ${a.name}, one of the assistants on the owner's Team in Athena. Athena (Ask) leads the team; you do one job, with Athena's tools. The rules above still apply; where they call you Athena, they mean you.`,
@@ -446,7 +446,7 @@ const NO_SOURCES: SourcesPort = { open: async () => ({ accounts: [], skipped: []
  * allowlist runs alone, everything else becomes a plan for Go, the turn is kept as a conversation with
  * `assistant_id`, and memory is refreshed before this returns. readOnly: main Ask checking with it.
  *
- * The loop's guard holds here (SECURITY.md §10). A run has no message from the owner, so its words ask for
+ * The loop's guard holds here (docs: security/automation). A run has no message from the owner, so its words ask for
  * nothing; its allowlist is the owner's standing request, so an allowed change runs alone
  * even when the run was started by, or has read, other people's words. Anything else waits for Go. Flagged by
  * Jev, it changes nothing at all, allowed or not. A chat goes by the owner's own message.

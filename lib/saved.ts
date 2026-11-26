@@ -3,7 +3,7 @@
  * Athena from the Share sheet, Siri, the browser extension or the app, kept
  * with a readable copy and shown on the day they were saved.
  *
- * Sealed (SECURITY.md §11, ENCRYPTED in lib/encryption.ts): the URL, title,
+ * Sealed (docs: security/encryption, ENCRYPTED in lib/encryption.ts): the URL, title,
  * site, author, excerpt, readable copy, quote, note, tags and source URL.
  * Readable: kind, source, dates, image size and tone, flags. A link's URL
  * also has a blind index so the same page saved twice is one item.
@@ -306,7 +306,7 @@ export async function saveItem(input: SaveRequest, opts: { read?: typeof readLin
   const tags = cleanTags(input.tags);
   const linkUrl = plan.url ?? plan.source_url;
   // A link's row goes in first, with what its address says; the page is read afterwards (below). A page that
-  // hangs or crashes the read can then never lose the save (security review M18).
+  // hangs or crashes the read can then never lose the save.
   let thing: Detected | null = plan.kind === "image" ? { type: "image", facts: {} } : plan.kind === "link" ? detectFromUrl(plan.url) : null;
   const isLink = plan.kind === "link" && !!plan.url;
   let [row] = await q<Row>(

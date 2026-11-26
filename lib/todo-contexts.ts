@@ -4,7 +4,7 @@
  * Athena files a to-do itself goes through (lib/memory.ts upsertCommitment
  * calls it on create). The rules are in lib/todo-context.ts.
  *
- * Names are readable labels (SECURITY.md §11 "What stays readable"), so
+ * Names are readable labels (docs: security/encryption, so
  * uniqueness is a database index. Removing a context archives it; to-dos
  * read an archived context as blank (lib/memory.ts COMMITMENT_SELECT), and
  * restoring it brings them back.

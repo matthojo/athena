@@ -3,7 +3,7 @@
  *
  * A menu hangs from its button's right edge. On a narrow screen the button
  * can wrap to the left of its row (a note's "…" under its chips), and a menu
- * hung from there ran off the left of the screen (12 Nov). So: from the
+ * hung from there would run off the left of the screen. So: from the
  * button's right edge when the whole menu fits; otherwise from its left
  * edge; and never nearer than `pad` to either side.
  */

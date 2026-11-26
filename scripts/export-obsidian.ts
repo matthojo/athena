@@ -4,14 +4,14 @@
  * Run via `npm run export:obsidian`. Writes a portable markdown vault to
  * `export/obsidian-vault/` (git-ignored — see .gitignore). This is a one-way,
  * on-demand snapshot, not a live sync: nothing reads this export back into
- * Athena. See ARCHITECTURE.md ("Obsidian: export, not live sync") for why.
+ * Athena.
  *
  * Deliberately does NOT import lib/db.ts. That file's `getDatabase()` relies
  * on @netlify/database's automatic environment detection, which only works
  * *inside* a Netlify Function. This script runs as a plain Node process
  * outside the Functions runtime, so it uses the second, explicitly-documented
  * Netlify DB access pattern instead: `getConnectionString()` paired with an
- * external `pg` client. See SECURITY.md ("Netlify DB access") for why this is
+ * external `pg` client. See docs: security/netlify-db for why this is
  * the one place in the codebase allowed to do that.
  *
  * Tables read: notes, people, projects, places, organisations, events, edges,
@@ -26,7 +26,7 @@
  * skips sensitive_blobs — ciphertext has no business in a portable export, and
  * nothing here ever attempts to decrypt it.
  *
- * Content is encrypted at rest (SECURITY.md §11), so the export opens it with
+ * Content is encrypted at rest (docs: security/encryption), so the export opens it with
  * lib/data-box.ts, which needs the data key in this shell:
  *
  *   ATHENA_DATA_KEY="$(security find-generic-password -a athena -s ATHENA_DATA_KEY -w)" npm run export:obsidian

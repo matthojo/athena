@@ -1,6 +1,6 @@
 /**
- * A week or a month in review (#/days/week/<monday>, #/days/month/<YYYY-MM>),
- * built from the approved prototype. A headline from rules (lib/week-headline.ts,
+ * A week or a month in review (#/days/week/<monday>, #/days/month/<YYYY-MM>).
+ * A headline from rules (lib/week-headline.ts,
  * no AI), then in order: people and places, what got done, health and habits
  * (mood is a tile there, with a strip of the period's days), looking ahead,
  * the patterns that fit, and last what was watched, read and listened to as

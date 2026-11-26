@@ -1,6 +1,6 @@
 /**
  * Encrypts existing data at rest: a Netlify Scheduled Function that runs
- * every 5 minutes (SECURITY.md §11, lib/encryption.ts).
+ * every 5 minutes (docs: security/encryption, lib/encryption.ts).
  *
  * Each run seals, within about 20 seconds, whatever isn't yet sealed under
  * the current ATHENA_DATA_KEY: rows written before the key was set, and

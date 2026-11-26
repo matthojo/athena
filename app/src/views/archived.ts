@@ -2,7 +2,7 @@
  * Archived: the one place archived things of every kind are visible. Newest
  * first; each can be restored, or deleted permanently after a confirmation.
  * (Agents can archive but never delete or list this page's contents — see
- * SECURITY.md §7.) The owner's archived fields wait here too, and can only be
+ * docs: security/sign-in-and-keys.) The owner's archived fields wait here too, and can only be
  * restored: a field is never deleted, and its values come back with it.
  * Archived Ask conversations are here too (db/ask-threads.ts, kept on the
  * device and synced): restore one, or delete it for good. So are the owner's

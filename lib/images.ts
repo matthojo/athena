@@ -364,7 +364,7 @@ export async function restorePicture(rawThreadId: unknown, rawFileId: unknown): 
 }
 
 /**
- * Delete for good, from the Archived page (the app only, SECURITY.md §7): out of the conversation, and the file
+ * Delete for good, from the Archived page (the app only, docs: security/sign-in-and-keys): out of the conversation, and the file
  * and its bytes go unless a note or another conversation still has it. True when the file itself was deleted.
  */
 export async function deletePictureForGood(rawThreadId: unknown, rawFileId: unknown): Promise<boolean> {

@@ -1,5 +1,5 @@
 /**
- * A note's earlier versions (migration 0061; security review M12).
+ * A note's earlier versions (migration 0061).
  *
  * "Nothing is deleted" has to cover overwriting too: an MCP client, Ask's
  * assistant, a collection run or a script can replace a note's whole body.

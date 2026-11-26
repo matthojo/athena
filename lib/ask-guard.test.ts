@@ -98,7 +98,7 @@ test("a flag takes the write tools away for the rest of the turn, and holds what
   assert.equal(g.allows("add_todo"), false);
 });
 
-test("a collected note is other people's words; the owner's own notes aren't (owner, 12 Nov 2026)", () => {
+test("a collected note is other people's words; the owner's own notes aren't", () => {
   for (const source of ["manual", "app"]) assert.equal(isCollected(source), false, source);
   // Anything else was collected or written by something other than the owner's own hand, and so is a note that doesn't say.
   for (const source of ["email-digest", "email-digest-personal", "calendar-meetings", "work-activity", "finance", "assistant", "shortcut", "extension", "", null, undefined]) assert.equal(isCollected(source), true, String(source));

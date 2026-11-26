@@ -1,5 +1,5 @@
 /**
- * What one Ask turn may change, given what it has read (SECURITY.md §10,
+ * What one Ask turn may change, given what it has read (docs: security/ai-and-ask,
  * "One loop: who can ask for a change").
  *
  * Ask is one loop now: the same model call that reads an email can also call

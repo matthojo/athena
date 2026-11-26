@@ -1,5 +1,5 @@
 /**
- * Pictures Ask made and the owner undid: archived like everything else (SECURITY.md §7).
+ * Pictures Ask made and the owner undid: archived like everything else (docs: security/sign-in-and-keys).
  * Undo takes a picture out of its conversation and puts it on the Archived page; Restore puts it back where it
  * was; Delete for good removes it (a note that has it keeps it).
  *

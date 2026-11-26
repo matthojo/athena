@@ -18,7 +18,7 @@ test("a job about prices reads as one", () => {
   assert.equal(isPriceJob("Keeps my priceless photos tidy"), false);
 });
 
-test("the switch is about working on its own, and chats aren't (owner, 16 Nov 2026)", () => {
+test("the switch is about working on its own, and chats aren't", () => {
   assert.equal(webLabel(she), "Can look things up online on her own");
   assert.equal(webLabel(they), "Can look things up online on their own");
   assert.equal(webChat(she), "In a chat, she searches the way Ask does, with this on or off.");

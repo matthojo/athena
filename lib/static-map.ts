@@ -1,6 +1,6 @@
 /**
  * A day's map: where you went, as one still image, drawn by the server from
- * map tiles and cached. SECURITY.md §13 has the rules.
+ * map tiles and cached. docs: security/outside-services has the rules.
  *
  *  - The stops are the day's merged visits (lib/places-visits.ts, the sealed
  *    'day' row), in time order. Repeat visits to one spot are one marker.
@@ -29,7 +29,7 @@ import { geocodeAddress } from "./places-visits";
 import { isEncryptedPlaceholder } from "./encrypted";
 import { setKeyStatus, tileCredentials, type TileProvider } from "./art-settings";
 
-/** A map tile is at most 1024px square; anything claiming more is refused before decoding (security review M22). */
+/** A map tile is at most 1024px square; anything claiming more is refused before decoding. */
 const MAX_TILE_PIXELS = 4_000_000;
 
 export type MapTheme = "light" | "dark";

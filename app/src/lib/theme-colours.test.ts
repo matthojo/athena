@@ -1,6 +1,6 @@
 /**
  * Every shade in tokens.css is worked out from the public --theme-* colours
- * (ARCHITECTURE.md, "Appearance and the theme surface"), so a theme that sets
+ * (docs: architecture/theming), so a theme that sets
  * only those recolours the whole app. This works tokens.css out the way a
  * browser would (var() and color-mix() in oklab), sets each public colour to
  * something new, in light and in dark, and checks what moves: every colour

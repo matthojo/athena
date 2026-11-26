@@ -1,5 +1,5 @@
-// Security review, session 6, on real Postgres: a save survives a page that can't be read (M18), and push
-// subscriptions are capped, tied to the credential that registered them and dropped with it (M5).
+// Hostile content on real Postgres: a save survives a page that can't be read, and push subscriptions are
+// capped, tied to the credential that registered them and dropped with it.
 // Nothing is sent: no row here is ever pushed to. Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/hostile-content.db.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";

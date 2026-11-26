@@ -89,7 +89,7 @@ test("Sleep stages: the owner's payload saves, the new Shortcut's stages are sea
   assert.equal(r.json.days[0].steps, 9213);
   day = await getDay(yesterday, { tz: "Europe/London" });
   assert.deepEqual(day?.health?.sleep_stages, want);
-  assert.equal(day?.health?.line, "7h 5m sleep (1h 25m deep) · 9,213 steps · 52 bpm resting", "deep sleep on the line (owner, 7 Nov)");
+  assert.equal(day?.health?.line, "7h 5m sleep (1h 25m deep) · 9,213 steps · 52 bpm resting", "deep sleep on the line");
   // A capture key can't read them.
   assert.equal((await call("GET", `/health/days?from=${yesterday}&to=${yesterday}`, undefined, capture)).status, 401);
 

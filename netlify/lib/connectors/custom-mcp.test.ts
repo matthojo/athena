@@ -1,5 +1,5 @@
 // Run: npx tsx --test netlify/lib/connectors/custom-mcp.test.ts
-// Custom MCP servers (security review M9, M10): the server's own word isn't trusted, tool text is hashed and capped,
+// Custom MCP servers: the server's own word isn't trusted, tool text is hashed and capped,
 // and a custom server is kept apart from other accounts. The stored side is in custom-mcp.db.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -17,7 +17,7 @@
  * Days: a night belongs to the morning it ends (as Oura and the Life log
  * have it). Recovery has no time of its own: it's joined to its sleep.
  *
- * Figures are health content (SECURITY.md §1): they go back to the run only,
+ * Figures are health content (docs: security/encryption): they go back to the run only,
  * never into an error or a log line.
  */
 import { WHOOP_API_URL, WHOOP_SCOPE } from "../../../lib/presets/health";

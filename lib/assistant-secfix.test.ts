@@ -1,5 +1,5 @@
-// Security review fixes in Ask's assistant: H1 (a capture key files only), M6 (a link the model wrote is never
-// previewed) and M7 (answering an invite, saving a draft, sending a note each wait for the owner's tap).
+// Guards in Ask's assistant: a capture key files only, a link the model wrote is never previewed, and
+// answering an invite, saving a draft or sending a note each wait for the owner's tap.
 // No database: a stand-in Claude, and the pure parts. The tools against a real database are in rsvp.db.test.ts
 // and documents.db.test.ts.
 // Run: npx tsx --test lib/assistant-secfix.test.ts
@@ -32,14 +32,14 @@ const use = (name: string, input: unknown, id = name): Anthropic.ContentBlock =>
 const say = (text: string): Anthropic.ContentBlock => ({ type: "text", text, citations: null }) as Anthropic.ContentBlock;
 const NOW = new Date("2026-11-10T09:00:00Z");
 
-// ---------- H1 ----------
+// ---------- A capture key files only ----------
 
-test("H1: a capture is offered the five filing tools and nothing else", () => {
+test("a capture is offered the five filing tools and nothing else", () => {
   assert.deepEqual([...CAPTURE_TOOLS].sort(), ["add_reminder", "add_to_list", "add_to_watch_read", "add_todo", "save_note"]);
   for (const name of CAPTURE_TOOLS) assert.ok(TOOLS.some((t) => t.name === name), `${name} is one of Ask's tools`);
 });
 
-test("H1: the guard refuses every other tool, and any id (no overwriting a note, no reaching a person)", () => {
+test("a capture's guard refuses every other tool, and any id (no overwriting a note, no reaching a person)", () => {
   for (const t of TOOLS) {
     if (CAPTURE_TOOLS.has(t.name)) assert.doesNotThrow(() => captureGuard(t.name, {}));
     else assert.throws(() => captureGuard(t.name, {}), /only file things/, t.name);
@@ -53,7 +53,7 @@ test("H1: the guard refuses every other tool, and any id (no overwriting a note,
   assert.throws(() => captureGuard("add_reminder", { text: "x", date: "2026-11-11", about_kind: "note", about_id: "n" }), /can't use about_id/);
 });
 
-test("H1: the confirmation is built from which tools ran, never from words", () => {
+test("a capture's confirmation is built from which tools ran, never from words", () => {
   assert.equal(captureConfirmation([]), "");
   assert.equal(captureConfirmation(["add_todo"]), "Added a to-do.");
   assert.equal(captureConfirmation(["save_note"]), "Added a note.");
@@ -65,7 +65,7 @@ test("H1: the confirmation is built from which tools ran, never from words", () 
   assert.equal(captureConfirmation(["read_note"]), "", "a tool that isn't a filing tool says nothing");
 });
 
-test("H1: a steered capture reads nothing, reaches no port, and none of the model's words come back", async () => {
+test("a steered capture reads nothing, reaches no port, and none of the model's words come back", async () => {
   const sent: Sent[] = [];
   const client = standIn(
     [

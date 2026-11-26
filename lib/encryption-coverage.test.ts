@@ -1,4 +1,4 @@
-// Guard for key rotation (security review M14): a new sealed store must be listed in lib/encryption.ts,
+// Guard for key rotation: a new sealed store must be listed in lib/encryption.ts,
 // or nothing counts it and nothing re-seals it, and it is lost when the old key is removed.
 // A source check: every table written by a file that seals with the data key is in ENCRYPTED or
 // SEALED_BYTES, or is named below with the reason it isn't. The same for `settings` rows and blob stores.
@@ -30,7 +30,7 @@ const NOT_LISTED: Record<string, string> = {
   location_todo: "dates only",
   mail_skips: "counts per day",
   meal_plan: "dates, ids and servings",
-  metrics: "stored readable by the owner's decision (M17)",
+  metrics: "stored readable; a prompt rule keeps health and money figures out of them",
   note_files: "ids only",
   nudge_mutes: "rule names and times",
   push_subscriptions: "the browser's push endpoint and keys, readable; no data-key text",
@@ -96,7 +96,7 @@ function sources(dir: string, out: string[] = []): string[] {
 }
 
 // lib/data-box.ts is the sealing itself; lib/secret-box.ts seals connector credentials and API keys under
-// CONNECTOR_ENCRYPTION_KEY, which this rotation doesn't cover (SECURITY.md §9).
+// CONNECTOR_ENCRYPTION_KEY, which this rotation doesn't cover (docs: security/connectors).
 const files = [...sources("lib"), ...sources("netlify")]
   .filter((f) => f !== "lib/data-box.ts")
   .map((f) => ({ file: f, text: readFileSync(join(root, f), "utf8") }))

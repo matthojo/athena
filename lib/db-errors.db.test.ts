@@ -1,5 +1,5 @@
 // A failed query's error holds the Postgres code and the constraint name, never the SQL or a parameter
-// (security review M13). The driver's own error is "Failed query: <sql>\nparams: <params>".
+//. The driver's own error is "Failed query: <sql>\nparams: <params>".
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/db-errors.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL.
 import { test } from "node:test";

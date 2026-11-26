@@ -11,7 +11,7 @@
  * An N-a-week habit's whole week that ended short counts its undone days as
  * missed: on the Habits page, in Ask and in Patterns.
  *
- * Sealed (SECURITY.md §11): a habit's name and unit, and the entries' titles
+ * Sealed (docs: security/encryption): a habit's name and unit, and the entries' titles
  * and notes. Names are matched and kept unique here, never in SQL.
  */
 import { AthenaInputError, q, qRaw, sealer, tx } from "./db";
@@ -297,7 +297,7 @@ export async function logHabit(raw: unknown, today: string): Promise<TickResult 
     if (due) found = { habit: due };
   }
   if ("error" in found) {
-    // A capture key reaches this, and it reads nothing back: the errors never list the owner's habits (security review H1).
+    // A capture key reaches this, and it reads nothing back: the errors never list the owner's habits.
     if (!said.trim()) throw new AthenaInputError("Say which habit.");
     throw new AthenaInputError(found.error === "many" ? `“${said.trim()}” could be more than one habit. Say the whole name.` : `No habit called “${said.trim()}”. Check its name in Library → Habits.`);
   }

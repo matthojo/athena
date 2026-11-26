@@ -1,12 +1,12 @@
 /**
  * Symmetric encryption for connector credentials (OAuth tokens, API keys).
  *
- * Unlike finance/health content (age, decrypted only on demand — SECURITY.md
- * §1–2), these secrets must be readable by the scheduled collector on every
+ * Unlike finance/health content (age, decrypted only on demand; docs:
+ * security/encryption), these secrets must be readable by the scheduled collector on every
  * run, unattended, so they're sealed with AES-256-GCM under a key held only
  * in the Functions environment: CONNECTOR_ENCRYPTION_KEY, 32 random bytes as
  * 64 hex characters (`openssl rand -hex 32`). A database dump alone reveals
- * nothing; the key never reaches the PWA. See SECURITY.md §9.
+ * nothing; the key never reaches the PWA. See docs: security/connectors.
  *
  * Format: "v1.<iv>.<tag>.<ciphertext>", each part base64url. Server-only.
  *

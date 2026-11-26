@@ -1,5 +1,5 @@
 /**
- * Ask's confirm cards (security review M7): the three things the assistant
+ * Ask's confirm cards: the three things the assistant
  * may not do on its own. Each waits here for the owner's tap, the way a
  * move or a new event does (slot-card.ts, create-sheet.ts):
  *
