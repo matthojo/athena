@@ -1,6 +1,6 @@
 /**
- * Settings → About you: "Always save what I share from this device" (owner,
- * 10 Nov 2026). Off by default; also offered as a tick box the first time a
+ * Settings → About you: "Always save what I share from this device". Off by
+ * default; also offered as a tick box the first time a
  * share waits for a tap (views/saved.ts). Per device (db/share-prefs.ts).
  */
 import "../styles/life.css";

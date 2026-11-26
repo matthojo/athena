@@ -1,5 +1,5 @@
 /**
- * Settings → About you: "Let Ask read transactions" (owner, 9 Nov 2026).
+ * Settings → About you: "Let Ask read transactions".
  * Off by default. While it's off, Ask isn't given your card payments and
  * direct debits at all (lib/ask-tools.ts), and a spending question gets
  * "Money search is off" with a link back here. Separate from the Days switch

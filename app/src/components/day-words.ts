@@ -82,7 +82,7 @@ export function list(parts: string[]): string {
 /** "one film", "three films". */
 export const plural = (n: number, one: string, many = `${one}s`) => `${count(n)} ${n === 1 ? one : many}`;
 
-/** " (1h 25m deep)" after the hours slept, when the night has deep sleep (owner, 7 Nov): the same words as lib/health-line.ts, held together so a narrow row wraps before the bracket. */
+/** " (1h 25m deep)" after the hours slept, when the night has deep sleep: the same words as lib/health-line.ts, held together so a narrow row wraps before the bracket. */
 export const deepNote = (s: { deep?: number } | undefined): string => (s?.deep ? ` (${hoursMinutes(s.deep)} deep)`.replace(/(?<=\S) (?=\S)/g, "\u00a0") : "");
 
 export function hoursMinutes(minutes: number): string {
@@ -614,7 +614,7 @@ const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 
 // ---------- Recaps ----------
 // The week and month in review moved to lib/week-review.ts (the model) and
-// lib/week-headline.ts (the headline's rules), 2026-11-08.
+// lib/week-headline.ts (the headline's rules).
 
 // ---------- The old Life log notes ----------
 

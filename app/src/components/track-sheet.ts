@@ -28,7 +28,7 @@ import { webOn } from "../team/web-access";
 import "../styles/tracking.css";
 
 /**
- * "Who checks it?" (owner, 16 Nov 2026: "Ask in the sheet, with a sensible pick"). The choices are the
+ * "Who checks it?", asked in the sheet with a sensible pick. The choices are the
  * assistants who can look things up online, and "Just me". It starts on the one whose job fits (the server's
  * `assistantsFor`, lib/trackers.ts): for a price or stock, an assistant whose job is prices. With nobody who can
  * look things up, it's you, with one quiet line, and no choice is sent.

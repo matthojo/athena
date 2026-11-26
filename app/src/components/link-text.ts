@@ -8,7 +8,7 @@
  *  - A web page: always its label as a plain link, whatever mode its title
  *    asks for. Ask's text is written by a model, so a link in it never gets
  *    a card, a favicon or a preview: nothing is fetched until the owner
- *    clicks it (security review M6, owner's decision 9 Nov 2026).
+ *    clicks it (security review M6).
  *
  * Built from text nodes and elements only, never HTML.
  */

@@ -1,7 +1,7 @@
 /**
  * Rich links in the editor: opening a note and saving it keeps every link's
- * mode (the gap stage 1 left), the paste rules, the switcher's choices per
- * link, what a tap does, the menu for a web page, and no iframe before a tap.
+ * mode, the paste rules, the switcher's choices per link, what a tap does,
+ * the menu for a web page, and no iframe before a tap.
  *
  * Runs in Node with a small DOM (linkedom). The round trips use a headless
  * editor (no view), which reads and writes Markdown through the same schema
@@ -122,7 +122,7 @@ test("switcher choices per link", () => {
 });
 
 test("a tap opens the link; the switcher isn't on tap", () => {
-  // Owner's answers, 2026-11-08: Mention, Link and Card open what they point at.
+  // Mention, Link and Card open what they point at.
   for (const mode of ["mention", "link", "card"] as const) {
     assert.equal(model.tapAction(mode, true), "open", `${mode} in the editor`);
     assert.equal(model.tapAction(mode, false), "open", `${mode} read-only`);
@@ -153,7 +153,7 @@ test("an embed draws a still and our button, and no iframe until the tap", () =>
   const play = el.querySelector("[data-rl-play]") as HTMLElement;
   assert.ok(play, "a play button");
   assert.match(play.getAttribute("aria-label") ?? "", /loads from YouTube/);
-  // The tap: the player is made only now, with stage 1's rules.
+  // The tap: the player is made only now, with lib/embeds.ts's rules.
   play.dispatchEvent(new window.Event("click", { bubbles: true }));
   assert.ok(tapped);
   const frame = loadPlayer(el, t)!;

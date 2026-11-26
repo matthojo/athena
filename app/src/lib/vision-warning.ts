@@ -1,5 +1,5 @@
 /**
- * Before a photo or a PDF goes to a model that can't see it (owner, 17 Nov 2026): Ask's box, and an assistant's
+ * Before a photo or a PDF goes to a model that can't see it: Ask's box, and an assistant's
  * chat box, say so first, with "Send anyway" and "Use Claude Sonnet 5.5 for this message". Only when the
  * catalogue says `vision: false` for the turn's thinking model; "unknown" doesn't warn. Pure: tested alone.
  */

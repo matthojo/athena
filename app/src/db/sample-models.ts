@@ -42,7 +42,7 @@ const known = (name: string, blurb: string, speed: CatalogueModel["speed"], cost
   speed,
   cost,
   abilities: { tools: true, vision: true, images: false, web: "handoff", ...abilities },
-  // Owner, 17 Nov 2026: Athena doesn't recommend models. The flag stays in the shape, always false.
+  // Athena doesn't recommend models. The flag stays in the shape, always false.
   recommended: recommended && false,
 });
 
@@ -74,7 +74,7 @@ const NOTES: Record<string, Notes> = {
 };
 
 // The gateway's list (well-known makers only on OpenRouter). Ids only: the gateway gives no names. The catalogue shows
-// only the newest version in each family (owner, 17 Nov 2026: "Yes, newest only"); an older one stays valid, and is
+// only the newest version in each family; an older one stays valid, and is
 // listed, while it's chosen.
 const GATEWAY: Record<ProviderId, string[]> = {
   anthropic: ["claude-opus-5-5", "claude-opus-4-8", "claude-sonnet-5-5", "claude-sonnet-4-6", "claude-haiku-5-5", "claude-haiku-4-5"],

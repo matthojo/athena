@@ -170,7 +170,7 @@ function desk(a0: TeamAssistant, go: Go): DeskEl {
     text(name, a.name);
     text(badgeWord, BADGE[d.state] ?? "");
     badge.hidden = !BADGE[d.state];
-    // Working: the breathing dot and the ring round the character, in its own colour (owner, 16 Nov 2026).
+    // Working: the breathing dot and the ring round the character, in its own colour.
     badgeDot.hidden = !busy;
     paintWho(el, a.avatar);
     text(job, a.job);

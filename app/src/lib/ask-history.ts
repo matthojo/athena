@@ -1,5 +1,5 @@
 /**
- * The conversation so far, as a follow-up sends it (owner, 12 Nov 2026):
+ * The conversation so far, as a follow-up sends it:
  * written answers and the assistant's replies alike, across any turn that
  * got only a keyword search, the latest 12 turns. Each of Athena's turns
  * carries `refs`, up to 8 of what it cited, so "open the second one" and

@@ -84,7 +84,7 @@ export function renderArchived(): { el: HTMLElement; destroy: () => void } {
 
   async function remove(item: ArchivedItem) {
     const noun = item.kind === "record" ? (item.detail ?? "record").toLowerCase() : (KIND[item.kind].noun ?? KIND[item.kind].label.toLowerCase());
-    // A note whose file a conversation still has offers to delete the file too, as on the note (answered 6 Nov).
+    // A note whose file a conversation still has offers to delete the file too, as on the note.
     const held = item.kind === "note" ? await heldNoteFiles(item.id) : [];
     const picked = await confirmChoice({
       title: `Delete ${item.title} permanently?`,

@@ -81,7 +81,7 @@ test("the catalogue: search, what's locked, and new steps", () => {
   assert.equal(unavailable(think, { hasAssistant: true, canBranch: true }), null);
   const check = cat.find((e) => e.kind === "check")!;
   assert.match(unavailable(check, { hasAssistant: true, canBranch: false }) ?? "", /deeper/);
-  // A to-do may run alone (owner, 21 Nov 2026); a note waits for your Go.
+  // A to-do may run alone; a note waits for your Go.
   const todo = stepFromEntry(cat.find((e) => e.tool === "add_todo")!, "s1", []);
   assert.equal(todo.kind === "tool" && todo.go, "auto");
   const note = stepFromEntry(cat.find((e) => e.tool === "save_note")!, "s3", []);

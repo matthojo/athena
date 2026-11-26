@@ -23,7 +23,7 @@ import { thingLine } from "../../../lib/saved-kinds";
 const iconOf = (name: string) => (icons as Record<string, () => SVGElement>)[name] ?? icons.sparkle;
 
 /** "Book · Ottessa Moshfegh", or null when there's nothing to say. */
-/** In a list, the best price now when the item has checks since it was saved (owner, 16 Nov 2026); its own page keeps the saved price. */
+/** In a list, the best price now when the item has checks since it was saved; its own page keeps the saved price. */
 export const thingText = (item: SavedItem) => thingLine(item.thing, item.price_now ? { ...(item.facts ?? {}), price: item.price_now.amount, currency: item.price_now.currency, shop: item.price_now.shop ?? item.facts?.shop } : item.facts);
 
 /** Run it, toast with Undo, and tell the caller what changed. */

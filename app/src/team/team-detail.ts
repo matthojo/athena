@@ -183,7 +183,7 @@ export function renderTeamDetail(ctx: TeamDetailContext): { el: HTMLElement; des
     const working = !!now || starting;
     el.classList.toggle("is-paused", a.paused);
     el.classList.toggle("is-working", working);
-    // The page is one assistant's: its working dot is in its own colour (owner, 16 Nov 2026).
+    // The page is one assistant's: its working dot is in its own colour.
     paintWho(el, a.avatar);
     // At rest: what it's watching and when it last ran, in parts that wrap between them, not mid-phrase.
     const parts = working ? [`${now ? liveWords(now) : "About to start"}…`] : pageStatusParts(a);

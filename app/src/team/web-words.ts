@@ -1,8 +1,8 @@
 /**
- * The words for an assistant looking things up online (owner, 16 Nov 2026:
- * "a switch per assistant, off by default, suggested at hiring when the job
- * clearly needs it"). Pure, so they're tested (web-words.test.ts); the state
- * lives in web-access.ts.
+ * The words for an assistant looking things up online: a switch per
+ * assistant, off by default, suggested at hiring when the job clearly needs
+ * it. Pure, so they're tested (web-words.test.ts); the state lives in
+ * web-access.ts.
  *
  * Every line names the assistant by its own pronoun, never "it" for one who
  * is "she".
@@ -14,8 +14,8 @@ import { cap, pronouns } from "./detail-words";
 export const ASK_WEB_SETTING = { label: "Let Ask search the web", href: "#/settings/ask" } as const;
 
 /**
- * The switch's name, on the page and at hiring. It governs only what the assistant does on its own
- * (owner, 16 Nov 2026): in a chat it searches the way main Ask does, switch or not.
+ * The switch's name, on the page and at hiring. It governs only what the assistant does on its own: in a chat it
+ * searches the way main Ask does, switch or not.
  */
 export function webLabel(p: Pick<Personality, "pronoun">): string {
   return `Can look things up online on ${pronouns(p).their} own`;
@@ -27,9 +27,9 @@ export function isPriceJob(job: string): boolean {
 }
 
 /**
- * What it may do online on its own, and what a search may carry (owner, 16 Nov 2026: your country, city and
- * time zone; the saved item's title and link; shops and brands it has learned you use; the public subject of
- * its job). Said without listing all of it, and true to it.
+ * What it may do online on its own, and what a search may carry (your country, city and time zone; the saved item's
+ * title and link; shops and brands it has learned you use; the public subject of its job). Said without listing all
+ * of it, and true to it.
  */
 export function webDetail(p: Personality): string {
   const w = pronouns(p);

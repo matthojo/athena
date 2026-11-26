@@ -1,6 +1,6 @@
 // Run: npx tsx --test app/src/lib/ask-resilience.test.ts
 // Ask keeps trying before it falls back, writes the answer in a keyword search's place, remembers the whole
-// conversation, and draws lists and bold (owner, 12 Nov 2026). A small DOM (linkedom) for what's drawn.
+// conversation, and draws lists and bold. A small DOM (linkedom) for what's drawn.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseHTML } from "linkedom";
@@ -307,7 +307,7 @@ test("said aloud, and sent back as history: no numbers; speech has no bold or da
   assert.equal(withoutCitations(text), "Two things:\n\n- **Book the MOT**\n- Reply to Elena.\n\nThat's all.");
 });
 
-// ---------- Retry-After (owner's answers, 12 Nov 2026) ----------
+// ---------- Retry-After ----------
 
 test("a 429's Retry-After in seconds is the wait, capped at 30 s; without one the guess stands", async () => {
   const busy = (retryAfter?: number) => Object.assign(status(429), { retryAfter });
@@ -348,7 +348,7 @@ test("Retry-After is read as whole seconds only", () => {
   for (const h of [null, undefined, "", "soon", "1.5", "-4", "Wed, 21 Oct 2026 07:28:00 GMT"]) assert.equal(retryAfterSeconds(h), undefined);
 });
 
-// ---------- numbered steps (owner, 12 Nov 2026) ----------
+// ---------- numbered steps ----------
 
 test("\"1. \" lines are a numbered list that keeps the server's numbers", () => {
   assert.deepEqual(richBlocks("Do this:\n\n1. One\n2. Two\n   carries on\n3. Three\n\nDone."), [

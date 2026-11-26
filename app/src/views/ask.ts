@@ -1451,7 +1451,7 @@ async function samplePicture(q: string, c: Chat, step: (x: AskStep) => void, tex
   const last = [...c.messages].reverse().flatMap((x) => (x.role === "answer" || x.role === "assistant" ? ((x.reply as ModelNote | null)?.pictures ?? []).filter((p) => !x.undone.has(pictureKey(p.file.id)) && !p.file.removed) : []))[0] ?? null;
   const wants = samplePictureAsk(mentionsToText(q), last);
   if (!wants) return null;
-  // The sample's AI models settings say which picture model, if any (owner, 17 Nov 2026): Settings, AI models.
+  // The sample's AI models settings say which picture model, if any: Settings, AI models.
   const ref = await samplePictureModel(c.assistant_id ?? null);
   const plainReply = async (said: string, extra: Partial<AskReply> = {}): Promise<AskReply> => {
     const r: AskReply = { text: said, sources: [], related: [], searched: "", skipped: [], found: false, flagged: false, ...extra };
@@ -2375,7 +2375,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
       const state = ch && restoring.has(key) ? "restoring" : ch && m.undone.has(key) ? "undone" : ch && m.undoing.has(key) ? "undoing" : !ch?.undo || m.gone.has(key) ? "gone" : "ready";
       return pictureCard(p, {
         state,
-        // Undo archives it (owner, 17 Nov 2026): on the Archived page, and Restore here puts it back.
+        // Undo archives it: on the Archived page, and Restore here puts it back.
         onUndo: ch?.undo
           ? () =>
               void undoChange(key, ch.undo!, m, () => rebuild(m), save, ch.activity_id).then(() => {
@@ -2732,7 +2732,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   }
 
   /**
-   * The last reply clears the box and the tab bar (owner, 12 Nov 2026: a reply's button sat behind them on iPhone).
+   * The last reply clears the box and the tab bar, so a reply's button never sits behind them on iPhone.
    * A reply that fits between the head and the bars is brought wholly above them, follow-ups included. One too
    * long to fit is read from its start, as far up as it goes, and the thing it asks you to tap (Try again, Write the answer, Approve, a choice) is never left behind them.
    */
@@ -2818,9 +2818,9 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   }
 
   /**
-   * The line under the head's name: the assistant's status, or just "Working"
-   * while its newest reply here is still coming (owner, 15 Nov 2026). The step
-   * itself is in the pill beside the reply, in full, so the head never cuts it short.
+   * The line under the head's name: the assistant's status, or just "Working" while its
+   * newest reply here is still coming. The step itself is in the pill beside the reply,
+   * in full, so the head never cuts it short.
    */
   function paintWhoStatus() {
     const c = chat;
@@ -2829,7 +2829,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
     const busy = (!!who.id && !!c && c.assistant_id === who.id && !!last && isWorking(last)) || (!!who.id && onRun.has(who.id));
     const status = busy ? WORKING : who.id ? who.status : titleEl.textContent || ATHENA_STATUS;
     if (whoStatus.textContent !== status || busy !== whoStatus.classList.contains("is-working")) {
-      // Working: the breathing dot in the assistant's own colour (owner, 16 Nov 2026), and its ring in the head.
+      // Working: the breathing dot in the assistant's own colour, and its ring in the head.
       if (busy) whoStatus.replaceChildren(h("span", { class: "team-dot ask-who__dot", "aria-hidden": "true" }), status);
       else whoStatus.textContent = status;
     }
@@ -3795,7 +3795,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
       }
       const connected = online();
       pending.steps = [];
-      // A follow-up means something only with the turns before it: its words are never keyword-searched (owner, 12 Nov 2026).
+      // A follow-up means something only with the turns before it: its words are never keyword-searched.
       // The message is kept, the reply says plainly that it couldn't be had, and it's asked again by itself, once.
       const failed = error instanceof SampleHasNone ? null : afterFailure(error, { online: connected, earlierTurns: history.length, alreadyTried: !!pending.autoTried });
       if (failed?.show === "unreached") {
@@ -3997,7 +3997,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   }
 
   // ---------- Open on a new conversation ----------
-  // Ask opens ready for a new question (owner, 11 Nov 2026); the last conversation waits in the list. Two things keep the one
+  // Ask opens ready for a new question; the last conversation waits in the list. Two things keep the one
   // you were in: a reply that's still being written, and coming straight back (you tapped a source and returned).
   /** Opened with no chat to go back to (a new device): the first sync may bring one, so open it then. */
   let waitingForLast = false;

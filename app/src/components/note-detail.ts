@@ -348,7 +348,7 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
 
   async function remove() {
     if (!note) return;
-    // Files a conversation still has stay unless you tick the box (answered 6 Nov).
+    // Files a conversation still has stay unless you tick the box.
     const held = noteFiles.files().filter((f) => f.in_conversation && !f.removed);
     const picked = await confirmChoice({
       title: "Delete this note permanently?",

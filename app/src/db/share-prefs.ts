@@ -1,5 +1,5 @@
 /**
- * "Always save what I share from this device" (owner, 10 Nov 2026).
+ * "Always save what I share from this device".
  *
  * The service worker can tell another site's form from a share (sw.js,
  * shareFrom) and refuses it before anything here is looked at. What it can't

@@ -410,7 +410,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       const offText = offWords(off);
       const roomText = checkinSettings ? roomWords(fresh.length, MAX_OWN_QUESTIONS - checkinSettings.own.length) : null;
       offNote = offText || roomText ? h("div", { class: "add-notes" }, ...[roomText, offText].filter((t): t is string => !!t).map((t) => h("p", { class: "add-note add-note--calm" }, icons.toggle(), h("span", {}, t)))) : null;
-      // Start asking them, or add the set switched off (owner, 25 Nov 2026): asking is the default. Neither switches a
+      // Start asking them, or add the set switched off: asking is the default. Neither switches a
       // routine on; the note above keeps saying so.
       const sw = startWords(off, joinsKinds);
       const choice = (value: "on" | "off", o: { label: string; line: string }) => {
@@ -590,7 +590,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     })();
 
     // Already here: say so first, with a way to open it, and Update when the listing is newer. A second copy is a
-    // deliberate extra tap (the owner's decision, 24 Nov 2026).
+    // deliberate extra tap.
     const had = p.existing;
     const w = had ? haveWords(p.kind, had, p.listing?.version ?? null) : null;
     let copyBtn: HTMLButtonElement | null = null;
