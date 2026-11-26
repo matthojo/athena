@@ -3,7 +3,7 @@
 Each release's section becomes its notes on GitHub. Merging a new version
 into `main` publishes it (`.github/workflows/release.yml`).
 
-## 1.3.1
+## 1.4.0
 
 A guided first setup, Inbox buttons that say what they do, and a round of
 security hardening. Read "When you update" first: every API key has to be
