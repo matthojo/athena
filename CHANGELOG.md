@@ -3,6 +3,57 @@
 Each release's section becomes its notes on GitHub. Merging a new version
 into `main` publishes it (`.github/workflows/release.yml`).
 
+## 1.3.0
+
+Community, themes, and documentation on a site of its own.
+
+- Community is a directory of assistants, skills, flows, check-in questions,
+  templates and themes that other people have shared, each read by a
+  maintainer before it's listed. Open it from the Library, read everything an
+  item would add and what it can reach, then choose Add. Nothing runs until
+  you switch it on, and an update waits until you take it. While Check the
+  Community catalogue is on (Settings → Ask), Athena reads the list at most
+  once a day. `ATHENA_CATALOGUE_URL` points Athena at another catalogue, or at
+  none.
+- Share a flow, a set of check-in questions, a note template or a theme as a
+  file, as you can an assistant, and send it to Community from a public GitHub
+  repository of yours.
+- Themes: Settings → Appearance has built-in themes, and you can make your
+  own, with colours for light and dark, corners, spacing and a text size. Your
+  own font and text size stay as you set them, whatever the theme.
+- Check-in questions can come from Community, and written answers go to that
+  day's journal. A day's journal can start from a note template.
+- Health has a Wellness tab: your check-in answers over time, with mood,
+  energy, rest and stress as a coloured dot for each day, week or month.
+- A Calendar collection syncs your upcoming events every hour without AI, so
+  a busy calendar doesn't spend credits. It takes over the events a Meetings
+  collection synced.
+- Inbox: a card groups only finds that are the same, and Add to calendar
+  takes the whole card. You can ignore emails like one in front of you, from
+  that address or its whole domain, and the rule goes into that account's
+  email rules.
+- Home keeps to what the next few hours need: the greeting, Ask, one "Waiting
+  for you" card, the Inbox and what's due, a meeting to prepare for, the
+  briefing and your to-dos.
+- Ask: a request, such as "Remind me tomorrow at 8 to call Sam", starts
+  without a search of your notes; a question still gets one. Under a reply
+  that did something, Athena leaves out the "Couldn't search" line and the list
+  of past conversations, since neither went into it.
+- A run opens only the links you typed or approved, or a saved item's own
+  link. A tracker link the model chose waits for your approval.
+- A Raycast extension, in its own repository
+  ([athena-raycast](https://github.com/matthojo/athena-raycast)), adds,
+  searches and ticks things off from the keyboard. Saves from it are marked as
+  coming from Raycast.
+- The documentation is on the Community site, at
+  https://athena-community.netlify.app/docs/, rewritten and checked against
+  the code: getting started, a guide to every part of Athena, running your
+  copy, reference, architecture and the security model. README and SECURITY.md
+  are shorter and link there.
+- Claude routines for collection are removed, with the agent specs and the
+  `register-collection-agent` skill. Collections inside Athena do this job. If
+  you registered one as a routine on claude.ai, turn it off there.
+
 ## 1.2.0
 
 To-dos with a description, steps, links and a priority.
