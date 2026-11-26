@@ -26,7 +26,7 @@ import { markSourcesStale, statusButton, type StatusActions } from "./components
 import { mountToastStack, showToast } from "./components/toast";
 import { renderConnect } from "./views/connect";
 import { renderHome } from "./views/home";
-import { exitSampleMode, fetchConnectors, hasToken, isSampleMode, saveTimeZone, setSampleMode, swapMasterForKey } from "./db/api";
+import { exitSampleMode, fetchConnectors, hasToken, holdsMasterToken, isSampleMode, saveTimeZone, setSampleMode, swapMasterForKey } from "./db/api";
 import { deviceZone, localToday } from "./lib/time";
 import { lifeLogDate } from "./components/day-words";
 import { onSyncChange, runSync } from "./db/sync";
@@ -776,7 +776,7 @@ function mountShell() {
   });
 }
 
-function boot() {
+async function boot() {
   // Light, Dark or the system's: index.html set it before the first paint; this keeps following it.
   watchAppearance();
   // The theme and this device's own font and text size: index.html drew them before the first paint too.
@@ -790,6 +790,10 @@ function boot() {
   const state = history.state as { athenaSheet?: string } | null;
   if (state?.athenaSheet) history.replaceState({ ...state, athenaSheet: undefined }, "");
 
+  // An install from before device keys still holds the master token: swap it once for this device's key, or drop it
+  // and ask again on Connect. Nothing else is sent with it.
+  if (holdsMasterToken()) await swapMasterForKey();
+
   if (!hasToken() && !isSampleMode()) {
     ensureAurora();
     mount(
@@ -801,12 +805,10 @@ function boot() {
     );
     return;
   }
-  // An install from before device keys still holds the master token: swap it for this device's key.
-  void swapMasterForKey();
   mountShell();
 }
 
-boot();
+void boot();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
