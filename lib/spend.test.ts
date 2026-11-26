@@ -9,8 +9,20 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { picturePrice, providerOf, tokenCost, tokenPrice, TOKEN_PRICES } from "./model-prices";
 import { due, rateFrom, readRates, STALE_MS } from "./fx";
-import { allowStep, areaName, budgetReplyText, budgetState, money, spentWords } from "./spend-types";
+import { allowStep, areaName, budgetReplyText, budgetState, GUARD_HEADROOM_USD, money, overLimits, spentWords } from "./spend-types";
 import { failCode, failLine } from "./team-run";
+
+test("the budget's limits, and the headroom Jev's injection check keeps past them", () => {
+  const limits = { all: 1, mine: 0.5 };
+  assert.deepEqual(overLimits({ all: 0.4, mine: 0.4 }, limits), { all: false, mine: false });
+  assert.deepEqual(overLimits({ all: 1, mine: 0.5 }, limits), { all: true, mine: true }, "reached is over");
+  assert.deepEqual(overLimits({ all: 5, mine: 5 }, { all: null, mine: null }), { all: false, mine: false }, "none set");
+  // Bulk email spending the day's budget doesn't turn the check off...
+  assert.deepEqual(overLimits({ all: 1, mine: 0.5 }, limits, GUARD_HEADROOM_USD), { all: false, mine: false });
+  // ...but the headroom has an end too.
+  assert.deepEqual(overLimits({ all: 1 + GUARD_HEADROOM_USD, mine: 0.5 }, limits, GUARD_HEADROOM_USD), { all: true, mine: false });
+  assert.ok(GUARD_HEADROOM_USD > 0 && GUARD_HEADROOM_USD <= 1, "a little, not a second budget");
+});
 
 test("prices: published ones are used, a dated id is its model, and an unknown model is the company's dearest, marked", () => {
   assert.deepEqual(tokenPrice("anthropic", "claude-sonnet-5-5"), { price: [2, 10, 0.1], estimated: false });

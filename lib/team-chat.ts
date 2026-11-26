@@ -310,6 +310,8 @@ export interface TurnOptions {
   others?: boolean;
   /** run: a stage of an assignment held like the stages before it (`others`), whose message Jev flagged (lib/assignment-run.ts). */
   flagged?: boolean;
+  /** run: as `flagged`, when Jev couldn't check that message. */
+  unchecked?: boolean;
   /** run: leave memory as it is (a guest's is written once, when it's kept). */
   noMemory?: boolean;
   /** A cap below the usual (a check's). */
@@ -481,7 +483,17 @@ export async function runAssistantTurn(assistantId: string, prompt: string, opts
   const said =
     [startedEvent ? startedEvent.text : prompt.trim(), item && startedItem ? `${item.lead}\n<item>\n${startedItem.text}\n</item>` : "", startedTracked ? trackedBlock(startedTracked.text) : ""].filter(Boolean).join("\n\n") || "Do your job.";
   // A tracker's checks carry shops' and sites' names: other people's words, like an event's.
-  const startedBy = opts.event ? { ...(opts.others || tracked || (await fromOthers(opts.event)) ? { read: "collected" as const } : {}), flagged: started!.flagged } : tracked ? { read: "collected" as const, flagged: started!.flagged } : opts.others ? { read: "collected" as const, flagged: !!opts.flagged } : undefined;
+  const others = opts.event ? !!(opts.others || tracked || (await fromOthers(opts.event))) : !!(tracked || opts.others);
+  // Words Jev couldn't check hold the run's allowlisted changes for Go (lib/ask-guard.ts): a saved item's page and a
+  // tracker's lines always, an event's when other people wrote it.
+  const unchecked = !!(startedItem?.unchecked || startedTracked?.unchecked || (others && startedEvent?.unchecked));
+  const startedBy = opts.event
+    ? { ...(others ? { read: "collected" as const } : {}), flagged: started!.flagged, unchecked }
+    : tracked
+      ? { read: "collected" as const, flagged: started!.flagged, unchecked }
+      : opts.others
+        ? { read: "collected" as const, flagged: !!opts.flagged, unchecked: !!opts.unchecked }
+        : undefined;
   const threadId = opts.readOnly ? null : (opts.threadId ?? (run ? randomUUID() : null));
   // A run's kept conversation says what it did on the way, as Ask's replies do: what it searched for and which pages it read.
   const shownSteps = new Map<string, string>();

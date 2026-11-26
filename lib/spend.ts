@@ -6,6 +6,7 @@
  *    (lib/model-prices.ts), kept in dollars in `ai_usage` with the owner's day it fell on.
  *  - At the budget everything stops until midnight in the owner's zone, Ask included. An assistant past its own
  *    cap stops; the rest carries on. It's checked before each call (checkBudget); a call already started finishes.
+ *    Jev's injection check alone may go a little past both (GUARD_HEADROOM_USD), so spending can't switch it off.
  *  - The owner reads and sets money in their own currency (Profile → Region), dollars when it names none.
  *
  * Every call says what it was for through an AsyncLocalStorage scope set where work starts (withSpendScope): Ask's
@@ -29,6 +30,7 @@ import {
   MAX_BUDGET,
   money,
   NEAR_AT,
+  overLimits,
   SPEND_AREAS,
   type AssistantCap,
   type BudgetNotice,
@@ -40,6 +42,7 @@ import {
 } from "./spend-types";
 
 export type { BudgetNotice, SpendView } from "./spend-types";
+export { GUARD_HEADROOM_USD } from "./spend-types";
 
 // ---------- what a call is for ----------
 
@@ -272,8 +275,9 @@ async function assistantName(id: string): Promise<string | null> {
  * cap. Costs one cached settings read when nothing is limited. When today's spend can't be read and a budget is known
  * to be set, throws BudgetUnchecked, unless the scope is Run anyway: then the call goes ahead and its cost is kept
  * until the database is back. Calls kept from earlier are written first, and count until they are.
+ * `headroom`: dollars a call may still go past each limit (Jev's injection check, GUARD_HEADROOM_USD).
  */
-export async function checkBudget(scope: SpendScope = spendScope(), deps: SpendDeps = {}): Promise<void> {
+export async function checkBudget(scope: SpendScope = spendScope(), deps: SpendDeps = {}, opts: { headroom?: number } = {}): Promise<void> {
   const now = deps.now ?? new Date();
   let cfg: Config;
   let spent: { all: number; mine: number };
@@ -304,8 +308,7 @@ export async function checkBudget(scope: SpendScope = spendScope(), deps: SpendD
     warn("check", "the budget couldn't be checked and none is known, so the call goes ahead", error);
     return;
   }
-  const overAll = limits.all !== null && spent.all >= limits.all - 1e-9;
-  const overMine = limits.mine !== null && spent.mine >= limits.mine - 1e-9;
+  const { all: overAll, mine: overMine } = overLimits(spent, limits, opts.headroom ?? 0);
   if (!overAll && !overMine) return;
   const { shown, rate } = await displayWithRate(deps, false).catch(() => ({ shown: { currency: "USD", locale: "en-GB" }, rate: { value: 1 } as Rate }));
   const step = allowStep(rate.value);

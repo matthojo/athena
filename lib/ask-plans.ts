@@ -73,9 +73,10 @@ export interface PlanCard {
   /**
    * Why even one change is waiting here rather than made (lib/ask-guard.ts): the turn had read other people's
    * words (an account's item, a web page, a file) and the owner's message didn't plainly ask for it, or
-   * something it read was flagged as an instruction, or it sets a tracker link a model chose (lib/run-links.ts).
+   * something it read was flagged as an instruction, or an unattended run's allowlisted change followed text Jev
+   * couldn't check, or it sets a tracker link a model chose (lib/run-links.ts).
    */
-  why?: "read" | "flagged" | "link";
+  why?: "read" | "flagged" | "unchecked" | "link";
   /** After Go: when, and each step's outcome in order. */
   ran?: { at: string; results: StepResult[] };
   /**

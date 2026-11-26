@@ -186,6 +186,18 @@ test("at the budget every call stops before it's made, until midnight in the own
   await checkBudget({ area: "ask" }, { now: new Date("2026-11-18T05:05:00Z") });
 });
 
+test("at the budget, Jev's injection check still runs within its headroom, and stops past it", { skip }, async () => {
+  const { checkBudget, recordUsage, BudgetReached, GUARD_HEADROOM_USD } = await import("./spend");
+  await budget({ daily: 1 });
+  // $1 of Opus input: today's budget used.
+  await recordUsage({ model: "claude-opus-5-5", usage: { input_tokens: 250_000, output_tokens: 0 } });
+  await assert.rejects(checkBudget({ area: "background" }), BudgetReached);
+  await checkBudget({ area: "background" }, {}, { headroom: GUARD_HEADROOM_USD });
+  // Past the headroom too: the check stops like the rest, and what it would have read counts as unchecked (lib/jev.ts).
+  await recordUsage({ model: "claude-opus-5-5", usage: { input_tokens: Math.ceil(GUARD_HEADROOM_USD * 250_000), output_tokens: 0 } });
+  await assert.rejects(checkBudget({ area: "background" }, {}, { headroom: GUARD_HEADROOM_USD }), BudgetReached);
+});
+
 test("an assistant past its own cap stops; Ask and the other assistants carry on", { skip }, async () => {
   const { checkBudget, recordUsage, BudgetReached } = await import("./spend");
   await budget({ daily: 5, assistants: { [MOSS]: 0.5 } });

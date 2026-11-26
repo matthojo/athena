@@ -369,8 +369,8 @@ export interface AnswerOptions {
   webTurn?: WebTurn | null;
   /** Each tool result as it comes back, by tool name: a Team run watches its price tools' results (lib/team-chat.ts). */
   onToolResult?: (name: string, text: string) => void;
-  /** What started the turn, when it wasn't the owner typing (a Team run's event): other people's words, and whether Jev flagged them. The guard starts from there (lib/ask-guard.ts). */
-  startedBy?: { read?: ReadFrom; flagged?: boolean };
+  /** What started the turn, when it wasn't the owner typing (a Team run's event): other people's words, and whether Jev flagged them or couldn't check them. The guard starts from there (lib/ask-guard.ts). */
+  startedBy?: { read?: ReadFrom; flagged?: boolean; unchecked?: boolean };
   /** Values to give back with the answer, as structured fields of the answer tool (a flow's think step): AskReply.values. */
   values?: AskedValue[];
 }
@@ -475,6 +475,14 @@ class Evidence {
   /** The model searched or read notes and people itself, beyond the first search. */
   notes = false;
   flagged = false;
+  /** Something read went to the model without Jev's check (lib/jev.ts guardText): an unattended run's allowlisted changes wait for Go. */
+  unchecked = false;
+
+  /** What Jev made of a piece of text this turn read. */
+  checked(g: { flagged: boolean; unchecked?: boolean }): void {
+    if (g.flagged) this.flagged = true;
+    if (g.unchecked) this.unchecked = true;
+  }
 
   ref(kind: AthenaKind, id: string, title: string, date: string | null = null): string {
     const key = `${kind}:${id.toLowerCase()}`;
@@ -895,7 +903,7 @@ class AthenaTools {
 
   private async guarded(text: string): Promise<string> {
     const g = await guardText(text);
-    if (g.flagged) this.ev.flagged = true;
+    this.ev.checked(g);
     return g.text;
   }
 }
@@ -1305,9 +1313,10 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
   // A Team run has no message from the owner (a trigger wrote it), so its words ask for nothing.
   const unattended = !!opts.persona && opts.plan === "propose";
   // Its allowlist is the owner's standing request: the guard gets it here, for a run only. A chat goes by the owner's message.
-  const guard = new TurnGuard(unattended ? "" : plain, () => ev.flagged, unattended && !opts.persona!.readOnly ? opts.persona!.allow : []);
+  // What Jev couldn't check holds those changes for Go too; a chat has none to hold (lib/ask-guard.ts).
+  const guard = new TurnGuard(unattended ? "" : plain, () => ev.flagged, unattended && !opts.persona!.readOnly ? opts.persona!.allow : [], () => ev.unchecked);
   if (opts.startedBy?.read) guard.sawOthers(opts.startedBy.read);
-  if (opts.startedBy?.flagged) ev.flagged = true;
+  ev.checked({ flagged: !!opts.startedBy?.flagged, unchecked: !!opts.startedBy?.unchecked });
   // The owner's own words in this conversation: a person's name in them may be searched on the web.
   const typed = [plain, ...(opts.history ?? []).filter((t) => t.role === "user").map((t) => mentionsToText(t.text))];
   // Money search off: the money tools aren't offered and are refused in code (lib/ask-tools.ts). The model says when a message asked for them (needs_money).
@@ -1345,12 +1354,12 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       () => ({ found: [], block: null }),
     ),
   ]);
-  if (mentioned.block?.flagged) ev.flagged = true;
+  if (mentioned.block) ev.checked(mentioned.block);
   for (const m of mentioned.found) {
     const [kind] = (m.ref ?? "").split(":");
     if (m.ref) ev.ref(kind as AthenaKind, m.id, m.title);
   }
-  if (first.text?.flagged) ev.flagged = true;
+  if (first.text) ev.checked(first.text);
   if (firstQuery) step?.({ id: "first", text: first.results.length ? `Found ${first.results.length === 1 ? "1 match" : `${first.results.length} matches`} in your notes` : "No matches in your notes", done: true });
 
   try {
@@ -1415,7 +1424,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     const session = new Session(now, tz, { client, ...ports, capture: false, files: shared, money, sawCollected: () => guard.sawOthers("collected") });
     const draft = (session.draft = new PlanDraft(planMode));
     // A Team assistant's allowlist (lib/team-chat.ts): those changes run without waiting for Go, where the guard lets them.
-    // In a run it does unless something read was flagged. In a chat, after reading other people's words, only what the
+    // In a run it does unless something read was flagged or Jev couldn't check it. In a chat, after reading other people's words, only what the
     // owner's message asked for; a careful chat queues them like the rest.
     const alone = new Set(persona && !persona.readOnly ? persona.allow : []);
     if (alone.size) session.allow = { has: (name) => alone.has(name) && !opts.careful && guard.mustWait(name) === null };
@@ -1551,13 +1560,15 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
           if (read.startsWith("https://")) ev.web.set(read, title || ev.web.get(read) || "");
           step?.({ id: `web:${b.tool_use_id}`, text: title ? `Read “${title}” on ${hostOf(page.url || url)}` : `Read ${hostOf(page.url || url)}`, done: true });
           const text = page.content.source.type === "text" ? page.content.source.data : "";
-          if (text)
+          // A page that isn't text (a PDF) reached the model without Jev's check.
+          if (!text) ev.unchecked = true;
+          else
             reading.push(
               guardText(text.slice(0, 40_000)).then(
-                (g) => {
-                  if (g.flagged) ev.flagged = true;
+                (g) => ev.checked(g),
+                () => {
+                  ev.unchecked = true;
                 },
-                () => undefined,
               ),
             );
         }
@@ -1725,7 +1736,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
         if (!r.isError) ev.answered.add(account.key);
         // Someone else wrote this: Jev checks it isn't trying to instruct Claude, and flags it if so.
         const guarded = await guardText(text);
-        if (guarded.flagged) ev.flagged = true;
+        ev.checked(guarded);
         return { type: "tool_result", tool_use_id: call.id, content: guarded.text, ...(r.isError ? { is_error: true as const } : {}) };
       } catch (error) {
         ev.failed.add(account.key);
