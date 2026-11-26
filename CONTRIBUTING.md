@@ -23,7 +23,7 @@ Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ```sh
 npm install
-npm run dev:app        # the app on http://localhost:5173; choose "Continue with sample data"
+npm run dev:app        # the app on http://localhost:5173; choose "Look around with sample data"
 ```
 
 `netlify dev` runs the functions and MCP server too, with a local database of
