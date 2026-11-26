@@ -1,5 +1,5 @@
 // Builds requests to the owner's Athena and reads its answers.
-// Contract: docs/notes/saved.md (claude/saved); see docs/notes/save-extension.md.
+// The contract is Athena's /api/saved (netlify/lib/saved/routes.ts).
 
 export const SAVE_PATH = "/api/saved";
 export const TEST_PATH = "/api/saved/ping";

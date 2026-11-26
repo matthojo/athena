@@ -1,5 +1,5 @@
 /**
- * The model picker (docs/ai-models.md, "The model picker"): a sheet on a
+ * The model picker: a sheet on a
  * phone, a dialog on a wide screen. Every model the gateway lists, by company,
  * newest first, with search and a company filter; no recommended group (owner,
  * 17 Nov 2026). A newer version of the chosen model is offered at the top, and

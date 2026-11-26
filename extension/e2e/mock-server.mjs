@@ -1,5 +1,5 @@
 // A stand-in for Athena's /api/saved, for the end-to-end test and for trying
-// the extension by hand (npm run mock). Contract: docs/notes/saved.md (claude/saved).
+// the extension by hand (npm run mock). It follows netlify/lib/saved/routes.ts.
 
 import { createServer } from "node:http";
 import { Readable } from "node:stream";

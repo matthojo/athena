@@ -1,6 +1,6 @@
 /**
  * The context menu for a link in a note (right-click, long-press, Shift+F10),
- * with the actions the owner approved (docs/notes/rich-links.md):
+ * with the actions the owner approved:
  *
  *   1. Open (⌘↵), the kind's own action, Copy link (⌘C)
  *   2. Show as: Mention, Link, Card, plus Embed only where there's a player

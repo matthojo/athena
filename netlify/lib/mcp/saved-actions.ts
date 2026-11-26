@@ -1,5 +1,5 @@
 /**
- * MCP tools for Saved actions (lib/saved-actions.ts; docs/notes/saved-actions.md):
+ * MCP tools for Saved actions (lib/saved-actions.ts):
  * an outside agent can see what fits a saved item and run it, like the app's
  * "More actions". There's no undo here: the owner undoes from the app.
  */

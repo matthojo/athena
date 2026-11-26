@@ -5,7 +5,7 @@
  * lives in web-access.ts.
  *
  * Every line names the assistant by its own pronoun, never "it" for one who
- * is "she" (docs/team.md, "Detail page").
+ * is "she".
  */
 import type { Personality } from "../../../lib/team-types";
 import { cap, pronouns } from "./detail-words";

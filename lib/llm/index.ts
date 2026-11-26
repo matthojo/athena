@@ -1,5 +1,5 @@
 /**
- * One client shape for every gateway provider (docs/ai-models.md).
+ * One client shape for every gateway provider.
  *
  * `clientFor(ref)` returns an object with Anthropic's `messages.create` and
  * `messages.stream`, taking and returning Anthropic-shaped messages, tools,

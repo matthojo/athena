@@ -1,6 +1,6 @@
 // End-to-end: loads the unpacked extension (dist/chrome-e2e) in Chromium and
 // saves against the mock /api/saved. With --shots, also writes screenshots to
-// docs/notes/shots-extension/.
+// shots/extension/ at the repository root (git-ignored).
 //   npm run test:e2e        npm run shots
 
 import assert from "node:assert/strict";
@@ -16,7 +16,7 @@ const { chromium } = require("playwright");
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const extPath = join(root, "dist", "chrome-e2e");
-const shotsDir = join(root, "..", "docs", "notes", "shots-extension");
+const shotsDir = join(root, "..", "shots", "extension");
 const SHOTS = process.argv.includes("--shots");
 
 const mock = await startMock();

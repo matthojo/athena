@@ -1,5 +1,5 @@
 /**
- * AI spend's routes (lib/spend.ts, docs/ai-models.md). Full access only, like everything behind the API's gate.
+ * AI spend's routes (lib/spend.ts). Full access only, like everything behind the API's gate.
  *
  *  - GET /api/spend: today's spend and its split, the last 7 days, the budget and each assistant's cap, in the
  *    owner's own currency (lib/spend-types.ts SpendView).

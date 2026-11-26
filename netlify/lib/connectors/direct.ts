@@ -8,7 +8,7 @@
  * Registered: Google (Gmail, Google Calendar: google-direct.ts) and Microsoft
  * (Outlook mail and calendar: microsoft-direct.ts), and for the Life log
  * Trakt, YouTube, Letterboxd and Goodreads. A new API-only service
- * adds one adapter here; the interface is in docs/notes/connectors-microsoft.md.
+ * adds one adapter here, implementing DirectAdapter below.
  */
 import type { HistoryBackfill } from "./backfill";
 import type { RecentSync } from "./media-sync";

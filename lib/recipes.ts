@@ -1,5 +1,5 @@
 /**
- * Recipes (migration 0053; contract in docs/notes/recipes.md): recipes read
+ * Recipes (migration 0053): recipes read
  * from their pages, the cooked log, the week's dinners and the grocery list.
  *
  * A link recipe is always a Saved item too: the page is read once by Saved

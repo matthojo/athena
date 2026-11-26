@@ -1,6 +1,6 @@
 /**
- * Google's Gemini (`generateContent` and `streamGenerateContent`) behind Anthropic's message shape
- * (docs/ai-models.md). Gemini 3 signs each tool call it makes and wants the signature back with that call on the
+ * Google's Gemini (`generateContent` and `streamGenerateContent`) behind Anthropic's message shape.
+ * Gemini 3 signs each tool call it makes and wants the signature back with that call on the
  * next request; the signatures are kept here by call id, for as long as a conversation is likely to run.
  */
 import type { Anthropic } from "../ai";

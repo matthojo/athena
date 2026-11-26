@@ -1,6 +1,6 @@
 /**
  * The week and month in review (app/src/views/days-recap.ts), built from the
- * approved prototype (docs/notes/week-review.md). Everything is prefixed wr-.
+ * approved prototype. Everything is prefixed wr-.
  *
  * Built on tokens.css, which also holds its own values (hairline shadows,
  * mood colours), the --wr-* tokens.

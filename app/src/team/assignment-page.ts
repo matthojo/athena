@@ -1,5 +1,5 @@
 /**
- * One assignment (docs/team.md "Assignments"): #/team/assignment/<id>.
+ * One assignment: #/team/assignment/<id>.
  *
  *   the row of tiles   the lineup in order, the working dot on the stage
  *                      that's running, a badge on one that waits

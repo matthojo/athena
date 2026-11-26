@@ -1,5 +1,5 @@
 /**
- * Run anyway (lib/spend.ts, docs/ai-models.md): when Ask couldn't check today's AI budget, its reply carries a
+ * Run anyway (lib/spend.ts): when Ask couldn't check today's AI budget, its reply carries a
  * one-time token. The notice (components/spend-notice.ts) arms it for the message it's about, then sends that
  * message again; askAthena (db/api.ts) takes it once. Any other message, or a second send, goes without it.
  */

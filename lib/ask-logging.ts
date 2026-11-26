@@ -8,7 +8,7 @@
  * The model reads the sentence into a tool's fields; these check the fields
  * and make the card the owner confirms. Nothing here saves: in Ask the app
  * saves when the owner taps, through the same routes as the manual-entry
- * forms (docs/notes/ask-logging.md).
+ * forms.
  */
 import { addDays } from "./dates";
 import { MONEY_CATEGORIES, type MoneyCategory } from "./day-types";

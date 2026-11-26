@@ -1,5 +1,5 @@
 /**
- * The words for AI models (docs/ai-models.md, "The app"), with no DOM, so
+ * The words for AI models, with no DOM, so
  * they can be tested: what each job is, what a model can do and what it
  * costs in words, where a choice came from ("Same as Careful work"), which
  * models a role offers, newer and withdrawn models, search, and what taking an agreement
@@ -103,7 +103,7 @@ export function offeredFor(role: PickRole, m: CatalogueModel): boolean {
 /** The code's default for a role. */
 export const defaultFor = (role: PickRole): ModelRef | null => DEFAULT_MODELS[role];
 
-/** A resolved model as GET /api/models sends it: with `newer` and `withdrawn` (docs/ai-models.md, "Newer and withdrawn"). */
+/** A resolved model as GET /api/models sends it: with `newer` and `withdrawn`. */
 export type Resolved = ResolvedModel & { newer?: ModelRef; withdrawn?: ModelRef };
 
 /** "A newer version is out: Claude Sonnet 5.5". The choice stays until the owner switches. */

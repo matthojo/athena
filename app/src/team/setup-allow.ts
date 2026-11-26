@@ -1,5 +1,5 @@
 /**
- * Team: what an assistant can do alone (docs/team.md, the allowlist), in
+ * Team: what an assistant can do alone, in
  * plain words. `allow` holds assistant tool names (lib/assistant.ts); the
  * owner only ever sees the sentence.
  */

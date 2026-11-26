@@ -1,6 +1,5 @@
 /**
- * A note made into a file the owner can download (docs/team.md "Documents
- * for download"): Markdown as written, or Word from that Markdown
+ * A note made into a file the owner can download: Markdown as written, or Word from that Markdown
  * (lib/document-make.ts). The file is kept like any other (lib/files.ts:
  * sealed bytes in Blobs, its name sealed on the row) and linked to its note,
  * so it shows under the note's Files and goes when the note does.

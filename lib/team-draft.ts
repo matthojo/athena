@@ -1,5 +1,5 @@
 /**
- * Team setup's first step (docs/team.md, "Setup"): POST /api/team/draft
+ * Team setup's first step: POST /api/team/draft
  * { text } proposes an assistant from the owner's one sentence: a name (or
  * null, so the app names it from the seed), a job of 60 characters at most,
  * instructions, triggers (a schedule or an EventFilter), the change tools the

@@ -88,7 +88,7 @@ test("figures for a card, most telling first", () => {
 test("a day without a line gets one from its things; a health-only day from its figures", () => {
   const busy = blank("2026-11-06", { entries: [entry({ group: "Northern Lines" }), entry({ kind: "read", title: "Small Hours" })], places: [{ name: "Home" }, { name: "Dishoom", minutes: 70 }] });
   assert.equal(fallbackLine(busy), "A quiet Friday: Dishoom, an episode of Northern Lines and reading Small Hours");
-  // People and places lead, before media (docs/notes/affection-2026-11.md, moment 1).
+  // People and places lead, before media.
   const out = blank("2026-11-10", { places_line: "Lunch at Dishoom, then Hampstead Heath", entries: [entry({ group: "Harbour Street", count: 2 }), entry({ title: "Northbound", source: "letterboxd" })] });
   assert.equal(fallbackLine(out), "Lunch at Dishoom, then Hampstead Heath");
   assert.equal(fallbackLine(out, [{ name: "Priya Shah", in_person: true, place: "Dishoom" }]), "Lunch with Priya at Dishoom, then Hampstead Heath");

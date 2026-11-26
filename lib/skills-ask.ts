@@ -126,7 +126,7 @@ export class SkillTools {
 export async function loadSkillTools(opts: { picked?: string | null; guard?: (text: string) => Promise<string>; onUse?: (s: Skill) => void } = {}): Promise<{ skills: SkillTools; picked: Skill | null }> {
   try {
     const [enabled, found] = await Promise.all([enabledSkills(), opts.picked ? getSkill(opts.picked) : Promise.resolve(null)]);
-    // An assistant's own skill is never main Ask's to load, even by id (docs/team.md, "Skills").
+    // An assistant's own skill is never main Ask's to load, even by id.
     const picked = found && !found.assistant_id ? found : null;
     const all = picked && !enabled.some((s) => s.id === picked.id) ? [...enabled, picked] : enabled;
     return { skills: new SkillTools(all, opts.guard, opts.onUse), picked };

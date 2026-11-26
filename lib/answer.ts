@@ -137,7 +137,7 @@ import { logChanges, type ActivitySource } from "./ask-activity";
 import { TurnGuard, isCollected, isWriteTool, needsOwnersGo, type ReadFrom } from "./ask-guard";
 import { BUSY_STEP_AGAIN, BUSY_STEP_FIRST, BUSY_STEP_ID } from "./ask-busy";
 import { tonightCard, type WatchPick } from "./watch-tonight";
-// Pictures in Ask and assistant chats (docs/ai-models.md, models-ask).
+// Pictures in Ask and assistant chats.
 import { MAKE_IMAGE_TOOL_NAME, PICTURE_SETTING, PICTURES_OFF_TEXT, PictureError, changesPictures, makeImage, makeImageTool, parseMakeImage, type MadePicture } from "./images";
 import { resolveImageModel } from "./models";
 import { modelLabel } from "./model-label";
@@ -309,7 +309,7 @@ export type AskReply = AnswerWithImports & AskActed & {
   picks?: WatchPick[];
   /** Pictures this turn made (make_image, lib/images.ts), shown in the reply. Each is also a change in `changes`. */
   pictures?: MadePicture[];
-  /** The model that wrote this reply, and whether the chosen one failed and the default answered (docs/ai-models.md, HTTP). The app's "Answered with" line. */
+  /** The model that wrote this reply, and whether the chosen one failed and the default answered. The app's "Answered with" line. */
   model?: ModelRef;
   fell_back?: boolean;
   /** With fell_back: the model that didn't answer. */
@@ -375,7 +375,7 @@ export interface AnswerOptions {
   values?: AskedValue[];
 }
 
-/** A web-enabled assistant's turn: how many searches and pages, and what may go in them (docs/team-notes/web-runs.md). */
+/** A web-enabled assistant's turn: how many searches and pages, and what may go in them. */
 export interface WebTurn {
   searches: number;
   pages: number;
@@ -1378,7 +1378,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     // A new chat, or a later message that brings a new topic, gets short summaries of the past chats about the same thing or the same people.
     const people = mentioned.found.filter((m) => m.kind === "person").map((m) => m.title);
     const earlierAsked = history.filter((t) => t.role === "user").map((t) => t.text);
-    // An assistant answering has its own memory, not main Ask's past chats (docs/team.md).
+    // An assistant answering has its own memory, not main Ask's past chats.
     const persona = opts.persona ?? null;
     // A request doesn't need them either.
     const remember = !persona && !request && (!history.length || bringsNewTopic(plain, history.map((t) => mentionsToText(t.text)), people));

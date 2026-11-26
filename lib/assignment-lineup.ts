@@ -1,5 +1,5 @@
 /**
- * An assignment's lineup (docs/team.md, "How it runs", step 2):
+ * An assignment's lineup:
  * POST /api/team/assignments/lineup { text } proposes 2–6 stages from the
  * owner's brief. One structured model call, checked with zod; anything
  * unusable falls back to a plain lineup from the brief itself, as
@@ -209,7 +209,7 @@ export async function proposeLineup(text: string, deps: { client?: Anthropic; te
   try {
     const roles = ROLE_LIST.map((r) => `- ${r.key} (${r.label}): ${r.job}${r.web ? "; looks things up online" : ""}`).join("\n");
     const standing = team.length ? `\n\nThe owner's standing assistants (use one only when its job fits a stage):\n${team.map((m) => `- ${m.id}: ${oneLine(m.name)}, ${clipLine(m.job, 80)}`).join("\n")}` : "";
-    // Setting up a line-up is careful work, on the same job as drafting an assistant (docs/ai-models.md).
+    // Setting up a line-up is careful work, on the same job as drafting an assistant.
     const res = await jobMessage(
       "team_draft",
       deps.client ?? new Anthropic(),

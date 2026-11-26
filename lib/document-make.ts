@@ -1,5 +1,5 @@
 /**
- * A note as a file to download (docs/team.md "Documents for download"):
+ * A note as a file to download:
  * Markdown as written, or a Word document made from that Markdown. Pure, with
  * no I/O, so the server (lib/document-make-db.ts) and the app (sample mode,
  * offline) make the same bytes.

@@ -1,5 +1,5 @@
 /**
- * Team: what an assistant remembers (docs/team.md, "Memory"). A rolling
+ * Team: what an assistant remembers. A rolling
  * summary (at most 2,000 characters) and facts (at most 30), refreshed by one
  * small model call after a chat goes quiet (debounced per thread) and after
  * each run. It goes into that assistant's own prompt (lib/team-chat.ts),

@@ -1,5 +1,5 @@
 /**
- * Team: triggers and status as plain sentences (docs/team.md, "Vocabulary").
+ * Team: triggers and status as plain sentences.
  * Pure, so the Team page, the detail page and setup say the same thing, and
  * the tests can check the words without a DOM.
  *

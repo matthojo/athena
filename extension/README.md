@@ -61,12 +61,10 @@ Every save is written to the extension's outbox first, and only leaves it once A
 ```sh
 npm test           # unit: request builder, outbox and retries, settings checks, manifest
 npm run test:e2e   # loads dist/chrome-e2e in Chromium (Playwright) against e2e/mock-server.mjs
-npm run shots      # the same, and writes screenshots to docs/notes/shots-extension/
+npm run shots      # the same, and writes screenshots to shots/extension/ (git-ignored)
 npm run test:native  # the real right-click menus and Alt+Shift+S, headed Chromium under Xvfb (needs xvfb-run, xdotool)
 npm run test:real  # against a real Athena on 127.0.0.1: set ATHENA_ORIGIN, ATHENA_KEY (capture) and ATHENA_MASTER (app token)
 npm run mock       # a mock Athena on http://127.0.0.1:8787 to try the extension by hand
 ```
 
 The e2e build is the Chrome build plus a host permission for `127.0.0.1`, since a test can't click the browser's permission prompt. Playwright can't open the browser's own menus, so `test:e2e` calls the menu handler directly. `test:native` covers the real thing: it uses the plain Chrome build, right-clicks with the mouse, picks the item with `xdotool`, and checks the save arrived.
-
-Notes and open questions: [docs/notes/save-extension.md](../docs/notes/save-extension.md).

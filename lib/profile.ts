@@ -1,6 +1,6 @@
 /**
  * The owner's profile: who they are, how they work, their routines and taste,
- * their goals and how they want Athena to help (docs/notes/profile-memory-plan.md).
+ * their goals and how they want Athena to help.
  *
  * No table of its own. Each answer is a current `me` fact (lib/memory.ts) under
  * a known key from PROFILE_FIELDS; `me` facts under any other key show as

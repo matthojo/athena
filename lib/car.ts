@@ -3,7 +3,7 @@
  * No I/O here (lib/car-sync.ts runs the sync; netlify/lib/car-api.ts calls
  * the two government APIs).
  *
- * Two sources, field names from their published specs (docs/notes/car.md):
+ * Two sources, field names from their published specs:
  *  - DVLA Vehicle Enquiry (VES v1.2.0): POST /v1/vehicles. make, colour,
  *    yearOfManufacture, taxStatus/taxDueDate, motStatus/motExpiryDate.
  *  - DVSA MOT History (OpenAPI 1.0.0): GET /v1/trade/vehicles/registration/{reg}.

@@ -1,6 +1,6 @@
 /**
- * An assistant's own skill, on the server (docs/team.md, "Skills";
- * lib/team-skill.ts has the shapes and the pure parts).
+ * An assistant's own skill, on the server (lib/team-skill.ts has the shapes
+ * and the pure parts).
  *
  * - `askQuestions`: POST /api/team/questions. 2–4 questions written for this
  *   job, each with choices to tap. One cheap structured call, checked with

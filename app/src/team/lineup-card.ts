@@ -1,5 +1,5 @@
 /**
- * The lineup card (docs/team.md "How it runs" → Lineup): who works on an
+ * The lineup card: who works on an
  * assignment, in order. The owner reorders, swaps, removes, sets each
  * checkpoint (or one of the three presets) and whether questions take the
  * suggested answer, then taps Go. Nothing runs before Go. Used by New

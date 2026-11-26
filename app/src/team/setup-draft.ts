@@ -1,6 +1,5 @@
 /**
- * Team setup's draft, kept on this device (docs/team.md: "A draft in
- * progress is kept on the device"). Closing the sheet keeps it; adding the
+ * Team setup's draft, kept on this device. Closing the sheet keeps it; adding the
  * assistant clears it. Anything unreadable or older than two weeks is
  * dropped. Storage can be missing (private windows), so every call is safe.
  */

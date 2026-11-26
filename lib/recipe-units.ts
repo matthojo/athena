@@ -1,5 +1,5 @@
 /**
- * Recipe quantities (Recipes, migration 0053; notes in docs/notes/recipes.md):
+ * Recipe quantities (Recipes, migration 0053):
  * reading an ingredient line into quantity, unit, item and note, scaling it,
  * switching it between metric and imperial, and writing it back with
  * sensible units and fractions ("1 ½ tbsp", "450 g", "1.2 kg").

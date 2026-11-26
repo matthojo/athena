@@ -1,5 +1,5 @@
 /**
- * Pictures in Ask and assistant chats (docs/ai-models.md, "Pictures"; owner, 17 Nov 2026): a picture model
+ * Pictures in Ask and assistant chats: a picture model
  * makes a picture, or changes one from the conversation, and it's kept as a file like a photo the owner added
  * (lib/files.ts saveFile), linked to the conversation, so it can go on a note.
  *

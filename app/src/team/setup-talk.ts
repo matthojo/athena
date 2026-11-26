@@ -1,5 +1,5 @@
 /**
- * Team setup's conversation (docs/team.md, "Setup"). After you give the job,
+ * Team setup's conversation. After you give the job,
  * the new assistant introduces itself, says what it'll do, asks its questions
  * one at a time and sets out how it'll work. Your answers are your own
  * bubbles; tap one to change it.

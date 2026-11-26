@@ -1,5 +1,5 @@
 /**
- * Where the owner is, for web searches (docs/team-notes/web-runs.md): their
+ * Where the owner is, for web searches: their
  * profile's Region answer ("United Kingdom, GBP, English") read as a country,
  * a currency and a language, with the city from Home town.
  *

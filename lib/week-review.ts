@@ -1,7 +1,6 @@
 /**
  * The week (or month) in review's server read: GET /api/week-review?from&to&tz.
- * Three things the app can't work out from what it already loads
- * (docs/notes/week-review-build.md):
+ * Three things the app can't work out from what it already loads:
  *
  *  - goals: which goals moved on in the period, from the goal_progress log
  *    (0041). Each change to a goal's progress adds a row (upsertGoal); the

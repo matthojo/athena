@@ -1,5 +1,5 @@
 /**
- * Each week's kept moment (docs/notes/affection-2026-11.md, moment 6): one
+ * Each week's kept moment: one
  * photo, cover or line the owner picks at the end of the Week in review, which
  * becomes that week's cover in the Days feed and month view.
  *

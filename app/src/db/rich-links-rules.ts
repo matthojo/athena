@@ -3,7 +3,7 @@
  * tested with tsx: when a link preview kept on this device is good enough,
  * when the server's copy replaces it, and how each kind of thing in Athena
  * becomes a live card. app/src/db/rich-links.ts does the reading and
- * keeping; docs/notes/rich-links-stage2s.md has the contract.
+ * keeping.
  */
 
 import { markdownToText } from "../lib/markdown-text";

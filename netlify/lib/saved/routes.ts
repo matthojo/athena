@@ -1,5 +1,5 @@
 /**
- * Saved over REST (lib/saved.ts; the contract is docs/notes/saved.md).
+ * Saved over REST (lib/saved.ts).
  *
  *  - POST /api/saved: keep a link, image, quote, snippet or note. JSON, or
  *    multipart with the image in "image". A capture key opens it (the

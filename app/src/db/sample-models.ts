@@ -1,5 +1,5 @@
 /**
- * Sample mode for AI models (docs/ai-models.md): the gateway's catalogue as it
+ * Sample mode for AI models: the gateway's catalogue as it
  * might read on 17 Nov 2026, Athena's notes on the models it knows, and the
  * owner's choices, all on this device. Every route in the contract is answered
  * here the way the server would: consent is checked, taking an agreement back
@@ -17,7 +17,7 @@ export interface ModelsResponse {
   configured: Record<ProviderId, boolean>;
 }
 
-/** A resolved model with what GET /api/models adds (docs/ai-models.md): a newer version, or a chosen model the gateway no longer lists. */
+/** A resolved model with what GET /api/models adds: a newer version, or a chosen model the gateway no longer lists. */
 export type Resolved = ResolvedModel & { newer?: ModelRef; withdrawn?: ModelRef };
 
 export interface Effective {
@@ -75,7 +75,7 @@ const NOTES: Record<string, Notes> = {
 
 // The gateway's list (well-known makers only on OpenRouter). Ids only: the gateway gives no names. The catalogue shows
 // only the newest version in each family (owner, 17 Nov 2026: "Yes, newest only"); an older one stays valid, and is
-// listed, while it's chosen (docs/ai-models.md, "Only the newest models").
+// listed, while it's chosen.
 const GATEWAY: Record<ProviderId, string[]> = {
   anthropic: ["claude-opus-5-5", "claude-opus-4-8", "claude-sonnet-5-5", "claude-sonnet-4-6", "claude-haiku-5-5", "claude-haiku-4-5"],
   openai: ["gpt-5.5", "gpt-5.4", "gpt-5.5-mini", "gpt-5.4-mini", "gpt-5.5-nano", "gpt-5.4-nano", "gpt-5.5-pro", "gpt-5.4-pro", "gpt-image-2", "gpt-image-1.5"],

@@ -1,4 +1,4 @@
-// GET /api/profile/history?key= through the real /api function (stage 2A, docs/notes/profile-ui.md).
+// GET /api/profile/history?key= through the real /api function (stage 2A).
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/profile-history.db.test.ts
 // Skipped without ATHENA_TEST_DB_URL. Empties the owner's facts first.
 import { test } from "node:test";
