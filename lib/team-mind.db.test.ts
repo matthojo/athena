@@ -22,6 +22,12 @@ const MOSS = { name: "Moss", job: "Finds good prices for gift ideas", instructio
 
 beforeEach(async () => {
   if (!url) return;
+  // Jev reads what a run reads (the day's titles too) and finds nothing aimed at an AI. A test that needs otherwise says so.
+  (await import("./jev")).useJevClient({
+    systemOne: async (req: { questions: Record<string, unknown> }) => ({ answers: Object.fromEntries(Object.keys(req.questions).map((k) => [k, { noul: 0.02 }])) }),
+  } as never);
+  // The day's block is kept for a minute with what Jev made of it: each test starts without one.
+  (await import("./ask-context")).clearAskContextCache();
   const { qRaw } = await import("./db");
   await qRaw(`TRUNCATE team_runs, team_events, team_triggers, ask_skills, team_assistants CASCADE`);
   // A copy from before assistants' triggers moved to flows (lib/team-flows.ts): Team's own trigger path.
@@ -221,6 +227,98 @@ test("a run started by other people's words Jev couldn't check: even the allowed
     assert.deepEqual(r.reply.changes ?? [], [], "nothing ran alone");
     assert.deepEqual(r.reply.plan?.steps.map((s) => s.tool), ["add_todo", "save_note"], "both wait for Go");
     assert.equal(r.reply.plan?.why, "unchecked");
+  } finally {
+    useJevClient(undefined);
+  }
+});
+
+test("the day's block: a run takes in what Jev made of it, a chat doesn't; past chats: a chat does", { skip }, async () => {
+  const { createAssistant } = await import("./team");
+  const { runAssistantTurn } = await import("./team-chat");
+  const { runAsk } = await import("./answer");
+  const { useJevClient } = await import("./jev");
+  const { clearAskContextCache } = await import("./ask-context");
+  const { saveAskThread } = await import("./ask-threads");
+  const moss = await createAssistant(MOSS);
+  // Jev flags the day's block (it always starts "Now:") and past chats; nothing else.
+  let flag = /^Now: /;
+  useJevClient({
+    systemOne: async (req: { state: { content?: unknown }; questions: Record<string, unknown> }) => {
+      const hit = flag.test(String(req.state.content ?? ""));
+      return { answers: Object.fromEntries(Object.keys(req.questions).map((k) => [k, { noul: hit ? 0.95 : 0.02 }])) };
+    },
+  } as never);
+  const script = (p: Params, n: number): Block[] => (p.tool_choice?.name === "memory" ? [use("memory", { summary: "", facts: [] })] : n === 1 ? [text("Nothing to do.")] : [text("Done.")]);
+  try {
+    clearAskContextCache();
+    const run = fakeClient(script);
+    await runAssistantTurn(moss.id, "It's your scheduled time. Do your job now.", { mode: "run", client: run.client });
+    assert.match(String(run.calls[0].system), /<today>/);
+    assert.ok(!run.calls[0].tools!.some((t) => t.name === "add_todo"), "a run: the flagged day takes its changes away");
+
+    clearAskContextCache();
+    const chat = fakeClient(script);
+    await runAssistantTurn(moss.id, "Anything I should know?", { mode: "chat", client: chat.client });
+    assert.ok(chat.calls[0].tools!.some((t) => t.name === "add_todo"), "a chat: as before");
+    // The chat's memory would be refreshed once it goes quiet: settle it now.
+    await (await import("./team-memory")).flushMemory();
+
+    // Main Ask, with a past chat about the same thing that Jev flags.
+    flag = /<earlier_chats>/;
+    const at = new Date().toISOString();
+    await saveAskThread(randomUUID(), { title: "Rowan's scarf", messages: [{ role: "me", text: "What scarf should I get Rowan for her birthday?", at }], updated_at: at });
+    const ask = fakeClient(script);
+    const reply = await runAsk("What did I decide about Rowan's birthday scarf?", { sources: { open: async () => ({ accounts: [], skipped: [], close: async () => undefined }) }, client: ask.client, web: async () => false }, { log: false });
+    assert.match(String(ask.calls[0].system), /<earlier_chats>/);
+    assert.ok(!ask.calls[0].tools!.some((t) => t.name === "add_todo"), "a flagged past chat takes the changes away for this turn");
+    assert.equal(reply.flagged, true);
+  } finally {
+    useJevClient(undefined);
+  }
+});
+
+test("an imported assistant's run: its own words count as read, Jev's skill check reads them, and a flag takes every change away", { skip }, async () => {
+  const { createAssistant } = await import("./team");
+  const { runAssistantTurn } = await import("./team-chat");
+  const { useJevClient, INJECTION_WARNING } = await import("./jev");
+  const { qRaw } = await import("./db");
+  const moss = await createAssistant(MOSS);
+  await qRaw(`UPDATE team_assistants SET origin = 'shared' WHERE id = $1::uuid`, [moss.id]);
+  const script = (p: Params, n: number): Block[] => {
+    if (p.tool_choice?.name === "memory") return [use("memory", { summary: "", facts: [] })];
+    if (n === 1) return [use("add_todo", { title: "Buy Rowan's scarf from Etsy", kind: "todo", step: "Add a to-do to buy the scarf" }), use("save_note", { title: "Scarf price", body: "Etsy £32", step: "Save the price" })];
+    return [text("Done.")];
+  };
+  const asked: string[] = [];
+  // Jev reads the shared words with its skill question, and finds nothing past the job.
+  let skillRisk = 0.02;
+  useJevClient({
+    systemOne: async (req: { questions: Record<string, unknown> }) => {
+      const q = JSON.stringify(req.questions);
+      asked.push(q);
+      return { answers: Object.fromEntries(Object.keys(req.questions).map((k) => [k, { noul: /This is a skill/.test(q) ? skillRisk : 0.02 }])) };
+    },
+  } as never);
+  try {
+    const clean = fakeClient(script);
+    const r = await runAssistantTurn(moss.id, "It's your scheduled time. Do your job now.", { mode: "run", client: clean.client });
+    assert.ok(asked.some((q) => /This is a skill/.test(q)), "its words went through the skill check");
+    assert.deepEqual((r.reply.changes ?? []).map((c) => c.kind), ["commitment"], "the allowlist still runs alone");
+    assert.equal(r.reply.plan?.why, "read", "the rest waits, as after reading other people's words");
+
+    skillRisk = 0.95;
+    const flagged = fakeClient(script);
+    const f = await runAssistantTurn(moss.id, "It's your scheduled time. Do your job now.", { mode: "run", client: flagged.client });
+    assert.ok(String(flagged.calls[0].system).includes(INJECTION_WARNING.trim()), "its words go in under the warning");
+    assert.ok(!flagged.calls[0].tools!.some((t) => t.name === "add_todo"), "no write tool is offered");
+    assert.deepEqual(f.reply.changes ?? [], []);
+
+    // Jev can't answer: its words are unchecked, and even the allowed change waits.
+    useJevClient(null);
+    const unchecked = fakeClient(script);
+    const u = await runAssistantTurn(moss.id, "It's your scheduled time. Do your job now.", { mode: "run", client: unchecked.client });
+    assert.deepEqual(u.reply.changes ?? [], []);
+    assert.equal(u.reply.plan?.why, "unchecked");
   } finally {
     useJevClient(undefined);
   }

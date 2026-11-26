@@ -9,7 +9,8 @@ import { TRACKER_TOOLS } from "./ask-tools";
 import { assistantImported, cleanAccountIds, orderAccounts, SHARED_TOOLS, sharedToolAllowed, skillImported, splitWouldLike, toolWords } from "./shared-limits";
 import { AccountOff, AccountScope, scopedPorts, scopedSources, type AccountPorts } from "./shared-scope";
 import { grantedTools, readShared } from "./team-share";
-import { personaFor, personaPrompt } from "./team-chat";
+import { personaFor, personaPrompt, sharedWords } from "./team-chat";
+import { INJECTION_WARNING } from "./jev";
 import { SkillTools, SHARED_SKILL_RULE } from "./skills-ask";
 import { plainNewWebLinks } from "./links";
 import type { SchedulingPort } from "./scheduling";
@@ -167,6 +168,17 @@ test("an imported assistant's instructions and skill are someone else's words, n
   assert.match(shared, /<\/assistant>$/);
   // Its own skill from a file is enough to know it was imported.
   assert.match(personaFor(DOT, { mode: "run" }, { name: "dot", body: "x", imported: true }).prompt, /Someone else wrote this assistant/);
+});
+
+test("an imported assistant's words, as Jev's skill check reads them, and under its warning once flagged", () => {
+  assert.equal(sharedWords(DOT, { name: "dot", body: "Read the issue first." }), "Job: Turns issues into to-dos\n\nInstructions:\nAdd a to-do for each issue.\n\nSkill:\nRead the issue first.");
+  assert.equal(sharedWords({ ...DOT, instructions: "  " }, null), "Job: Turns issues into to-dos");
+  const warned = personaFor({ ...DOT, imported: true }, { mode: "run", warned: true }).prompt;
+  assert.ok(warned.includes(INJECTION_WARNING.trim()), "the warning comes before its words");
+  assert.ok(warned.indexOf(INJECTION_WARNING.trim()) < warned.indexOf("<shared_instructions>"));
+  assert.ok(!personaFor({ ...DOT, imported: true }, { mode: "run" }).prompt.includes(INJECTION_WARNING.trim()));
+  // The owner's own assistant is never framed so.
+  assert.ok(!personaFor(DOT, { mode: "run", warned: true }).prompt.includes(INJECTION_WARNING.trim()));
 });
 
 const at = "2026-11-10T10:00:00Z";
