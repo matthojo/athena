@@ -108,17 +108,20 @@ async function precacheShell() {
 }
 
 /**
- * Keep a fresh navigation response as the offline shell. The same build just
- * replaces the copy (as before). A new build's chunks are cached first, and
- * its page only replaces the copy once they all are; then the old build's
- * files go. If the connection drops part-way, the old copy (whose chunks are
- * all here) stays until the next visit tries again.
+ * Keep a fresh navigation response as the offline shell. Only the app itself
+ * is kept: "/" answered 200, without a redirect, naming its build's files.
+ * Any other page (the sign-in page a signed-out visit is sent to, an error,
+ * another path) leaves the copy as it is. The same build just replaces the
+ * copy. A new build's chunks are cached first, and its page only replaces
+ * the copy once they all are; then the old build's files go. If the
+ * connection drops part-way, the old copy (whose chunks are all here) stays
+ * until the next visit tries again.
  */
-async function keepShell(res) {
+async function keepShell(url, res) {
+  if (url.pathname !== "/" || !res.ok || res.redirected) return;
   const cache = await caches.open(CACHE_NAME);
   const assets = assetsIn(await res.clone().text());
-  // Not the app (e.g. the sign-in page): store it as before.
-  if (!assets.length) return cache.put("/", res);
+  if (!assets.length) return;
   const cached = await cache.match("/");
   const cachedAssets = cached ? assetsIn(await cached.text()) : [];
   const sameBuild = cachedAssets.length === assets.length && assets.every((a) => cachedAssets.includes(a));
@@ -213,7 +216,7 @@ self.addEventListener("fetch", (event) => {
   if (req.mode === "navigate") {
     const fresh = fetch(req).then((res) => ({ res, copy: res.clone() }));
     event.respondWith(fresh.then(({ res }) => res, async () => (await caches.match("/")) || (await caches.match(req)) || Response.error()));
-    event.waitUntil(fresh.then(({ copy }) => keepShell(copy)).catch(() => {}));
+    event.waitUntil(fresh.then(({ copy }) => keepShell(url, copy)).catch(() => {}));
     return;
   }
 

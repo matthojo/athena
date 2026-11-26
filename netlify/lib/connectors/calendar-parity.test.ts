@@ -290,7 +290,7 @@ test("Outlook: with more switched on, events from each, merged and labelled; sea
 
 // ---------- iCloud: every calendar on, as built ----------
 
-const SECRETS: ConnectorSecrets = { username: "jordan@icloud.com", token: "abcd-efgh-ijkl-mnop" };
+const SECRETS: ConnectorSecrets = { username: "jordan@ic.example", token: "abcd-efgh-ijkl-mnop" };
 const CAL_HOME = "https://p42-caldav.icloud.com/123456789/calendars/";
 const icloudAccount = (scope = ""): Connector => ({ ...oauthAccount("google-calendar"), provider: "icloud-calendar", name: "iCloud Calendar", auth_type: "token", url: "", scope, calendars: undefined });
 function icloudServer(extra: (c: Call) => Reply | undefined = () => undefined) {
@@ -333,23 +333,23 @@ const INVITE_ICS = [
   "ORGANIZER;CN=Priya Shah:mailto:priya@acme.example",
   "ATTENDEE;CN=Priya Shah;CUTYPE=INDIVIDUAL;PARTSTAT=ACCEPTED;ROLE=CHAIR:mailto:p",
   " riya@acme.example",
-  'ATTENDEE;CN="Jordan Reeve";CUTYPE=INDIVIDUAL;EMAIL=jordan@icloud.com;PARTSTAT=NEE',
-  " DS-ACTION;ROLE=REQ-PARTICIPANT;RSVP=TRUE;SCHEDULE-STATUS=2.0:mailto:jordan@icl",
-  " oud.com",
+  'ATTENDEE;CN="Jordan Reeve";CUTYPE=INDIVIDUAL;EMAIL=jordan@jr.example;PARTSTAT=NEE',
+  " DS-ACTION;ROLE=REQ-PARTICIPANT;RSVP=TRUE;SCHEDULE-STATUS=2.0:mailto:jordan@jr.",
+  " example",
   "ATTENDEE;CN=Sam Lee;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:sam@acme.example",
   "BEGIN:VALARM",
   "ACTION:EMAIL",
   "TRIGGER:-PT15M",
   "SUMMARY:Reminder",
   "DESCRIPTION:Design review soon",
-  "ATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:jordan@icloud.com",
+  "ATTENDEE;PARTSTAT=NEEDS-ACTION:mailto:jordan@ic.example",
   "END:VALARM",
   "END:VEVENT",
   "END:VCALENDAR",
   "",
 ].join("\r\n");
 
-const EMAILS = ["jordan@icloud.com", "jordan@jr.example"];
+const EMAILS = ["jordan@ic.example", "jordan@jr.example"];
 
 test("iCloud PARTSTAT: only your own ATTENDEE line changes; every other byte stays", () => {
   for (const [answer, partstat] of [["going", "ACCEPTED"], ["maybe", "TENTATIVE"], ["declined", "DECLINED"]] as const) {
@@ -365,7 +365,7 @@ test("iCloud PARTSTAT: only your own ATTENDEE line changes; every other byte sta
     // Your line: the same parameters in the same order, with the new PARTSTAT, still folded within 75 octets.
     const mine = after.slice(at, after.length - tailBefore.length);
     assert.ok(mine.every((l) => Buffer.byteLength(l) <= 75));
-    assert.equal(mine.map((l, i) => (i ? l.slice(1) : l)).join(""), `ATTENDEE;CN="Jordan Reeve";CUTYPE=INDIVIDUAL;EMAIL=jordan@icloud.com;PARTSTAT=${partstat};ROLE=REQ-PARTICIPANT;RSVP=TRUE;SCHEDULE-STATUS=2.0:mailto:jordan@icloud.com`);
+    assert.equal(mine.map((l, i) => (i ? l.slice(1) : l)).join(""), `ATTENDEE;CN="Jordan Reeve";CUTYPE=INDIVIDUAL;EMAIL=jordan@jr.example;PARTSTAT=${partstat};ROLE=REQ-PARTICIPANT;RSVP=TRUE;SCHEDULE-STATUS=2.0:mailto:jordan@jr.example`);
     assert.equal(onlyPartstatChanged(INVITE_ICS, r.text, EMAILS), true);
   }
   // Already what it says: nothing to write.
@@ -381,10 +381,10 @@ test("iCloud PARTSTAT: a changed occurrence answers on its own copy; a plain occ
   const r = rewritePartstat(F.STANDUP_ICS, { emails: EMAILS, partstat: "DECLINED", recurrenceId: "20261102T093000Z", ownerZone: "Europe/London" });
   assert.equal(r.changed, true);
   assert.equal(onlyPartstatChanged(F.STANDUP_ICS, r.text, EMAILS), true);
-  assert.match(r.text, /RECURRENCE-ID;TZID=Europe\/London:20261102T093000\r\n[\s\S]*ATTENDEE;CN=Jordan;PARTSTAT=DECLINED:mailto:jordan@icloud.com/);
-  assert.match(r.text, /ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@icloud.com/, "the series' own line is unchanged");
+  assert.match(r.text, /RECURRENCE-ID;TZID=Europe\/London:20261102T093000\r\n[\s\S]*ATTENDEE;CN=Jordan;PARTSTAT=DECLINED:mailto:jordan@ic.example/);
+  assert.match(r.text, /ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@ic.example/, "the series' own line is unchanged");
   assert.throws(() => rewritePartstat(F.STANDUP_ICS, { emails: EMAILS, partstat: "DECLINED", recurrenceId: "20261026T093000Z", ownerZone: "Europe/London" }), /repeats/);
-  const own = INVITE_ICS.replace("ORGANIZER;CN=Priya Shah:mailto:priya@acme.example", "ORGANIZER;CN=Jordan:mailto:jordan@icloud.com");
+  const own = INVITE_ICS.replace("ORGANIZER;CN=Priya Shah:mailto:priya@acme.example", "ORGANIZER;CN=Jordan:mailto:jordan@ic.example");
   assert.throws(() => rewritePartstat(own, { emails: EMAILS, partstat: "ACCEPTED", ownerZone: "UTC" }), /your own event/);
   assert.throws(() => rewritePartstat(INVITE_ICS, { emails: ["someone@else.example"], partstat: "ACCEPTED", ownerZone: "UTC" }), /aren't a guest/);
   assert.throws(() => rewritePartstat(INVITE_ICS.replace("SUMMARY:Design review", "STATUS:CANCELLED\r\nSUMMARY:Design review"), { emails: EMAILS, partstat: "ACCEPTED", ownerZone: "UTC" }), /cancelled/);
@@ -396,7 +396,7 @@ const writes = () => calls.filter((c) => !["GET", "PROPFIND", "REPORT"].includes
 
 test("iCloud PARTSTAT, a repeating invite: one date with no copy asks first; \"All of them\" answers the series on the master only", () => {
   // The owner is NEEDS-ACTION on the series, so "all of them" has something to change.
-  const series = F.STANDUP_ICS.replace("ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@icloud.com", "ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION:mailto:jordan@icloud.com");
+  const series = F.STANDUP_ICS.replace("ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@ic.example", "ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION:mailto:jordan@ic.example");
   const opts = { emails: EMAILS, partstat: "DECLINED" as const, recurrenceId: "20261026T093000Z", ownerZone: "Europe/London" };
   assert.throws(() => rewritePartstat(series, opts), (e: Error) => e.message === SERIES_QUESTION);
   const r = rewritePartstat(series, { ...opts, series: true });
@@ -404,18 +404,18 @@ test("iCloud PARTSTAT, a repeating invite: one date with no copy asks first; \"A
   assert.equal(onlyPartstatChanged(series, r.text, EMAILS), true, "only your own line, every other byte kept");
   const [master, copy] = r.text.split("END:VEVENT");
   assert.match(master, /RRULE:FREQ=WEEKLY/);
-  assert.match(master, /ATTENDEE;CN=Jordan;PARTSTAT=DECLINED:mailto:jordan@icloud.com/, "the series says Declined");
-  assert.match(copy, /ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION:mailto:jordan@icloud.com/, "the 2 Nov copy keeps its own answer");
+  assert.match(master, /ATTENDEE;CN=Jordan;PARTSTAT=DECLINED:mailto:jordan@ic.example/, "the series says Declined");
+  assert.match(copy, /ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION:mailto:jordan@ic.example/, "the 2 Nov copy keeps its own answer");
   assert.match(master, /ATTENDEE;CN=Sam Lee;PARTSTAT=TENTATIVE/, "other people untouched");
   // A date that has its own copy never asks: it answers that copy, series or not.
   const own = rewritePartstat(series, { ...opts, recurrenceId: "20261102T093000Z", series: true });
-  assert.match(own.text.split("END:VEVENT")[1], /PARTSTAT=DECLINED:mailto:jordan@icloud.com/);
+  assert.match(own.text.split("END:VEVENT")[1], /PARTSTAT=DECLINED:mailto:jordan@ic.example/);
 });
 
 test("iCloud respond_to_event with series: the master answered by a conditional PUT; without it, the question and no write", async () => {
   const url = `${CAL_HOME}8F3A2C10-WORK/STANDUP-1.ics`;
   const id = `${Buffer.from("8F3A2C10-WORK/STANDUP-1.ics").toString("base64url")}.20261026T093000Z`;
-  const body = F.STANDUP_ICS.replace("ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@icloud.com", "ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION:mailto:jordan@icloud.com");
+  const body = F.STANDUP_ICS.replace("ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@ic.example", "ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION:mailto:jordan@ic.example");
   icloudServer((c) => {
     if (c.url.toString() !== url) return undefined;
     if (c.method === "GET") return { body, etag: '"etag-s"' };

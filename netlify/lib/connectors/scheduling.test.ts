@@ -349,8 +349,8 @@ const ICS = [
   "SUMMARY:Design review",
   "DTSTART;TZID=Europe/London:20261110T100000",
   "DTEND;TZID=Europe/London:20261110T103000",
-  "ORGANIZER;CN=Me:mailto:me@icloud.com",
-  "ATTENDEE;CN=Me;PARTSTAT=ACCEPTED:mailto:me@icloud.com",
+  "ORGANIZER;CN=Me:mailto:me@icloud.example",
+  "ATTENDEE;CN=Me;PARTSTAT=ACCEPTED:mailto:me@icloud.example",
   "ATTENDEE;CN=Priya;PARTSTAT=NEEDS-ACTION:mailto:priya@example.com",
   "SEQUENCE:2",
   "BEGIN:VALARM",
@@ -364,7 +364,7 @@ const ICS = [
 const at = (iso: string) => Date.parse(iso);
 
 test("iCloud: a move rewrites DTSTART and DTEND in their own zone, bumps SEQUENCE for guests, and nothing else", () => {
-  const r = rewriteTimes(ICS, { emails: ["me@icloud.com"], start: at("2026-11-12T14:00:00Z"), ownerZone: "Europe/London" });
+  const r = rewriteTimes(ICS, { emails: ["me@icloud.example"], start: at("2026-11-12T14:00:00Z"), ownerZone: "Europe/London" });
   assert.equal(r.changed, true);
   assert.deepEqual(r.before, { start: at("2026-11-10T10:00:00Z"), end: at("2026-11-10T10:30:00Z") });
   assert.deepEqual(r.after, { start: at("2026-11-12T14:00:00Z"), end: at("2026-11-12T14:30:00Z") });
@@ -379,19 +379,19 @@ test("iCloud: a move rewrites DTSTART and DTEND in their own zone, bumps SEQUENC
 
 test("iCloud: UTC times stay UTC; no guests, no SEQUENCE change; a missing SEQUENCE is added when there are", () => {
   const utc = ICS.replace("DTSTART;TZID=Europe/London:20261110T100000", "DTSTART:20261110T100000Z").replace("DTEND;TZID=Europe/London:20261110T103000", "DTEND:20261110T103000Z");
-  const r = rewriteTimes(utc, { emails: ["me@icloud.com"], start: at("2026-11-12T14:00:00Z"), end: at("2026-11-12T15:00:00Z"), ownerZone: "Europe/London" });
+  const r = rewriteTimes(utc, { emails: ["me@icloud.example"], start: at("2026-11-12T14:00:00Z"), end: at("2026-11-12T15:00:00Z"), ownerZone: "Europe/London" });
   assert.match(r.text, /DTSTART:20261112T140000Z\r\nDTEND:20261112T150000Z/);
   const alone = ICS.replace("ATTENDEE;CN=Priya;PARTSTAT=NEEDS-ACTION:mailto:priya@example.com\r\n", "");
-  assert.match(rewriteTimes(alone, { emails: ["me@icloud.com"], start: at("2026-11-12T14:00:00Z"), ownerZone: "Europe/London" }).text, /SEQUENCE:2/);
+  assert.match(rewriteTimes(alone, { emails: ["me@icloud.example"], start: at("2026-11-12T14:00:00Z"), ownerZone: "Europe/London" }).text, /SEQUENCE:2/);
   const noSeq = ICS.replace("SEQUENCE:2\r\n", "");
-  const added = rewriteTimes(noSeq, { emails: ["me@icloud.com"], start: at("2026-11-12T14:00:00Z"), ownerZone: "Europe/London" }).text;
+  const added = rewriteTimes(noSeq, { emails: ["me@icloud.example"], start: at("2026-11-12T14:00:00Z"), ownerZone: "Europe/London" }).text;
   assert.match(added, /DTEND;TZID=Europe\/London:20261112T143000\r\nSEQUENCE:1\r\n/);
   assert.equal(onlyTimesChanged(noSeq, added), true);
 });
 
 test("iCloud: someone else's, repeating, all-day, cancelled or moved-since events are refused", () => {
-  const opts = { emails: ["me@icloud.com"], start: at("2026-11-12T14:00:00Z"), ownerZone: "Europe/London" };
-  assert.throws(() => rewriteTimes(ICS.replace("ORGANIZER;CN=Me:mailto:me@icloud.com", "ORGANIZER:mailto:boss@example.com"), opts), /Someone else organises/);
+  const opts = { emails: ["me@icloud.example"], start: at("2026-11-12T14:00:00Z"), ownerZone: "Europe/London" };
+  assert.throws(() => rewriteTimes(ICS.replace("ORGANIZER;CN=Me:mailto:me@icloud.example", "ORGANIZER:mailto:boss@example.com"), opts), /Someone else organises/);
   assert.throws(() => rewriteTimes(ICS.replace("SEQUENCE:2", "SEQUENCE:2\r\nRRULE:FREQ=WEEKLY"), opts), /repeats/);
   assert.throws(() => rewriteTimes(ICS.replace("DTSTART;TZID=Europe/London:20261110T100000", "DTSTART;VALUE=DATE:20261110"), opts), /all-day/);
   assert.throws(() => rewriteTimes(ICS.replace("SEQUENCE:2", "SEQUENCE:2\r\nSTATUS:CANCELLED"), opts), /cancelled/);

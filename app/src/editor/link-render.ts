@@ -58,8 +58,14 @@ const PROVIDER_UI: Record<EmbedProvider, { action: "Play" | "Listen" | "Open map
   framer: { action: "Open site", mark: "#0055ff" },
 };
 
-/** The iframe's sandbox: players need scripts and their own origin; nothing else. */
+/**
+ * The iframe's sandbox: players need scripts and their own origin; nothing else. A player's own links ("Watch on
+ * YouTube", "Open in Spotify", "Open in Figma") open a new tab, so the players' sandbox allows popups: each of those
+ * hosts serves only its provider's player. A Framer address is anyone's published site, so it gets no popups.
+ */
 export const EMBED_SANDBOX = "allow-scripts allow-same-origin allow-popups allow-presentation";
+const SITE_SANDBOX = "allow-scripts allow-same-origin allow-presentation";
+export const embedSandbox = (provider: EmbedProvider): string => (provider === "framer" ? SITE_SANDBOX : EMBED_SANDBOX);
 
 export interface Thing {
   target: LinkTarget;
@@ -458,7 +464,7 @@ export function embedFrame(e: Embed, title: string): HTMLIFrameElement | null {
     allow: e.allow,
     referrerpolicy: "strict-origin",
     loading: "lazy",
-    sandbox: EMBED_SANDBOX,
+    sandbox: embedSandbox(e.provider),
     allowfullscreen: "",
   }) as HTMLIFrameElement;
   if (e.aspect) f.style.aspectRatio = String(e.aspect);

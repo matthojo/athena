@@ -18,10 +18,17 @@
  * Session model: one shared password (env var SITE_PASSWORD) — this is a
  * personal single-user app, so there's no user table. A correct password at
  * POST /login issues a signed, HttpOnly, Secure cookie:
- * "<expiry-epoch-seconds>.<base64url HMAC-SHA256 of the expiry>", verified
- * with a constant-time comparison on every subsequent request. No server-side
- * session store — the cookie itself is the credential, the same tradeoff
- * MCP_BEARER_TOKEN already makes for the API.
+ * "<expiry-epoch-seconds>.<base64url HMAC-SHA256 of the expiry and a short
+ * hash of SITE_PASSWORD>", verified with a constant-time comparison on every
+ * subsequent request. No server-side session store — the cookie itself is the
+ * credential, the same tradeoff MCP_BEARER_TOKEN already makes for the API.
+ * Because the password is part of what's signed, changing SITE_PASSWORD (or
+ * SESSION_SECRET) signs every browser out.
+ *
+ * Sign out is POST /logout from Athena's own pages (the app submits a form):
+ * it clears the cookie with the attributes it was set with, and asks the
+ * browser to clear what the site stored (Clear-Site-Data). A GET, or a POST
+ * from another site, signs nothing out and just goes to "/".
  *
  * SESSION_SECRET is a separate secret from MCP_BEARER_TOKEN on purpose: the
  * bearer token is handed to the clients that call /api and /mcp, while the
@@ -61,13 +68,30 @@ function timingSafeStringEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-async function makeSessionCookie(secret: string): Promise<string> {
-  const exp = Math.floor(Date.now() / 1000) + SESSION_DAYS * 86_400;
-  const sig = await hmacSha256(secret, String(exp));
-  return `${COOKIE_NAME}=${exp}.${sig}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_DAYS * 86_400}`;
+/** The cookie's attributes, the same when it's set and when it's cleared. */
+const COOKIE_ATTRIBUTES = "Path=/; HttpOnly; Secure; SameSite=Strict";
+
+/** A short hash of the password, signed into every session so a new password ends the old sessions. */
+async function passwordTag(password: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
+  return base64UrlEncode(new Uint8Array(digest)).slice(0, 16);
 }
 
-async function hasValidSession(cookieHeader: string | null, secret: string): Promise<boolean> {
+/** What a session's MAC covers: its expiry and the password it was opened with. */
+async function sessionMac(secret: string, password: string, exp: string): Promise<string> {
+  return hmacSha256(secret, `${exp}.${await passwordTag(password)}`);
+}
+
+export async function makeSessionCookie(secret: string, password: string, now = Date.now()): Promise<string> {
+  const exp = Math.floor(now / 1000) + SESSION_DAYS * 86_400;
+  const sig = await sessionMac(secret, password, String(exp));
+  return `${COOKIE_NAME}=${exp}.${sig}; ${COOKIE_ATTRIBUTES}; Max-Age=${SESSION_DAYS * 86_400}`;
+}
+
+/** Clears the session cookie: the attributes it was set with, and no value. */
+export const CLEAR_SESSION_COOKIE = `${COOKIE_NAME}=; ${COOKIE_ATTRIBUTES}; Max-Age=0`;
+
+export async function hasValidSession(cookieHeader: string | null, secret: string, password: string): Promise<boolean> {
   if (!cookieHeader) return false;
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
   if (!match) return false;
@@ -75,8 +99,18 @@ async function hasValidSession(cookieHeader: string | null, secret: string): Pro
   if (!expStr || !sig) return false;
   const exp = Number(expStr);
   if (!Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return false;
-  const expected = await hmacSha256(secret, expStr);
+  const expected = await sessionMac(secret, password, expStr);
   return timingSafeStringEqual(sig, expected);
+}
+
+/**
+ * Whether a request came from Athena's own pages: Sec-Fetch-Site says so, or (where a browser doesn't send it)
+ * Origin is this site. Neither present counts as not.
+ */
+export function fromThisSite(request: Request): boolean {
+  const site = request.headers.get("Sec-Fetch-Site");
+  if (site) return site === "same-origin";
+  return request.headers.get("Origin") === new URL(request.url).origin;
 }
 
 // Self-contained (no app bundle — it isn't served until you're signed in),
@@ -211,20 +245,30 @@ export default async (request: Request, context: EdgeContext): Promise<Response>
     if (timingSafeStringEqual(submitted, password)) {
       return new Response(null, {
         status: 303,
-        headers: { Location: "/", "Set-Cookie": await makeSessionCookie(sessionSecret) },
+        headers: { Location: "/", "Set-Cookie": await makeSessionCookie(sessionSecret, password) },
       });
     }
     return new Response(loginPage("Wrong password."), { status: 401, headers: LOGIN_HEADERS });
   }
 
   if (url.pathname === "/logout") {
+    // Only a POST from Athena's own pages signs out; a link or another site's form just goes home.
+    if (request.method !== "POST" || !fromThisSite(request)) {
+      return new Response(null, { status: 303, headers: { Location: "/", "Cache-Control": "no-store" } });
+    }
     return new Response(null, {
       status: 303,
-      headers: { Location: "/login", "Set-Cookie": `${COOKIE_NAME}=; Path=/; Max-Age=0` },
+      headers: {
+        Location: "/login",
+        "Set-Cookie": CLEAR_SESSION_COOKIE,
+        // What the app keeps here (this device's key, its database, caches): sign-out.ts removes them too.
+        "Clear-Site-Data": '"storage", "cache"',
+        "Cache-Control": "no-store",
+      },
     });
   }
 
-  if (await hasValidSession(request.headers.get("cookie"), sessionSecret)) {
+  if (await hasValidSession(request.headers.get("cookie"), sessionSecret, password)) {
     return context.next();
   }
 

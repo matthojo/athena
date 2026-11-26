@@ -129,8 +129,8 @@ export function deviceName(ua: string = typeof navigator === "undefined" ? "" : 
 }
 
 /** Make this device's key with the master token. The master token goes no further than this request. */
-async function makeDeviceKey(master: string): Promise<string> {
-  const { token } = await requestWithMaster<{ token: string }>(master, "/api-keys", { method: "POST", body: JSON.stringify({ label: deviceName(), scope: "full" }) });
+async function makeDeviceKey(master: string, init: RequestInit = {}): Promise<string> {
+  const { token } = await requestWithMaster<{ token: string }>(master, "/api-keys", { ...init, method: "POST", body: JSON.stringify({ label: deviceName(), scope: "full" }) });
   if (!/^athk_/.test(token)) throw new ApiError("Athena didn't return a key");
   return token;
 }
@@ -171,21 +171,37 @@ export async function signIn(pasted: string): Promise<SignInResult> {
   }
 }
 
+/** Whether this browser holds something other than a key Athena made: the master token an older install kept. */
+export function holdsMasterToken(): boolean {
+  const held = getToken();
+  return !!held && !isApiKey(held);
+}
+
+/** How long launch waits for the swap before giving up on it. */
+const SWAP_WAIT_MS = 8000;
+
 /**
- * An install from before device keys still holds the master token: swap it
- * for a key (main.ts, on launch). Left as it is when Athena can't be reached,
- * and tried again next launch. One tab at a time, so two don't make two keys.
+ * An install from before device keys still holds the master token. On launch
+ * (main.ts, before anything else uses it) it's swapped once for this device's
+ * key when the browser is online. Offline, or if the swap fails, it's dropped
+ * and Connect asks again: the master token isn't kept, or used for anything
+ * else. Sample mode makes no request and drops it too. Resolves to whether a
+ * key was made. One tab at a time, so two don't make two keys.
  */
-export async function swapMasterForKey(): Promise<boolean> {
+export async function swapMasterForKey(online: boolean = typeof navigator === "undefined" || navigator.onLine !== false): Promise<boolean> {
   const swap = async () => {
     const held = getToken();
-    if (!held || isApiKey(held) || isSampleMode()) return false;
-    try {
-      setToken(await makeDeviceKey(held));
-      return true;
-    } catch {
-      return false;
+    if (!held || isApiKey(held)) return false;
+    if (online && !isSampleMode()) {
+      try {
+        setToken(await makeDeviceKey(held, { signal: AbortSignal.timeout(SWAP_WAIT_MS) }));
+        return true;
+      } catch {
+        // Dropped below.
+      }
     }
+    if (getToken() === held) clearToken();
+    return false;
   };
   const locks = typeof navigator === "undefined" ? undefined : navigator.locks;
   return locks ? locks.request("athena-key-swap", swap) : swap();
