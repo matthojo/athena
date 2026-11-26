@@ -15,7 +15,7 @@
  */
 
 import { qRaw } from "./db";
-import { open, seal, secretBoxConfigured } from "./secret-box";
+import { needsReseal, open, seal, secretBoxConfigured } from "./secret-box";
 
 export type VoiceConnectionStatus = "connected" | "key_rejected";
 
@@ -41,6 +41,8 @@ export interface VoiceStatus {
 }
 
 const ROW = "elevenlabs";
+/** What the key is sealed for (lib/secret-box.ts). */
+const SEALED_FOR = "settings\nelevenlabs";
 
 async function load(): Promise<Stored | null> {
   const [row] = await qRaw<{ value: Stored }>(`SELECT value FROM settings WHERE key = $1`, [ROW]);
@@ -73,7 +75,7 @@ export async function saveVoiceKey(apiKey: string, voice: { id: string; name: st
   const now = new Date().toISOString();
   // A new key keeps the owner's Gemini backup choice.
   const backup = (await load())?.gemini_backup;
-  await store({ key: seal(apiKey), voice, status: "connected", connected_at: now, checked_at: now, ...(backup === false ? { gemini_backup: false } : {}) });
+  await store({ key: seal(apiKey, SEALED_FOR), voice, status: "connected", connected_at: now, checked_at: now, ...(backup === false ? { gemini_backup: false } : {}) });
 }
 
 export async function setVoice(voice: { id: string; name: string }): Promise<void> {
@@ -114,7 +116,12 @@ export async function voiceCredentials(): Promise<{
   const s = await load();
   if (!s) return null;
   try {
-    return { key: open(s.key), voice: s.voice, status: s.status, geminiBackup: s.gemini_backup !== false };
+    const key = open(s.key, SEALED_FOR);
+    // Sealed in the older format or under a previous key: seal again, unless it was replaced meanwhile.
+    if (needsReseal(s.key)) {
+      await qRaw(`UPDATE settings SET value = jsonb_set(value, '{key}', to_jsonb($2::text)) WHERE key = $1 AND value->>'key' = $3`, [ROW, seal(key, SEALED_FOR), s.key]).catch(() => undefined);
+    }
+    return { key, voice: s.voice, status: s.status, geminiBackup: s.gemini_backup !== false };
   } catch {
     console.error("Athena voice: the stored ElevenLabs key can't be opened with the current CONNECTOR_ENCRYPTION_KEY");
     return null;

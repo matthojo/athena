@@ -55,6 +55,7 @@ import {
   ownClientFrom,
   ownClientsSummary,
   queueRun,
+  sameOrigin,
   setAllowedTools,
   setConnectorStatus,
   updateConnector,
@@ -376,6 +377,10 @@ async function patchConnector(id: string, b: Record<string, unknown>) {
   // A new client, new endpoints or a new grant make the stored sign-in
   // meaningless (tokens and registrations are bound to the old server).
   const signOut = connector.auth_type === "oauth" && (!!clientId || oauthChanged);
+  // A new host gets none of the old sign-in (lib/connectors.ts clears it), so the
+  // address moves first and a key pasted with it is sealed for the new one.
+  const hostMoved = urlChanged && !sameOrigin(connector.url, newUrl!);
+  if (hostMoved) await updateConnector(id, { url: newUrl });
   // iCloud: the accounts that shared the old password get the new one too.
   const siblings = (token || username) && presetFor(connector.provider).username ? await sharingKey(id, (await getConnectorWithSecrets(id))?.secrets ?? {}) : [];
   if (token || username || signOut || scopeChanged || secretOnly) {
@@ -435,14 +440,16 @@ async function patchConnector(id: string, b: Record<string, unknown>) {
     if (connector.provider !== "octopus" || withoutAccount(connector.url) !== withoutAccount(newUrl)) {
       await forgetBackfill(id);
       await forgetHistory(id);
-      if (!token) await setConnectorStatus(id, "pending", "New address saved. Check tools to confirm it works");
+      // A moved account that needs a key or sign-in already says so.
+      if (!token && !(hostMoved && connector.auth_type !== "none")) await setConnectorStatus(id, "pending", "New address saved. Check tools to confirm it works");
     }
   }
   // Custom servers only: whether Ask's answers may use it, and whether it may share a collection with other accounts.
   const custom = isCustomServer(connector.provider);
   const use_in_ask = custom && typeof b.use_in_ask === "boolean" ? b.use_in_ask : undefined;
   const share_collections = custom && typeof b.share_collections === "boolean" ? b.share_collections : undefined;
-  const updated = await updateConnector(id, { name: str(b, "name"), account_label: str(b, "account_label"), scope, calendars, use_in_ask, share_collections, ...save });
+  // Google's API and MCP addresses are both Google's, so a route switch keeps the sign-in.
+  const updated = await updateConnector(id, { name: str(b, "name"), account_label: str(b, "account_label"), scope, calendars, use_in_ask, share_collections, ...save }, { keepSignIn: !!route });
   if (!updated) throw new AthenaInputError("Account not found", 404);
   // iCloud has no sign-in to finish: answers given while its invites switch was off go out now.
   if (connector.provider === "icloud-calendar" && canRsvp(updated) && !canRsvp(connector)) await sendPendingAnswers(id, { calendar: calendarPort }).catch(() => 0);
