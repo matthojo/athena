@@ -3,7 +3,8 @@
 import { afterEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { createCipheriv, randomBytes } from "node:crypto";
-import { needsReseal, open, openJson, seal, sealJson, secretBoxConfigured, SecretBoxUnavailable } from "./secret-box";
+import { isV1, needsReseal, open, openJson, retireV1, seal, sealJson, secretBoxConfigured, SecretBoxUnavailable, SecretFormatRetired } from "./secret-box";
+import { retireV1Secrets } from "./secret-format";
 import { sameOrigin, secretsContext } from "./connectors";
 
 const OLD = "11".repeat(32);
@@ -17,7 +18,10 @@ function keys(current?: string, previous?: string) {
   else process.env.CONNECTOR_ENCRYPTION_KEY_PREVIOUS = previous;
 }
 
-afterEach(() => keys(saved.key, saved.previous));
+afterEach(() => {
+  keys(saved.key, saved.previous);
+  retireV1(false);
+});
 
 /** A value in the format Athena wrote before v2: no key id, no context. */
 function sealV1(hex: string, plaintext: string): string {
@@ -95,4 +99,22 @@ test("sameOrigin: scheme, host and port", () => {
   assert.equal(sameOrigin("https://media.example.com/", "https://other.example.com/"), false);
   assert.equal(sameOrigin("https://media.example.com/", "https://media.example.com:8443/"), false);
   assert.equal(sameOrigin("not a url", "https://media.example.com/"), false);
+});
+
+test("once v1 is retired, a v1 value is refused, not opened; v2 values are unaffected", () => {
+  keys(NEW);
+  const v1 = sealV1(NEW, "old");
+  const v2 = seal("new", "ctx");
+  assert.equal(isV1(v1), true);
+  assert.equal(isV1(v2), false);
+  retireV1();
+  assert.throws(() => open(v1), SecretFormatRetired);
+  assert.equal(open(v2, "ctx"), "new");
+});
+
+test("the pass that retires v1 does nothing, and records nothing, without the connector key", async () => {
+  keys(undefined);
+  assert.deepEqual(await retireV1Secrets(), { state: "no_key", resealed: 0, unreadable: 0 });
+  keys("not-a-key");
+  assert.equal((await retireV1Secrets()).state, "no_key");
 });

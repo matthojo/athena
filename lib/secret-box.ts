@@ -14,8 +14,11 @@
  * that connector's address, which is authenticated with it (GCM's additional
  * data): the value opens only for that same context, so a ciphertext moved
  * to another row, or left in a row whose address was changed, doesn't open.
- * "v1.<iv>.<tag>.<ciphertext>" values, which carry no key id or context,
- * still open, and are sealed again as v2 the next time they're written.
+ * "v1.<iv>.<tag>.<ciphertext>" values carry no key id or context. They're
+ * retired: lib/secret-format.ts seals every one again as v2 once, after which
+ * this copy of Athena refuses them (retireV1) rather than opening them, so a
+ * v1 value can't be put back into a row to get round the context. Until
+ * then they open, and are sealed again as v2 when they're next read.
  *
  * Rotation: the old key goes in CONNECTOR_ENCRYPTION_KEY_PREVIOUS (space- or
  * comma-separated if there are several). Values sealed under it still open,
@@ -114,6 +117,35 @@ export function secretBoxConfigured(): boolean {
   return ring().current !== null;
 }
 
+/** The current key's id (8 hex characters), or null without a key. */
+export function currentKeyId(): string | null {
+  return ring().current?.kid ?? null;
+}
+
+// ---------- the v1 format ----------
+
+/** A v1 value, refused because every v1 value here has been sealed again as v2. */
+export class SecretFormatRetired extends Error {
+  constructor() {
+    super("A credential in the retired v1 format was refused");
+    this.name = "SecretFormatRetired";
+  }
+}
+
+let v1Refused = false;
+
+/** From now on, refuse v1 values (lib/secret-format.ts, once they've all been sealed again). `false` is for tests. */
+export function retireV1(on = true): void {
+  v1Refused = on;
+}
+
+export function v1Retired(): boolean {
+  return v1Refused;
+}
+
+/** Sealed in the v1 format. */
+export const isV1 = (sealed: string | null | undefined): boolean => typeof sealed === "string" && sealed.startsWith("v1.");
+
 // ---------- sealing ----------
 
 /** The additional data a v2 value is sealed with: a fixed label, then its context. */
@@ -141,6 +173,7 @@ export function open(sealed: string, context = ""): string {
     return gcmDecrypt(k.key, Buffer.from(iv, "base64url"), Buffer.from(ct, "base64url"), Buffer.from(tag, "base64url"), aadFor(context));
   }
   if (parts[0] === "v1" && parts.length === 4) {
+    if (v1Refused) throw new SecretFormatRetired();
     const [, iv, tag, ct] = parts;
     const { keys } = ring();
     if (!keys.length) throw new SecretBoxUnavailable();
