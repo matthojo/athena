@@ -32,6 +32,7 @@ import { zonedToday } from "../../../lib/dates";
 import { fillEntryHours, MAX_ENTRIES_PER_WRITE, writeEntries, type EntryInput } from "../../../lib/days";
 import { syncWatchRead, type WatchReadInput } from "../../../lib/watch-read-sync";
 import { directFor } from "./direct";
+import { HAND_OFF_MS, handedOff } from "./trigger";
 import { ServiceError } from "./feeds-shared";
 import { historyTarget } from "./youtube-history";
 
@@ -150,8 +151,11 @@ export const backfillTrigger = {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ connector_ids: connectorIds }),
+      signal: AbortSignal.timeout(HAND_OFF_MS),
+      // Followed, a redirect to the login page would answer 200 and read as handed off.
+      redirect: "manual",
     });
-    if (!res.ok) throw new Error(`background function answered ${res.status}`);
+    if (!handedOff(res.status)) throw new Error(`background function answered ${res.status}`);
   },
 };
 
