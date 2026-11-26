@@ -176,10 +176,31 @@ test("an imported skill reaches the model as someone else's words; the owner's o
   const tools = new SkillTools([skill(), skill({ id: "22222222-2222-4222-8222-222222222222", name: "own-one", imported: false, source: { kind: "written", at } })]);
   const shared = JSON.parse(await tools.run("use_skill", { name: "deal-notes" }));
   assert.equal(shared.rules, SHARED_SKILL_RULE);
-  assert.match(tools.preloadBlock(skill()), /<shared_skill name="deal-notes">/);
-  assert.doesNotMatch(tools.preloadBlock(skill()), /Follow it/);
+  assert.match(await tools.preloadBlock(skill()), /<shared_skill name="deal-notes">/);
+  assert.doesNotMatch(await tools.preloadBlock(skill()), /Follow it/);
   const own = JSON.parse(await tools.run("use_skill", { name: "own-one" }));
   assert.match(own.rules, /owner's instructions/);
+});
+
+test("an imported skill's instructions go through Jev's skill check, and its use is reported; the owner's own don't", async () => {
+  const checked: string[] = [];
+  const used: Array<{ name: string; imported: boolean }> = [];
+  const mark = async (t: string) => (checked.push(t), `[checked] ${t}`);
+  const tools = new SkillTools(
+    [skill(), skill({ id: "22222222-2222-4222-8222-222222222222", name: "own-one", body: "Do it my way.", imported: false, source: { kind: "written", at } })],
+    async (t) => t,
+    (s) => used.push({ name: s.name, imported: s.imported }),
+    mark,
+  );
+  const shared = JSON.parse(await tools.run("use_skill", { name: "deal-notes" }));
+  assert.equal(shared.instructions, "[checked] Search the deal.");
+  assert.match(await tools.preloadBlock(skill()), /<shared_skill name="deal-notes">\n\[checked\] Search the deal\.\n<\/shared_skill>/);
+  const own = JSON.parse(await tools.run("use_skill", { name: "own-one" }));
+  assert.equal(own.instructions, "Do it my way.", "the owner's own words reach the model as written");
+  assert.match(await tools.preloadBlock(skill({ id: "22222222-2222-4222-8222-222222222222", name: "own-one", body: "Do it my way.", imported: false })), /<skill name="own-one">\nDo it my way\.\n<\/skill>/);
+  assert.deepEqual(checked, ["Search the deal.", "Search the deal."]);
+  // lib/answer.ts counts an imported one as other people's words from here (TurnGuard.sawOthers).
+  assert.deepEqual(used.filter((u) => u.imported).map((u) => u.name), ["deal-notes", "deal-notes"]);
 });
 
 test("a skill coming into use is reported, so an imported one can limit the turn", async () => {

@@ -88,7 +88,7 @@ import { AthenaInputError, getConnectionsDetailed, getNote, getOwnerTimeZone, q,
 import { personBrief, recall, type RecallHit } from "./memory";
 import { findKind, listCustomRecords, listKinds, withRecordFields } from "./custom-kinds";
 import { KIND_WORD } from "./custom-kind-words";
-import { guardText } from "./jev";
+import { guardSkill, guardText } from "./jev";
 import { zonedParts } from "./dates";
 import { askContext, contextPrompt } from "./ask-context";
 import { bringsNewTopic, pastThreads, pastThreadsPrompt } from "./ask-threads";
@@ -901,6 +901,13 @@ class AthenaTools {
     return this.guarded(text);
   }
 
+  /** Jev's check for an imported skill's instructions (lib/skills-ask.ts). */
+  async guardedSkill(text: string): Promise<string> {
+    const g = await guardSkill(text);
+    this.ev.checked(g);
+    return g.text;
+  }
+
   private async guarded(text: string): Promise<string> {
     const g = await guardText(text);
     this.ev.checked(g);
@@ -1399,8 +1406,17 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       profilePromptBlock(),
       askContext({ now, tz }),
       remember ? pastThreads(plain, { now, people, exclude: opts.thread_id, earlier: earlierAsked }) : Promise.resolve([]),
-      // An imported skill limits the accounts from the moment it's in use (lib/shared-scope.ts).
-      loadSkillTools({ picked: opts.skill, guard: (t) => athena.guardedText(t), onUse: (s) => limitForSkill(scope, s) }),
+      // An imported skill limits the accounts from the moment it's in use (lib/shared-scope.ts), and its words are
+      // someone else's: from then a change the owner's message didn't plainly ask for waits for Go (lib/ask-guard.ts).
+      loadSkillTools({
+        picked: opts.skill,
+        guard: (t) => athena.guardedText(t),
+        guardSkill: (t) => athena.guardedSkill(t),
+        onUse: (s) => {
+          limitForSkill(scope, s);
+          if (s.imported) guard.sawOthers("file");
+        },
+      }),
       // main Ask's Team (check_with_assistant); none while an assistant answers, so it can't check with another.
       loadTeamDesk({ persona, client }),
     ]);
@@ -1464,7 +1480,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     const asked = [
         `<question>${question.trim() || "(No message: just the files above.)"}</question>`,
         historySourcesBlock(history),
-        picked ? skills.preloadBlock(picked) : "",
+        picked ? await skills.preloadBlock(picked) : "",
         mentioned.block ? mentioned.block.text : "",
         firstQuery
           ? first.text
@@ -1677,7 +1693,8 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
 
     const lookup = async (call: Anthropic.ToolUseBlock): Promise<Anthropic.ToolResultBlockParam> => {
       if (call.name === MAKE_IMAGE_TOOL_NAME) return picture(call);
-      // A skill's instructions aren't a lookup: they don't count, and they're read even while wrapping up.
+      // A skill's instructions aren't a lookup: they don't count toward the lookups, and they're read even while wrapping
+      // up. An imported skill's do count as other people's words (onUse above), and go through Jev's check.
       if (skills.handles(call.name)) {
         try {
           return { type: "tool_result", tool_use_id: call.id, content: await skills.run(call.name, call.input) };
