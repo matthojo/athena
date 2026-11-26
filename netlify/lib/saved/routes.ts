@@ -4,7 +4,8 @@
  *  - POST /api/saved: keep a link, image, quote, snippet or note. JSON, or
  *    multipart with the image in "image". A capture key opens it (the
  *    caller checks), as does a full key or the app's token. 201 with the
- *    item; 200 with the existing one for a repeated client_id or link.
+ *    item; 200 with the existing one for a repeated client_id or link, or,
+ *    to a capture key, only its id.
  *  - GET /api/saved/ping: the extension's Test button. Stores nothing.
  *  - GET /api/saved?kind=&q=&day=&before=&limit=&archived=1, GET/PATCH/DELETE
  *    /api/saved/:id, POST /api/saved/:id/refetch, GET /api/saved/:id/image[?size=sm]:
@@ -15,6 +16,7 @@
  *    /api/saved/:id/actions/undo { undo? } reverses it (a filed item comes back).
  */
 import { AthenaInputError } from "../../../lib/db";
+import { bytesUpTo } from "../body-limit";
 import { DataBoxError } from "../../../lib/data-box";
 import { MAX_SAVED_IMAGE_BYTES, MAX_SAVED_REQUEST_BYTES, SaveTooBig } from "../../../lib/saved-rules";
 import { actionsFor, runSavedAction, SavedActionError, savedLinks, undoSavedAction } from "../../../lib/saved-actions";
@@ -82,8 +84,17 @@ function fail(error: unknown, json: Json): Response {
   throw error;
 }
 
-/** POST /api/saved and GET /api/saved/ping. The caller has checked the key (capture or better). */
-export async function handleSavedCapture(req: Request, url: URL, segments: string[], json: Json): Promise<Response | null> {
+/** What a save answers: the new item; or, to a capture key, only which item it was when Athena already had it. Pure. */
+export function savedReply(origin: string, item: { id: string }, created: boolean, captureOnly: boolean): Record<string, unknown> {
+  const base = { id: item.id, url: itemPage(origin, item.id), created };
+  return created || !captureOnly ? { ...base, item } : base;
+}
+
+/**
+ * POST /api/saved and GET /api/saved/ping. The caller has checked the key (capture or better). A capture key
+ * (`captureOnly`) never gets back, or adds to, an item Athena already had (lib/saved.ts saveItem).
+ */
+export async function handleSavedCapture(req: Request, url: URL, segments: string[], json: Json, opts: { captureOnly?: boolean } = {}): Promise<Response | null> {
   if (segments.length === 3 && segments[2] === "ping") {
     return req.method === "GET" ? json({ ok: true, name: "Athena" }) : json({ error: "Method not allowed" }, 405);
   }
@@ -91,11 +102,15 @@ export async function handleSavedCapture(req: Request, url: URL, segments: strin
   if (Number(req.headers.get("content-length") ?? 0) > MAX_SAVED_REQUEST_BYTES) return tooBig(json);
   if (!(await takeSaveSlot(req))) return json({ error: "That's a lot of saves in one minute. Try again shortly." }, 429);
   try {
-    const body = await readSaveBody(req);
+    // Read once, counted as it arrives, so a body without a length can't run past the limit either.
+    const raw = await bytesUpTo(req, MAX_SAVED_REQUEST_BYTES);
+    if (!raw) return tooBig(json);
+    const body = await readSaveBody(new Request(req.url, { method: "POST", headers: req.headers, body: raw }));
     if (body instanceof Response) return tooBig(json, "That image is over 10 MB");
     if (!body) return json({ error: "There was nothing to save." }, 400);
-    const { item, created } = await saveItem(body);
-    return json({ id: item.id, url: itemPage(url.origin, item.id), item }, created ? 201 : 200);
+    const captureOnly = !!opts.captureOnly;
+    const { item, created } = await saveItem(body, { captureOnly });
+    return json(savedReply(url.origin, item, created, captureOnly), created ? 201 : 200);
   } catch (error) {
     return fail(error, json);
   }

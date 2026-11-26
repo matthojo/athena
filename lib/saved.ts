@@ -252,8 +252,13 @@ export interface SaveOutcome {
 }
 
 
-/** Keep something. Throws AthenaInputError (400), SaveTooBig, SavedImageError, or DataBoxError (503) without the key. */
-export async function saveItem(input: SaveRequest, opts: { read?: typeof readLink; now?: Date; fetchImage?: (url: string) => Promise<Uint8Array> } = {}): Promise<SaveOutcome> {
+/**
+ * Keep something. Throws AthenaInputError (400), SaveTooBig, SavedImageError, or DataBoxError (503) without the key.
+ * `captureOnly`: a capture key's save. It never changes an item already kept by that link (no note added, no
+ * client_id taken on): a repeat with a note is kept as a new item; without one, the existing item's id is the answer
+ * (the routes don't send the item itself back).
+ */
+export async function saveItem(input: SaveRequest, opts: { read?: typeof readLink; now?: Date; fetchImage?: (url: string) => Promise<Uint8Array>; captureOnly?: boolean } = {}): Promise<SaveOutcome> {
   const clientId = isSavedId(input.client_id) ? String(input.client_id).toLowerCase() : null;
   if (clientId) {
     const [have] = await q<Row>(`SELECT ${COLS} FROM saved_items WHERE client_id = $1`, [clientId]);
@@ -288,7 +293,9 @@ export async function saveItem(input: SaveRequest, opts: { read?: typeof readLin
   const urlBidx = plan.url ? s.index("other", `saved-url\u0000${savedUrlKey(plan.url)}`) : null;
   if (plan.kind === "link" && urlBidx) {
     const [have] = await q<Row>(`SELECT ${COLS} FROM saved_items WHERE url_bidx = $1 AND archived_at IS NULL ORDER BY saved_at DESC LIMIT 1`, [urlBidx]);
-    if (have) {
+    if (have && opts.captureOnly) {
+      if (!plan.note) return { item: toItem(have), created: false };
+    } else if (have) {
       // The extension's later note arrives by this client_id, so the item takes it on if it has none.
       if (clientId) await qRaw(`UPDATE saved_items SET client_id = $2 WHERE id = $1 AND client_id IS NULL`, [have.id, clientId]).catch(() => undefined);
       if (plan.note && plan.note !== have.note) {
