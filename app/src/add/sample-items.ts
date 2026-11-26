@@ -181,7 +181,7 @@ const ITEMS: Record<string, { title: string; files: CatalogueFile[] }> = {
     ],
   },
   "sea-glass": {
-    title: "Sea glass, a theme with a few things Athena leaves out",
+    title: "Sea glass, a theme with a font and a picture link Athena leaves out",
     files: [
       {
         path: "theme.json",

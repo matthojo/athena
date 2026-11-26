@@ -607,14 +607,15 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     let copying = !had;
 
     // Add, or Update.
-    const addBtn = h("button", { class: "btn btn--primary add-foot__add", type: "button", disabled: !room && !had?.newer }, icons.plus(), addLabel(p.kind, name)) as HTMLButtonElement;
+    const addBtn = h("button", { class: "btn btn--primary add-foot__add", type: "button", disabled: !room && !had?.newer }, icons.plus(), h("span", { class: "add-foot__label" }, addLabel(p.kind, name))) as HTMLButtonElement;
     const cancel = h("button", { class: "btn btn--ghost add-foot__cancel", type: "button" }, "Cancel");
     // A theme: "Add and use" beside Add, for a new one only. Add alone keeps the theme in use as it is.
     const useBtn = p.kind === "theme" ? (h("button", { class: "btn btn--soft add-foot__use", type: "button", disabled: !room }, ADD_AND_USE) as HTMLButtonElement) : null;
     const problem = h("p", { class: "add-foot__problem", role: "alert", hidden: true });
     const label = () => (copying ? addLabel(p.kind, name) : had?.newer ? `Update ${name}` : w!.open);
     const paintFoot = () => {
-      addBtn.replaceChildren(copying ? icons.plus() : had?.newer ? icons.refresh() : icons.arrowRight(), label());
+      // The label sits in its own span, which ends in an ellipsis when a long name won't fit; the full words stay its name.
+      addBtn.replaceChildren(copying ? icons.plus() : had?.newer ? icons.refresh() : icons.arrowRight(), h("span", { class: "add-foot__label" }, label()));
       addBtn.disabled = copying && !room;
       if (useBtn) {
         useBtn.hidden = !copying;

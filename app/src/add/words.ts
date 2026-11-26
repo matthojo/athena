@@ -112,7 +112,7 @@ export const addLabel = (kind: ShareKind, name: string): string => (kind === "as
 /** Under the Add button: how it lands. */
 export function landsWords(kind: ShareKind): string {
   if (kind === "template") return "It joins your templates. Nothing of yours changes, and you can remove it later.";
-  if (kind === "theme") return "It joins your themes in Appearance. Add keeps the theme you have now; Add and use switches to it.";
+  if (kind === "theme") return "Add keeps the theme you're using now. Add and use switches to this one.";
   if (kind === "checkin") return "They join your own questions, after the ones you have. Nothing you have moves, and you can remove them later.";
   if (kind === "assistant") return "It joins paused. Nothing runs until you switch it on.";
   if (kind === "skill") return "It starts off. Ask won't use it until you switch it on.";

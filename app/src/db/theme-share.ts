@@ -20,7 +20,7 @@ export type ThemeShareEdits = NonNullable<ThemeExportContext["edits"]>;
 export async function checkThemeExport(id: string, edits: ThemeShareEdits, fine: string[]): Promise<ThemeExport> {
   if (isSampleMode()) {
     const t = themeState().themes.find((x) => x.id === id && !x.origin);
-    if (!t) throw new Error("Only themes you made can be shared.");
+    if (!t) throw new Error("Share only themes you made.");
     try {
       return exportTheme(t.theme, { ownHosts: [location.hostname], known: sampleKnown(), edits, fine });
     } catch (error) {

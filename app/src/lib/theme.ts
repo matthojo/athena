@@ -14,8 +14,8 @@
  * Themes added from someone else (lib/theme-share.ts) are among the person's
  * own, each with its `origin`. Saving one from the editor marks it changed
  * once it differs, so an Update from Community goes beside it from then on.
- * Sample mode starts with one added from its made-up catalogue, at an older
- * version (db/sample-themes.ts).
+ * Sample mode starts with two added from its made-up catalogue: one at an
+ * older version, and one taken down since (db/sample-themes.ts).
  *
  * A person's own font and text size are this device's alone
  * (athena.personal): a font is installed on one device and not another, and
@@ -24,7 +24,7 @@
 
 import { readTheme, readOwnThemes, readThemeChoice, newThemeId, type OwnTheme, type Theme, type ThemeChoice } from "../../../lib/theme";
 import { markChanged } from "../../../lib/theme-share";
-import { SAMPLE_ADDED_THEME, SAMPLE_THEMES_KEY } from "../db/sample-themes";
+import { SAMPLE_ADDED_THEME, SAMPLE_THEMES_KEY, SAMPLE_WITHDRAWN_THEME } from "../db/sample-themes";
 import { isSampleMode, fetchSettings, saveThemeSetting } from "../db/api";
 import { repaint } from "./appearance";
 import { ATHENA, compileTheme, paintCss, personalCss, readPersonal, type Paint, type Personal } from "./theme-paint";
@@ -93,8 +93,9 @@ export function themeState(): ThemeState {
   // Sample mode starts with a theme added from its catalogue at an older version, once, so Update shows.
   if (isSampleMode() && !store.get(SAMPLE_THEMES_KEY)) {
     store.set(SAMPLE_THEMES_KEY, "1");
-    if (!themes.some((t) => t.id === SAMPLE_ADDED_THEME.id)) {
-      themes = readOwnThemes([...themes, SAMPLE_ADDED_THEME]);
+    const seed = [SAMPLE_ADDED_THEME, SAMPLE_WITHDRAWN_THEME].filter((s) => !themes.some((t) => t.id === s.id));
+    if (seed.length) {
+      themes = readOwnThemes([...themes, ...seed]);
       store.set(THEME_KEY, JSON.stringify({ choice: raw?.choice ?? "athena", themes }));
     }
   }

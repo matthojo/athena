@@ -13,7 +13,8 @@
  * older version, and Morning pages, taken down since.
  *
  * Themes are three with their own look: Paper lantern (light and dark), Night garden (dark only) and Risograph
- * (light only). Sample mode starts with Paper lantern added at version 1.0 (db/sample-themes.ts), so its update shows.
+ * (light only). Sample mode starts with Paper lantern added at version 1.0 (db/sample-themes.ts), so its update shows,
+ * and with Fog lamp, added and taken down since.
  */
 import { bundleHash, type CatalogueBundle, type CatalogueFile, type CatalogueIndex, type CatalogueItem } from "../../../lib/catalogue-types";
 import type { Reach } from "../../../lib/reach";
@@ -22,7 +23,7 @@ import type { UpdateCheck } from "../../../lib/community-api";
 import { SAMPLE_FLOW_IDS } from "./sample-flows";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
 import { SAMPLE_SET_ID, sampleSetOf } from "./sample-checkins";
-import { PAPER_LANTERN_LISTING } from "./sample-themes";
+import { FOG_LAMP_LISTING, PAPER_LANTERN_LISTING } from "./sample-themes";
 import type { OwnTheme } from "../../../lib/theme";
 
 interface Seed {
@@ -622,6 +623,8 @@ const WITHDRAWN = [
   { id: "m4n8p2q6r1s5t9v3", reason: "Its author asked for it to come down while they rewrite it." },
   // Morning pages, a template sample mode added before it was taken down (SAMPLE_ADDED_TEMPLATE_ROWS).
   { id: "p5q9r3s7t2v6w1x4", reason: "Its author is folding it into a longer set of morning prompts." },
+  // Fog lamp, a theme sample mode adds before it was taken down (db/sample-themes.ts SAMPLE_WITHDRAWN_THEME).
+  { id: FOG_LAMP_LISTING, reason: "Its author took it down while they fix two colours that were too alike on some screens." },
 ];
 
 const GRATITUDE = "g7h2j6k1m5n9p4q8";

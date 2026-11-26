@@ -2426,7 +2426,10 @@ permission.
   yours back", or leaving the screen, puts the theme in use back
   (`tryTheme`, `stopTrying` in `app/src/lib/theme.ts`). "What Athena left
   out" says in words what reading the file dropped or changed. The foot has
-  Add and "Add and use". Add or Update sits in a sticky
+  Add and "Add and use". The foot's row wraps: when a long name leaves Add
+  too little room beside the others, Add takes a row of its own, and a name
+  too long even for that ends in an ellipsis (the full words stay its
+  accessible name). Add or Update sits in a sticky
   foot shared with the flow page (`styles/flows.css`, "Sticky foot"): solid,
   at the bottom of the content column, above the phone's dock.
 - **A flow, added** (`importSharedFlow`). New step ids; steps that change
@@ -2477,7 +2480,9 @@ added Morning pages was taken down (`SAMPLE_ADDED_TEMPLATE_ROWS`, kept by
 and dark, by lamplight-co), Night garden (dark only) and Risograph (light
 only, square corners). Paper lantern is added at version 1.0 while the
 listing is 1.1 (`app/src/db/sample-themes.ts`, seeded once into the device's
-themes), so its tile has a dot and its preview offers Update. The made-up
+themes), so its tile has a dot and its preview offers Update. Fog lamp is
+added too and was taken down since, so its editor shows the catalogue's
+reason. The made-up
 link `sea-glass` is a theme with a font and a picture in it, to show "What
 Athena left out".
 Most listings carry made-up download counts; the two newest have none.

@@ -230,8 +230,17 @@ async function sampleAdd(p: AddPreview, choices: AddChoices): Promise<AddResult>
 
 /** Sample mode's Update: as the server's, the one from that listing only, keeping its name, switched off. */
 async function sampleReplace(p: AddPreview, choices: AddChoices, id: string): Promise<AddResult> {
-  const had = "catalogue" in p.from ? sampleAddedFrom(p.from.catalogue) : null;
-  if (!had || had.id !== id) throw new ShareFormatError("That isn't the one you added from this listing any more. Look at it again.");
+  // The one added from this listing, found where its kind keeps it, as the server's `existing` finds it: templates
+  // among the templates here, themes among the themes, the rest in this visit's record of adds.
+  const listing = "catalogue" in p.from ? p.from.catalogue : null;
+  const hadId = !listing
+    ? null
+    : p.kind === "theme"
+      ? (themeFromListing((await import("../lib/theme")).themeState(), listing)?.id ?? null)
+      : p.kind === "template"
+        ? ((await import("./documents").then((m) => m.sampleTemplateListings())).find((t) => t.catalogue_id === listing)?.id ?? null)
+        : (sampleAddedFrom(listing)?.id ?? null);
+  if (!hadId || hadId !== id) throw new ShareFormatError("That isn't the one you added from this listing any more. Look at it again.");
   const item = p.item;
   if (item.kind === "assistant") {
     const w = item.shared;
