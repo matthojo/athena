@@ -1,5 +1,5 @@
 /**
- * An assistant's own skill (docs/team.md, "Skills"): the SKILL.md Athena
+ * An assistant's own skill: the SKILL.md Athena
  * writes for one Team assistant from its job, its instructions and the
  * owner's answers to a few setup questions. Pure and shared with the app:
  * the question and answer shapes, fitting a model's questions and skill to

@@ -1,5 +1,5 @@
 /**
- * The editor's @ menu, redrawn from the approved prototype: one list of
+ * The editor's @ menu: one list of
  * things in Athena (people, places, events, to-dos, Watch & read, Saved,
  * notes…) with their pictures or kind icons, and "Paste a link" at the foot.
  * Typing after the @ filters it (the editor's suggestion plugin asks

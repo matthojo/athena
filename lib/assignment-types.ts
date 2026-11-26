@@ -1,8 +1,7 @@
 /**
  * Assignments, guests and Team chat: the shared types and limits
- * (docs/team.md "Assignments"; migration 0076). Imported by the server and
- * the app. Types and constants only. Change a contract here and in
- * docs/team.md in the same commit.
+ * (migration 0076). Imported by the server and
+ * the app. Types and constants only.
  */
 import type { AvatarSpec, TeamAssistant } from "./team-types";
 

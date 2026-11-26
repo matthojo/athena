@@ -1,5 +1,5 @@
 /**
- * A platform rate limit on the login form (security review M4).
+ * A platform rate limit on the login form.
  *
  * site-auth.ts answers every path, so a limit in its config would count
  * every page and file. This function matches only /login and does nothing

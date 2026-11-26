@@ -1,6 +1,6 @@
 /**
  * The owner's Card and Mention choices for web links in a note Athena wrote
- * (security review M6; owner's answer 10 Nov 2026: "remember my choice").
+ *, remembered so the owner chooses once.
  *
  * In such a note a web link is plain and never previewed
  * (app/src/editor/link-view.ts). When the owner switches one to a Card, a

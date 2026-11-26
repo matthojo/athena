@@ -256,7 +256,7 @@ test("templates fill from Athena with sources and blanks; notes go to Docs and N
   const [made] = fillRun.changes;
   assert.equal(made.kind, "note");
   assert.match(made.detail, /^Meeting notes · \d+ parts filled$/);
-  // send_note only prepares a card (security review M7): nothing reaches Google until the owner taps Send.
+  // send_note only prepares a card: nothing reaches Google until the owner taps Send.
   google.length = 0;
   const sendRun = await runAssistantTool("send_note", { note_id: made.id, to: "google-docs" });
   assert.deepEqual(sendRun.changes, []);

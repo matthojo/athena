@@ -82,7 +82,7 @@ test("morning push: its own time, in the owner's zone, and any time later that d
   const prefs = { ...DEFAULT_PREFS, morning_at: "06:30" };
   assert.equal(morningPushDue({ ...base, prefs, now: at("2026-11-17T06:30:00Z") }), true);
   assert.equal(morningPushDue({ ...base, prefs, now: at("2026-11-17T06:29:00Z") }), false);
-  // Not only within a few hours: a first run in the afternoon or late evening still sends it (owner, 17 Nov 2026).
+  // Not only within a few hours: a first run in the afternoon or late evening still sends it.
   assert.equal(morningPushDue({ ...base, prefs, now: at("2026-11-17T15:00:00Z") }), true);
   assert.equal(morningPushDue({ ...base, prefs, now: at("2026-11-17T23:59:00Z") }), true);
   // A new day starts over: before its morning time, nothing.

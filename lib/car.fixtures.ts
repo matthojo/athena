@@ -1,4 +1,4 @@
-/** DVLA and DVSA answers in their published shapes, for the car's tests (docs/notes/car.md). */
+/** DVLA and DVSA answers in their published shapes, for the car's tests. */
 /** DVLA VES v1.2.0's own example response, verbatim. */
 export const VES_SAMPLE = {
   registrationNumber: "WN67DSO",

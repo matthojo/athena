@@ -1,5 +1,5 @@
 /**
- * AI models, for the app (docs/ai-models.md, "HTTP"). One read of
+ * AI models, for the app. One read of
  * GET /api/models is kept for the page; every change answers with fresh
  * settings and effective models, which replace it. Sample mode answers on the
  * device (db/sample-models.ts).

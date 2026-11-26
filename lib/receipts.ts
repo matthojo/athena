@@ -1,6 +1,6 @@
 /**
  * Ride and takeaway receipts from email: Uber and Bolt (rides), Uber Eats,
- * Deliveroo and Just Eat (food orders). docs/notes/night-c3.md.
+ * Deliveroo and Just Eat (food orders).
  *
  * Pure: reads one email's text and says what it was. lib/receipts-save.ts
  * writes it (a Day entry, a purchase for a food order, and sealed rows for

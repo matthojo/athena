@@ -1,5 +1,5 @@
 /**
- * What an item someone else shared may reach (SECURITY.md §10, "Items someone else shared"). Pure and shared with
+ * What an item someone else shared may reach (docs: security/community-sharing. Pure and shared with
  * the app: the import sheet, an imported assistant's page and an imported skill's page read the same lists the
  * server enforces.
  *

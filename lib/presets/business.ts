@@ -2,8 +2,7 @@
  * Meetings, chat, docs and files, sales and support, and automation services (Zoom, Dropbox, HubSpot…).
  * Joined into CONNECTOR_PRESETS by lib/connector-presets.ts; see there for the fields.
  *
- * Every entry is the vendor's own hosted MCP server, checked on 6 Nov 2026;
- * URLs, auth and sources are in docs/notes/connectors-business.md.
+ * Every entry is the vendor's own hosted MCP server, checked on 6 Nov 2026.
  * `readTools` holds only tools the vendor documents as reads. Where a server
  * publishes read-only OAuth scopes, `scope` asks for those alone.
  */
@@ -481,7 +480,7 @@ export const BUSINESS_PRESETS: ConnectorPreset[] = [
     help: "Signs in with your Help Scout account, read-only. Help Scout doesn't publish its tool list, so after you connect, go to What Athena can read and turn on the tools that only read.",
   },
   // ---- Automation ----
-  // Zapier labels execute_zapier_read_action a read (owner, 7 Nov). Every
+  // Zapier labels execute_zapier_read_action a read. Every
   // other Zapier tool stays unknown or write.
   {
     id: "zapier",

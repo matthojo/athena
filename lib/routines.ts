@@ -8,7 +8,7 @@
  * the owner's zone, so it follows them when they travel and clock changes
  * need nothing.
  *
- * Routines are becoming Team assistants (docs/team.md; lib/team-migrate.ts):
+ * Routines are becoming Team assistants (lib/team-migrate.ts):
  * the reminders job turns each into an assistant with a schedule trigger, and
  * save_routine now makes an assistant. The slot maths below is shared with
  * Team's schedule triggers (lib/team-triggers.ts).

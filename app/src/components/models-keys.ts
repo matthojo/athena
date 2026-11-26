@@ -1,5 +1,5 @@
 /**
- * The picker's listbox keyboard (docs/ai-models.md, "Accessible by default"),
+ * The picker's listbox keyboard,
  * with no DOM so it can be tested: Up and Down move one, Home and End go to
  * the ends, Page Up and Page Down move a screenful, and typing jumps to the
  * next option whose name starts with what was typed. Typing the same letter

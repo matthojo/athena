@@ -1,6 +1,6 @@
 /**
  * The owner's profile: who they are, how they work, their routines and taste,
- * their goals and how they want Athena to help (docs/notes/profile-memory-plan.md).
+ * their goals and how they want Athena to help.
  *
  * No table of its own. Each answer is a current `me` fact (lib/memory.ts) under
  * a known key from PROFILE_FIELDS; `me` facts under any other key show as
@@ -387,9 +387,9 @@ export async function saveProfileSetup(change: SetupChange, now: Date = new Date
 // ---------- Ask: "Let Ask search the web" ----------
 
 /**
- * The owner's switch for Ask's web search (owner, 12 Nov 2026): on by
- * default. While it's off the web search tool isn't offered to the model at
- * all (lib/answer.ts), so nothing of a question reaches a search.
+ * The owner's switch for Ask's web search: on by default. While it's off the
+ * web search tool isn't offered to the model at all (lib/answer.ts), so
+ * nothing of a question reaches a search.
  */
 const ASK_WEB_KEY = "ask_web";
 

@@ -1,6 +1,5 @@
 /**
- * Assignments: the runner (docs/team.md, "How it runs" and "Checkpoints and
- * questions"). **It alone moves the work on, never an assistant.**
+ * Assignments: the runner. **It alone moves the work on, never an assistant.**
  *
  * Each stage is one Team run: a `team_runs` row with `stage_id`, run by the
  * same background function through `runAssistantTurn` in mode `run`
@@ -308,7 +307,7 @@ async function doSendBack(head: AssignmentHead, from: StageRec, to: number, note
   const stages = await loadStages(head.id);
   const target = stages.find((s) => s.position === to);
   if (!target || (byOwner ? to > from.position : to >= from.position)) throw new AthenaInputError("Send it back to an earlier stage");
-  // The one send-back is the stages'; the owner's own doesn't use it up (owner, 17 Nov 2026).
+  // The one send-back is the stages'; the owner's own doesn't use it up.
   if (!(await setHead(head.id, { ...(byOwner ? {} : { sent_back: true }), status: "running" }, ["running", "waiting"]))) return;
   for (const s of stages) {
     if (s.position < to || s.position > from.position) continue;
@@ -506,7 +505,7 @@ export async function goAssignment(assignmentId: unknown): Promise<Assignment> {
     if (!failed) throw new AthenaInputError("Nothing is waiting for your approval");
     if ((await openCount()) >= L.running) throw new AthenaInputError(COPY.full);
     await setStage(failed.id, { status: "pending", waits_for: null, finished: false }, { status: "failed" });
-    // Go deals with it: the stage's failed post leaves the strip and the count (owner, 17 Nov 2026).
+    // Go deals with it: the stage's failed post leaves the strip and the count.
     await settle({ assignment_id: head.id, stage_id: failed.id, failed: true });
     await setHead(head.id, { status: "running", finished: false }, ["failed"]);
     await advance(head.id);

@@ -1,5 +1,5 @@
 /**
- * New assignment (docs/team.md "How it runs"): say what the work is, get a
+ * New assignment: say what the work is, get a
  * proposed lineup, change it, tap Go. A sheet over wherever it was opened.
  */
 import "../styles/team-assign.css";

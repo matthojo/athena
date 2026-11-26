@@ -240,8 +240,8 @@ export async function runSteps(steps: PlanStep[], ticked: ReadonlySet<number>, r
  * runSteps, able to stop and carry on. `prior`: how the steps before `prior.length` went (a Go that stopped), so
  * their stand-in ids still resolve. `halt`, asked after each step: an account the step was refused
  * (lib/shared-scope.ts). A refused step always stops Go, before it, and `halted` names it and the account; whatever
- * the step made without the account goes to `discard`, never to `keep` and never into the results (owner, 24 Nov
- * 2026). `keep`: what a step that wasn't refused made, as it should be recorded (What Ask did). Pure apart from the
+ * the step made without the account goes to `discard`, never to `keep` and never into the results.
+ * `keep`: what a step that wasn't refused made, as it should be recorded (What Ask did). Pure apart from the
  * callbacks.
  */
 export async function runStepsFrom(
@@ -541,7 +541,7 @@ async function askFor(plan: StoredPlan, src: GoLimitSource): Promise<PlanAccount
  * double tap) gets the first one's results back and runs nothing.
  *
  * A plan an imported assistant proposed, or one made while an imported skill was in use, runs under their limits
- * (lib/shared-scope.ts, owner, 24 Nov 2026): a step that needs a connected account not ticked for them is refused
+ * (lib/shared-scope.ts): a step that needs a connected account not ticked for them is refused
  * before the account is reached, and Go stops there with a question for the owner (PlanAccountAsk). Whatever the
  * step made without the account is undone and dropped. `account` answers it and carries on from that step: "once"
  * lets this Go use the account and keeps nothing, "always" ticks it for the assistant (refused when a skill is what

@@ -1,5 +1,5 @@
 /**
- * The profile learner (stage 3a of docs/notes/profile-memory-plan.md): once a
+ * The profile learner: once a
  * week, Athena reads what it already has about the owner's days and files a
  * few suggestions about them to the Review inbox. Nothing is saved without
  * the owner's say: every suggestion goes through addFact, which files a `me`

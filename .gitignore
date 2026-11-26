@@ -21,5 +21,8 @@ deno.lock
 # OS cruft
 .DS_Store
 
+# screenshots from npm run shots (extension) and scripts/connector-marks-sheet.mjs
+/shots/
+
 # on-demand Obsidian export output — regenerated via `npm run export:obsidian`
 export/obsidian-vault/

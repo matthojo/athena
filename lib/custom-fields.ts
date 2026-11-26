@@ -9,7 +9,7 @@
  * keeps its values and gets them back when it's restored. Values go only
  * when their record is permanently deleted (deleteEntityForever in lib/db.ts).
  *
- * Encrypted at rest (SECURITY.md §11): labels, units, options and values are
+ * Encrypted at rest (docs: security/encryption): labels, units, options and values are
  * sealed on the way in and come back opened from q() and tx(). SQL never
  * compares, sorts or searches them: names are matched and values searched
  * here in TypeScript.

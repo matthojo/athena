@@ -144,7 +144,7 @@ test("Own habits: sealed, ticked as athena entries, undone, logged by Shortcut, 
   r = await call("PATCH", `/habits/${gym.id}`, { archived: false });
   assert.equal(r.body.archived_at, null);
 
-  // ---- owner, 8 Nov: an ambiguous Shortcut name goes to the habit due today ----
+  // ---- an ambiguous Shortcut name goes to the habit due today ----
   const bit = 1 << ((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7);
   await call("POST", "/habits", { name: "Read the news", days: 127 & ~bit });
   r = await call("POST", "/habits/log", { habit: "read" }, capture);

@@ -1,5 +1,5 @@
 /**
- * MCP tools for logging (docs/notes/ask-logging.md): spending, health
+ * MCP tools for logging: spending, health
  * figures, a day's entry and a meter reading, as Ask logs them from a
  * sentence. An MCP client has no card to tap, so these save straight away,
  * through the same lib/ functions as the manual-entry routes. Health is laid

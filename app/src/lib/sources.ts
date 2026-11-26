@@ -1,7 +1,7 @@
 /**
  * Turns a raw `notes.source` value into something a person reads. Sources are
- * "<domain>" or "<domain>-<label>" (the register-collection-agent skill's
- * convention, e.g. "email-digest-personal"), so the domain picks the name and
+ * "<domain>" or "<domain>-<label>" (as collections write them, e.g.
+ * "email-digest-personal"), so the domain picks the name and
  * icon and any trailing label becomes a small tag.
  */
 

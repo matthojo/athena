@@ -990,7 +990,7 @@ const inputs = {
   }),
 };
 
-/** Money doesn't belong in a booking or a purchase (SECURITY.md §1): refuse text that carries an amount. */
+/** Money doesn't belong in a booking or a purchase (docs: security/encryption): refuse text that carries an amount. */
 const MONEY = /(?:[£$€¥₹]\s?\d|\d[\d,.]*\s?(?:GBP|USD|EUR|JPY|CHF|AUD|CAD)\b|\b(?:GBP|USD|EUR)\s?\d)/i;
 
 function refuseMoney(...texts: Array<string | undefined>): void {
@@ -1233,7 +1233,7 @@ export class AthenaWriter {
 
   /**
    * What an earlier run already recorded from this source item, so a rerun doesn't add reworded copies.
-   * Titles and values are encrypted at rest (SECURITY.md §11): they come back opened and are joined here.
+   * Titles and values are encrypted at rest (docs: security/encryption): they come back opened and are joined here.
    */
   private async recordedFor(externalId: string): Promise<{ catch_up: boolean; todos: string[]; details: string[] }> {
     const ref = this.ref(externalId);

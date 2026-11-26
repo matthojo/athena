@@ -45,6 +45,7 @@ body:
         - A collection or flow
         - Deploying or updating
         - Running it locally
+        - The Community site or its docs
   - type: textarea
     id: logs
     attributes:

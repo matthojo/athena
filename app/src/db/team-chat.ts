@@ -1,5 +1,5 @@
 /**
- * Team chat, for the app (docs/team.md "Team chat"; /api/team/chat on the
+ * Team chat, for the app (/api/team/chat on the
  * server): one channel for everything that waits for the owner. Sample
  * mode makes it from the sample assignments and the sample team's runs
  * (db/sample-assignments.ts), so it agrees with every other Team screen.

@@ -1,5 +1,5 @@
 /**
- * Team chat's store (docs/team.md "Team chat"; `team_posts`, migration 0076).
+ * Team chat's store (`team_posts`, migration 0076).
  *
  * One channel for the whole team. A post is for the owner: assistants never
  * read it. Its words are sealed in `body`. It points at its run, stage or

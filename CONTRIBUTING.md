@@ -23,11 +23,12 @@ Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ```sh
 npm install
-npm run dev:app        # the app on http://localhost:5173; choose "Continue with sample data"
+npm run dev:app        # the app on http://localhost:5173; choose "Look around with sample data"
 ```
 
 `netlify dev` runs the functions and MCP server too, with a local database of
-its own. The README's "Try it locally" section has the details.
+its own. [Run it locally](https://athena-community.netlify.app/docs/start/run-it-locally/) has the details, and the
+[architecture docs](https://athena-community.netlify.app/docs/architecture/) explain how the code fits together.
 
 ## Making the change
 
@@ -80,8 +81,14 @@ docs, screenshots and commit messages use made-up people and places only:
 sample mode. Nothing names a real site: where code needs the site's own
 address it reads Netlify's `URL`, and examples use `athena.example.com`.
 
-**Keep SECURITY.md true.** If a change affects what's encrypted, who can read
-it, or what leaves the site, update `SECURITY.md` in the same pull request.
+**Keep the docs true.** Athena's documentation is published at
+https://athena-community.netlify.app/docs/, from a separate repository that the
+maintainer keeps. If your change affects what Athena does, a label people see,
+a route, an MCP tool or an environment variable, say in your pull request
+what the docs need to say, and the maintainer updates them. That includes the
+[security model](https://athena-community.netlify.app/docs/security/) when a change
+affects what's encrypted, who can read it, or what leaves the site. Code
+comments describe Athena as it is, with no history of decisions.
 
 **Words people read** (app text, notes Athena writes, docs) follow
 `lib/writing-style.ts`: plain and specific, with no filler.
@@ -132,5 +139,7 @@ say so in your pull request before it's merged.
    `## X.Y.Z` section at the top of `CHANGELOG.md`.
 2. Merge it. `.github/workflows/release.yml` tags `vX.Y.Z` and publishes the
    release with that section as its notes.
-3. Within a week, every copy's **Update Athena** workflow opens a pull request
+3. In athena-community, move `ATHENA_REF` to the new tag. Its docs checks run
+   against that version, so a page that doesn't match it fails there.
+4. Within a week, every copy's **Update Athena** workflow opens a pull request
    for it.

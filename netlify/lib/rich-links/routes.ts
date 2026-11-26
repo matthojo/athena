@@ -1,5 +1,5 @@
 /**
- * Rich links in notes over REST (docs/notes/rich-links-stage1.md). Full access
+ * Rich links in notes over REST. Full access
  * (the app's token or a full key); the caller checks, as for every /api route.
  *
  *  - GET /api/link-preview?url=…[&refresh=1]: a web address's preview

@@ -8,10 +8,9 @@
  * is said to stay a blank, so nothing about a template is a surprise.
  *
  * A template added from someone else (lib/template-share.ts) carries no
- * badge in the picker (owner, 25 Nov 2026: "Shared" could read as shared
- * out), only a dot when Community has a newer version; its editor says where
- * it came from and who made it, and Community's word on it (an update, or
- * taken down). A template the owner wrote has Share in its editor
+ * badge in the picker ("Shared" could read as shared out), only a dot when
+ * Community has a newer version; its editor says where it came from and who
+ * made it, and Community's word on it (an update, or taken down). A template the owner wrote has Share in its editor
  * (components/template-share-sheet.ts).
  */
 import "../styles/documents.css";

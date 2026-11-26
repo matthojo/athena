@@ -18,7 +18,7 @@
  * the device takes it. Pulls read `synced_at` (the server's clock) and also
  * get every live id, so a chat deleted on one device leaves the others.
  *
- * Encrypted at rest (SECURITY.md §11): `title` is sealed text and
+ * Encrypted at rest (docs: security/encryption): `title` is sealed text and
  * `messages` one sealed JSON string; q() opens both.
  */
 import { AthenaInputError, q, sealer } from "./db";
@@ -35,7 +35,7 @@ export interface AskThread {
   updated_at: string;
   /** This deploy can't open it (a preview without the key): shown, never written back. */
   locked?: boolean;
-  /** A conversation with one of the Team's assistants (docs/team.md); null for main Ask's own. */
+  /** A conversation with one of the Team's assistants; null for main Ask's own. */
   assistant_id?: string | null;
 }
 
@@ -343,7 +343,7 @@ export function pastThreadsPrompt(past: PastThread[]): string {
 export async function pastThreads(question: string, opts: PastOptions = {}): Promise<PastThread[]> {
   try {
     const rows = await q<Row>(
-      // An assistant's conversations are its own memory, never main Ask's (docs/team.md, "Memory").
+      // An assistant's conversations are its own memory, never main Ask's.
       `SELECT id, title, messages, archived_at, created_at, updated_at FROM ask_threads WHERE archived_at IS NULL AND assistant_id IS NULL ORDER BY updated_at DESC LIMIT 60`,
     );
     return pickPastThreads(question, rows.map(toThread), opts);

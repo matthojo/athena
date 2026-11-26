@@ -12,7 +12,7 @@
  * (deleteEntityForever). An archived kind hides itself and every record of it
  * from every read; its fields and values are kept and come back with it.
  *
- * Encrypted at rest (SECURITY.md §11): names, singular names, titles and
+ * Encrypted at rest (docs: security/encryption): names, singular names, titles and
  * bodies are sealed on the way in and come back opened from q() and tx().
  * SQL never compares, sorts or searches them: names are matched, lists sorted
  * and records searched here in TypeScript.

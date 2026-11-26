@@ -1,7 +1,6 @@
 /**
- * A week or a month in review (#/days/week/<monday>, #/days/month/<YYYY-MM>),
- * built from the approved prototype (docs/notes/week-review.md) with the
- * owner's decisions of 2026-11-08. A headline from rules (lib/week-headline.ts,
+ * A week or a month in review (#/days/week/<monday>, #/days/month/<YYYY-MM>).
+ * A headline from rules (lib/week-headline.ts,
  * no AI), then in order: people and places, what got done, health and habits
  * (mood is a tile there, with a strip of the period's days), looking ahead,
  * the patterns that fit, and last what was watched, read and listened to as
@@ -483,7 +482,7 @@ function healthAndHabits(m: WeekModel): HTMLElement {
   wrap.append(tiles);
 
   if (m.habits.length) {
-    // What held, by name: never a percentage (docs/notes/affection-2026-11.md, moment 6).
+    // What held, by name: never a percentage.
     const held = heldLine(m.habits, m.from);
     wrap.append(sub("Habits"));
     if (held) wrap.append(h("p", { class: "wr-held" }, held));
@@ -503,7 +502,7 @@ function moodTile(mood: MoodSummary, period: WeekModel["period"]): HTMLElement {
     { class: `wr-moods${period === "month" ? " wr-moods--dense" : ""}`, role: "img", "aria-label": mood.cells.filter((c) => !c.future).map((c) => c.title).join(", ") },
     ...mood.cells.map((c) => h("span", { class: `wr-mood${c.mood ? ` wr-mood--${c.mood}` : ""}${c.future ? " is-future" : ""}`, title: c.title }))
   );
-  // With no mood set, say it once (docs/notes/affection-2026-11.md, voice fix 4).
+  // With no mood set, say it once.
   if (!mood.set) return tile("Mood", ico(icons.heart), "", `No moods this ${period}`, strip, " wr-tile--mood");
   return tile("Mood", ico(icons.heart), moodName(mood.average) ?? "", `set on ${count(mood.set, "day")}`, strip, " wr-tile--mood");
 }

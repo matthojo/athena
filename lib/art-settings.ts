@@ -9,7 +9,7 @@
  * (lib/secret-box.ts), like connector sign-ins and the ElevenLabs key, and
  * only opened inside a Function to fetch tiles or look up a poster. Nothing
  * here returns a key to the API: mapsArtStatus() is what the app sees.
- * SECURITY.md §13.
+ * docs: security/outside-services.
  */
 import { qRaw } from "./db";
 import { open, seal, secretBoxConfigured } from "./secret-box";

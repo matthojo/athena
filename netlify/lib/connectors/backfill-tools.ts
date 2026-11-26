@@ -149,7 +149,7 @@ export function lastfmStream(account: Pick<DirectAccount, "call">, opts: { tool:
   return {
     id: opts.tool,
     tools: [opts.tool],
-    // Scrobbles run to hundreds of thousands: the most recent 100,000 (owner decision, 9 Nov). ListenBrainz listens too.
+    // Scrobbles run to hundreds of thousands: the most recent 100,000. ListenBrainz listens too.
     cap: LASTFM_CAP,
     async page(cursor) {
       let held: Session[] = [];

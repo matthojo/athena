@@ -1,7 +1,7 @@
 /**
  * A person, place, organisation or event: the profile shown in the mobile
  * sheet and the desktop Library pane. It reads as a page about someone or
- * somewhere, not a form (docs/notes/night-d1.md):
+ * somewhere, not a form:
  *
  *  - A hero that fits the kind: a place opens on a still of the spot, a
  *    person on a larger avatar with "Last saw Wednesday, lunch at Dishoom",

@@ -1,5 +1,5 @@
 /**
- * Home's Ask box (docs/team.md, Experience → Home): "Ask Athena…" with a row
+ * Home's Ask box: "Ask Athena…" with a row
  * of avatar chips under it, Athena's orb first, then each assistant. Picking
  * a chip is choosing a colleague: the box takes their face, asks "Ask Moss,
  * or give her a job…", and a line under the chips says what they do, or
@@ -13,11 +13,10 @@
  * on the device, as it does when asked there.
  *
  * Above the box on a phone, a small Team button: the team's place now the
- * dock doesn't carry it (owner, 13 Nov 2026). It carries the team's pulse,
- * as the sidebar does (team/page-pulse.ts; owner, 15 Nov 2026): a soft dot
- * while an assistant works and the count of what waits for you. A wide
- * screen has it in the sidebar, so the button is hidden there
- * (styles/home-ask.css) and doesn't watch.
+ * dock doesn't carry it. It carries the team's pulse, as the sidebar does
+ * (team/page-pulse.ts): a soft dot while an assistant works and the count of
+ * what waits for you. A wide screen has it in the sidebar, so the button is
+ * hidden there (styles/home-ask.css) and doesn't watch.
  */
 import "../styles/home-ask.css";
 import { h } from "../lib/dom";
@@ -94,7 +93,7 @@ export function homeAsk(): { el: HTMLElement; destroy: () => void } {
   phone.addEventListener("change", watchPulse);
   watchPulse();
   const box = h("div", { class: "home-ask__box" }, markSlot, field, send);
-  // Flows, beside Team: a pill of the same make (owner, 20 Nov 2026).
+  // Flows, beside Team: a pill of the same make.
   const flows = h("a", { class: "home-ask__team home-ask__flows", href: "#/flows", "aria-label": "Flows" }, icons.flow(), h("span", {}, "Flows"), icons.chevronRight());
   const el = h("form", { class: "home-ask", role: "search", "aria-label": "Ask" }, h("div", { class: "home-ask__head" }, flows, team), box, chipsWrap, about);
 

@@ -1,4 +1,4 @@
-// Which links a turn may open (lib/run-links.ts; SECURITY.md §10, "Links a turn may open"): a link goes into a
+// Which links a turn may open (lib/run-links.ts; docs: security/ai-and-ask: a link goes into a
 // run's message as one it may open only when the owner supplied or approved it. Made-up addresses only.
 import { test } from "node:test";
 import assert from "node:assert/strict";

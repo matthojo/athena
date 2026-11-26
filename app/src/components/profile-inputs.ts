@@ -77,7 +77,7 @@ export function regionReading(value: string): string {
 }
 
 /**
- * Region as three dropdowns (owner, 16 Nov 2026): country, currency and language, each chosen by itself. Picking a
+ * Region as three dropdowns: country, currency and language, each chosen by itself. Picking a
  * country fills the other two when they're empty or still that of the country before; a choice the owner made
  * stays. Stored as before, as one answer ("United Kingdom, GBP, English"), so what was typed by hand still reads.
  */

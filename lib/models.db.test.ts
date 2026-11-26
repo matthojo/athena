@@ -1,4 +1,4 @@
-// AI models on real Postgres with every migration (0077 included), through the real routes (docs/ai-models.md):
+// AI models on real Postgres with every migration (0077 included), through the real routes:
 //  1. the owner's choices: kept, read back, a null goes back to the default, and bad input refused with a code;
 //  2. agreements: a provider not agreed to is refused (409), agreeing lets it through, taking it back resets every
 //     choice on it, the owner's and each assistant's;

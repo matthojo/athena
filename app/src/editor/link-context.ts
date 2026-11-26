@@ -1,6 +1,6 @@
 /**
  * The context menu for a link in a note (right-click, long-press, Shift+F10),
- * with the actions the owner approved (docs/notes/rich-links.md):
+ * with the actions the owner approved:
  *
  *   1. Open (⌘↵), the kind's own action, Copy link (⌘C)
  *   2. Show as: Mention, Link, Card, plus Embed only where there's a player
@@ -58,7 +58,7 @@ function kindActions(t: Thing, offline: boolean): MenuAction[] {
   const data = linkData();
   const live = t.live;
   // A web page has no action of its own until the reader view exists; Open
-  // opens a new tab (owner's answers, 2026-11-08).
+  // opens a new tab.
   if (t.target.target === "web") return [];
   const id = t.target.id;
   switch (t.target.kind) {

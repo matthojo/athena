@@ -116,7 +116,7 @@ test("addSharedFlow: off, origin shared, Go on every change step, money off, cat
   assert.equal(flow.origin, "shared");
   assert.equal(flow.money, false);
   assert.equal(flow.unfilled, undefined);
-  // A change waits for Go; a step that only looks runs (the owner's decision, 24 Nov 2026).
+  // A change waits for Go; a step that only looks runs.
   for (const s of flow.steps) assert.ok(s.kind === "tool" && s.go === (s.tool === "money" ? "auto" : "ask"), s.kind === "tool" ? s.tool : s.kind);
   const [todo] = flow.steps;
   assert.ok(todo.kind === "tool");

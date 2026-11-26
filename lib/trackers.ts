@@ -1,5 +1,5 @@
 /**
- * Tracking: the pure rules (docs/team.md "Tracking"; the contract is lib/tracker-types.ts). Shared by the server
+ * Tracking: the pure rules (the contract is lib/tracker-types.ts). Shared by the server
  * (lib/trackers-store.ts, the routes, Ask's tools) and the app. No database, no network.
  *
  * A tracker follows one thing over time: a number with a label and a prefix or suffix ("£34", "12,400
@@ -323,7 +323,7 @@ export function meetsTarget(t: Pick<Tracker, "kind">, target: Pick<TrackerTarget
 
 /**
  * The check that counts as "now": for a number with a direction, the best of each source's latest check, among
- * those within 14 days of the newest (owner, 16 Nov 2026: "Best price now"); otherwise the latest check. Pure.
+ * those within 14 days of the newest ("Best price now"); otherwise the latest check. Pure.
  */
 /** Each source's latest check, among those within 14 days of the newest: what each source says now. Oldest first. Pure. */
 export function currentPoints(sorted: TrackerPoint[]): TrackerPoint[] {
@@ -350,7 +350,7 @@ export interface TrackerSummaryFull extends TrackerSummary {
 }
 
 /**
- * The check that meets the target (owner, 16 Nov 2026): a target is reached while any source's current value meets
+ * The check that meets the target: a target is reached while any source's current value meets
  * it, so a dearer check at another shop doesn't clear it. The best such check for a number with a direction, else
  * the newest. "change": the latest check, when it differs from the one before. Null when it isn't reached. Pure.
  */
@@ -411,7 +411,7 @@ export function newsFor(t: Pick<Tracker, "kind" | "direction" | "target">, befor
 }
 
 /**
- * Is it news the owner is always told (owner, 16 Nov 2026)? A number's new best, any change of a state or of a
+ * Is it news the owner is always told? A number's new best, any change of a state or of a
  * number followed for "change", and a reached target. A dearer price, or a count that dipped, is only kept. Pure.
  */
 export function isNews(t: Pick<Tracker, "kind" | "direction">, n: TrackerNews): boolean {
@@ -507,7 +507,7 @@ export function trackerSentence(view: Pick<Tracker, "kind" | "direction" | "pref
  */
 export function newsLine(view: Parameters<typeof trackerSentence>[0], point: Pick<TrackerPoint, "value" | "source" | "url">, news: TrackerNews, opts: { tz?: string; now?: Date } = {}): string | null {
   if (!isNews(view, news)) return null;
-  // A reached target is told with this check's own source (owner, 16 Nov 2026), whatever another shop says.
+  // A reached target is told with this check's own source, whatever another shop says.
   if (news.target_reached && view.target && view.target.op !== "change") {
     const words = pointWords(view, point);
     if (view.kind === "state") return `${words}. You asked to hear when it was.`;
@@ -615,7 +615,7 @@ export function trackerPromptLine(view: TrackerView, opts: { tz?: string; now?: 
 /** The best price now, as a list carries it (SavedItem.price_now): the page's figure, currency and shop. */
 export type PriceNow = { amount: string; currency: string; shop: string | null };
 
-/** A list's best price now from a price tracker's checks: only once it has a check since the save (owner, 16 Nov 2026: "Best price now"). Pure. */
+/** A list's best price now from a price tracker's checks: only once it has a check since the save. Pure. */
 export function priceNowOf(t: Pick<Tracker, "kind" | "direction" | "currency" | "preset">, points: TrackerPoint[]): PriceNow | null {
   if (t.preset !== "price" || !t.currency || !points.some((p) => p.checked_by !== "save")) return null;
   const now = nowPoint(t, [...points].sort(byTime));
@@ -640,8 +640,8 @@ const TRACKER_WORDS: Record<string, RegExp> = {
 export type FitAssistant = { id: string; name: string; job: string; instructions?: string | null; web?: boolean; paused?: boolean };
 
 /**
- * Which assistants fit a tracker, best first (owner, 16 Nov 2026: the app pre-sets "Who checks it?" to the fitting
- * one): web on and not paused, and a job (or instructions) that names what's tracked. A price matches price and
+ * Which assistants fit a tracker, best first (the app pre-sets "Who checks it?" to the fitting one): web on and not
+ * paused, and a job (or instructions) that names what's tracked. A price matches price and
  * shopping words, stock matches stock words, anything else its label's words. Pure; the app mirrors it in sample mode.
  */
 export function assistantsFor<A extends FitAssistant>(t: Pick<Tracker, "preset" | "label" | "name">, assistants: A[]): A[] {

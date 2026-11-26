@@ -152,7 +152,7 @@ export function untickedHabit(day: DayForPrompt | null): string | null {
   return t.length > 40 ? `${t.slice(0, 39)}…` : t;
 }
 
-// ---------- The day handed back (docs/notes/affection-2026-11.md, moment 1) ----------
+// ---------- The day handed back ----------
 
 /** Someone the owner saw or caught up with today (lib/week-review.ts seenEvents, plus logged catch-ups). */
 export interface SeenToday {

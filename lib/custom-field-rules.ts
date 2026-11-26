@@ -297,8 +297,8 @@ export function labelKey(label: string): string {
 export const sameLabel = (a: string, b: string) => labelKey(a) === labelKey(b);
 
 /**
- * Finance and health content has its own, stronger protection (SECURITY.md
- * §1), so fields don't become a way around it: a field can't be named for a
+ * Finance and health content has its own, stronger protection (docs:
+ * security/encryption), so fields don't become a way around it: a field can't be named for a
  * bank, card, password or medical detail.
  */
 const SENSITIVE =

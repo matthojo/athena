@@ -19,7 +19,7 @@ if (url) {
 type Block = { type: string; text?: string; id?: string; name?: string; input?: unknown; tool_use_id?: string; content?: unknown };
 type Item = { kind: string; title?: string; show?: string; year?: number; date: string; id?: string; show_id?: string; link?: string; show_link?: string };
 
-/** One Watch & read call per film and per show, as the Life log's wording asks (docs/notes/media-chess-tripit.md). */
+/** One Watch & read call per film and per show, as the Life log's wording asks. */
 function saves(source: "plex" | "jellyfin", items: Item[]): Array<Record<string, unknown>> {
   const out = new Map<string, Record<string, unknown>>();
   for (const i of items) {

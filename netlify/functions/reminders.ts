@@ -425,7 +425,7 @@ export async function runReminders(now: Date = new Date(), origin: string | unde
           ...events.flatMap((e) => e.people.map((p) => ({ name: p.name, in_person: true, place: e.place, how: e.title }))),
           ...logged.filter((i) => i.channel === "in_person" || i.channel === "call" || i.channel === "other").flatMap((i) => i.people.map((p) => ({ name: p.name, in_person: i.channel !== "call" }))),
         ];
-        // The body leads with the day's best thing, never an undone habit (docs/notes/affection-2026-11.md, moment 1).
+        // The body leads with the day's best thing, never an undone habit.
         report.evening = await sendToAll(plan === "reflection" ? reflectionPrompt(today, day, seen) : eveningPrompt(today, day, seen));
       } catch (error) {
         await releaseReminder(key);

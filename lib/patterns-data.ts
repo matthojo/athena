@@ -38,7 +38,7 @@ export async function loadPatternDays(from: string, to: string, tz: string): Pro
     healthDays(from, to),
     daysRange(from, to, { tz }),
     placeDays(from, to).catch(() => null),
-    // Meetings: timed events with someone else on them (an edge to a person; owner, 7 Nov), when each starts, in the owner's zone. Solo appointments don't count. Titles stay sealed and unread.
+    // Meetings: timed events with someone else on them (an edge to a person), when each starts, in the owner's zone. Solo appointments don't count. Titles stay sealed and unread.
     qRaw<{ starts_at: string }>(
       `SELECT ev.starts_at FROM events ev WHERE ev.archived_at IS NULL AND ev.starts_at >= $1::timestamptz AND ev.starts_at < $2::timestamptz
          AND EXISTS (SELECT 1 FROM edges e WHERE e.source_type = 'event' AND e.source_id = ev.id AND e.target_type = 'person')`,
@@ -52,7 +52,7 @@ export async function loadPatternDays(from: string, to: string, tz: string): Pro
        WHERE kind = 'habit' AND date BETWEEN $1::date AND $2::date AND archived_at IS NULL AND folded_into IS NULL`,
       [from, to],
     )
-      // An Athena habit's unticked due day is "not done", not "nothing logged" (lib/own-habits.ts, owner 8 Nov).
+      // An Athena habit's unticked due day is "not done", not "nothing logged" (lib/own-habits.ts).
       .then(async (rows) => [...rows, ...(await ownMissedDays(from, to, await ownerToday()).catch(() => [])).map((m) => ({ ...m, done: false }))])
       .catch(() => [] as Array<{ date: string; title: string; done: boolean }>),
     prefs.money ? readMoneyDays(from, to).catch(() => null) : null,

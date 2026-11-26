@@ -1,5 +1,5 @@
 /**
- * Home's word from the team (docs/team.md, "Home"): one card under "For you"
+ * Home's word from the team: one card under "For you"
  * that reads like colleagues reporting back. Whoever is on a job right now
  * comes first ("Wren is writing your week"), then each assistant's latest
  * report in its own words, with what waits on you one tap away ("Review 1
@@ -112,7 +112,7 @@ export function teamReport(opts: { onShown: (shown: boolean) => void; onGone: ()
         return { n, name, avatar: from?.avatar ?? null, assistantId: from?.id ?? null, said: kept?.said || said || "It's ready in Ask.", waits: count, jobs: from?.id ? jobsToday(runs, from.id) : 0 };
       })
     );
-    // A run that found nothing to do isn't a report (owner, 15 Nov 2026); an older server still makes a card for one.
+    // A run that found nothing to do isn't a report; an older server still makes a card for one.
     // What waits on you first, then the newest.
     return out.filter((r) => r.waits > 0 || !saysNothing(r.said)).sort((a, b) => Number(b.waits > 0) - Number(a.waits > 0) || Date.parse(b.n.created_at) - Date.parse(a.n.created_at));
   }
@@ -129,7 +129,7 @@ export function teamReport(opts: { onShown: (shown: boolean) => void; onGone: ()
       face(a.avatar, 32, true),
       h("span", { class: "team-report__text" }, h("span", { class: "team-report__now" }, h("span", { class: "team-dot team-report__dot", "aria-hidden": "true" }), words), what ? h("span", { class: "team-report__what" }, what) : null)
     );
-    // The dot and the ring round the face in the character's own colour (owner, 16 Nov 2026).
+    // The dot and the ring round the face in the character's own colour.
     paintWho(go, a.avatar);
     if (run.thread_id) {
       const thread = run.thread_id;

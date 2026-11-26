@@ -1,4 +1,4 @@
-// The owner's answers of 12 November 2026 and the production gaps, on the real path: Postgres with every
+// Follow-ups and the production gaps, on the real path: Postgres with every
 // migration, the real tool code, and a scripted model.
 //  1. the brownie follow-up, end to end: "Turn this into a recipe" after a general answer saves a recipe
 //     from that reply's text, in one model call, with a receipt and Undo;

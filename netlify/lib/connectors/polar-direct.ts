@@ -26,7 +26,7 @@
  *  - The only writes Athena sends are those two kinds of POST (register,
  *    open a transaction) and PUT (commit). Nothing is ever deleted.
  *
- * Figures are health content (SECURITY.md §1): they go back to the run only,
+ * Figures are health content (docs: security/encryption): they go back to the run only,
  * never into an error or a log line.
  */
 import { POLAR_API_URL, POLAR_SCOPE } from "../../../lib/presets/health";

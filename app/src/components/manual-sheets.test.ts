@@ -1,5 +1,5 @@
 /**
- * The four manual-entry sheets opened with starting values, as Ask's logging cards' Edit does (owner, 14 Nov), and
+ * The four manual-entry sheets opened with starting values, as Ask's logging cards' Edit does, and
  * without, as their pages do: a sheet given values shows them and saves what's in it through the same route; one
  * given none opens as it always has. A small DOM (linkedom), with the API answered by a stubbed fetch.
  */

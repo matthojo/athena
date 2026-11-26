@@ -30,7 +30,7 @@ export function templateFindingsLede(n: number): string {
 /**
  * "From Community · by @kind-margins · version 1.0", "From a file": an added template's line in its editor, in the
  * words the other kinds use (components/checkin-share-words.ts setMetaWords). Never a bare "Shared", which could read
- * as something the owner shared out (owner, 25 Nov 2026). Pure.
+ * as something the owner shared out. Pure.
  */
 export function sharedByWords(s: { author: string | null; version: string | null; catalogue_id: string | null }): string {
   return [s.catalogue_id ? "From Community" : "From a file", s.author ? `by @${s.author}` : null, s.version ? `version ${s.version}` : null].filter(Boolean).join(" · ");
@@ -49,7 +49,7 @@ export const templateIcon = (t: { starter: string | null; shared?: unknown }): I
 
 /**
  * The templates a journal can start from: all of them, the owner's own and those they added first, in the order the
- * list gives them, then Athena's starters (owner, 25 Nov 2026). Pure.
+ * list gives them, then Athena's starters. Pure.
  */
 export const journalTemplates = <T extends { starter: string | null }>(all: readonly T[]): T[] => [...all.filter((t) => !t.starter), ...all.filter((t) => t.starter)];
 

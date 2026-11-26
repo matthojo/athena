@@ -117,7 +117,7 @@ test("looking things up online: only with the switch on, in runs and checks, wit
   assert.equal(webTurnFor({}, { mode: "run" }), null, "missing: off");
   assert.deepEqual(webTurnFor({ web: true }, { mode: "run" }), { searches: WEB_BUDGET.run.searches, pages: WEB_BUDGET.run.pages, rule: ASSISTANT_WEB_RULE });
   assert.deepEqual(webTurnFor({ web: true }, { mode: "chat", readOnly: true }), { searches: 2, pages: 1, rule: ASSISTANT_WEB_RULE });
-  assert.deepEqual(webTurnFor({ web: true }, { mode: "chat" }), { searches: 5, pages: 5, rule: ASSISTANT_WEB_RULE }, "a chat, as when it works alone (owner, 16 Nov)");
+  assert.deepEqual(webTurnFor({ web: true }, { mode: "chat" }), { searches: 5, pages: 5, rule: ASSISTANT_WEB_RULE }, "a chat, as when it works alone");
   assert.equal(webTurnFor({ web: false }, { mode: "chat" }), null, "switch off: its chat searches as main Ask does");
   assert.ok(WEB_BUDGET.run.searches > 3 && WEB_BUDGET.run.pages > 0, "more than a chat's three snippet searches");
   // The rule names what may go in a search, and nothing from the owner's notes, people, emails, messages or money.

@@ -1,6 +1,6 @@
 /**
  * The owner's Card, Mention and Embed choices for web links in a note Athena
- * wrote (lib/note-link-choices.ts, security review M6). Kept on the server
+ * wrote (lib/note-link-choices.ts). Kept on the server
  * beside the note, never in its Markdown, so only this editor can make one.
  * Offline or in sample mode there are none, and every such link stays plain.
  */

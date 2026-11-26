@@ -1,6 +1,5 @@
 /**
- * A first week that knows it's a first week (docs/notes/affection-2026-11.md,
- * moment 3). Pure: which day of it today is, and what Home says on that day
+ * A first week that knows it's a first week. Pure: which day of it today is, and what Home says on that day
  * from what already exists (apps connected, days kept, people added). Home
  * (views/home.ts) paints it; Days' recap (views/days-recap.ts) shows the
  * seventh day's review.

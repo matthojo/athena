@@ -1,5 +1,5 @@
 // Run: npx tsx --test app/src/lib/vision-warning.test.ts
-// Before a photo goes to a thinking model that can't see it (owner, 17 Nov 2026): warn only when the catalogue says
+// Before a photo goes to a thinking model that can't see it: warn only when the catalogue says
 // vision: false; "unknown" and true send as usual.
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,5 +1,5 @@
 /**
- * A provider behind Anthropic's `messages.create` and `messages.stream` (docs/ai-models.md). Each call is one or
+ * A provider behind Anthropic's `messages.create` and `messages.stream`. Each call is one or
  * more rounds with the provider: when the model calls web_search or web_fetch, the lookup is handed to Claude
  * (lib/llm/web.ts), its result goes back to the model, and the model carries on, all inside the one call, the way
  * Anthropic runs its server tools. What comes back is one Anthropic message: words, tool_use blocks, and the
@@ -13,7 +13,7 @@ import { SeenLinks, handOffFetch, handOffSearch, type ModelClientLike } from "./
 
 /**
  * Waits after the gateway's bare 403, in ms: 15 s in all. Shorter than lib/ai.ts's minute, since this layer doesn't know
- * the caller's deadline. Refusal bursts have run up to a minute (docs/notes/ask-gateway-403.md). Tests shorten them.
+ * the caller's deadline. Refusal bursts have run up to a minute. Tests shorten them.
  */
 export const REFUSAL_WAITS_MS: number[] = [1_000, 4_000, 10_000];
 

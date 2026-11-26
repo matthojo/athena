@@ -1,5 +1,5 @@
 /**
- * "How <Name> works" on an assistant's page (docs/team.md, "Skills"): its own
+ * "How <Name> works" on an assistant's page: its own
  * skill as a plain summary and its first steps, with Edit opening the normal
  * skill editor (Settings → Skills).
  *

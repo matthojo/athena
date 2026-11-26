@@ -1,5 +1,5 @@
 /**
- * Team (docs/team.md): #/team, #/team/<id> and #/team/new all land here,
+ * Team: #/team, #/team/<id> and #/team/new all land here,
  * with `param` null, an assistant's id, or "new".
  *
  *   #/team       walking past your assistants at work: one sentence on
@@ -170,7 +170,7 @@ function desk(a0: TeamAssistant, go: Go): DeskEl {
     text(name, a.name);
     text(badgeWord, BADGE[d.state] ?? "");
     badge.hidden = !BADGE[d.state];
-    // Working: the breathing dot and the ring round the character, in its own colour (owner, 16 Nov 2026).
+    // Working: the breathing dot and the ring round the character, in its own colour.
     badgeDot.hidden = !busy;
     paintWho(el, a.avatar);
     text(job, a.job);
@@ -394,7 +394,7 @@ function renderPage(ctx: TeamViewContext): { el: HTMLElement; destroy: () => voi
     else toSetup(ctx.go);
   });
   const said = h("p", { class: "visually-hidden", "aria-live": "polite" });
-  // Team chat, with the one count of what waits, and New assignment (docs/team.md "Assignments").
+  // Team chat, with the one count of what waits, and New assignment.
   const chatCount = h("span", { class: "team-entry__count", hidden: true });
   const chat = h("a", { class: "btn btn--soft btn--sm", href: "#/team/chat" }, icons.chat(), "Team chat", chatCount);
   const assign = h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.plus(), "New assignment");

@@ -130,7 +130,7 @@ const LINK_SYNTAX =
   "Use search_entities to find ids (create the entity first with upsert_* if it doesn't exist). " +
   "Saving a body re-derives that note's 'mentions' links automatically, which is what powers backlinks.";
 
-/** Deliberately absent: any delete tool and any way to list archived items (see SECURITY.md). */
+/** Deliberately absent: any delete tool and any way to list archived items (docs: security/sign-in-and-keys). */
 const ARCHIVE_NOTE =
   "Archived items disappear from every list, search, backlink and reminder; the owner can restore " +
   "or permanently delete them from the app. There is no delete tool: archive instead.";
@@ -211,7 +211,7 @@ function buildServer(): McpServer {
     },
     safe(async ({ id, ...patch }) => {
       // An agent is a model: in a note the owner wrote, links it adds are plain (lib/links.ts modelWroteInto). On
-      // purpose for every MCP key, a Claude only one included (owner, 24 Nov 2026; SECURITY.md §10).
+      // purpose for every MCP key, a Claude only one included (docs: security/ai-and-ask).
       const was = patch.body !== undefined ? await getNote(id) : null;
       const body = was && patch.body !== undefined ? modelWroteInto(was, patch.body) : patch.body;
       const note = await updateNote(id, { ...patch, ...(body !== undefined ? { body } : {}) }, { by: "mcp" });
@@ -829,7 +829,7 @@ function buildServer(): McpServer {
     "upsert_metric",
     "Record a non-sensitive metric data point (habit count, meeting hours, issue throughput, etc). " +
       "Never put real finance or health figures here: Athena's own health, money and home paths " +
-      "seal those (see SECURITY.md §1); this tool's value/metadata are stored in plaintext.",
+      "seal those; this tool's value/metadata are stored in plaintext.",
     {
       metric: z.string().describe("Metric name, e.g. 'weight_kg' or 'focus_minutes'"),
       value: z.number().describe("Numeric value for this data point"),

@@ -1,5 +1,5 @@
 /**
- * Team, for the app (docs/team.md; lib/team.ts and netlify/lib/team-routes.ts
+ * Team, for the app (lib/team.ts and netlify/lib/team-routes.ts
  * on the server). Sample mode keeps its own team (db/sample-team.ts) and
  * every change stays on this page.
  */
@@ -73,7 +73,7 @@ function sampleRunNow(r: TeamRun): TeamRun {
   return r;
 }
 const sampleList = () => (sample.team ??= sampleTeam());
-/** Whether a sample assistant may look things up online (`web`, docs/team.md "Looking things up online"). */
+/** Whether a sample assistant may look things up online (`web`). */
 const sampleWeb = (id: string) => (sampleList().find((a) => a.id === id) as { web?: boolean } | undefined)?.web === true;
 
 const uuid = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `5a3e0000-0000-4000-8000-${Date.now().toString(16).padStart(12, "0").slice(-12)}`);
@@ -269,7 +269,7 @@ export async function forgetMemory(id: string, fact?: number): Promise<Assistant
   return memory;
 }
 
-// ---------- its own skill (docs/team.md, "Skills") ----------
+// ---------- its own skill ----------
 
 /** Setup's questions for this job: 2–4, or none when Athena can't think of any (setup then skips the step). */
 export async function teamQuestions(text: string, draft?: { job?: string; instructions?: string }): Promise<TeamQuestion[]> {

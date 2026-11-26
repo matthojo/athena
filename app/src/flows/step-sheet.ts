@@ -108,7 +108,7 @@ export function openStepSheet(o: StepSheetOptions): void {
     for (const fd of fs) sections.push(addField(fd.key, fd.label, s.input[fd.key] ?? [], fd.required));
     if (entry?.money) sections.push(h("p", { class: "flow-note" }, flowIcon("lock"), "Reads your spending. It only runs while Let Ask read transactions is on in Settings."));
     if (goLocked(s)) {
-      // A draft always waits for your Go (owner, 21 Nov 2026): the switch shows it, locked.
+      // A draft always waits for your Go: the switch shows it, locked.
       s.go = "ask";
       const locked = segmented("When this step runs", [{ value: "ask", label: "Wait for my approval" }, { value: "auto", label: "Do it without asking" }] as const, "ask", () => undefined);
       locked.classList.add("is-locked");

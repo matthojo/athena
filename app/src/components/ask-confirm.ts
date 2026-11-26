@@ -1,5 +1,5 @@
 /**
- * Ask's confirm cards (security review M7): the three things the assistant
+ * Ask's confirm cards: the three things the assistant
  * may not do on its own. Each waits here for the owner's tap, the way a
  * move or a new event does (slot-card.ts, create-sheet.ts):
  *
@@ -12,7 +12,7 @@
  *    sentence (lib/ask-logging.ts): the tap saves it through the same routes
  *    as the manual-entry forms. Health is laid over what was typed in for
  *    that day, read at the tap, so nothing typed before is lost. Edit opens
- *    that form filled in from the card instead (owner, 14 Nov); its save
+ *    that form filled in from the card instead; its save
  *    gives the same receipt, and closing it leaves the card as it was.
  *
  * Built only with h() and text nodes: titles come from calendars and notes.
@@ -102,7 +102,7 @@ async function saveLog(card: LogCard): Promise<Logged> {
 }
 
 /**
- * Open the card's own form filled in from it (owner, 14 Nov). `saved` gets the receipt's title, from what the
+ * Open the card's own form filled in from it. `saved` gets the receipt's title, from what the
  * form saved rather than what Ask heard, and the same receipt as the card's button; closing the form calls nothing.
  */
 async function editLog(card: LogCard, saved: (title: string, logged: Logged) => void): Promise<void> {

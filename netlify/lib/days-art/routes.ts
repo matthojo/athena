@@ -1,6 +1,6 @@
 /**
  * Artwork, day maps and their keys over REST. Every route needs full access
- * (the app's token or a full key). SECURITY.md §13.
+ * (the app's token or a full key). docs: security/outside-services.
  *
  *  - GET    /api/art/:id?size=sm|lg       a kept image (WebP). The bytes for an id never
  *                                         change, so it's cached for a year.
@@ -35,7 +35,7 @@ export const MAP_CACHE = "private, no-cache";
 
 const dataUri = (b: Buffer) => `data:image/webp;base64,${b.toString("base64")}`;
 
-/** Words for the app (docs/notes/days-art.md "New copy"). */
+/** Words for the app. */
 export const MAPS_ART_COPY = {
   noEncryption: "Athena can't keep keys here yet: its encryption key for sign-ins isn't set.",
   tileRejected: (p: TileProvider) => `${PROVIDERS[p].label} didn't accept that key. Copy it again from your ${PROVIDERS[p].label} account.`,

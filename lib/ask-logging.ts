@@ -8,7 +8,7 @@
  * The model reads the sentence into a tool's fields; these check the fields
  * and make the card the owner confirms. Nothing here saves: in Ask the app
  * saves when the owner taps, through the same routes as the manual-entry
- * forms (docs/notes/ask-logging.md).
+ * forms.
  */
 import { addDays } from "./dates";
 import { MONEY_CATEGORIES, type MoneyCategory } from "./day-types";
@@ -139,7 +139,7 @@ const sameWorkout = (a: Workout, b: Workout) => a.type === b.type && a.minutes =
 
 /**
  * What was typed in for the day with the new figures laid over it: only the figures the owner said change, the
- * rest stay (owner's decision, 14 Nov). A workout is added to the day's, unless it's the same one again. Only the
+ * rest stay. A workout is added to the day's, unless it's the same one again. Only the
  * figures the Health page's form covers are carried over, so what's sent back is what the form would send.
  */
 export function mergeHealth(before: Partial<HealthFigures> | null | undefined, figures: LoggedHealth): LoggedHealth {

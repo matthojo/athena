@@ -1,5 +1,5 @@
 /**
- * Team setup, #/team/new (docs/team.md, "Setup: the heart of the feature").
+ * Team setup, #/team/new.
  * Hiring an assistant, as a conversation. A full-screen sheet on phones and a
  * centred 560px panel on desktop, with the character pinned at the top:
  *
@@ -13,7 +13,7 @@
  *                     starts, and a first run you can watch (setup-first-day.ts).
  *
  * The answers go with the new assistant: the server writes its skill from
- * them (docs/team.md, "Skills").
+ * them.
  *
  * The draft lives on the device (setup-draft.ts) until the assistant is
  * added. Enter moves on; ⌘/Ctrl+Enter adds. Esc or a drag down closes,
@@ -418,7 +418,7 @@ export function openSetup(opts: SetupOptions): SheetHandle {
       // Someone you've already met keeps their name and face when the job changes.
       const keep = !!(d.seed && d.avatar);
       const seed = keep ? d.seed! : p.seed || newSeed();
-      // A null name means "pick one from the seed" (docs/team.md, draft).
+      // A null name means "pick one from the seed".
       const proposed = p.name;
       const name = keep ? d.name : proposed && !opts.taken.some((t) => t.toLowerCase() === proposed.toLowerCase()) ? proposed : nameFromSeed(seed, opts.taken);
       d = {
@@ -432,7 +432,7 @@ export function openSetup(opts: SetupOptions): SheetHandle {
         triggers: p.triggers?.length ? p.triggers : triggersFromText(text),
         offered: allowFor(`${text} ${p.job}`, p.allow ?? []),
         allow: [],
-        // Off by default; proposed, switched on, when the job needs something online (owner, 16 Nov 2026).
+        // Off by default; proposed, switched on, when the job needs something online.
         webSuggested: draftWantsWeb(p),
         web: draftWantsWeb(p),
         avatar: keep ? d.avatar : avatarFromSeed(seed),

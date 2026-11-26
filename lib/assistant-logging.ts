@@ -4,7 +4,7 @@
  * Kept beside lib/assistant.ts, which lists these with its own tools and runs
  * them through runLogTool().
  *
- * Nothing is saved from a model turn alone (owner's decision, 14 Nov 2026):
+ * Nothing is saved from a model turn alone:
  * each tool prepares a card (lib/assistant-confirm.ts), and the app saves it
  * when the owner taps, through the manual-entry routes (POST
  * /api/life/spending, PUT /api/health/manual, POST /api/days/:date/entries,

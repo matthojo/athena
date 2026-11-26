@@ -1,5 +1,5 @@
 /**
- * How the team reports back on Home and in Ask (docs/team.md, "Home"): an
+ * How the team reports back on Home and in Ask: an
  * assistant's run, said as that assistant telling you what it did, with
  * what waits on you pulled out so it can be one tap away. Pure, so Home,
  * Ask and the tests share it.
@@ -90,8 +90,8 @@ const NOTHING_SAID = /^(?:nothing\b|no (?:new|changes?|action)\b|all quiet\b|the
 export const saysNothing = (text: string | null | undefined): boolean => !!text && NOTHING_SAID.test(text.trim());
 
 /**
- * A run that found nothing to do (owner, 15 Nov 2026: off Home; it stays in
- * Lately and on the assistant's page). Newer servers say so (`quiet`); older
+ * A run that found nothing to do (off Home; it stays in Lately and on the
+ * assistant's page). Newer servers say so (`quiet`); older
  * ones only say it in the summary.
  */
 export function isQuiet(r: Pick<TeamRun, "status"> & { summary?: string | null; quiet?: boolean | null }): boolean {

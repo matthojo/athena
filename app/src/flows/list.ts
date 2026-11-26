@@ -53,7 +53,7 @@ export function renderFlowList(ctx: ListContext): { el: HTMLElement; destroy: ()
         showToast(e instanceof Error && e.message ? `Couldn't make it: ${e.message}` : "Couldn't make it. Try again.");
       }
     });
-    // No thanks means never again (owner, 21 Nov 2026).
+    // No thanks means never again.
     later.addEventListener("click", async () => {
       card.remove();
       try {

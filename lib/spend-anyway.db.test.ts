@@ -1,4 +1,4 @@
-// When today's AI budget can't be read (owner, 17 Nov 2026), on real Postgres with every migration. The `ai_usage`
+// When today's AI budget can't be read, on real Postgres with every migration. The `ai_usage`
 // table is moved aside, so the budget can't be checked and no call's cost can be written, while the rest of Athena
 // answers. Ask's reply offers Run anyway; that one message runs once with its token, and not again; what it cost is
 // kept and written once the table is back. An assistant run waits in the queue, with no card, and runs at the next pass.

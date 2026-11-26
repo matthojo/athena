@@ -117,7 +117,7 @@ export interface BudgetNotice {
 
 /**
  * An Ask reply when today's budget couldn't be checked (the database was away): the app offers Run anyway, which
- * sends the same message again with `run_anyway` set to this one-time token (docs/ai-models.md).
+ * sends the same message again with `run_anyway` set to this one-time token.
  */
 export interface UncheckedNotice {
   scope: "unchecked";

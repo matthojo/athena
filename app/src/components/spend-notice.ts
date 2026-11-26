@@ -1,5 +1,5 @@
 /**
- * The budget notice in an Ask reply (owner, 17 Nov 2026): when today's AI budget is used, or the assistant being
+ * The budget notice in an Ask reply: when today's AI budget is used, or the assistant being
  * chatted with has used its own cap, the reply says so (its words come from the server) and this small block under
  * it offers one tap, "Allow £1 more today", in the owner's currency. Once allowed, the same message can be sent
  * again from here. Mounted with one line where Ask builds a message (views/ask.ts).

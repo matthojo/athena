@@ -1,9 +1,8 @@
 /**
- * The agreement (docs/ai-models.md, "The agreement"; owner, 17 Nov 2026: ask
- * once per company, then anything goes). Shown in the picker's own sheet the
- * first time the owner picks or tries a model from a company other than
- * Anthropic: what goes to that company, money and health included, and that
- * Anthropic's handling no longer covers it. "Use Google models" or "Not now".
+ * The agreement: asked once per company, then anything goes. Shown in the
+ * picker's own sheet the first time the owner picks or tries a model from a
+ * company other than Anthropic: what goes to that company, money and health
+ * included, and that Anthropic's handling no longer covers it. "Use Google models" or "Not now".
  */
 import { h } from "../lib/dom";
 import { icons } from "./icons";

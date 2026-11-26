@@ -2,7 +2,7 @@
  * Tracking's store (migration 0073, `trackers` and `tracker_points`; the rules are lib/trackers.ts, the contract
  * lib/tracker-types.ts). One row per tracker and one per check, kept forever, unchanged values too.
  *
- * Sealed (SECURITY.md §11, ENCRYPTED in lib/encryption.ts): a tracker's name, link, label, prefix, suffix, states
+ * Sealed (docs: security/encryption, ENCRYPTED in lib/encryption.ts): a tracker's name, link, label, prefix, suffix, states
  * and target value; a check's value, where it was read and its page's link. Readable: kinds, directions, presets,
  * the currency code, times, and who set or checked.
  *

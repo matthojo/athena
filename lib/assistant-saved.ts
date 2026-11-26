@@ -76,7 +76,7 @@ export async function runSavedTool(name: string, raw: unknown, record: (change: 
         title: i.title ?? i.quote?.slice(0, 120) ?? i.note?.slice(0, 120) ?? null,
         // Its own link: a Team assistant that looks things up online may open it (lib/answer.ts webFetchTool).
         ...(i.url && /^https:\/\//.test(i.url) ? { link: i.url.slice(0, 500) } : {}),
-        // The best price now when it has checks since it was saved (owner, 16 Nov 2026). Its shop can be a site a
+        // The best price now when it has checks since it was saved. Its shop can be a site a
         // model named, and web_fetch trusts this tool's result, so its web addresses can't be opened (lib/run-links.ts).
         ...(thingLine(i.thing, factsWithPriceNow(i.facts, i.price_now)) ? { what: unlinked(thingLine(i.thing, factsWithPriceNow(i.facts, i.price_now))!) } : {}),
         ...(i.filed ? { filed_in: i.filed.label } : {}),

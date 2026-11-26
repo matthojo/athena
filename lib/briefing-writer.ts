@@ -480,7 +480,7 @@ export function draftProblems(draft: { body: string; push: string }, links: Set<
 function readDraft(msg: Anthropic.Message): { body: string; push: string } | null {
   const use = msg.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === TOOL.name);
   const input = use?.input as { body?: unknown; push?: unknown } | undefined;
-  // A web link in the briefing is always a plain link: no card, so nothing is fetched to preview it (security review M6).
+  // A web link in the briefing is always a plain link: no card, so nothing is fetched to preview it.
   return input && typeof input.body === "string" && typeof input.push === "string" ? { body: plainWebLinks(input.body.trim()), push: input.push.trim() } : null;
 }
 

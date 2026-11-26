@@ -1,5 +1,5 @@
 /**
- * Sample mode's team (docs/team.md): three assistants with their triggers,
+ * Sample mode's team: three assistants with their triggers,
  * memory and a few runs, so the Team pages have something real to show.
  * Moss watches gift prices, Dot turns Linear issues into to-dos, and Wren
  * sums up the week on Fridays.
@@ -54,7 +54,7 @@ function trigger(n: number, assistant_id: string, t: Pick<TeamTrigger, "kind" | 
 }
 
 /**
- * Who may look things up online (docs/team.md, "Looking things up online"):
+ * Who may look things up online:
  * Moss checks prices on the web; Dot and Wren don't. `web` is the contract's
  * field, which lib/team-types.ts gains in a sibling session.
  */
@@ -214,7 +214,7 @@ export function sampleRuns(assistantId: string): TeamRun[] {
   return [];
 }
 
-// ---------- their own skills (docs/team.md, "Skills") ----------
+// ---------- their own skills ----------
 
 const MUSE_SKILL = `---
 name: moss-gift-prices

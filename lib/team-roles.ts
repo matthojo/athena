@@ -1,5 +1,5 @@
 /**
- * The role library for Assignments (docs/team.md, "Guests, and keeping one").
+ * The role library for Assignments.
  *
  * A guest is made from one of these: a job, instructions, a default
  * allowlist and whether it wants `web`. In code, like the template starters.

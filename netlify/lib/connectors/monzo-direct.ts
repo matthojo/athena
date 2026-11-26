@@ -19,7 +19,7 @@
  *  - Every 90 days the owner signs in again: the refresh is refused, the
  *    account shows needs_auth, and the existing "Sign in again" push goes.
  *
- * Amounts are money (SECURITY.md §1): they go back to money-sync.ts only,
+ * Amounts are money (docs: security/encryption): they go back to money-sync.ts only,
  * never into an error or a log line, and these tools are never offered to
  * Claude (runner.ts skips sealed-sync accounts).
  */

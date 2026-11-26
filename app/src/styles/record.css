@@ -4,7 +4,7 @@
  * say (components/custom-record-profile.ts). Pages about someone or
  * somewhere, not forms: a hero that fits the kind, the story ("Together",
  * "Visits", drawn with Week in review's wr- rows), and Details folded at
- * the end (docs/notes/night-d1.md).
+ * the end.
  *
  * The shared profile frame (.profile__hero, .fact, .tile--hero) stays in
  * components.css: Trips, Purchases and the connector pages use it too.

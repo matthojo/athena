@@ -88,7 +88,7 @@ export function clearToken(): void {
 }
 
 /**
- * "Sample mode": the user picked "Continue with sample data" on the Connect
+ * "Sample mode": the user picked "Look around with sample data" on the Connect
  * screen instead of pasting a token. Persisted so an installed PWA's cold
  * launch (every launch reloads the page) doesn't bounce them back to Connect
  * every time. The dashboard's and Capture's "Sample data" status pill is the
@@ -312,9 +312,9 @@ export interface ReplyStream {
   threadId?: string;
   /** This reply's run, an id the app chose: sent again under it, the server follows the run and never repeats it (lib/ask-run.ts). */
   run?: string;
-  /** One of the Team's assistants this conversation is with (docs/team.md); the server answers as it. */
+  /** One of the Team's assistants this conversation is with; the server answers as it. */
   assistantId?: string;
-  /** This message only, in place of the chosen thinking model (docs/ai-models.md, HTTP): the owner picked it when warned the chosen one can't see a photo. */
+  /** This message only, in place of the chosen thinking model: the owner picked it when warned the chosen one can't see a photo. */
   model?: import("../../../lib/model-types").ModelRef;
 }
 

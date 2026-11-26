@@ -1,14 +1,13 @@
-// The project website's generator: anchors, links, callouts and the README pieces the home page is built from.
+// The landing page's generator: anchors, links, callouts and the README pieces the page is built from.
 // Run: npx tsx --test scripts/build-site.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  DOCS,
+  DOCS_URL,
   Slugger,
   boldLeadItems,
-  docBlurbs,
-  indexSections,
+  docLinks,
   renderMarkdown,
   resolveHref,
   screenshots,
@@ -25,22 +24,20 @@ test("anchors match GitHub's, so links written for GitHub still land", () => {
   assert.deepEqual([s.slug("Details"), s.slug("Details"), s.slug("Details")], ["details", "details-1", "details-2"]);
 });
 
-test("repository links become pages on the site, or files on GitHub", () => {
-  assert.equal(resolveHref("GUIDE.md#voice", "README.md"), "guide.html#voice");
-  assert.equal(resolveHref("SECURITY.md", "GUIDE.md"), "security.html");
-  assert.equal(resolveHref("../README.md", "extension/README.md"), "index.html");
-  assert.equal(resolveHref("README.md", "extension/README.md"), "extension.html");
+test("README links stay on the page, and other repository links go to GitHub", () => {
+  assert.equal(resolveHref("#try-it-locally", "README.md"), "#try-it-locally");
+  assert.equal(resolveHref("../README.md#license", "extension/README.md"), "index.html#license");
+  assert.equal(resolveHref("SECURITY.md", "README.md"), "https://github.com/matthojo/athena/blob/main/SECURITY.md");
   assert.equal(resolveHref("lib/writing-style.ts", "CONTRIBUTING.md"), "https://github.com/matthojo/athena/blob/main/lib/writing-style.ts");
   assert.equal(resolveHref("netlify/database/migrations/", "CONTRIBUTING.md"), "https://github.com/matthojo/athena/tree/main/netlify/database/migrations");
-  assert.equal(resolveHref("https://example.com/a", "GUIDE.md"), "https://example.com/a");
-  assert.equal(resolveHref("#voice", "GUIDE.md"), "#voice");
-  assert.equal(resolveHref("security.html#x", "COMMUNITY.md"), "security.html#x");
+  assert.equal(resolveHref("https://example.com/a", "README.md"), "https://example.com/a");
+  assert.equal(resolveHref("index.html#x", "README.md"), "index.html#x");
 });
 
 test("headings get anchors, code blocks a copy button, and GitHub alerts become callouts", () => {
   const r = renderMarkdown(
     "# Title\n\n## First part\n\n> [!IMPORTANT]\n> Keep a copy.\n\n```sh\nnpm test # runs it\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
-    "GUIDE.md"
+    "README.md"
   );
   assert.equal(r.title, "Title");
   assert.deepEqual(r.headings, [{ depth: 2, id: "first-part", text: "First part" }]);
@@ -62,11 +59,13 @@ test("the changelog links each version to its release", () => {
   assert.match(r.html, /releases\/tag\/v1\.1\.0/);
 });
 
-test("README still has every piece the home page and Getting started are built from", () => {
+test("README still has every piece the landing page is built from", () => {
   const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
   const s = sections(readme);
-  for (const name of DOCS.find((d) => d.sections)!.sections!) assert.ok(s.has(name), `README has "## ${name}"`);
-  for (const name of ["What it does", "Your data stays on your site", "Documentation", "License"]) assert.ok(s.has(name), `README has "## ${name}"`);
+  for (const name of ["What it does", "Your data stays on your site", "Deploy your own", "Try it locally", "Documentation", "License"]) {
+    assert.ok(s.has(name), `README has "## ${name}"`);
+  }
+  assert.ok(/^### 1\. /m.test(s.get("Deploy your own")!), "Deploy your own has numbered ### steps");
 
   const features = boldLeadItems(s.get("What it does")!);
   assert.ok(features.length >= 6, "features listed as **Title:** text");
@@ -74,28 +73,14 @@ test("README still has every piece the home page and Getting started are built f
 
   assert.ok(boldLeadItems(s.get("Your data stays on your site")!).length >= 3);
 
-  const blurbs = docBlurbs(s.get("Documentation")!);
-  for (const d of DOCS.filter((d) => d.file && !d.lede && d.file !== "LICENSE")) {
-    assert.ok(blurbs.has(d.file!), `Documentation lists ${d.file}`);
-  }
-  assert.match(blurbs.get("GUIDE.md")!, /in detail$/, "a blurb spans its wrapped lines");
+  const docs = docLinks(s.get("Documentation")!);
+  assert.ok(docs.length >= 5, "Documentation lists the docs sections");
+  assert.ok(docs.every((d) => d.href.startsWith(DOCS_URL)), "every docs link goes to the Community site's docs");
+  assert.ok(docs.every((d) => d.text && !/\n/.test(d.text)), "a blurb spans its wrapped lines");
 
   const shots = screenshots(readme);
   assert.ok(shots.length >= 2);
   assert.ok(shots.every((x) => x.alt.length > 0));
-});
-
-test("the search index has one entry per section", () => {
-  const html = renderMarkdown("Intro words.\n\n## Voice\n\nDictation.\n\n### Talk\n\nOut loud.\n", "GUIDE.md").html;
-  const entries = indexSections("guide", "Guide", html);
-  assert.deepEqual(
-    entries.map((e) => [e.h, e.a, e.x]),
-    [
-      ["Guide", "", "Intro words."],
-      ["Voice", "voice", "Dictation."],
-      ["Talk", "talk", "Out loud."],
-    ]
-  );
 });
 
 test("the site follows the system's scheme, the switch the copied tokens.css reads", async () => {

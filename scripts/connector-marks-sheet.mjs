@@ -1,14 +1,14 @@
 /**
  * Contact sheet of every connector mark at tile size, in light and dark,
  * each beside its preset's name, for checking marks against the services'
- * brand pages (docs/notes/connectors-audit.md).
+ * brand pages.
  *
  *   npm run dev:app          # in another terminal
  *   node scripts/connector-marks-sheet.mjs [http://localhost:5173]
  *
  * Renders the app's own brandLogo() with the app's own CSS through the Vite
  * dev server, so the sheet shows exactly what Settings shows. Writes
- * docs/notes/shots-connectors/marks-{light,dark}.png at 2x.
+ * shots/connectors/marks-{light,dark}.png at 2x (git-ignored).
  */
 
 import { createRequire } from "node:module";
@@ -18,7 +18,7 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const base = process.argv[2] ?? "http://localhost:5173";
-const out = resolve("docs/notes/shots-connectors");
+const out = resolve("shots/connectors");
 mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch();

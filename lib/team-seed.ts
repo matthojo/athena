@@ -1,5 +1,5 @@
 /**
- * Team: a character from a seed (docs/team.md, "Contracts"). Pure and
+ * Team: a character from a seed. Pure and
  * deterministic: the same seed always gives the same avatar, personality and
  * name, on the server (a routine becoming an assistant, a new one with no
  * character yet) and in the app (setup's Shuffle).

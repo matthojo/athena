@@ -1,7 +1,7 @@
 /**
  * Sample mode's week (or month) in review: the sample stores, plus what they
- * don't hold, so the page shows a full week as the approved prototype did
- * (docs/notes/week-review.md). A lunch, a gallery visit and a call this
+ * don't hold, so the page shows a full week.
+ * A lunch, a gallery visit and a call this
  * week, two more to-dos done, goals that moved on, a calendar lunch at a
  * place (the "seen" rule), and the places of the eight weeks before.
  * Nothing is saved.

@@ -98,7 +98,7 @@ test("a flag takes the write tools away for the rest of the turn, and holds what
   assert.equal(g.allows("add_todo"), false);
 });
 
-test("a collected note is other people's words; the owner's own notes aren't (owner, 12 Nov 2026)", () => {
+test("a collected note is other people's words; the owner's own notes aren't", () => {
   for (const source of ["manual", "app"]) assert.equal(isCollected(source), false, source);
   // Anything else was collected or written by something other than the owner's own hand, and so is a note that doesn't say.
   for (const source of ["email-digest", "email-digest-personal", "calendar-meetings", "work-activity", "finance", "assistant", "shortcut", "extension", "", null, undefined]) assert.equal(isCollected(source), true, String(source));
@@ -111,7 +111,7 @@ test("a collected note is other people's words; the owner's own notes aren't (ow
   assert.equal(asked.mustWait("add_todo"), null, "the owner's own words asked for it");
 });
 
-// A Team assistant's unattended run: no message from the owner, and its allowlist is their standing request (owner, 13 Nov 2026).
+// A Team assistant's unattended run: no message from the owner, and its allowlist is their standing request.
 test("a run: an allowlisted change runs alone after a collected note was read", () => {
   const g = new TurnGuard("", () => false, ["add_todo"]);
   g.sawOthers("collected");

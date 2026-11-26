@@ -137,7 +137,7 @@ test("an address that isn't a web address is null, with no request", async () =>
   assert.deepEqual(asked, []);
 });
 
-test("maps never get a player, even from a copy kept before the owner's answer", async () => {
+test("maps never get a player, even from a copy kept before the rule", async () => {
   server = preview("m", { url: "https://www.google.com/maps/@51.5,-0.12,15z", embed: { provider: "google-maps", kind: "map", embedUrl: "https://www.google.com/maps?q=51.5,-0.12&output=embed", aspect: 4 / 3, openUrl: "x", allow: "fullscreen" } });
   const p = await loadPreview("https://www.google.com/maps/@51.5,-0.12,15z");
   assert.equal(p?.embed?.provider, "google-maps");

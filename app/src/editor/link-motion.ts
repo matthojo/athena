@@ -1,5 +1,5 @@
 /**
- * Spring motion for rich links (from the approved prototype): an easing
+ * Spring motion for rich links: an easing
  * curve sampled from a damped spring (CSS linear()), and a shared-element
  * morph so a pill can grow into a card and a card can fold back into a pill.
  */

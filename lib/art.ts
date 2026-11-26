@@ -1,7 +1,7 @@
 /**
  * Artwork for Days and Watch & read: film and show posters, book covers,
- * album art and game headers. Never people's photos. SECURITY.md §13 has the
- * rules; docs/notes/days-art.md the decisions.
+ * album art and game headers. Never people's photos. docs: security/outside-services has the
+ * rules.
  *
  * Fetched once, by the server. The browser never asks a third party for an
  * image: it asks GET /api/art/:id, behind the app's token, and gets a copy
@@ -54,7 +54,7 @@ export type ArtHint =
   | { steam: number }
   | { own: { url: string; headers?: Record<string, string>; key: string } }
   | { spotify: string }
-  /** A YouTube video id: its thumbnail. Watch & read only (docs/notes/days-art.md). */
+  /** A YouTube video id: its thumbnail. Watch & read only. */
   | { youtube: string }
   | { letterboxd: string }
   | { isbn: string }
@@ -262,9 +262,9 @@ export interface PreparedArt {
 
 const hex = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
 
-/** Images above this many pixels are refused from their header, before any decode (security review M20). */
+/** Images above this many pixels are refused from their header, before any decode. */
 export const MAX_DECODE_PIXELS = 25_000_000;
-/** A JPEG is decoded at a reduced size, so a large one costs little: a full-size phone photo is kept (owner's decision, 10 Nov 2026). */
+/** A JPEG is decoded at a reduced size, so a large one costs little: a full-size phone photo is kept. */
 export const MAX_JPEG_PIXELS = 60_000_000;
 
 export interface DecodedImage {

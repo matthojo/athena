@@ -1,6 +1,6 @@
 /**
  * A day's map: where you went, as one still image, drawn by the server from
- * map tiles and cached. SECURITY.md §13 has the rules.
+ * map tiles and cached. docs: security/outside-services has the rules.
  *
  *  - The stops are the day's merged visits (lib/places-visits.ts, the sealed
  *    'day' row), in time order. Repeat visits to one spot are one marker.
@@ -29,7 +29,7 @@ import { geocodeAddress } from "./places-visits";
 import { isEncryptedPlaceholder } from "./encrypted";
 import { setKeyStatus, tileCredentials, type TileProvider } from "./art-settings";
 
-/** A map tile is at most 1024px square; anything claiming more is refused before decoding (security review M22). */
+/** A map tile is at most 1024px square; anything claiming more is refused before decoding. */
 const MAX_TILE_PIXELS = 4_000_000;
 
 export type MapTheme = "light" | "dark";
@@ -382,8 +382,8 @@ export const placeDeps = { geocode: (address: string) => geocodeAddress(address)
 
 /**
  * A Place's spot: its sealed coordinates from visits (place_geo) first, else
- * where its typed address is (looked up once and cached; the owner chose this
- * so every place with an address gets a map). Null when there's neither. The
+ * where its typed address is (looked up once and cached, so every place with
+ * an address gets a map). Null when there's neither. The
  * looked-up spot isn't written to place_geo, so it never changes which visits
  * match the place.
  */

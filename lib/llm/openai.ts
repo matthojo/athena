@@ -1,6 +1,6 @@
 /**
  * OpenAI's chat completions, which OpenAI, Meta (Llama API's compatible endpoint) and OpenRouter all speak, behind
- * Anthropic's message shape (docs/ai-models.md). Requests and replies are JSON; a stream is server-sent events.
+ * Anthropic's message shape. Requests and replies are JSON; a stream is server-sent events.
  */
 import type { Anthropic } from "../ai";
 import type { ProviderId } from "../model-types";

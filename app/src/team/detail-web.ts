@@ -1,7 +1,7 @@
 /**
  * "Can look things up online", in an assistant's brief (detail-brief.ts),
  * beside What it can do alone. A plain switch, live like the app-wide one it
- * follows: off by default (owner, 16 Nov 2026).
+ * follows: off by default.
  *
  * - On or off: the switch, what it means, and that it follows "Let Ask
  *   search the web".

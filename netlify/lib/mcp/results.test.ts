@@ -1,4 +1,4 @@
-// What MCP tools answer with: stored content in its envelope, and errors that don't leak (security review M11, M13).
+// What MCP tools answer with: stored content in its envelope, and errors that don't leak.
 // Run: npx tsx --test netlify/lib/mcp/results.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";

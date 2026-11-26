@@ -1,5 +1,5 @@
 /**
- * Team chat (docs/team.md "Team chat", lib/team-posts.ts):
+ * Team chat (lib/team-posts.ts):
  *
  *   GET  /api/team/chat?before=<id>&limit=<n>  → TeamChat: a page of posts and everything that waits, oldest first
  *   POST /api/team/chat { text, assignment_id? } → { posts }: the owner's `said` post and any `reply` (201)
