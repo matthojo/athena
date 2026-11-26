@@ -15,7 +15,8 @@
 
 - [ ] No real people, accounts, places or data anywhere: code, tests, docs, screenshots or commit messages
 - [ ] Migrations: none changed, any new one has the next number and is backwards-compatible
-- [ ] `SECURITY.md` is updated, if this changes what's encrypted, who can read it or what leaves the site
+- [ ] Docs: a pull request on [athena-community](https://github.com/matthojo/athena-community) is linked here, if this changes what Athena does, a label, a route, an MCP tool or an environment variable, or none is needed
+- [ ] The security model (`docs/security/` in athena-community) is updated, if this changes what's encrypted, who can read it or what leaves the site
 - [ ] Code from elsewhere (if any) is named here with its source and its permissive licence
 
 By opening this pull request, you accept Athena's [contribution terms](https://github.com/matthojo/athena/blob/main/CONTRIBUTING.md#contribution-terms).

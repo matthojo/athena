@@ -1,7 +1,7 @@
 name: Website
 
-# Builds the project website (scripts/build-site.ts) from the repository's own
-# docs and publishes it to GitHub Pages. Runs only in Athena's own repository,
+# Builds Athena's landing page (scripts/build-site.ts) from README.md and
+# publishes it to GitHub Pages. The documentation lives on the Community site. Runs only in Athena's own repository,
 # so copies of Athena never publish a site. Pages must be set to deploy from
 # GitHub Actions (Settings → Pages → Source).
 
@@ -9,10 +9,10 @@ on:
   push:
     branches: [main]
     paths:
-      - "*.md"
-      - LICENSE
+      - README.md
+      - CHANGELOG.md
       - package.json
-      - extension/README.md
+      - lib/community-site.ts
       - site/**
       - scripts/build-site.ts
       - app/src/styles/tokens.css

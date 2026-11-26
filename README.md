@@ -9,7 +9,11 @@
 </p>
 
 <p align="center">
-  <a href="https://matthojo.github.io/athena/"><strong>Website and docs</strong></a>
+  <a href="https://athena-community.netlify.app/docs/"><strong>Documentation</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://matthojo.github.io/athena/"><strong>Website</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://athena-community.netlify.app/"><strong>Community</strong></a>
 </p>
 
 <p align="center">
@@ -32,7 +36,7 @@ of it, with sources. You can use it from your phone, your Mac or any
 MCP client.
 
 Each copy belongs to one person and runs on their own Netlify account, so
-the project never sees your data.
+your data stays in that account, not with the project.
 
 <p align="center">
   <img src=".github/readme/home.webp" alt="Athena's Home page on a desktop: a morning greeting, the Ask box with your assistants beside it, and today's train, flight, car hire and hotel in a row" width="100%">
@@ -62,41 +66,30 @@ the project never sees your data.
   organisations, events, reminders, goals, habits, saved links, recipes, and
   things to watch and read. A note that mentions someone shows up on their
   page.
-- **To do:** each to-do opens as a page of its own: a description with
-  links to people and notes, steps to tick off and reorder, the web pages
-  and things in Athena it needs, a priority, a due date, an area and where
-  you'll do it. On the list, each row shows who it's for, when it's due
-  and how many of its steps are done.
-- **Ask:** "What did Gayle say about pricing last month?" Claude searches
-  your notes and, live, the accounts you've connected. It answers in a few
-  sentences with numbered sources, and checks each source against what
-  Athena found. It also carries out instructions ("Remind me to call Mum on
-  Sunday at 6", "I owe Ricardo the staging plan") and lists every change
-  with **Undo**.
-- **Days:** a daily log of sleep and steps (from Apple Health, Oura, Strava
-  or Withings), habits, mood, a journal, where you went (Google Maps
-  Timeline, Swarm), and what you watched, read and listened to.
+- **To-dos with steps:** each to-do opens as a page of its own, with a
+  description, steps to tick off, links, a priority, a due date and an area.
+- **Ask:** "What did Elena say about pricing last month?" Claude searches
+  your notes and, live, the accounts you've connected, then answers in a few
+  sentences with numbered sources that Athena checks. It also carries out
+  instructions ("Remind me to call Mum on Sunday at 6", "I owe Priya the
+  staging plan") and lists every change with **Undo**.
+- **Days:** a daily log of sleep and steps, habits, mood, a journal, where you
+  went, and what you watched, read and listened to.
 - **Collections:** Athena signs in to Gmail, Google Calendar, Outlook,
-  Granola, Linear, Slack, GitHub, Notion or any MCP server, with read-only
-  tools, and on a schedule Claude turns what's new into notes, to-dos and
-  events.
-- **Flows:** a trigger, then steps. "When a renewal email comes in, find
-  what I paid last year, and if it's gone up, add a to-do to decide." A flow
-  starts on a schedule, when something arrives, before an event or a date,
-  or when you tap Run now. Its steps look things up, add to Athena, ask you,
-  wait or tell you, and a check can send it down one of two paths. Say
-  "whenever…" in Ask, describe one in a sentence under Flows → New, or take
-  one Athena suggests from your habits. Adding a reminder, a to-do or a line
-  on a list runs on its own; anything else waits for your **approval**, and Athena
-  never sends a draft.
-- **Team:** assistants you set up, each running its own flows on a schedule
-  or when something arrives (a new Linear issue, a saved link). Let an
-  assistant run one of your flows and it can add steps that work something
-  out, like looking online for a better price, then tell you what it found
-  in its own words. A change you haven't allowed waits for your **approval**. Share
-  an assistant as a file anyone can add to their own Athena, or add one
-  someone shared: it joins paused, and asks before every change until you
-  tick what it may do on its own.
+  Granola, Linear, Slack, GitHub, Notion or any MCP server, and on a schedule
+  Claude turns what's new into notes, to-dos and events. Accounts get
+  read-only tools unless you switch on something that writes, such as moving
+  calendar events.
+- **Flows:** a trigger, then steps. "When a renewal email comes in, find what
+  I paid last year, and if it's gone up, add a to-do to decide." Adding a
+  reminder, a to-do or a line on a list runs on its own; anything else waits
+  for your **approval**, and Athena never sends a draft.
+- **Team:** assistants you set up, each running its own flows on a schedule or
+  when something arrives. Share one as a file, or add one someone shared: it
+  joins paused and asks before every change.
+- **Community:** assistants, skills, flows, check-in questions, templates and
+  themes that other people have shared, each read by a maintainer before it's
+  listed. Nothing runs until you add it and switch it on.
 - **A morning briefing and reminders:** a note at 07:30 in your time zone,
   and push notifications, including on iPhone once Athena is on your Home
   Screen.
@@ -105,194 +98,63 @@ the project never sees your data.
 - **Works offline:** it installs as an app and keeps a copy on the device.
   Changes made offline are sent when you're back online.
 - **Open to your other tools:** an MCP server for Claude, a REST API, iPhone
-  Shortcuts, a browser extension and a Raycast extension (with keys that
-  can only add things),
-  and an Obsidian-compatible markdown export.
+  Shortcuts, a browser extension, a Raycast extension and an
+  Obsidian-compatible markdown export.
 
-The [guide](GUIDE.md) goes through each of these in detail.
+The [guide](https://athena-community.netlify.app/docs/guide/) goes through each of these.
 
 ## Your data stays on your site
 
 - **Your own keys:** your site has its own database and keys, and the keys
-  live only in its Netlify environment.
+  live in its Netlify environment.
 - **Encrypted at rest:** what you write is stored encrypted with AES-256-GCM,
-  under a key only your production functions hold. Deploy previews get a
+  under a key you set for production functions alone. Deploy previews get a
   copy of the database but not the key, so they show "Encrypted — open on
   your-site" instead of your content.
 - **Sensitive figures sealed apart:** health, location, money and home
   figures go in a table of their own and are opened only when a page asks
-  for them. Ask can read spending only after you switch that on.
-- **Read-only access to your accounts:** collections get only read-only
-  tools, and anything that sends, edits or deletes is never offered to
-  Claude. Account sign-ins are sealed under a second key.
+  for them.
+- **Read-only by default:** collections get read-only tools unless you switch
+  on something that writes. Account sign-ins are sealed under a second key.
 - **Not end to end:** your server holds the keys, so someone with both your
   Netlify environment and your database could read your data.
 
-[SECURITY.md](SECURITY.md) has the full model, including what it doesn't
-cover. Athena is a personal tool. It hasn't had an
-independent audit, and it doesn't claim to meet HIPAA or any other
-compliance standard.
+This describes how Athena is designed, not a guarantee. It's a personal tool,
+maintained in spare time and provided as is. It hasn't had an independent
+audit, and it doesn't claim to meet any compliance standard. The
+[security model](https://athena-community.netlify.app/docs/security/) has the detail, including what it doesn't
+cover, and [SECURITY.md](SECURITY.md) says how to report a problem.
 
 ## Deploy your own
 
-You'll need a Netlify account on a credit-based plan (Netlify Database and
-AI Gateway need one), and about ten minutes. Claude runs through Netlify AI
-Gateway, so there's no Anthropic key to set up; it uses your Netlify credits.
-If you'd rather pay the AI companies yourself, see
-[Use your own keys](#use-your-own-keys).
+You'll need a Netlify account on a credit-based plan (Netlify Database and AI
+Gateway need one), and about ten minutes. Claude runs through Netlify AI
+Gateway, so there's no Anthropic key to set up. The
+[deploy guide](https://athena-community.netlify.app/docs/start/deploy/) has every step in full.
 
 ### 1. Deploy
 
 Press **Deploy to Netlify** above. Netlify sets up a new site from this
-repository and asks for four values:
-
-| Variable | What it's for |
-|---|---|
-| `SITE_PASSWORD` | The password you type to open Athena in a browser. Choose your own. |
-| `SESSION_SECRET` | Signs your browser session |
-| `MCP_BEARER_TOKEN` | Your master token, for connecting the app and making API keys |
-| `CONNECTOR_ENCRYPTION_KEY` | Seals your account sign-ins |
-
-Make each of the last three with `openssl rand -hex 32`. Keep a copy of
-`MCP_BEARER_TOKEN`; you'll paste it in step 3. The first deploy creates the
-database and sets up its tables.
+repository and asks for `SITE_PASSWORD`, `SESSION_SECRET`, `MCP_BEARER_TOKEN`
+and `CONNECTOR_ENCRYPTION_KEY`.
 
 ### 2. Set the data key for production only
 
-This key encrypts your content. Set it for the production context alone, so
-deploy previews can't read their copy of your data. With the
-[Netlify CLI](https://docs.netlify.com/cli/get-started/), in a clone of your
-new site's repository:
-
-```sh
-netlify link
-KEY="$(openssl rand -hex 32)"
-netlify env:set ATHENA_DATA_KEY "$KEY" --secret --context production --scope functions
-echo "$KEY"   # save this in your password manager now
-unset KEY
-```
-
-On a Mac you can keep it in your login Keychain instead of printing it:
-
-```sh
-KEY="$(openssl rand -hex 32)" && security add-generic-password -a athena -s ATHENA_DATA_KEY -w "$KEY" \
-  && netlify env:set ATHENA_DATA_KEY "$KEY" --secret --context production --scope functions; unset KEY
-```
-
-> [!IMPORTANT]
-> If you lose this key, you lose your data. Netlify won't show a secret
-> again, so keep your own copy somewhere safe.
-
-Then redeploy production (**Deploys → Trigger deploy**) so the functions
-pick the key up.
+Set `ATHENA_DATA_KEY` for the production context alone, keep a copy in your
+password manager, and redeploy. If you lose this key, you lose your data.
 
 ### 3. Sign in
 
-Open your site, type your `SITE_PASSWORD`, choose **Connect** and paste
-your `MCP_BEARER_TOKEN`. The app exchanges it for a key of its
-own, just for that device, and doesn't keep the token. Do the same on each
-device.
+Open your site, type your `SITE_PASSWORD`, choose **Connect** and paste your
+`MCP_BEARER_TOKEN`. Each device gets a key of its own.
 
 ### 4. Add what you use
 
-Each of these is optional:
+Connect accounts under **Settings → Your sources**, turn on notifications, and
+connect Claude. [Your first week](https://athena-community.netlify.app/docs/start/first-week/) walks through it.
 
-- **Accounts and collections:** Settings → Connectors. Google and Microsoft
-  need an OAuth app of your own; the [guide](GUIDE.md#connectors-athena-collects-from-your-accounts-itself)
-  walks through it.
-- **Notifications:** Settings → Notifications. On iPhone, add Athena to your
-  Home Screen first.
-- **Your own AI and notification keys:** see
-  [Use your own keys](#use-your-own-keys).
-- **Claude:** see [Use it from Claude](#use-it-from-claude).
-
-## Use your own keys
-
-Athena works without any of these. Each one hands a part that Netlify or
-Athena would otherwise look after to a key you hold yourself.
-
-**AI providers.** Claude, and any other model you choose, runs through
-Netlify AI Gateway by default and is billed in Netlify credits. Set your
-own provider key as a secret, and Netlify stops handing out its key for that
-provider. Athena then calls the provider directly, and the provider bills
-you. It works one provider at a time:
-
-| Provider | Variable | Used for |
-|---|---|---|
-| Anthropic | `ANTHROPIC_API_KEY` | Ask, collections, the briefing, flows and assistants |
-| Google | `GEMINI_API_KEY` | Dictation and spoken questions, Gemini models, pictures |
-| OpenAI | `OPENAI_API_KEY` | OpenAI models, GPT Image pictures |
-| Meta | `META_API_KEY` | Llama models |
-| OpenRouter | `OPENROUTER_API_KEY` | OpenRouter models |
-| TypeSafe | `TYPESAFE_API_KEY` | Jev: quick, cheap checks in collections and Ask |
-
-```sh
-netlify env:set ANTHROPIC_API_KEY "<your Anthropic key>" --secret --scope functions
-```
-
-Then redeploy production. To leave the gateway entirely, set a key for
-every provider you use and turn AI features off under **Team settings → AI
-enablement** on Netlify. That switch covers every project on your team.
-
-**Notification keys (VAPID).** Athena makes its own key pair for push
-notifications and keeps the private half sealed under `ATHENA_DATA_KEY`. To
-hold the pair yourself, set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (as a
-secret) and, optionally, `VAPID_SUBJECT` (`mailto:you@example.com`). Make a
-pair with `npx web-push generate-vapid-keys`. After you redeploy, open
-Settings → Notifications on each device to move it to the new key.
-
-The [guide](GUIDE.md#your-own-keys-ai-providers-and-notifications) has each
-variable's optional address, what stops working without the gateway, and a
-command that sets the VAPID keys without printing them.
-
-## Updating
-
-New versions come out as [releases](https://github.com/matthojo/athena/releases).
-Settings → About shows which version you're on, and **Check for updates**
-asks GitHub whether there's a newer one.
-
-Your copy updates through a pull request. The **Update Athena** workflow in
-your repository checks every Monday, and when there's a new release it opens a
-pull request that brings your copy up to it. Netlify builds a deploy preview
-of that pull request against a copy of your database, so any new migrations
-run there before they reach your live site. Merge it, and Netlify updates your
-site.
-
-Set it up once, in your repository on GitHub:
-
-1. **Settings → Actions → General**: under "Workflow permissions", turn on
-   **Allow GitHub Actions to create and approve pull requests**.
-2. To check straight away: **Actions → Update Athena → Run workflow**.
-
-### Details
-
-- **If a release changes a workflow file,** GitHub's built-in token can't push
-  it and the run fails. Add a fine-grained personal access token as a
-  repository secret named `ATHENA_UPDATE_TOKEN`, with read and write access to
-  Contents, Pull requests and Workflows on your repository.
-- **A copy made by the Deploy button has no shared history** with this
-  repository, so the update copies the release's files over yours. If you've
-  changed Athena's own files, the pull request's diff shows what's replaced.
-  A fork or clone shares history, so the release is merged and your changes
-  are kept unless they conflict.
-- **In a public repository, GitHub pauses scheduled workflows** after 60 days
-  without activity. Running it from the Actions tab starts it again.
-- **To do it by hand,** run `scripts/update-athena.sh` in a clone of your copy.
-  It needs the GitHub CLI to open the pull request; with `ATHENA_PUSH=0` it
-  only makes the branch.
-
-## Use it from Claude
-
-Make a key in **Settings → API keys** and choose **Claude only**. It opens
-Athena's MCP tools and nothing else. Then, in Claude Code:
-
-```sh
-claude mcp add --transport http athena https://<your-site>/mcp \
-  --header "Authorization: Bearer <your Claude-only key>"
-```
-
-Claude can then search and read your notes, people and to-dos, and add to
-them. The MCP tools can't delete anything permanently.
+New versions arrive as a pull request in your own repository every Monday
+([Updating](https://athena-community.netlify.app/docs/run/updating/)).
 
 ## Try it locally
 
@@ -306,49 +168,27 @@ npm install
 npm run dev:app
 ```
 
-Open http://localhost:5173 and choose **Continue with sample data**. Ask
-works in sample mode for one question: "What did Elena say about pricing?"
-
-To run the functions and MCP server too, use `netlify link` and then
-`netlify dev` (http://localhost:8888). It starts a local database of its
-own, separate from your site's; set up its tables with
-`netlify database migrations apply`. The data key stays on production, so
-`netlify dev` never has it: anything encrypted shows as "Encrypted — open
-on …".
-
-## Export to Obsidian
-
-```sh
-ATHENA_DATA_KEY="$(security find-generic-password -a athena -s ATHENA_DATA_KEY -w)" npm run export:obsidian
-```
-
-Run it from your linked clone, with your site's database connection string
-in the environment ([SECURITY.md](SECURITY.md) §4). It writes a markdown
-vault to `export/obsidian-vault/`, which is git-ignored. It's a one-off
-snapshot, not a sync. The files it writes are readable, so keep them
-somewhere safe.
+Open http://localhost:5173 and choose **Look around with sample data**.
+[Run it locally](https://athena-community.netlify.app/docs/start/run-it-locally/) covers `netlify dev`, with the
+functions and a local database.
 
 ## Documentation
 
-Every document below is also on the [website](https://matthojo.github.io/athena/),
-with search.
+The docs live on the Community site, with search:
 
-- [GUIDE.md](GUIDE.md): Ask, reminders and the briefing, voice, connectors
-  and collections, and encryption, in detail
-- [ARCHITECTURE.md](ARCHITECTURE.md): how the system fits together, and why
-- [SECURITY.md](SECURITY.md): the security model, and how to report a
-  vulnerability
-- [extension/README.md](extension/README.md): the "Save to Athena" browser
-  extension
-- [athena-raycast](https://github.com/matthojo/athena-raycast): the Raycast
-  extension, for capturing, searching and ticking things off from the
-  keyboard. It lives in a repository of its own
-- [CONTRIBUTING.md](CONTRIBUTING.md): setup, checks, and the rules for
-  changes and releases
-- [SUPPORT.md](SUPPORT.md): where to ask for help
-- [GOVERNANCE.md](GOVERNANCE.md): how decisions are made, and the plans for
-  hosting
-- [CHANGELOG.md](CHANGELOG.md): what changed in each release
+- [Get started](https://athena-community.netlify.app/docs/start/): deploy your own copy and spend your first week
+  with it
+- [Guide](https://athena-community.netlify.app/docs/guide/): every part of Athena, from Ask to themes
+- [Run your copy](https://athena-community.netlify.app/docs/run/): updating, your own keys, costs, backups and
+  troubleshooting
+- [Reference](https://athena-community.netlify.app/docs/reference/): environment variables, MCP tools, the REST API
+  and scheduled jobs
+- [Architecture](https://athena-community.netlify.app/docs/architecture/): how the system fits together, for
+  contributors
+- [Security](https://athena-community.netlify.app/docs/security/): the threat model, encryption and what leaves
+  your site
+- [Community](https://athena-community.netlify.app/docs/community/): adding items others have shared, and sharing
+  your own
 
 ## Contributing
 
