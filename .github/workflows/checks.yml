@@ -19,11 +19,14 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Only permissive licences in what ships (CONTRIBUTING.md, "Only permissive code from elsewhere").
+      - name: Dependency licences
+        run: npm run check:licences
       - run: npm run typecheck
       # Database tests (*.db.test.ts) skip themselves without ATHENA_TEST_DB_URL.
       - run: npm test
       - run: npm run build
-      - name: Project website
+      - name: Landing page
         run: npm run site:build
       - name: Browser extension tests
         working-directory: extension

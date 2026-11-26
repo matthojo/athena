@@ -1,11 +1,10 @@
 /**
- * Builds Athena's project website (GitHub Pages) into site/dist.
+ * Builds Athena's landing page (GitHub Pages) into site/dist.
  *
- * The pages are rendered from the repository's own documents (README, GUIDE,
- * SECURITY, ARCHITECTURE, CONTRIBUTING, CHANGELOG, the extension's README and
- * LICENSE), so the site says what the repository says. The look comes from the
- * app itself: app/src/styles/tokens.css and the app's fonts are copied in, and
- * site/site.css builds on those tokens.
+ * The page is rendered from README.md, so the site says what the repository
+ * says. Athena's documentation lives on the Community site, and the page links
+ * there. The look comes from the app itself: app/src/styles/tokens.css and the
+ * app's fonts are copied in, and site/site.css builds on those tokens.
  *
  * Run: npm run site:build   (then npm run site:preview)
  */
@@ -14,6 +13,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, wr
 import { basename, dirname, join, posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Marked, Renderer, type Tokens } from "marked";
+import { COMMUNITY_SITE } from "../lib/community-site";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = join(ROOT, "site");
@@ -26,63 +26,9 @@ const DEPLOY_URL = `https://app.netlify.com/start/deploy?repository=${REPO_URL}`
 /** The site's own address, for canonical links, social cards and the 404 page. Optional. */
 const SITE_URL = process.env.SITE_URL ? process.env.SITE_URL.replace(/\/?$/, "/") : "";
 
-// ---------------------------------------------------------------------------
-// Pages
-// ---------------------------------------------------------------------------
+/** Athena's documentation, on the Community site. */
+export const DOCS_URL = `${COMMUNITY_SITE}/docs/`;
 
-export type Group = "Start" | "Reference" | "Project";
-
-export interface DocPage {
-  slug: string;
-  title: string;
-  group: Group;
-  icon: IconName;
-  /** The markdown file it's rendered from, relative to the repository root. */
-  file?: string;
-  /** README only: the sections (## headings) this page takes. */
-  sections?: string[];
-  /** One line under the title; README's Documentation list supplies most. */
-  lede?: string;
-}
-
-export const DOCS: DocPage[] = [
-  {
-    slug: "getting-started",
-    title: "Getting started",
-    group: "Start",
-    icon: "flag",
-    file: "README.md",
-    sections: ["Deploy your own", "Use your own keys", "Updating", "Use it from Claude", "Try it locally", "Export to Obsidian"],
-    lede: "Deploy your own copy in about ten minutes, then add the accounts and keys you use.",
-  },
-  { slug: "guide", title: "Guide", group: "Start", icon: "book", file: "GUIDE.md" },
-  { slug: "security", title: "Security model", group: "Reference", icon: "shield", file: "SECURITY.md" },
-  { slug: "architecture", title: "Architecture", group: "Reference", icon: "graph", file: "ARCHITECTURE.md" },
-  { slug: "extension", title: "Browser extension", group: "Reference", icon: "bookmark", file: "extension/README.md" },
-  { slug: "contributing", title: "Contributing", group: "Project", icon: "pen", file: "CONTRIBUTING.md" },
-  { slug: "changelog", title: "Changelog", group: "Project", icon: "clock", file: "CHANGELOG.md" },
-  { slug: "support", title: "Getting help", group: "Project", icon: "chat", file: "SUPPORT.md" },
-  { slug: "governance", title: "Governance", group: "Project", icon: "people", file: "GOVERNANCE.md" },
-  {
-    slug: "code-of-conduct",
-    title: "Code of conduct",
-    group: "Project",
-    icon: "heart",
-    file: "CODE_OF_CONDUCT.md",
-    lede: "The Contributor Covenant, which everyone taking part in Athena follows.",
-  },
-  {
-    slug: "trademarks",
-    title: "Name and logo",
-    group: "Project",
-    icon: "tag",
-    file: "TRADEMARKS.md",
-    lede: "How to use the Athena name and logo, and what a fork should do.",
-  },
-  { slug: "license", title: "License", group: "Project", icon: "key", file: "LICENSE" },
-];
-
-const PAGE_BY_FILE = new Map(DOCS.filter((d) => d.file).map((d) => [d.file!, d]));
 
 // ---------------------------------------------------------------------------
 // Icons: the app's own line icons (app/src/components/icons.ts), same grid and stroke
@@ -179,17 +125,10 @@ export class Slugger {
 }
 
 // ---------------------------------------------------------------------------
-// Links: a repository path becomes a page on this site, or the file on GitHub
+// Links: README is this page; any other repository path is the file on GitHub
 // ---------------------------------------------------------------------------
 
-/** README anchors that live on the Getting started page; the rest are on the home page. */
-const readmeAnchorsOnGettingStarted = new Set<string>();
-
 export function resolveHref(href: string, fromFile: string, root = ROOT): string {
-  // README's own anchors follow their section to Getting started (it works from that page too).
-  if (fromFile === "README.md" && href.startsWith("#") && readmeAnchorsOnGettingStarted.has(href.slice(1))) {
-    return `getting-started.html${href}`;
-  }
   if (!href || href.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) return href;
   const hashAt = href.indexOf("#");
   const path = hashAt >= 0 ? href.slice(0, hashAt) : href;
@@ -199,13 +138,7 @@ export function resolveHref(href: string, fromFile: string, root = ROOT): string
   const repoPath = posix.normalize(posix.join(posix.dirname(fromFile), decodeURI(path))).replace(/^\.\//, "");
   if (repoPath.startsWith("..")) return href;
 
-  if (repoPath === "README.md") {
-    const anchor = hash.slice(1);
-    if (!anchor) return "index.html";
-    return readmeAnchorsOnGettingStarted.has(anchor) ? `getting-started.html${hash}` : `index.html${hash}`;
-  }
-  const page = PAGE_BY_FILE.get(repoPath);
-  if (page) return `${page.slug}.html${hash}`;
+  if (repoPath === "README.md") return `index.html${hash}`;
 
   const abs = join(root, repoPath);
   const isDir = repoPath.endsWith("/") || (existsSync(abs) && statSync(abs).isDirectory());
@@ -361,14 +294,20 @@ export function boldLeadItems(md: string): Item[] {
   return items;
 }
 
-/** `- [FILE](FILE): what it is` list items from README's Documentation section. */
-export function docBlurbs(md: string): Map<string, string> {
-  const out = new Map<string, string>();
+export interface DocLink {
+  title: string;
+  href: string;
+  text: string;
+}
+
+/** `- [Title](address): what it is` list items from README's Documentation section. */
+export function docLinks(md: string): DocLink[] {
+  const out: DocLink[] = [];
   for (const item of md.split(/\n(?=- )/)) {
-    const m = item.match(/^- \[[^\]]+\]\(([^)]+)\):\s*([\s\S]*)$/);
+    const m = item.match(/^- \[([^\]]+)\]\(([^)]+)\):\s*([\s\S]*)$/);
     if (!m) continue;
-    const text = m[2].replace(/\s*\n\s*/g, " ").trim();
-    out.set(m[1], text.charAt(0).toUpperCase() + text.slice(1));
+    const text = m[3].replace(/\s*\n\s*/g, " ").trim();
+    out.push({ title: m[1], href: m[2], text: text.charAt(0).toUpperCase() + text.slice(1) });
   }
   return out;
 }
@@ -447,20 +386,8 @@ export const SCHEME_SCRIPT = `(function(){var r=document.documentElement,m=windo
 
 const AURORA = `<div class="aurora" aria-hidden="true"><span></span><span></span></div>`;
 
-function searchDialog(): string {
-  return `<dialog class="search" aria-label="Search the docs">
-  <form method="dialog" class="search__box" role="search">
-    ${icon("search")}
-    <input class="search__input" type="search" placeholder="Search the docs" aria-label="Search the docs" autocomplete="off" spellcheck="false">
-    <kbd>Esc</kbd>
-  </form>
-  <ol class="search__results" role="listbox" aria-label="Results"></ol>
-  <p class="search__empty" hidden>Nothing matches that. Try fewer words.</p>
-</dialog>`;
-}
-
-function footer(version: string): string {
-  const docLinks = DOCS.map((d) => `<li><a href="${d.slug}.html">${escapeHtml(d.title)}</a></li>`).join("");
+function footer(version: string, docs: DocLink[]): string {
+  const docItems = docs.map((d) => `<li><a href="${escapeHtml(d.href)}" rel="noopener">${escapeHtml(d.title)}</a></li>`).join("");
   return `<footer class="site-footer">
   <div class="site-footer__inner">
     <div class="site-footer__brand">
@@ -468,10 +395,11 @@ function footer(version: string): string {
       <p>A personal second brain that you host yourself, on your own Netlify site.</p>
       <p class="site-footer__meta">Version ${escapeHtml(version)} · Free software under the AGPL-3.0 or later.</p>
     </div>
-    <nav aria-label="Documentation"><p class="side-label">Documentation</p><ul>${docLinks}</ul></nav>
+    <nav aria-label="Documentation"><p class="side-label">Documentation</p><ul>${docItems}</ul></nav>
     <nav aria-label="Project"><p class="side-label">Project</p><ul>
       <li><a href="${REPO_URL}" rel="noopener">Source on GitHub</a></li>
       <li><a href="${REPO_URL}/releases" rel="noopener">Releases</a></li>
+      <li><a href="${COMMUNITY_SITE}/" rel="noopener">Community</a></li>
       <li><a href="${REPO_URL}/discussions" rel="noopener">Discussions</a></li>
       <li><a href="${REPO_URL}/issues" rel="noopener">Issues</a></li>
       <li><a href="${REPO_URL}/security/advisories/new" rel="noopener">Report a vulnerability</a></li>
@@ -480,97 +408,6 @@ function footer(version: string): string {
   </div>
   <p class="site-footer__note">Screens on this site come from sample mode. Every person and number in them is made up.</p>
 </footer>`;
-}
-
-function sidebar(current: string, version: string): string {
-  const groups: Group[] = ["Start", "Reference", "Project"];
-  const items = groups
-    .map((g) => {
-      const links = DOCS.filter((d) => d.group === g)
-        .map(
-          (d) =>
-            `<a class="side-item" href="${d.slug}.html"${d.slug === current ? ' aria-current="page"' : ""}>${icon(d.icon)}<span class="side-item__label">${escapeHtml(d.title)}</span></a>`
-        )
-        .join("");
-      return `<p class="side-label">${g}</p>${links}`;
-    })
-    .join("");
-  return `<nav class="sidebar" id="sidebar" aria-label="Documentation">
-  <a class="sidebar__brand brand" href="index.html">${BRAND_MARK}<span class="brand-name">Athena</span><span class="sidebar__version">v${escapeHtml(version)}</span></a>
-  <button class="sidebar__search" type="button" data-search>${icon("search")}<span>Search the docs…</span><kbd>⌘K</kbd></button>
-  <a class="btn btn--ink sidebar__new" href="${DEPLOY_URL}" rel="noopener">${icon("arrowUp")}Deploy your own</a>
-  <a class="side-item" href="index.html">${icon("home")}<span class="side-item__label">Home</span></a>
-  ${items}
-  <div class="side-status">
-    <p class="side-status__title"><span class="dot"></span>Open source</p>
-    <p class="side-status__body">AGPL-3.0. Issues, ideas and pull requests welcome.</p>
-    <a class="btn btn--ink btn--sm" href="${REPO_URL}" rel="noopener">${icon("github")}GitHub</a>
-  </div>
-</nav>`;
-}
-
-function topbar(): string {
-  return `<header class="topbar">
-  <a class="brand" href="index.html">${BRAND_MARK}<span class="brand-name">Athena</span></a>
-  <div class="topbar__actions">
-    <button class="icon-btn" type="button" data-search aria-label="Search the docs">${icon("search")}</button>
-    <button class="icon-btn" type="button" data-menu aria-controls="sidebar" aria-expanded="false" aria-label="Menu">${icon("menu")}</button>
-  </div>
-</header>`;
-}
-
-function toc(headings: Heading[]): string {
-  const hs = headings.filter((h) => h.depth === 2 || h.depth === 3);
-  if (hs.length < 2) return "";
-  const items = hs.map((h) => `<li class="toc__item toc__item--${h.depth}"><a href="#${h.id}">${escapeHtml(h.text)}</a></li>`).join("");
-  return `<aside class="toc" aria-label="On this page"><p class="side-label">On this page</p><ol>${items}</ol></aside>`;
-}
-
-function pager(slug: string): string {
-  const i = DOCS.findIndex((d) => d.slug === slug);
-  const card = (d: DocPage | undefined, dir: "prev" | "next") =>
-    d
-      ? `<a class="pager__card pager__card--${dir}" href="${d.slug}.html"><span class="pager__dir">${dir === "prev" ? `${icon("chevronLeft")}Previous` : `Next${icon("chevronRight")}`}</span><span class="pager__title">${escapeHtml(d.title)}</span></a>`
-      : "<span></span>";
-  return `<nav class="pager" aria-label="More docs">${card(DOCS[i - 1], "prev")}${card(DOCS[i + 1], "next")}</nav>`;
-}
-
-function docPage(doc: DocPage, body: string, headings: Heading[], version: string): string {
-  const words = stripTags(body).split(/\s+/).length;
-  const minutes = Math.max(1, Math.round(words / 230));
-  const source = doc.file
-    ? `<a class="chip chip--link" href="${REPO_URL}/blob/main/${doc.file}" rel="noopener">${icon("github")}${escapeHtml(doc.file)}</a>`
-    : "";
-  const description = doc.lede || `${doc.title}: Athena's documentation.`;
-  return `${head({ title: `${doc.title} · Athena`, description, path: `${doc.slug}.html` })}
-<body class="page-docs">
-<a class="skip" href="#content">Skip to content</a>
-${AURORA}
-${topbar()}
-<div class="shell">
-  ${sidebar(doc.slug, version)}
-  <div class="scrim" data-menu-close hidden></div>
-  <main class="main" id="content">
-    <article class="doc">
-      <header class="doc__head">
-        <p class="eyebrow">${doc.group}</p>
-        <h1 class="doc__title">${escapeHtml(doc.title)}</h1>
-        ${doc.lede ? `<p class="doc__lede">${escapeHtml(doc.lede)}</p>` : ""}
-        <div class="chips"><span class="chip">${icon("clock")}${minutes} min read</span>${source}</div>
-      </header>
-      <div class="prose">
-${body}
-      </div>
-      ${pager(doc.slug)}
-    </article>
-    ${toc(headings)}
-  </main>
-</div>
-${footer(version)}
-${searchDialog()}
-</body>
-</html>
-`;
 }
 
 // ---------------------------------------------------------------------------
@@ -601,7 +438,7 @@ function homePage(readme: string, version: string): string {
   const privacy = boldLeadItems(privacySection);
   const privacyAfter = privacySection.split(/\n\n(?=[^-\s])/).slice(1).join("\n\n");
   const [hero, ...phones] = screenshots(readme);
-  const blurbs = docBlurbs(s.get("Documentation") ?? "");
+  const docs = docLinks(s.get("Documentation") ?? "");
   const deploy = s.get("Deploy your own") ?? "";
   const deployIntro = deploy.split(/\n### /)[0].trim();
   const steps = [...deploy.matchAll(/^### (\d+)\. (.+)$/gm)].map((m) => ({ n: m[1], title: m[2] }));
@@ -641,19 +478,28 @@ function homePage(readme: string, version: string): string {
 
   const stepItems = steps
     .map(
-      (st) => `<li><a class="step" href="getting-started.html#${slugify(`${st.n}. ${st.title}`)}">
+      (st) => `<li><a class="step" href="${DOCS_URL}start/deploy/" rel="noopener">
         <span class="step__n">${st.n}</span><span class="step__title">${escapeHtml(st.title)}</span>${icon("chevronRight")}
       </a></li>`
     )
     .join("");
 
-  const docCards = DOCS.filter((d) => !["license", "code-of-conduct", "trademarks"].includes(d.slug))
+  const DOC_ICONS: [RegExp, IconName][] = [
+    [/start/i, "flag"],
+    [/guide/i, "book"],
+    [/run/i, "key"],
+    [/reference/i, "notes"],
+    [/architecture/i, "graph"],
+    [/security/i, "shield"],
+    [/community/i, "people"],
+  ];
+  const docCards = docs
     .map((d) => {
-      const text = (d.file ? blurbs.get(d.file) : undefined) || d.lede || "";
-      return `<li><a class="doc-card" href="${d.slug}.html">
-        <span class="feature__icon">${icon(d.icon)}</span>
+      const ic = DOC_ICONS.find(([re]) => re.test(d.title))?.[1] ?? "book";
+      return `<li><a class="doc-card" href="${escapeHtml(d.href)}" rel="noopener">
+        <span class="feature__icon">${icon(ic)}</span>
         <span class="doc-card__title">${escapeHtml(d.title)}</span>
-        <span class="doc-card__body">${escapeHtml(text)}</span>
+        <span class="doc-card__body">${escapeHtml(d.text)}</span>
       </a></li>`;
     })
     .join("");
@@ -670,13 +516,12 @@ ${AURORA}
   <div class="site-nav__inner">
     <a class="brand" href="index.html">${BRAND_MARK}<span class="brand-name">Athena</span></a>
     <nav class="site-nav__links" aria-label="Site">
-      <a href="getting-started.html">Get started</a>
-      <a href="guide.html">Guide</a>
-      <a href="security.html">Security</a>
-      <a href="changelog.html">Changelog</a>
+      <a href="${DOCS_URL}start/" rel="noopener">Get started</a>
+      <a href="${DOCS_URL}guide/" rel="noopener">Guide</a>
+      <a href="${DOCS_URL}security/" rel="noopener">Security</a>
+      <a href="${REPO_URL}/releases" rel="noopener">Releases</a>
     </nav>
     <div class="site-nav__actions">
-      <button class="icon-btn" type="button" data-search aria-label="Search the docs">${icon("search")}</button>
       <a class="icon-btn" href="${REPO_URL}" rel="noopener" aria-label="Athena on GitHub">${icon("github")}</a>
       <a class="btn btn--ink btn--sm site-nav__deploy" href="${DEPLOY_URL}" rel="noopener">Deploy</a>
     </div>
@@ -685,19 +530,19 @@ ${AURORA}
 
 <main id="content">
   <section class="hero">
-    <a class="pill-note" href="changelog.html"><span class="dot"></span><span>Version ${escapeHtml(version)}${latest ? `: ${escapeHtml(latest)}` : ""}</span>${icon("chevronRight")}</a>
+    <a class="pill-note" href="${REPO_URL}/releases/tag/v${escapeHtml(version)}" rel="noopener"><span class="dot"></span><span>Version ${escapeHtml(version)}${latest ? `: ${escapeHtml(latest)}` : ""}</span>${icon("chevronRight")}</a>
     <h1 class="hero__title">A second brain you host yourself. <span class="quiet">Notes, people, to‑dos and days, on a Netlify site you own.</span></h1>
-    <p class="hero__lede">Athena collects from the accounts you connect, such as Gmail, Calendar, Slack and Linear, and Claude answers questions about all of it, with sources. Each copy belongs to one person, so the project never sees your data.</p>
+    <p class="hero__lede">Athena collects from the accounts you connect, such as Gmail, Calendar, Slack and Linear, and Claude answers questions about all of it, with sources. Each copy belongs to one person, so your data stays in your own Netlify account.</p>
 
     <div class="ask" aria-hidden="true">
       <span class="orb"></span>
-      <span class="ask__text"><span class="ask__typed" data-typed>What did Gayle say about pricing last month?</span><span class="ask__caret"></span></span>
+      <span class="ask__text"><span class="ask__typed" data-typed>What did Elena say about pricing last month?</span><span class="ask__caret"></span></span>
       <span class="ask__send">${icon("arrowUp")}</span>
     </div>
 
     <div class="hero__actions">
       <a class="btn btn--ink btn--lg" href="${DEPLOY_URL}" rel="noopener">${icon("arrowUp")}Deploy to Netlify</a>
-      <a class="btn btn--outline btn--lg" href="getting-started.html">Read the docs</a>
+      <a class="btn btn--outline btn--lg" href="${DOCS_URL}" rel="noopener">Read the docs</a>
       <a class="btn btn--ghost btn--lg" href="${REPO_URL}" rel="noopener">${icon("github")}View the source</a>
     </div>
     <ul class="chips hero__chips" aria-label="Project facts">
@@ -719,7 +564,7 @@ ${AURORA}
       <h2 class="band__title" id="what-it-does-title">Everything links up, <span class="quiet">and Ask answers from all of it with sources.</span></h2>
     </header>
     <ul class="features">${featureCards}</ul>
-    <p class="band__more"><a class="link-arrow" href="guide.html">The guide goes through each of these in detail${icon("arrowRight")}</a></p>
+    <p class="band__more"><a class="link-arrow" href="${DOCS_URL}guide/" rel="noopener">The guide goes through each of these${icon("arrowRight")}</a></p>
   </section>
 
   ${
@@ -740,7 +585,7 @@ ${AURORA}
         <p class="eyebrow">Your data stays on your site</p>
         <h2 class="band__title" id="privacy-title">Your own database and keys, <span class="quiet">on your own Netlify account.</span></h2>
         <div class="split__text">${renderMarkdown(privacyAfter, "README.md").html}</div>
-        <a class="btn btn--outline" href="security.html">${icon("shield")}Read the security model</a>
+        <a class="btn btn--outline" href="${DOCS_URL}security/" rel="noopener">${icon("shield")}Read the security model</a>
       </header>
       <ul class="promises">${privacyItems}</ul>
     </div>
@@ -754,7 +599,7 @@ ${AURORA}
         <div class="split__text">${renderMarkdown(deployIntro, "README.md").html}</div>
         <div class="hero__actions">
           <a class="btn btn--ink" href="${DEPLOY_URL}" rel="noopener">${icon("arrowUp")}Deploy to Netlify</a>
-          <a class="btn btn--outline" href="getting-started.html">Setup guide</a>
+          <a class="btn btn--outline" href="${DOCS_URL}start/deploy/" rel="noopener">Setup guide</a>
         </div>
       </div>
       <ol class="steps">${stepItems}</ol>
@@ -788,64 +633,19 @@ ${AURORA}
         <div class="split__text">${renderMarkdown(license, "README.md").html}</div>
       </div>
       <div class="community__actions">
-        <a class="row-link" href="contributing.html">${icon("pen")}<span><strong>Contribute</strong><span>Setup, checks, and the rules every change follows</span></span>${icon("chevronRight")}</a>
-        <a class="row-link" href="support.html">${icon("chat")}<span><strong>Get help</strong><span>Questions in Discussions, bugs in issues</span></span>${icon("chevronRight")}</a>
-        <a class="row-link" href="code-of-conduct.html">${icon("heart")}<span><strong>Code of conduct</strong><span>What everyone taking part follows</span></span>${icon("chevronRight")}</a>
-        <a class="row-link" href="security.html#reporting-a-vulnerability">${icon("shield")}<span><strong>Report a vulnerability</strong><span>Privately, not in a public issue</span></span>${icon("chevronRight")}</a>
+        <a class="row-link" href="${REPO_URL}/blob/main/CONTRIBUTING.md" rel="noopener">${icon("pen")}<span><strong>Contribute</strong><span>Setup, checks, and the rules every change follows</span></span>${icon("chevronRight")}</a>
+        <a class="row-link" href="${REPO_URL}/blob/main/SUPPORT.md" rel="noopener">${icon("chat")}<span><strong>Get help</strong><span>Questions in Discussions, bugs in issues</span></span>${icon("chevronRight")}</a>
+        <a class="row-link" href="${REPO_URL}/blob/main/CODE_OF_CONDUCT.md" rel="noopener">${icon("heart")}<span><strong>Code of conduct</strong><span>What everyone taking part follows</span></span>${icon("chevronRight")}</a>
+        <a class="row-link" href="${REPO_URL}/security/policy" rel="noopener">${icon("shield")}<span><strong>Report a vulnerability</strong><span>Privately, not in a public issue</span></span>${icon("chevronRight")}</a>
         <a class="row-link" href="${REPO_URL}/releases" rel="noopener">${icon("clock")}<span><strong>Releases</strong><span>Your copy checks for a new one every Monday</span></span>${icon("chevronRight")}</a>
       </div>
     </div>
   </section>
 </main>
-${footer(version)}
-${searchDialog()}
+${footer(version, docs)}
 </body>
 </html>
 `;
-}
-
-// ---------------------------------------------------------------------------
-// The license page
-// ---------------------------------------------------------------------------
-
-function licenseBody(readme: string): string {
-  const summary = sections(readme).get("License") ?? "";
-  const text = readFileSync(join(ROOT, "LICENSE"), "utf8");
-  return `<h2 id="license"><a class="anchor" href="#license" aria-label="Link to this section">#</a>In short</h2>
-${renderMarkdown(summary, "README.md").html}
-<h2 id="full-text"><a class="anchor" href="#full-text" aria-label="Link to this section">#</a>Full text</h2>
-<pre class="license-text">${escapeHtml(text)}</pre>`;
-}
-
-// ---------------------------------------------------------------------------
-// Search index
-// ---------------------------------------------------------------------------
-
-export interface Entry {
-  /** page slug */ p: string;
-  /** page title */ t: string;
-  /** heading */ h: string;
-  /** anchor */ a: string;
-  /** text */ x: string;
-}
-
-/** One entry per ## or ### section of a rendered page. */
-export function indexSections(slug: string, pageTitle: string, html: string): Entry[] {
-  const entries: Entry[] = [];
-  let last = { h: pageTitle, a: "", start: 0 };
-  const push = (end: number) => {
-    const x = stripTags(html.slice(last.start, end).replace(/<button[\s\S]*?<\/button>/g, "").replace(/<span class="code__lang">[\s\S]*?<\/span>/g, ""))
-      .replace(/\s+/g, " ")
-      .trim();
-    if (x || last.a) entries.push({ p: slug, t: pageTitle, h: last.h, a: last.a, x });
-  };
-  for (const m of html.matchAll(/<h([23]) id="([^"]+)">([\s\S]*?)<\/h\1>/g)) {
-    push(m.index!);
-    const heading = stripTags(m[3].replace(/<a class="anchor"[\s\S]*?<\/a>/, "").replace(/<a class="chip[\s\S]*?<\/a>/, "")).trim();
-    last = { h: heading, a: m[2], start: m.index! + m[0].length };
-  }
-  push(html.length);
-  return entries;
 }
 
 // ---------------------------------------------------------------------------
@@ -857,21 +657,20 @@ function copy(from: string, to: string) {
   copyFileSync(from, to);
 }
 
-function notFound(version: string): string {
+function notFound(version: string, docs: DocLink[]): string {
   // GitHub Pages serves this at any missing path, so links are made absolute when the address is known.
   return `${head({ title: "Not found · Athena", description: "This page isn't here.", path: "404.html" }, SITE_URL)}
 <body class="page-home">
 ${AURORA}
 <main id="content" class="not-found">
   <a class="brand" href="index.html">${BRAND_MARK}<span class="brand-name">Athena</span></a>
-  <h1 class="hero__title">There's no page at this address. <span class="quiet">Search the docs, or start from home.</span></h1>
+  <h1 class="hero__title">There's no page at this address. <span class="quiet">Start from home, or read the docs.</span></h1>
   <div class="hero__actions">
     <a class="btn btn--ink" href="index.html">${icon("home")}Home</a>
-    <button class="btn btn--outline" type="button" data-search>${icon("search")}Search the docs</button>
+    <a class="btn btn--outline" href="${DOCS_URL}" rel="noopener">${icon("book")}Read the docs</a>
   </div>
 </main>
-${footer(version)}
-${searchDialog()}
+${footer(version, docs)}
 </body>
 </html>
 `;
@@ -880,7 +679,6 @@ ${searchDialog()}
 export function build() {
   const version = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version as string;
   const readme = readFileSync(join(ROOT, "README.md"), "utf8");
-  const readmeSections = sections(readme);
 
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(join(OUT, "assets"), { recursive: true });
@@ -897,44 +695,14 @@ export function build() {
   copy(join(SITE, "site.css"), join(OUT, "assets/site.css"));
   copy(join(SITE, "site.js"), join(OUT, "assets/site.js"));
 
-  // Getting started first: other pages' links to README anchors need to know what it holds.
-  const rendered = new Map<string, Rendered>();
-  for (const doc of DOCS.filter((d) => d.sections)) {
-    const md = doc.sections!.map((name) => `## ${name}\n\n${readmeSections.get(name) ?? ""}`).join("\n\n");
-    const r = renderMarkdown(md, doc.file!);
-    for (const h of r.headings) readmeAnchorsOnGettingStarted.add(h.id);
-    rendered.set(doc.slug, r);
-  }
-  for (const doc of DOCS.filter((d) => !d.sections)) {
-    if (doc.slug === "license") {
-      const headings = [
-        { depth: 2, id: "license", text: "In short" },
-        { depth: 2, id: "full-text", text: "Full text" },
-      ];
-      rendered.set(doc.slug, { html: licenseBody(readme), headings });
-    } else {
-      const md = readFileSync(join(ROOT, doc.file!), "utf8");
-      rendered.set(doc.slug, renderMarkdown(md, doc.file!, { changelog: doc.slug === "changelog" }));
-    }
-  }
-
-  const blurbs = docBlurbs(readmeSections.get("Documentation") ?? "");
-  const index: Entry[] = [];
-  for (const doc of DOCS) {
-    if (!doc.lede && doc.file && blurbs.has(doc.file)) doc.lede = blurbs.get(doc.file);
-    const r = rendered.get(doc.slug)!;
-    writeFileSync(join(OUT, `${doc.slug}.html`), docPage(doc, r.html, r.headings, version));
-    if (doc.slug !== "license") index.push(...indexSections(doc.slug, doc.title, r.html));
-  }
-
+  const docs = docLinks(sections(readme).get("Documentation") ?? "");
   writeFileSync(join(OUT, "index.html"), homePage(readme, version));
-  writeFileSync(join(OUT, "search.json"), JSON.stringify(index));
-  writeFileSync(join(OUT, "404.html"), notFound(version));
+  writeFileSync(join(OUT, "404.html"), notFound(version, docs));
   writeFileSync(join(OUT, ".nojekyll"), "");
 
   for (const [abs, out] of copiedMedia) copy(abs, join(OUT, out));
 
-  console.log(`Built ${DOCS.length + 2} pages and ${index.length} search entries into ${relative(ROOT, OUT)}/`);
+  console.log(`Built the landing page into ${relative(ROOT, OUT)}/`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) build();

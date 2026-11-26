@@ -57,6 +57,25 @@ edit, rename or remove one that's on `main`; add a new one with the next
 number, and keep it backwards-compatible. CI fails a pull request that
 changes a released migration.
 
+## Design
+
+Before you change how the app looks, read `.claude/design.md`: who it's for,
+the type, colour and motion rules, and what to avoid. The tokens are in
+`app/src/styles/tokens.css`.
+
+## Docs live in athena-community
+
+Published docs are in the `athena-community` repository, under `docs/`, and
+appear at https://athena-community.netlify.app/docs/. That repository is
+private: it holds the docs and the Community catalogue (shared themes, skills,
+flows and so on). Issues, questions and security reports for Athena and for
+Community all come here, so public files never link to the athena-community
+repository. This repository keeps only README, SECURITY, CONTRIBUTING and the
+other repository files. A change to what Athena does, a label, a route, an MCP
+tool or an environment variable needs a docs pull request there. Docs and code
+comments describe Athena as it is: no decision log, no "the owner decided", no
+dates of decisions.
+
 ## Before you push
 
 ```sh
@@ -64,4 +83,4 @@ npm run typecheck && npm test && npm run build
 ```
 
 When a change affects what's encrypted, who can read it or what leaves the
-site, update `SECURITY.md` too.
+site, update the security model in athena-community (`docs/security/`) too.

@@ -458,13 +458,13 @@ CREATE INDEX goal_progress_goal_at_idx ON goal_progress (goal_id, at DESC);
 
 -- ---------- Ranked full-text search over notes ----------
 -- 0005 added a full-text index (athena_note_tsv + notes_fts_idx); 0012
--- dropped both. Content is encrypted at rest (SECURITY.md §11), so recall
+-- dropped both. Content is encrypted at rest (docs: security/encryption), so recall
 -- decrypts and ranks in the Function (lib/text-search.ts).
 
 -- ---------- Custom fields: the owner's own details on any kind of record (0016) ----------
 -- "Shoe size" and "Interests" on people, "Rating" on the reading list. Defined
 -- per kind in Settings (or through Ask), archived but never deleted. Labels,
--- units, options and values are sealed like other content (SECURITY.md §11),
+-- units, options and values are sealed like other content (docs: security/encryption),
 -- so labels are matched and values searched in the Function, never in SQL.
 -- kind / entity_kind are a kind string, not a fixed list: a new kind needs no
 -- migration, and owner-made kinds can later use ids like 'custom:<uuid>'.
@@ -496,7 +496,7 @@ CREATE INDEX custom_values_entity_idx ON custom_values (entity_kind, entity_id);
 
 -- ===== 0018_custom-kinds: the owner's own kinds of record, and their records =====
 -- A kind's fields and values are custom_fields / custom_values with kind
--- 'custom:<kind id>'. name, one, title and body are sealed (SECURITY.md §11).
+-- 'custom:<kind id>'. name, one, title and body are sealed (docs: security/encryption).
 CREATE TABLE custom_kinds (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,             -- plural, as shown: "Wines"
@@ -749,7 +749,7 @@ CREATE INDEX trip_bookings_live_starts_idx ON trip_bookings (starts_at) WHERE ar
 CREATE INDEX trip_bookings_archived_idx ON trip_bookings (archived_at DESC) WHERE archived_at IS NOT NULL;
 
 -- ---------- Purchases: an order and where its delivery has got to ----------
--- Never a price, total or card detail (SECURITY.md §1). Settled ones are
+-- Never a price, total or card detail (docs: security/encryption). Settled ones are
 -- archived by Athena 30 days on (archived_by_athena); one you restore stays.
 CREATE TABLE purchases (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

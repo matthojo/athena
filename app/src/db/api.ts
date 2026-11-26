@@ -88,7 +88,7 @@ export function clearToken(): void {
 }
 
 /**
- * "Sample mode": the user picked "Continue with sample data" on the Connect
+ * "Sample mode": the user picked "Look around with sample data" on the Connect
  * screen instead of pasting a token. Persisted so an installed PWA's cold
  * launch (every launch reloads the page) doesn't bounce them back to Connect
  * every time. The dashboard's and Capture's "Sample data" status pill is the
