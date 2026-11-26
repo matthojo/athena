@@ -28,11 +28,12 @@
  * (lib/flow-triggers.ts). An assistant's triggers that are flows (`flow_id`) are left to Flows too.
  */
 import { aiConfigured } from "./ai";
-import { qRaw, tx } from "./db";
+import { openDeep } from "./data-box";
+import { q, qRaw, tx } from "./db";
 import { dueSlot } from "./routines";
 import { listAssistants } from "./team";
 import { enqueueTeamRun, handOffTeamRun, runLabel, teamOrigin } from "./team-run";
-import { emitTeamEvent, type TeamEventFacets, type TeamEventRow } from "./team-events";
+import { emitTeamEvent, facetsOf, type TeamEventFacets, type TeamEventRow } from "./team-events";
 import type { EventFilter, EventSource, TeamAssistant, TeamRun, TeamTrigger } from "./team-types";
 
 /** Events looked at in one pass. */
@@ -90,14 +91,15 @@ export async function claimTriggerSlot(id: string, slot: Date): Promise<boolean>
 
 /** Take the oldest unprocessed events, marking them processed: each is matched by one pass only. */
 export async function claimEvents(limit = EVENTS_PER_PASS): Promise<TeamEventRow[]> {
-  const rows = await qRaw<{ id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: TeamEventRow["facets"] | null; created_at: string | Date }>(
+  // q, not qRaw: facets are sealed (lib/team-events.ts).
+  const rows = await q<{ id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: unknown; created_at: string | Date }>(
     `UPDATE team_events SET processed_at = now()
       WHERE id IN (SELECT id FROM team_events WHERE processed_at IS NULL ORDER BY id LIMIT $1 FOR UPDATE SKIP LOCKED)
       RETURNING id, kind, ref_id, ref_kind, facets, created_at`,
     [limit],
   );
   return rows
-    .map((r) => ({ id: String(r.id), kind: r.kind, ref_id: r.ref_id, ref_kind: r.ref_kind, facets: r.facets ?? {}, created_at: new Date(r.created_at).toISOString() }))
+    .map((r) => ({ id: String(r.id), kind: r.kind, ref_id: r.ref_id, ref_kind: r.ref_kind, facets: facetsOf(r.facets), created_at: new Date(r.created_at).toISOString() }))
     .sort((a, b) => Number(a.id) - Number(b.id));
 }
 
@@ -142,16 +144,16 @@ export async function queueTeamRuns(now: Date, tz: string): Promise<TeamRun[]> {
   return queued;
 }
 
-export type EventRowRaw = { id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: TeamEventRow["facets"] | null; created_at: string | Date; processed_at?: string | Date | null };
+export type EventRowRaw = { id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: unknown; created_at: string | Date; processed_at?: string | Date | null };
 
-/** A team_events row as the database gives it, made plain. Pure. */
+/** A team_events row as q() gives it (facets opened to JSON text), made plain. Pure. */
 export function toEventRow(r: EventRowRaw): TeamEventRow {
   return {
     id: String(r.id),
     kind: r.kind,
     ref_id: r.ref_id,
     ref_kind: r.ref_kind,
-    facets: r.facets ?? {},
+    facets: facetsOf(r.facets),
     created_at: new Date(r.created_at).toISOString(),
     ...(r.processed_at !== undefined ? { processed_at: r.processed_at == null ? null : new Date(r.processed_at).toISOString() } : {}),
   };
@@ -221,7 +223,7 @@ export async function startTeamEvent(
         [id],
       );
       if (!r) return [];
-      const ev: TeamEventRow = { id: String(r.id), kind: r.kind, ref_id: r.ref_id, ref_kind: r.ref_kind, facets: r.facets ?? {}, created_at: new Date(r.created_at).toISOString() };
+      const ev: TeamEventRow = { id: String(r.id), kind: r.kind, ref_id: r.ref_id, ref_kind: r.ref_kind, facets: facetsOf(openDeep(r.facets)), created_at: new Date(r.created_at).toISOString() };
       const out: TeamRun[] = [];
       for (const b of batchByAssistant([ev], assistants)) {
         if (!(await stillTriggers(run, [...b.triggers])).has(b.trigger.id)) {

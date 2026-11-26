@@ -10,7 +10,7 @@
  * fire (`event:<id>`) in `flow_trigger_fires`, so an event a plain flow left
  * for the next pass never starts another flow twice.
  */
-import { getConnectionsDetailed, getEvent, getPerson, listEvents, notDeclined, qRaw, type AthenaEvent } from "./db";
+import { getConnectionsDetailed, getEvent, getPerson, listEvents, notDeclined, q, qRaw, type AthenaEvent } from "./db";
 import { getAsset, listAssets } from "./memory";
 import { getBooking, getPurchase } from "./trips";
 import { daysBetween, upcomingOccurrences, zonedToday } from "./dates";
@@ -40,7 +40,8 @@ export const dbFlowClaims: FlowClaims = {
   },
   async pending(limit) {
     // Read, not marked: a plain flow may leave some for the next pass. Fires stop a run starting twice.
-    const rows = await qRaw<EventRowRaw>(
+    // q, not qRaw: facets are sealed (lib/team-events.ts).
+    const rows = await q<EventRowRaw>(
       `SELECT id, kind, ref_id, ref_kind, facets, created_at, processed_at FROM team_events WHERE flow_claimed_at IS NULL ORDER BY id LIMIT $1`,
       [limit],
     );
@@ -51,7 +52,7 @@ export const dbFlowClaims: FlowClaims = {
     await qRaw(`UPDATE team_events SET flow_claimed_at = now() WHERE id = ANY($1::bigint[]) AND flow_claimed_at IS NULL`, [ids]);
   },
   async event(id) {
-    const [r] = await qRaw<EventRowRaw>(
+    const [r] = await q<EventRowRaw>(
       `SELECT id, kind, ref_id, ref_kind, facets, created_at, processed_at FROM team_events WHERE id = $1::bigint AND flow_claimed_at IS NULL`,
       [id],
     );

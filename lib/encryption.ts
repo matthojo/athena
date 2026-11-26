@@ -79,6 +79,8 @@ export const ENCRYPTED: EncryptedTable[] = [
   { table: "reminders", key: ID, text: ["text"] },
   // A to-do's steps and links (0084): each list one sealed JSON value.
   { table: "commitments", key: ID, text: ["title", "notes", "source_quote"], json: ["steps", "links"] },
+  // What arrived for a Team or flow trigger (lib/team-events.ts): titles, tags, hosts and account names. Kept for seven days.
+  { table: "team_events", key: [["id", "bigint"]], text: [], json: ["facets"] },
   { table: "interactions", key: ID, text: ["summary"] },
   { table: "facts", key: ID, text: ["value", "source_quote"] },
   {

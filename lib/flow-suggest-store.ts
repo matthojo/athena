@@ -14,6 +14,7 @@
 import { q, qRaw } from "./db";
 import { presentActivity } from "./ask-activity";
 import { filedToOf } from "./saved";
+import { facetsOf } from "./team-events";
 import { FOLLOW_KINDS, REPEAT_DAYS, SAVED_DAYS, type AskChange, type CollectedItem, type OwnerReminder, type OwnerTodo, type SavedFiling, type SuggestSignals } from "./flow-suggest";
 import type { ExistingFlow } from "./flow-suggest-check";
 
@@ -48,11 +49,17 @@ export function mergeCollected(rows: Array<{ id: string; kind: string; title: st
 
 async function readCollected(now: Date): Promise<CollectedItem[]> {
   const kinds = Object.keys(FOLLOW_KINDS);
-  const events = await qRaw<{ id: string | number; ref_id: string | null; kind: string; title: string | null; created_at: string | Date }>(
-    `SELECT id, ref_id, facets->>'kind' AS kind, facets->>'title' AS title, created_at FROM team_events
-      WHERE kind = 'collected' AND created_at >= $1 AND facets->>'kind' = ANY($2::text[])`,
-    [ago(now, EVENT_DAYS), kinds],
-  );
+  // Facets are one sealed JSON string (lib/team-events.ts), so the kind is matched here, once q has opened them.
+  const events = (
+    await q<{ id: string | number; ref_id: string | null; facets: unknown; created_at: string | Date }>(
+      `SELECT id, ref_id, facets, created_at FROM team_events WHERE kind = 'collected' AND created_at >= $1`,
+      [ago(now, EVENT_DAYS)],
+    )
+  ).flatMap((e) => {
+    const f = facetsOf(e.facets);
+    const kind = typeof f.kind === "string" ? f.kind : "";
+    return kinds.includes(kind) ? [{ ...e, kind, title: typeof f.title === "string" ? f.title : null }] : [];
+  });
   // Purchases go back further than team_events: every order Athena saw this month, with when it was seen and when it last moved.
   const purchases = await q<{ id: string; retailer: string; items: string[] | null; created_at: string | Date; status_at: string | Date }>(
     `SELECT id, retailer, items, created_at, status_at FROM purchases WHERE created_at >= $1 OR status_at >= $1`,
