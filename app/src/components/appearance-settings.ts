@@ -28,6 +28,7 @@ import { SIZE_LIMITS, SYSTEM_FONT } from "../lib/theme-paint";
 import { canListFonts, commonFontsHere, fontPermission, listDeviceFonts } from "../lib/fonts";
 import athenaChart from "../themes/athena-chart.json";
 import { catalogueStatus, updateDot } from "../community/status";
+import { communityHash } from "../community/words";
 import { themeChangeWords, themeFromShort, themeFromWords } from "./theme-share-words";
 import { CHART_SERIES, COLOUR_KEYS, LIMITS, NAME_MAX, SCHEMES, closePairs, parseColour, readTheme, toHex, type ColourKey, type Scheme, type Theme, type ThemeChoice } from "../../../lib/theme";
 
@@ -44,6 +45,7 @@ export const APPEARANCE_COPY = {
 
   themeLegend: "Theme",
   themeHint: "Your theme is the same on all your devices.",
+  browse: "Browse Community themes",
   yours: "Yours",
   share: "Share",
   make: "Make your own",
@@ -223,7 +225,7 @@ export function appearanceSection(opts: { open?: string | null } = {}): { el: HT
   // Theme
   const tiles = h("div", { class: "theme-tiles" });
   const editorSlot = h("div", { class: "theme-editor-slot" });
-  const themes = h("fieldset", { class: "appearance-choices" }, h("legend", { class: "appearance-choices__legend" }, C.themeLegend), tiles, h("p", { class: "form__hint" }, C.themeHint));
+  const themes = h("fieldset", { class: "appearance-choices" }, h("legend", { class: "appearance-choices__legend" }, C.themeLegend), tiles, h("p", { class: "form__hint" }, C.themeHint), h("p", { class: "appearance-more" }, h("a", { class: "btn btn--soft btn--sm", href: communityHash("theme") }, icons.globe(), C.browse)));
   let editing: { close: () => void } | null = null;
 
   const tile = (choice: ThemeChoice, theme: Theme | null, name: string, ownId?: string) => {
