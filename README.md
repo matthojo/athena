@@ -141,25 +141,33 @@ and `CONNECTOR_ENCRYPTION_KEY`.
 
 ### 2. Keep your keys to production
 
-Set `ATHENA_DATA_KEY` for the production context alone, keep a copy in your
-password manager, and redeploy. If you lose this key, you lose your data.
-
-Then, under **Site configuration → Environment variables**, change
+Under **Site configuration → Environment variables**, change
 `MCP_BEARER_TOKEN`, `CONNECTOR_ENCRYPTION_KEY`, `SESSION_SECRET` and
 `SITE_PASSWORD` from every context to **Production** alone. Each update
 arrives as a pull request, and Netlify runs its deploy preview before you
 merge it, with whatever its context is given. A preview build that can see
 one of these stops and says which.
 
-### 3. Sign in
+### 3. Open your site
 
-Open your site, type your `SITE_PASSWORD`, choose **Connect** and paste your
-`MCP_BEARER_TOKEN`. Each device gets a key of its own.
+Open your site and type your `SITE_PASSWORD`. A guided setup takes it from
+there, in about ten minutes:
+
+- **Connect this device** with your `MCP_BEARER_TOKEN`. Each device gets a key
+  of its own.
+- **Check your site:** Athena checks its environment variables and makes your
+  `ATHENA_DATA_KEY` in the browser. You add it in Netlify for the production
+  context alone, keep a copy in your password manager, and redeploy; the
+  guide waits for the deploy. If you lose this key, you lose your data.
+- **Your name, your first sources and your phone:** connect a calendar, email
+  or work account, add Athena to your Home Screen and turn on notifications.
+
+If you close it partway, it carries on where you left off, on any device.
 
 ### 4. Add what you use
 
-Connect accounts under **Settings → Sources**, turn on notifications, and
-connect Claude. [Your first week](https://athena-community.netlify.app/docs/start/first-week/) walks through it.
+Connect more accounts under **Settings → Sources** and connect Claude.
+[Your first week](https://athena-community.netlify.app/docs/start/first-week/) walks through it.
 
 New versions arrive as a pull request in your own repository every Monday
 ([Updating](https://athena-community.netlify.app/docs/run/updating/)).

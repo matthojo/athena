@@ -25,6 +25,8 @@ import { findRecord } from "./db/records";
 import { markSourcesStale, statusButton, type StatusActions } from "./components/status";
 import { mountToastStack, showToast } from "./components/toast";
 import { renderConnect } from "./views/connect";
+import { fetchSetup, guideDoneHere, guidePutOff, markGuideDoneHere } from "./guide/api";
+import type { SetupStatus } from "../../lib/setup-guide";
 import { renderHome } from "./views/home";
 import { exitSampleMode, fetchConnectors, hasToken, isSampleMode, saveTimeZone, setSampleMode, swapMasterForKey } from "./db/api";
 import { deviceZone, localToday } from "./lib/time";
@@ -792,18 +794,104 @@ function boot() {
 
   if (!hasToken() && !isSampleMode()) {
     ensureAurora();
-    mount(
-      root,
-      renderConnect((mode) => {
-        if (mode === "sample") setSampleMode();
-        mountShell();
-      })
-    );
+    void firstScreen();
     return;
   }
   // An install from before device keys still holds the master token: swap it for this device's key.
   void swapMasterForKey();
+  // #/welcome is the guided setup (guide/view.ts); in sample mode, a preview of it.
+  if (location.hash.startsWith("#/welcome")) {
+    ensureAurora();
+    void fetchSetup().then((status) => openGuide(status));
+    return;
+  }
+  // Until this device knows the guide is done, ask the server first: a new owner carries on with it.
+  if (!isSampleMode() && !guideDoneHere()) {
+    ensureAurora();
+    void guideOrShell(2500);
+    return;
+  }
   mountShell();
+  nudgeIfSiteNeedsFixing();
+}
+
+// ---------- The guided setup (guide/, lib/setup-guide.ts) ----------
+
+/**
+ * No key on this device. The browser is past the site password, which is
+ * enough to ask whether this is a new site: a new owner gets the guide's
+ * welcome, which takes the token itself; anyone else gets Connect.
+ */
+async function firstScreen() {
+  const status = await fetchSetup(1500);
+  if (status?.guide.reason === "new") return openGuide(status);
+  mount(
+    root,
+    renderConnect((mode) => {
+      if (mode === "sample") {
+        setSampleMode();
+        return mountShell();
+      }
+      void guideOrShell(4000);
+    })
+  );
+}
+
+/** The guide when the server says it's due, the app otherwise (and offline). */
+async function guideOrShell(waitMs: number) {
+  const status = await fetchSetup(waitMs);
+  if (!status) return mountShell();
+  if (!status.guide.reason) {
+    markGuideDoneHere();
+    return mountShell();
+  }
+  if (status.guide.reason === "fix" && guidePutOff()) {
+    markGuideDoneHere();
+    return mountShell();
+  }
+  openGuide(status);
+}
+
+function openGuide(status: SetupStatus | null) {
+  // Back from an account's sign-in during the guide: Sources offers what to collect from it.
+  const connected = /^#\/settings\/accounts\?connected=([\w-]+)/.exec(location.hash)?.[1] ?? null;
+  void import("./guide/view").then(
+    ({ renderGuide }) =>
+      mount(
+        root,
+        renderGuide({
+          status,
+          start: connected ? "sources" : undefined,
+          connected,
+          onDone: () => {
+            history.replaceState(history.state, "", "#/home");
+            mountShell();
+          },
+        })
+      ),
+    () => mountShell()
+  );
+}
+
+/** A finished site that has lost a required setting since: say so once, a little after the app opens. */
+function nudgeIfSiteNeedsFixing() {
+  if (isSampleMode() || !navigator.onLine) return;
+  setTimeout(async () => {
+    const status = await fetchSetup(8000);
+    if (status?.guide.reason !== "fix" || guidePutOff()) return;
+    const { WORDS: GUIDE_WORDS } = await import("./guide/words");
+    showToast(GUIDE_WORDS.nudge.text, {
+      icon: "key",
+      timeoutMs: 12_000,
+      action: {
+        label: GUIDE_WORDS.nudge.action,
+        run: () => {
+          location.hash = "#/welcome";
+          location.reload();
+        },
+      },
+    });
+  }, 5000);
 }
 
 boot();

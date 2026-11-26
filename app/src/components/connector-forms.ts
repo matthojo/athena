@@ -315,6 +315,8 @@ export interface AddAccountOptions {
   category?: string;
   /** For the connected sheet when no browser sign-in was needed (a key, client credentials). */
   connected?: ConnectedContext;
+  /** The guided setup: services that sign in with one tap first, and those that need your own sign-in setup say so. */
+  easyFirst?: boolean;
 }
 
 export function openAddAccount(state: ConnectorsState, done: () => void, opts: AddAccountOptions = {}): void {
@@ -347,7 +349,7 @@ function showDirectory(sheet: SheetHandle, body: HTMLElement, state: ConnectorsS
   // A section per category, in CONNECTOR_CATEGORIES order; A to Z inside one, with "Other MCP server" last.
   const groups = CONNECTOR_CATEGORIES.map((c) => ({
     ...c,
-    presets: CONNECTOR_PRESETS.filter((p) => p.category === c.id && (!recipe || feeds(p, recipe)) && (!recipe || !opts.category || p.category === opts.category)).sort((a, b) => Number(a.id === "custom") - Number(b.id === "custom") || a.label.localeCompare(b.label)),
+    presets: CONNECTOR_PRESETS.filter((p) => p.category === c.id && (!recipe || feeds(p, recipe)) && (!recipe || !opts.category || p.category === opts.category)).sort((a, b) => Number(a.id === "custom") - Number(b.id === "custom") || (opts.easyFirst ? Number(!!a.needsOwnClient) - Number(!!b.needsOwnClient) : 0) || a.label.localeCompare(b.label)),
   })).filter((g) => g.presets.length);
   // Food and drink, and Habits and mind (connectors-research-2, "Where new areas live"): Apple Health and Oura feed both, so
   // each shows here as well as under Health. If CONNECTOR_CATEGORIES gains these ids, that category is used instead.
@@ -380,7 +382,7 @@ function showDirectory(sheet: SheetHandle, body: HTMLElement, state: ConnectorsS
     const count = state.connectors.filter((c) => c.provider === p.id).length;
     // Only what helps you choose: how many you have, or that it reuses a setup you've done.
     const reuse = p.needsOwnClient && p.ownClientLabel && ownClients(state)[p.ownClientLabel];
-    const meta = count ? `${count} connected` : reuse ? `Uses your ${ownClientName(p)} setup` : "";
+    const meta = count ? `${count} connected` : reuse ? `Uses your ${ownClientName(p)} setup` : opts.easyFirst && p.needsOwnClient ? `Needs a ${ownClientName(p)} setup first` : "";
     const el = h(
       "button",
       { class: "dir__card", type: "button" },
@@ -390,7 +392,7 @@ function showDirectory(sheet: SheetHandle, body: HTMLElement, state: ConnectorsS
         { class: "dir__body" },
         h("span", { class: "dir__name" }, ...marked(p.label, words)),
         h("span", { class: "dir__tagline" }, ...marked(p.tagline, words)),
-        meta ? h("span", { class: "dir__meta dir__meta--on" }, icons.check(), meta) : null
+        meta && (count || reuse) ? h("span", { class: "dir__meta dir__meta--on" }, icons.check(), meta) : meta ? h("span", { class: "dir__meta" }, meta) : null
       ),
       h("span", { class: "dir__chev" }, icons.chevronRight())
     );
