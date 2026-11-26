@@ -41,6 +41,17 @@ export function linkPieces(text: string): LinkPiece[] {
   return out.sort((a, b) => a.at - b.at);
 }
 
+/**
+ * The site to show after a web link's label, so the owner sees where it goes before they tap: its host, unless the
+ * label already names it (or there's no label, and the host is the label). A label is free text a model wrote, so
+ * "Open your receipt" could point anywhere. Null when there's nothing to add. Pure.
+ */
+export function linkHostAfter(label: string, url: string): string | null {
+  const host = hostOf(url);
+  if (!host || !label.trim()) return null;
+  return label.toLowerCase().includes(host.toLowerCase()) ? null : host;
+}
+
 // ---------- link previews kept on this device ----------
 
 /** Ask the server again after a day: its own copy changes at most every 30 days, or on Try again. */
