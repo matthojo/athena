@@ -176,6 +176,16 @@ test("a run: text Jev couldn't check holds an allowlisted change for Go, and lea
   assert.equal(started.mustWait("add_todo"), "unchecked");
 });
 
+test("a run: keeping a reading isn't held for unchecked text (a search comes before nearly every one), but a flag stops it", () => {
+  const g = new TurnGuard("", () => false, ["record_value", "add_todo"], () => true);
+  g.sawOthers("web");
+  assert.equal(g.mustWait("record_value"), null);
+  assert.equal(g.mustWait("add_todo"), "unchecked");
+  g.flag();
+  assert.equal(g.mustWait("record_value"), "flagged");
+  assert.equal(g.allows("record_value"), false);
+});
+
 test("a chat: text Jev couldn't check changes nothing the owner's message decides", () => {
   const g = new TurnGuard("Add a to-do to pay the venue deposit", () => false, [], () => true);
   g.sawOthers("collected");

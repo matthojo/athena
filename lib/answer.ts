@@ -90,7 +90,7 @@ import { findKind, listCustomRecords, listKinds, withRecordFields } from "./cust
 import { KIND_WORD } from "./custom-kind-words";
 import { guardSkill, guardText } from "./jev";
 import { zonedParts } from "./dates";
-import { askContext, contextPrompt } from "./ask-context";
+import { askContextChecked, contextPrompt } from "./ask-context";
 import { bringsNewTopic, pastThreads, pastThreadsPrompt } from "./ask-threads";
 import { ASSISTANT_SOURCE_KIND, isLookingTool, loadTeamDesk, type AssistantPersona } from "./team-chat";
 import { loadAskMoney } from "./money";
@@ -1401,10 +1401,10 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     const persona = opts.persona ?? null;
     // A request doesn't need them either.
     const remember = !persona && !request && (!history.length || bringsNewTopic(plain, history.map((t) => mentionsToText(t.text)), people));
-    const [kinds, profile, today, past, loadedSkills, desk] = await Promise.all([
+    const [kinds, profile, todayChecked, past, loadedSkills, desk] = await Promise.all([
       listKinds().catch(() => []),
       profilePromptBlock(),
-      askContext({ now, tz }),
+      askContextChecked({ now, tz }),
       remember ? pastThreads(plain, { now, people, exclude: opts.thread_id, earlier: earlierAsked }) : Promise.resolve([]),
       // An imported skill limits the accounts from the moment it's in use (lib/shared-scope.ts), and its words are
       // someone else's: from then a change the owner's message didn't plainly ask for waits for Go (lib/ask-guard.ts).
@@ -1420,6 +1420,14 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       // main Ask's Team (check_with_assistant); none while an assistant answers, so it can't check with another.
       loadTeamDesk({ persona, client }),
     ]);
+    // The day's block carries titles from email and calendars. It's checked once a minute and kept (lib/ask-context.ts);
+    // an unattended run's guard takes in what Jev made of it. A chat doesn't: one hostile invite's title would take the
+    // changes away from every chat that day, and a flagged block already reaches the model under Jev's warning.
+    const today = todayChecked.text;
+    if (unattended) ev.checked(todayChecked);
+    // Past chats can quote what others wrote: checked each time, and the guard takes it in like any text read.
+    const pastBlock = past.length ? await guardText(pastThreadsPrompt(past)) : null;
+    if (pastBlock) ev.checked(pastBlock);
     // The owner's skills: listed in the prompt, use_skill and read_skill_file to load one. They read only, are run here and never queued, and add no other tool.
     const { skills, picked } = loadedSkills;
     const budget = { pages: MAX_PDF_PAGES };
@@ -1468,7 +1476,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       (shared.size ? FILES_NOTE + ATTACH_NOTE : "") +
       (mentioned.block ? `\n\n${MENTION_RULE}${MENTION_REPLY_RULE}` : "") +
       contextPrompt(today) +
-      (past.length ? (await guardText(pastThreadsPrompt(past))).text : "") +
+      (pastBlock ? pastBlock.text : "") +
       desk.prompt() +
       (persona ? `\n\n${persona.prompt}` : "") +
       (profile ? `${PROFILE_NOTE}${profile}` : "") +
@@ -1559,8 +1567,10 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
           if (ev.leaks(decodeURIComponentSafe(url), typed)) stopWeb("a page's link held a private detail");
         } else if (b.type === "web_search_tool_result" && Array.isArray(b.content)) {
           ev.addWeb(b.content);
-          // A web page is someone else's words.
+          // A web page is someone else's words. Search results reach the model sealed, so Jev can't read them: they're
+          // unchecked, and an unattended run's allowlisted changes after a search wait for Go (lib/ask-guard.ts).
           guard.sawOthers("web");
+          ev.unchecked = true;
         } else if (b.type === "web_fetch_tool_result") {
           const url = opening.get(b.tool_use_id) ?? "";
           guard.sawOthers("web");

@@ -228,6 +228,29 @@ test("a page Jev flags ends the web and every change for the rest of the run, ev
   }
 });
 
+test("search results Jev can't read: an allowed change after a search waits for Go, keeping a reading doesn't", { skip }, async () => {
+  const { createAssistant } = await import("./team");
+  const { runAssistantTurn } = await import("./team-chat");
+  const { useJevClient } = await import("./jev");
+  await ownerInLeeds();
+  const pip = await createAssistant({ name: "Pip", job: "Checks prices for my gift ideas", web: true, allow: ["add_todo"] });
+  // Jev is there and finds nothing in what it can read; the results themselves reach the model sealed.
+  useJevClient({ systemOne: async (req: { questions: Record<string, unknown> }) => ({ answers: Object.fromEntries(Object.keys(req.questions).map((k) => [k, { noul: 0.02 }])) }) } as never);
+  try {
+    const m = scripted([
+      [...searched("ws1", "lego 42143 price", [{ url: SHOP, title: "Shop" }]), { type: "tool_use", id: "t1", name: "add_todo", input: { title: "Buy the Lego Ferrari", step: "Add a to-do" } }],
+      [answer({ text: "A to-do to buy it is ready for your approval.", sources: [] })],
+    ]);
+    const out = await runAssistantTurn(pip.id, "Run now", { mode: "run", client: m.client, now: NOW });
+    assert.equal(out.reply.flagged, false, "unchecked isn't flagged");
+    assert.equal(out.reply.changes?.length ?? 0, 0, "the allowed change isn't made alone");
+    assert.equal(out.reply.plan?.why, "unchecked");
+    assert.ok(m.names(1).includes("add_todo"), "the write tools stay");
+  } finally {
+    useJevClient(null);
+  }
+});
+
 test("Jev reads only other people's words in a tracking run: Athena's own instructions never cost it the web", { skip }, async () => {
   const { createAssistant } = await import("./team");
   const { runAssistantTurn } = await import("./team-chat");

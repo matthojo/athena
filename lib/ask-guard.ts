@@ -23,8 +23,8 @@
  *    flag still takes every write tool away, allowlisted or not. The guard
  *    is given the allowlist when the turn starts; nothing reads it from a
  *    tool result. A chat has none: the owner's own message decides.
- *  - Text Jev couldn't check (it's off, past its budget, slow or failing)
- *    is `unchecked`. In an unattended run, an allowlisted change queued after
+ *  - Text Jev couldn't check (it's off, past its budget, slow or failing,
+ *    or it's web search results, which reach the model sealed) is `unchecked`. In an unattended run, an allowlisted change queued after
  *    reading it waits for Go, as one would after a flag, but the write tools
  *    stay: nothing is known to be wrong. A chat goes on as before: the owner
  *    is there, a change their message didn't plainly ask for already waits
@@ -185,6 +185,12 @@ export function needsOwnersGo(tool: string, input: unknown): boolean {
  */
 export type HeldWhy = "read" | "flagged" | "unchecked" | "link";
 
+/**
+ * Allowlisted changes that only keep what a run read (a tracker's value, lib/trackers-store.ts): they don't wait for Go
+ * after text Jev couldn't check, though a flag still takes them away.
+ */
+const KEEPS_A_READING = new Set(["record_value"]);
+
 /** One turn's guard: what the owner asked for, what's been read, and whether anything read was flagged or unchecked. */
 export class TurnGuard {
   /** What the owner's own message asks for. Fixed when the turn starts. */
@@ -253,10 +259,14 @@ export class TurnGuard {
    * allowlist was asked for by the owner ahead of time, so reading other
    * people's words doesn't hold it; a flag does, and so does text Jev
    * couldn't check, since nobody knows whether it would have been flagged.
+   * Keeping a reading (KEEPS_A_READING) is the one exception to that: it's
+   * how a tracker's run keeps the price it found, it's logged and undone in
+   * a tap, and a search, which Jev can never read, comes before nearly every
+   * one.
    */
   mustWait(tool: string): HeldWhy | null {
     if (this.flagged) return "flagged";
-    if (this.standing.has(tool)) return this.unchecked ? "unchecked" : null;
+    if (this.standing.has(tool)) return this.unchecked && !KEEPS_A_READING.has(tool) ? "unchecked" : null;
     if (this.read.size && !plainlyAsked(this.asked, tool)) return "read";
     return null;
   }
