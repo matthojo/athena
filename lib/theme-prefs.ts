@@ -1,6 +1,6 @@
 /**
  * The chosen theme and the owner's own themes, the same on every device
- * (ARCHITECTURE.md, "Themes"). One row in the settings table, `theme`:
+ * (docs: architecture/theming). One row in the settings table, `theme`:
  * { choice, themes }. Plain, not sealed: colours, numbers and the names the
  * owner gave their themes, nothing about their life.
  *

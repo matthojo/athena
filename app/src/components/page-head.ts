@@ -1,5 +1,5 @@
 /**
- * The one page head every top-level view starts with (docs/notes/night-e1.md):
+ * The one page head every top-level view starts with:
  * the phone's Library segments, then the title with its count and actions on
  * one line, then the lede, then anything the page keeps up top (search, chip
  * rows, filters). It is the same `.notes__head` the views used before, so

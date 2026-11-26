@@ -1,6 +1,6 @@
 /**
- * The one-off move from Life log day notes to Days (owner decision, 7 Nov
- * 2026: convert, then archive; never delete).
+ * The one-off move from Life log day notes to Days: convert, then archive;
+ * never delete.
  *
  * Each Life log note ("life-log-<date>" in collected_items) is read section
  * by section into Day entries (lib/days.ts), its title's description becomes

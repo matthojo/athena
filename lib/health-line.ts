@@ -41,7 +41,7 @@ export function asleepMinutes(s: SleepStages): number | undefined {
   return n > 0 ? n : undefined;
 }
 
-/** " (1h 25m deep)" after the hours slept, on a night with deep sleep; "" otherwise (owner, 7 Nov). */
+/** " (1h 25m deep)" after the hours slept, on a night with deep sleep; "" otherwise. */
 export const deepNote = (s: SleepStages | undefined): string => (s?.deep ? ` (${hoursMinutes(s.deep)} deep)` : "");
 
 /** "1h 25m deep · 1h 50m REM": the two stages people ask about, or null without them. */

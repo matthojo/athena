@@ -3,7 +3,7 @@
  * lib/assistant.ts) add to every turn's system prompt, so "am I free after
  * lunch?" or "what's first tomorrow?" needs no lookup at all.
  *
- * What it holds (SECURITY.md §10, "Today's context"):
+ * What it holds (docs: security/ai-and-ask:
  *  - now and the time zone;
  *  - today's and tomorrow's agenda: each event's time and title, never its notes;
  *  - last night's sleep and readiness (Whoop's recovery, Polar's recharge, resting heart rate), when there is any;

@@ -1,4 +1,4 @@
-// The app's side of `web` (docs/team.md, "Looking things up online"), against fakes of what the server sends
+// The app's side of `web`, against fakes of what the server sends
 // until lib/team-types.ts has the field. Run: npx tsx --test app/src/team/web-access.test.ts
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";

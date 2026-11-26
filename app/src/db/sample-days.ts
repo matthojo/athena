@@ -362,7 +362,7 @@ function makeDay(date: string): Day | null {
   } else if (dow === 2 && dom % 2 === 1) {
     day.entries.push({ id: `${date}-justeat`, kind: "other", source: "justeat", title: "Takeaway from Mamma Mia Pizzeria", subtitle: "20:02 · Margherita and 2 more", at: at(date, 20, 2), group: "Takeaway" });
   }
-  // From the connectors audit's sources (docs/notes/connectors-audit.md): a saved link most weekdays, a Sunday album on
+  // From the connectors audit's sources: a saved link most weekdays, a Sunday album on
   // ListenBrainz and an evening out booked on Eventbrite now and then. Also fixed by the date.
   if (weekday(date) < 5 && dom % 3 === 0) day.entries.push({ id: `${date}-raindrop`, kind: "saved", source: "raindrop", title: "How to make sourdough at home", subtitle: "seriouseats.com", url: "https://www.seriouseats.com", note: "Recipes" });
   if (dow === 6) day.entries.push({ id: `${date}-lb`, kind: "listened", source: "listenbrainz", title: "Profound Mysteries II", subtitle: "Röyksopp", group: "Röyksopp", count: 9, at: at(date, 11, 5), url: "https://listenbrainz.org" });

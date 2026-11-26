@@ -1,6 +1,5 @@
 /**
- * "How <name> thinks", on an assistant's page (docs/ai-models.md, "Each
- * assistant's page"): its thinking and its pictures, each "Same as Ask" or a
+ * "How <name> thinks", on an assistant's page: its thinking and its pictures, each "Same as Ask" or a
  * model of its own, through the same picker as Settings → AI models.
  * Pictures can also be none at all. Uses the assistant's own pronoun.
  */

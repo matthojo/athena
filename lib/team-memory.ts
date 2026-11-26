@@ -1,5 +1,5 @@
 /**
- * Team: what an assistant remembers (docs/team.md, "Memory"). A rolling
+ * Team: what an assistant remembers. A rolling
  * summary (at most 2,000 characters) and facts (at most 30), refreshed by one
  * small model call after a chat goes quiet (debounced per thread) and after
  * each run. It goes into that assistant's own prompt (lib/team-chat.ts),
@@ -52,7 +52,7 @@ function youVerb(w: string): string {
 }
 
 /**
- * Memory is said to you (owner, 15 Nov: "You prefer independent shops"), never about "the owner": older memories
+ * Memory is said to you ("You prefer independent shops"), never about "the owner": older memories
  * are reworded at their next refresh. "Owner prefers Etsy" → "You prefer Etsy", "The owner's budget" → "Your
  * budget", "reminded the owner" → "reminded you". Pure.
  */

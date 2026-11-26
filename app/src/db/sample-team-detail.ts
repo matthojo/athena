@@ -1,5 +1,5 @@
 /**
- * Sample mode's conversations for the team's runs (docs/team.md): every
+ * Sample mode's conversations for the team's runs: every
  * sample run keeps one, as a real run does, so opening a run on the Team
  * page, an assistant's page or Home's card opens the same conversation in
  * Ask. Dot's morning run keeps its plan there: a Go on any screen answers

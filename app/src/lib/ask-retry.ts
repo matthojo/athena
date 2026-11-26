@@ -1,12 +1,11 @@
 /**
- * Ask keeps trying for a written answer before it shows a keyword search
- * (owner, 12 Nov 2026). A 429 waits and asks again, up to two more times,
- * with a visible step saying it's busy. A broken stream, a 502 or 504, or a
- * network error is asked again once. Anything else, Stop, or no connection
- * at all, ends it at once: the caller falls back, and says why. When a 429
- * says how long to wait (the `Retry-After` header, or `retry_after` on a
- * streamed error, both in seconds) that's the wait, up to 30 s, in place of
- * the guess.
+ * Ask keeps trying for a written answer before it shows a keyword search. A
+ * 429 waits and asks again, up to two more times, with a visible step
+ * saying it's busy. A broken stream, a 502 or 504, or a network error is
+ * asked again once. Anything else, Stop, or no connection at all, ends it
+ * at once: the caller falls back, and says why. When a 429 says how long to
+ * wait (the `Retry-After` header, or `retry_after` on a streamed error,
+ * both in seconds) that's the wait, up to 30 s, in place of the guess.
  *
  * Pure: errors are read by their shape, so nothing here imports the network.
  */

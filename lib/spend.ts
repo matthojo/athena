@@ -1,6 +1,6 @@
 /**
- * AI spend (docs/ai-models.md, docs/notes/models-spend.md): what every model call cost, a daily budget for all of
- * Athena, and an optional cap for each assistant. Owner, 17 Nov 2026:
+ * AI spend: what every model call cost, a daily budget for all of
+ * Athena, and an optional cap for each assistant:
  *
  *  - The gateway reports tokens, not money, so a call's cost is its tokens times the published prices
  *    (lib/model-prices.ts), kept in dollars in `ai_usage` with the owner's day it fell on.
@@ -49,7 +49,7 @@ export interface SpendScope {
   assistantId?: string | null;
   /** The background job ("briefing", "collect", "routine"): kept with the row for the record. */
   job?: string | null;
-  /** Run anyway (owner, 17 Nov 2026): this one Ask message goes ahead when today's spend can't be read. */
+  /** Run anyway: this one Ask message goes ahead when today's spend can't be read. */
   runAnyway?: boolean;
 }
 
@@ -164,7 +164,7 @@ export class BudgetUnchecked extends Error {
 // ---------- Run anyway ----------
 
 /**
- * Run anyway (owner, 17 Nov 2026): when Ask can't check today's budget, its reply carries a one-time token. The app
+ * Run anyway: when Ask can't check today's budget, its reply carries a one-time token. The app
  * sends the same message again with it (`run_anyway`), and that one message runs without the check. A token is
  * honoured once and for RUN_ANYWAY_MS. It's signed, so another instance knows it; each instance remembers the tokens
  * it has taken until they expire. It only skips a check that can't be made: once today's spend can be read again, the

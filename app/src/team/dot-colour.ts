@@ -8,8 +8,8 @@
  *                        the .team-dot and ring inside take it
  *                        (styles/team-pulse.css)
  *
- * Owner, 16 Nov 2026: "a breathing dot that's coloured from the primary
- * colour of the character", everywhere it belongs to one assistant.
+ * A breathing dot coloured from the character's primary colour, everywhere
+ * it belongs to one assistant.
  */
 import { INK, accentTone, furTone, outfitTone } from "./kit/palette";
 

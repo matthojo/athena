@@ -1,6 +1,5 @@
 /**
- * The tools Assignments add to Ask's loop (docs/team.md, "How it runs" and
- * "Checkpoints and questions"). lib/assistant.ts offers and runs them; they
+ * The tools Assignments add to Ask's loop. lib/assistant.ts offers and runs them; they
  * are never queued as plan steps.
  *
  * - A stage's own tools, offered only inside a stage's turn (`asStage`, set

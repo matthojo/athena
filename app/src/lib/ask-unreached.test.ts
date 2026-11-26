@@ -1,5 +1,5 @@
-// A follow-up whose reply couldn't be had (owner, 12 Nov 2026: after a brownie answer, "Turn this into a recipe"
-// came back as a keyword search for "recipe" and "turn"). What the chat shows in its place, what's sent when it's
+// A follow-up whose reply couldn't be had (after a brownie answer, "Turn this into a recipe" once came back as a
+// keyword search for "recipe" and "turn"). What the chat shows in its place, what's sent when it's
 // asked again, and when it asks again by itself.
 // Run: npx tsx --test app/src/lib/ask-unreached.test.ts
 import { test } from "node:test";

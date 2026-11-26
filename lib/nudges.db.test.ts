@@ -121,7 +121,7 @@ test("reminders: the evening prompt reaches the device once, and not on a kept d
   await qRaw(
     `INSERT INTO settings (key, value) VALUES ('timezone', '"Europe/London"'::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
   );
-  // The fake service is on localhost, and the subscription is the master token's (security review M5).
+  // The fake service is on localhost, and the subscription is the master token's.
   pushDeps.allowed = () => true;
   process.env.MCP_BEARER_TOKEN ??= "test-master-token";
   const credential = pushCredential(new Request("https://athena.test/", { headers: { authorization: `Bearer ${process.env.MCP_BEARER_TOKEN}` } }))!;

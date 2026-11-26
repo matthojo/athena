@@ -16,7 +16,7 @@
  * so they're found by blind index and compared here after decrypting.
  *
  * Never a price, total or card detail: purchases have no column for one
- * (finance is its own tier, SECURITY.md §1).
+ * (finance is its own tier, docs: security/encryption).
  */
 import { AthenaInputError, getOwnerTimeZone, lookupIndexes, q, refreshTripDates, sealer, type Sealer } from "./db";
 import { addDays, daysBetween, isValidDate, isValidTimeZone, zonedParts, zonedToInstant, zonedToday } from "./dates";

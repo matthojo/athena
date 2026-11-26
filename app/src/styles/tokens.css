@@ -47,8 +47,8 @@
 
 /* ======================================================================
    The theme surface: the public tokens. The rest of the app derives from
-   these, so a theme sets these and nothing else (ARCHITECTURE.md,
-   "Appearance and the theme surface"). Colours have a light and a dark
+   these, so a theme sets these and nothing else (docs:
+   architecture/theming). Colours have a light and a dark
    value; shape and type are the same in both unless a theme says otherwise.
    ====================================================================== */
 

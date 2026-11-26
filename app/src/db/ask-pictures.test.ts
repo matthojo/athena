@@ -1,5 +1,5 @@
 // Run: npx tsx --test app/src/db/ask-pictures.test.ts
-// Pictures Ask made (owner, 17 Nov 2026): Undo archives one; restoring it puts it back in the conversation, and
+// Pictures Ask made: Undo archives one; restoring it puts it back in the conversation, and
 // deleting it for good shows it was deleted. Sample mode's pictures follow the sample AI models settings.
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -32,7 +32,7 @@ export const FALLBACK_NOTE: Record<FallbackCause, string> = {
 export const WRITE_LABEL = "Write the answer";
 
 /**
- * A follow-up's reply couldn't be had (owner, 12 Nov 2026: "It needs to behave under the context it has").
+ * A follow-up's reply couldn't be had, and it keeps to the context it has.
  * A follow-up means something only with the turns before it, so its words are never keyword-searched: the
  * message is kept, this line says why there's no reply, and Try again asks it again with the same history.
  * A first message in a new chat still gets the keyword search (FALLBACK_NOTE).

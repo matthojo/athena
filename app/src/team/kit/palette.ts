@@ -2,12 +2,12 @@
  * Palette keys for AvatarSpec.fur / accent / outfitColor. The keys are stored
  * on saved characters and must never change; only the values do.
  *
- * Restraint pass (16 Nov): every coat, cheek and outfit sits in Athena's own
- * colour world. Neutrals are tinted toward cobalt (hue 264), coats are soft
- * and low in chroma, and cobalt (and, a little, mint) are the only strong
- * colours. Light values are the designed default; dark mode draws each fill
- * through `darkFill` (compressed toward the middle, a touch less chroma) so a
- * white cat never glares off a near-black page. See avatar.css.
+ * Every coat, cheek and outfit sits in Athena's own colour world. Neutrals
+ * are tinted toward cobalt (hue 264), coats are soft and low in chroma, and
+ * cobalt (and, a little, mint) are the only strong colours. Light values are
+ * the designed default; dark mode draws each fill through `darkFill`
+ * (compressed toward the middle, a touch less chroma) so a white cat never
+ * glares off a near-black page. See avatar.css.
  */
 
 /** The one outline: the app's ink, a step lighter. Never darkened or lightened by theme. */

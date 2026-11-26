@@ -1,5 +1,5 @@
 /**
- * Team assistants' triggers are flows (owner, 20 Nov 2026: "one model"). An assistant's "When it runs" is the
+ * Team assistants' triggers are flows, with no second kind of trigger. An assistant's "When it runs" is the
  * flows it runs whose trigger came from Team: each is a flow with the same trigger, `assistant_id` set, and one
  * think step that does the assistant's job as a run always did (lib/team-run.ts runPrompt, its instructions,
  * memory, allowlist and web). Flows is then the one way anything runs on a trigger.

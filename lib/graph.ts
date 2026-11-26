@@ -16,7 +16,7 @@
  * Each pair of nodes keeps one link, whatever the direction or relation.
  *
  * Kept apart from lib/db.ts so the graph's SQL lives in one place. Titles and
- * subtitles are encrypted at rest (SECURITY.md §11), so the SQL only ever
+ * subtitles are encrypted at rest (docs: security/encryption), so the SQL only ever
  * selects them whole (q() decrypts whole values) and any shaping, such as a
  * fact's "key: value", an address's first line or a tidy website, happens
  * here after decryption.

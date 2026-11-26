@@ -12,7 +12,7 @@
  * end_date is sent a day late and results filtered to the asked days, so the
  * window is right whether Oura treats end_date as inclusive or not.
  *
- * Figures are health content (SECURITY.md §1): they go back to the run only,
+ * Figures are health content (docs: security/encryption): they go back to the run only,
  * never into an error or a log line.
  */
 import { OURA_API_URL, OURA_SCOPE } from "../../../lib/presets/health";

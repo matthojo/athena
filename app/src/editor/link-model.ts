@@ -5,9 +5,9 @@
  *   - what a link is (a thing in Athena or a web page) and how it's shown
  *     (lib/links.ts: Mention, Link, Card, Embed);
  *   - the switcher's choices for one link, with the reason a choice is off;
- *   - what a pasted address becomes, by where it lands (the owner's answer 3);
+ *   - what a pasted address becomes, by where it lands;
  *   - where a Card or Embed goes when it's picked for a link in a sentence
- *     (answer 2: the words stay a Link, the block goes after the paragraph);
+ *     (the words stay a Link, the block goes after the paragraph);
  *   - what a tap on a link does.
  */
 
@@ -91,10 +91,10 @@ export function blockPlacement(aloneInParagraph: boolean): "replace" | "after" {
 }
 
 /**
- * A tap on a link opens what it points at: the person, place, note or page
- * (owner's answers, 2026-11-08). The switcher comes only after a paste and
- * from the menu's Show as. An Embed in the editor is the exception: a tap on
- * its still selects it, and its own button plays it.
+ * A tap on a link opens what it points at: the person, place, note or page.
+ * The switcher comes only after a paste and from the menu's Show as. An Embed
+ * in the editor is the exception: a tap on its still selects it, and its own
+ * button plays it.
  */
 export function tapAction(mode: LinkMode, editable: boolean): "open" | "select" {
   return editable && mode === "embed" ? "select" : "open";

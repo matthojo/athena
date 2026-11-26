@@ -1,7 +1,7 @@
 /**
  * An assistant's own daily cap, on its page (team/team-detail.ts mounts it with one line): what it spent today,
  * its cap, and Allow more when it has stopped. Past its cap the assistant stops until midnight and the rest of
- * Athena carries on (owner, 17 Nov 2026). With no cap of its own, only the daily budget applies.
+ * Athena carries on. With no cap of its own, only the daily budget applies.
  */
 import "../styles/spend.css";
 import { h } from "../lib/dom";

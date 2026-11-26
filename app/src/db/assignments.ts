@@ -1,6 +1,5 @@
 /**
- * Assignments, for the app (docs/team.md "Routes and client";
- * /api/team/assignments on the server). Sample mode keeps its own set
+ * Assignments, for the app (/api/team/assignments on the server). Sample mode keeps its own set
  * (db/sample-assignments.ts) and every change stays on this page.
  */
 import { ApiError, getToken, isSampleMode, request } from "./api";

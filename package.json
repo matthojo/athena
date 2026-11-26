@@ -5,6 +5,9 @@
   "description": "Personal second brain: Netlify DB + MCP server + offline-first PWA.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "netlify dev",
     "dev:app": "vite --config app/vite.config.ts",

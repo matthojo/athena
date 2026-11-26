@@ -1,7 +1,7 @@
 // Run: npx tsx --test app/src/lib/owner-offline.test.ts
 // A real owner (a token, not sample mode) whose server can't be reached sees
 // this device's copy or nothing, marked offline: never the sample owner's
-// briefing and notes (docs/notes/affection-2026-11.md, moment 3).
+// briefing and notes.
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 

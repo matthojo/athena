@@ -1,4 +1,4 @@
-// The morning hello in a voice (docs/notes/affection-2026-11.md, moment 4): the writer's line saved
+// The morning hello in a voice: the writer's line saved
 // with the note, and the opt-in short briefing after a hard day.
 // Run: npx tsx --test lib/briefing-go-easy.test.ts
 import { test } from "node:test";

@@ -14,7 +14,7 @@
  * `confidence` (0..1; null when the owner typed it). Agents write directly at
  * >= 0.8 and `propose` below that, which files a suggestion for review.
  *
- * The free text here is encrypted at rest like notes (SECURITY.md §11):
+ * The free text here is encrypted at rest like notes (docs: security/encryption):
  * writes seal it through sealer(), reads come back opened from q(), and the
  * comparisons SQL used to make on it (dedupe by title, ranking, sorting by
  * name) happen in TypeScript, or on a blind index for identities.
@@ -582,7 +582,7 @@ export interface FactWriter {
   byOwner?: boolean;
 }
 
-/** A `me` fact from anyone but the owner: always the Review inbox, whatever its confidence (docs/notes/profile-memory-plan.md). */
+/** A `me` fact from anyone but the owner: always the Review inbox, whatever its confidence. */
 function learnedAboutOwner(input: FactInput, writer: FactWriter): boolean {
   if (writer.byOwner) return false;
   const source = input.source ?? null;

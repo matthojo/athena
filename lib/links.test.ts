@@ -1,4 +1,4 @@
-// Link modes in Markdown link titles (rich links, stage 1): athena:// and web links, round trips, escaping,
+// Link modes in Markdown link titles (rich links): athena:// and web links, round trips, escaping,
 // old links unchanged, and content-link sync finding every mode.
 // Run: npx tsx --test lib/links.test.ts
 import { test } from "node:test";

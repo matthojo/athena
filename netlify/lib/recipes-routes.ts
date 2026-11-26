@@ -1,5 +1,5 @@
 /**
- * Recipes over REST (docs/notes/recipes.md), mounted by
+ * Recipes over REST, mounted by
  * netlify/functions/api.ts behind the app token or a full key:
  *
  *   GET    /api/recipes?q=&tag=&time=        { recipes, tags, moved }: the grid (moves a few Saved recipe links in first)

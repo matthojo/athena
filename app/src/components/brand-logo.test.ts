@@ -1,5 +1,5 @@
 // Run: npx tsx --test app/src/components/brand-logo.test.ts
-// Every connector shows its own mark or, where none can be drawn faithfully, its category icon (docs/notes/connectors-audit.md).
+// Every connector shows its own mark or, where none can be drawn faithfully, its category icon.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";

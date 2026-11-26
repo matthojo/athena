@@ -1,5 +1,5 @@
 /**
- * The theme surface (ARCHITECTURE.md, "Appearance and the theme surface"):
+ * The theme surface (docs: architecture/theming):
  * the public --theme-* tokens a theme sets, and the system tokens that
  * derive from them. Shape and type follow a few multipliers, so these check
  * that fonts and on-scale spacing in the stylesheets are tokens too (font

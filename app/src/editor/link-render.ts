@@ -1,7 +1,6 @@
 /**
  * Drawing one link in one of its four modes (Mention, Link, Card, Embed) and
- * one of its states (loading, loaded, failed, offline). Lifted from the
- * approved prototype (docs/notes/rich-links.md); the editor's node views
+ * one of its states (loading, loaded, failed, offline). The editor's node views
  * (link-nodes.ts) and the read-only note view call these.
  *
  * A `Thing` is what's drawn: built from the link itself plus, when they've
@@ -9,7 +8,7 @@
  *
  * Embeds are tap to load: until the play button is pressed the embed is a
  * still we hold and our own button. Only then is the provider's iframe made,
- * with stage 1's rules (lib/embeds.ts): `allow` from the embed, a strict
+ * with the rules in lib/embeds.ts: `allow` from the embed, a strict
  * referrer, lazy loading and a sandbox. Apple Maps has no player: "Open map"
  * hands the spot to the device's maps app.
  */
@@ -59,7 +58,7 @@ const PROVIDER_UI: Record<EmbedProvider, { action: "Play" | "Listen" | "Open map
   framer: { action: "Open site", mark: "#0055ff" },
 };
 
-/** The iframe's sandbox (stage 1): players need scripts and their own origin; nothing else. */
+/** The iframe's sandbox: players need scripts and their own origin; nothing else. */
 export const EMBED_SANDBOX = "allow-scripts allow-same-origin allow-popups allow-presentation";
 
 export interface Thing {

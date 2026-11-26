@@ -1,14 +1,14 @@
 /**
- * Your activity (recipe `plays-watches`; owner decisions 10 and 12 Nov): a
- * collection with no model. Its runs read new plays, watches and likes, and
- * every other Life log source with a direct adapter (books, highlights,
- * games, chess, posts, saves, events, habits and health days:
- * activity-recent.ts), straight into Days, every hour by default, so a
- * service that keeps only a short history (Spotify's last 50 plays) loses
- * nothing on a busy day, and plain data never goes through Claude.
- * runner.ts runs it (runPlaysWatches) on the same schedule, run history and
- * "what a run saved" as any collection. The Life log's daily counts for
- * what it reads are worked out from Days (activity-metrics.ts).
+ * Your activity (recipe `plays-watches`): a collection with no model. Its
+ * runs read new plays, watches and likes, and every other Life log source
+ * with a direct adapter (books, highlights, games, chess, posts, saves,
+ * events, habits and health days: activity-recent.ts), straight into Days,
+ * every hour by default, so a service that keeps only a short history
+ * (Spotify's last 50 plays) loses nothing on a busy day, and plain data
+ * never goes through Claude. runner.ts runs it (runPlaysWatches) on the
+ * same schedule, run history and "what a run saved" as any collection. The
+ * Life log's daily counts for what it reads are worked out from Days
+ * (activity-metrics.ts).
  *
  * A direct adapter offers it with `recent` (direct.ts): streams like the
  * history load's (backfill.ts), read newest first from the account's

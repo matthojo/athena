@@ -1,5 +1,5 @@
 /**
- * Night D2 quick fixes that can be pinned without a browser: a mention in a
+ * Small fixes that can be pinned without a browser: a mention in a
  * capture's title reads as the name (components/note-row.ts), and the sample's
  * busy day names its own weekday (db/sample-days.ts).
  */

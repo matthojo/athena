@@ -6,7 +6,7 @@
 import type { EyesId, MouthId, OutfitId } from "./types";
 import { INK } from "./palette";
 
-// Muted with the palette (16 Nov): warm, never candy.
+// Muted with the palette: warm, never candy.
 const MOUTH_RED = "#c25e53";
 const TONGUE = "#e59ea3";
 const WHITE = "#fdfcf9";

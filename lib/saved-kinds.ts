@@ -132,7 +132,7 @@ type Node = Record<string, unknown>;
  * Page metadata is read from the first part of the page only, and with
  * index scans rather than open-ended patterns: every scan below moves forward
  * and never rereads, so a page of unclosed `<script ` or `<meta ` tags costs
- * one pass (security review M18).
+ * one pass.
  */
 export const META_SCAN_CHARS = 300_000;
 /** A tag longer than this isn't metadata. */

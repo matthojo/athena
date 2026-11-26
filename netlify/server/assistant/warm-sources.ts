@@ -10,7 +10,7 @@
  *    refreshed or rotated token, a changed allowlist or switch all move it);
  *  - it opened less than MAX_AGE_MS ago, so a custom server's tools are
  *    re-listed and re-checked against what the owner approved at least that
- *    often (SECURITY.md §9).
+ *    often (docs: security/connectors).
  * Otherwise it's closed and opened afresh with the stored sign-in.
  *
  * A kept connection can still have gone stale: the platform closes outbound

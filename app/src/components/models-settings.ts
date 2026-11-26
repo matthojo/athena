@@ -1,5 +1,5 @@
 /**
- * Settings → AI models, #/settings/models (docs/ai-models.md, "The app"):
+ * Settings → AI models, #/settings/models:
  * which model does each job, and where that choice came from.
  *
  * - Ask: "Ask thinks with" and "Pictures" (off until chosen).

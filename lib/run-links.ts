@@ -1,5 +1,5 @@
 /**
- * Which links a turn may open (SECURITY.md §10, "Links a turn may open").
+ * Which links a turn may open (docs: security/ai-and-ask.
  *
  * Anthropic's web fetch tool (lib/answer.ts webFetchTool) opens a link that's in the turn's own message, and it does
  * so on Anthropic's side, inside the model call, before Athena sees the request. So a link goes into a turn's message

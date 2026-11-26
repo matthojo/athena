@@ -114,7 +114,7 @@ export function workSection(opts: WorkOptions): WorkHandle {
     if (live.length) parts.push(h("div", { class: "tdw-nows" }, ...live.map((r) => nowCard(a, r))));
     if (!past.length && !live.length) parts.push(empty(a));
     const shown = all ? past : past.slice(0, FIRST);
-    // One heading per day, as the Team page's Recent runs (owner, 16 Nov 2026); each run then says only its time.
+    // One heading per day, as the Team page's Recent runs; each run then says only its time.
     for (const [day, rs] of byDay(shown)) {
       parts.push(h("div", { class: "tdw-day" }, h("h3", { class: "tdw-day__title" }, day), h("ul", { class: "tdw-runs" }, ...rs.map((r) => runCard(a, r, waitsFor(r))))));
     }

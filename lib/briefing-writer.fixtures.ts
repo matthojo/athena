@@ -1,6 +1,5 @@
 /**
- * Fixture days for lib/briefing-writer.test.ts and the samples in
- * docs/notes/profile-briefing.md: a busy Monday, a quiet Saturday with room
+ * Fixture days for lib/briefing-writer.test.ts: a busy Monday, a quiet Saturday with room
  * for a pick, and the busy Monday at Short length. No database.
  */
 import type { BriefingEvent, BriefingInput } from "./briefing";

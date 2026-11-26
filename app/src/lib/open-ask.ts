@@ -12,7 +12,7 @@
  *                                               exactly that item
  *   openAsk({ context, prompt, send: true })    and ask it straight away
  *   openAsk({ assistantId, prompt, send: true }) talk to one of the Team's
- *                                               assistants (docs/team.md): a new
+ *                                               assistants: a new
  *                                               conversation with it, unless the
  *                                               open one is already with it.
  *                                               null means Athena, explicitly.
@@ -36,7 +36,7 @@ export interface OpenAskOptions {
   prompt?: string;
   /** Ask it straight away instead of leaving it in the box. */
   send?: boolean;
-  /** Who to talk to (docs/team.md): one of the Team's assistants by id, or null for Athena. Left out: whoever the open conversation is with. */
+  /** Who to talk to: one of the Team's assistants by id, or null for Athena. Left out: whoever the open conversation is with. */
   assistantId?: string | null;
 }
 

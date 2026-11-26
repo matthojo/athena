@@ -1,7 +1,6 @@
 /**
  * Every colour in the app comes from a token in styles/tokens.css, so a theme
- * can change them by changing tokens (ARCHITECTURE.md, "Appearance and the
- * theme surface"). This fails on a raw colour anywhere else in the app's CSS
+ * can change them by changing tokens (docs: architecture/theming). This fails on a raw colour anywhere else in the app's CSS
  * or TypeScript: a hex value, rgb()/hsl()/oklch() and friends with a number
  * in them, or a named colour. A colour function built only from tokens
  * (oklch(var(--tint-l) var(--tint-c) var(--h))) is fine, as are transparent

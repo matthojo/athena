@@ -1,8 +1,8 @@
 /**
  * Community's routes (lib/community-api.ts), behind the same bearer token as the rest of the API:
  *
- *   GET /api/community            → CatalogueView. The first time it's opened, the check is switched on (the
- *                                   owner's decision, 24 Nov 2026); once the owner has set the switch, it's theirs.
+ *   GET /api/community            → CatalogueView. The first time it's opened, the check is switched on; once
+ *                                   the owner has set the switch, it's theirs.
  *   POST /api/community/check     → CatalogueView with `checked`: "Check for new items". The index is read again only
  *                                   when the copy kept is over ten minutes old (community-catalogue.ts checkIndex).
  *   GET /api/community/updates    → { updates: UpdateCheck[] }: what was added from the catalogue that has a newer

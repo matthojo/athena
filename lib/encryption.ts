@@ -1,5 +1,5 @@
 /**
- * Encrypting what's already stored (SECURITY.md §11). A SQL migration can't
+ * Encrypting what's already stored (docs: security/encryption). A SQL migration can't
  * do it: it never sees the key. So netlify/functions/encrypt-data.ts calls
  * sealExisting() every five minutes in production, and each run seals a
  * time-boxed batch of whatever isn't yet sealed under the current key:

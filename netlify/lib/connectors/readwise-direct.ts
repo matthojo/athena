@@ -10,7 +10,7 @@
  *
  * Highlights go to Claude whole, so Ask can search and quote them. The Life
  * log prompt is told to write one line per book ("3 highlights from The
- * Wager"), never the highlights (docs/notes/readwise-social.md).
+ * Wager"), never the highlights.
  */
 import { READWISE_API_URL } from "../../../lib/presets/reading-social";
 import type { Connector, ConnectorSecrets } from "../../../lib/connectors";

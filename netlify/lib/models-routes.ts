@@ -1,5 +1,5 @@
 /**
- * AI models (docs/ai-models.md, lib/models.ts):
+ * AI models (lib/models.ts):
  *
  *   GET    /api/models                     → { catalogue, updated_at, settings, effective, configured }
  *                                           effective: each role and each assistant with its own models, with newer / withdrawn

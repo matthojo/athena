@@ -691,8 +691,7 @@ function swapElements(s: string, names: string, swap: (tag: string, inner: strin
  * for orders and trips).
  *
  * The input is third-party text, so it is capped first and every step is a
- * single forward pass: no pattern here can be made to rescan (security
- * review M19).
+ * single forward pass: no pattern here can be made to rescan.
  */
 export function htmlToText(html: string): string {
   const capped = html.length > MAX_HTML_TO_TEXT ? html.slice(0, MAX_HTML_TO_TEXT) : html;

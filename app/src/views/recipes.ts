@@ -1,5 +1,5 @@
 /**
- * Recipes (#/recipes; server in lib/recipes.ts, contract in docs/notes/recipes.md).
+ * Recipes (#/recipes; server in lib/recipes.ts).
  *
  *  - #/recipes: the grid (photo, title, time, tags) with search, tag and time
  *    filters, and "Add from a link". Recipe links kept in Saved move in on

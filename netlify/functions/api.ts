@@ -11,7 +11,7 @@
  *
  * Unlike MCP, this API can permanently delete (DELETE /api/<kind>/:id) and
  * list archived items (GET /api/archived): both exist for the app's own
- * manual Archived page and nothing else. See SECURITY.md ("Archive vs delete").
+ * manual Archived page and nothing else. See docs: security/sign-in-and-keys.
  * Merging people (POST /api/people/:id/merge) and forgetting an identity are
  * app-only for the same reason.
  *
@@ -54,7 +54,7 @@
  * rate-limits it in code and calls this handler; /api/elevenlabs is the
  * connection itself (netlify/lib/voice/routes.ts).
  *
- * Content is encrypted at rest (SECURITY.md §11): lib/db.ts seals and opens
+ * Content is encrypted at rest (docs: security/encryption): lib/db.ts seals and opens
  * it, so responses carry plaintext over HTTPS as before. GET /api/encryption
  * reports progress; a write this deploy can't seal answers 503 (no key) and
  * one that would overwrite an undecryptable value answers 409.
@@ -643,7 +643,7 @@ async function handleLinks(req: Request): Promise<Response> {
 
 /**
  * GET /api/pictures/archived, POST /api/pictures/:thread/:file/restore, DELETE /api/pictures/:thread/:file: a picture
- * Ask made and the owner undid waits here, like anything archived (SECURITY.md §7). Delete is the app's only.
+ * Ask made and the owner undid waits here, like anything archived (docs: security/sign-in-and-keys). Delete is the app's only.
  */
 async function handleArchivedPictures(req: Request, rest: string[]): Promise<Response> {
   if (rest.length === 1 && rest[0] === "archived") {
@@ -1175,7 +1175,7 @@ async function handlePushSubscribe(req: Request): Promise<Response> {
   if (!keys || typeof keys.p256dh !== "string" || typeof keys.auth !== "string") {
     return errorResponse(req, 400, "Missing 'keys.p256dh' / 'keys.auth'");
   }
-  // Known push services only, and the subscription is tied to the credential that registered it (security review M5).
+  // Known push services only, and the subscription is tied to the credential that registered it.
   if (!pushEndpoint(endpoint)) return errorResponse(req, 400, "This browser's push service isn't one Athena sends to");
   const credential = pushCredential(req);
   if (!credential) return errorResponse(req, 401, "Unauthorized");
@@ -1513,7 +1513,7 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
   if (action === "plan") {
     // Go: the plan's ticked steps, in order, each with its receipt (lib/ask-plans.ts). Nothing was written before this.
     const run = (tool: string, input: unknown) => runPlanTool(tool, input, { gmail: mailPort, slack: slackPort, ...ports });
-    // A plan a flow's run waits on goes through the run's own Go (owner, 21 Nov 2026), as on the run page: a draft is
+    // A plan a flow's run waits on goes through the run's own Go, as on the run page: a draft is
     // kept as that run's change, and the run carries on now.
     // The owner's answer to a plan that stopped for an account (lib/ask-plans.ts goPlan) carries on from that step.
     const answering = body?.account !== undefined;
@@ -1618,7 +1618,7 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
   // Ask's train_status checks for a key without waiting (live-travel.ts liveTravelConfigured): read the stored ones first.
   await primeTravelKeys();
   const deps = { sources: answerSources, gmail: mailPort, slack: slackPort, calendar: calendarPort, scheduling: schedulingPort };
-  // A model for this message only (docs/ai-models.md): checked like a choice (agreement, listed, can think), never stored.
+  // A model for this message only: checked like a choice (agreement, listed, can think), never stored.
   let model: Awaited<ReturnType<typeof messageModel>>;
   try {
     model = await messageModel(body?.model);
@@ -1630,7 +1630,7 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
   const opts: AnswerOptions = { history, files, earlier, skill, thread_id, ...(model ? { model } : {}) };
   // An app left open across the deploy still sends { messages } and reads `changes` and `choices` as lists: they're always there for it.
   const shaped = async (reply: Promise<AskReply>): Promise<AskReply> => (lastTurn && !str(body ?? {}, "question") ? { changes: [], choices: [], ...(await reply) } : reply);
-  // Talking to one of the Team's assistants (docs/team.md): lib/team-chat.ts runs the same loop as it, with its persona, allowlist and memory.
+  // Talking to one of the Team's assistants: lib/team-chat.ts runs the same loop as it, with its persona, allowlist and memory.
   const assistantId = typeof body?.assistantId === "string" && UUID_RE.test(body.assistantId) ? body.assistantId : null;
   // AI spend: a chat with an assistant counts toward its cap. At the budget the reply says so, with Allow more (lib/spend.ts).
   // When the budget can't be checked, the reply offers Run anyway: this message again with its one-time `run_anyway`.
@@ -1697,7 +1697,7 @@ async function handleCapture(req: Request, url: URL): Promise<Response> {
   };
   if (!aiConfigured()) return keep("Athena's assistant isn't set up.");
   try {
-    // A capture key files only (security review H1): no mail, Slack or calendar port, and the reply is a fixed line
+    // A capture key files only: no mail, Slack or calendar port, and the reply is a fixed line
     // built by code (lib/assistant.ts captureConfirmation), with the kind and id of what was made. Never model text.
     const answer = await runCapture(text);
     if (!answer.text) return keep("");
@@ -2001,7 +2001,7 @@ export default async (req: Request, _context: Context) => {
       const handled = await handleFlowDraftRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s));
       if (handled) return handled;
     }
-    // Team: assistants with their own triggers, memory and character (netlify/lib/team-routes.ts, docs/team.md).
+    // Team: assistants with their own triggers, memory and character (netlify/lib/team-routes.ts).
     if (first === "team") {
       // Team chat (netlify/lib/team-chat-routes.ts): what's typed goes to a waiting stage, an assistant or Ask.
       if (second === "chat" && (segments.length === 3 || (segments.length === 5 && segments[4] === "dismiss"))) {
@@ -2054,7 +2054,7 @@ export default async (req: Request, _context: Context) => {
       });
       if (handled) return handled;
     }
-    // AI models: which model does each job, and the owner's agreements (netlify/lib/models-routes.ts, docs/ai-models.md).
+    // AI models: which model does each job, and the owner's agreements (netlify/lib/models-routes.ts).
     if (first === "models") {
       const handled = await handleModelsRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s));
       if (handled) return handled;

@@ -1,5 +1,5 @@
 /**
- * Link previews for rich links in notes (migration 0040; docs/notes/rich-links.md).
+ * Link previews for rich links in notes (migration 0040).
  * A web address shown as a Card, or as a Mention with its site's favicon,
  * needs a title, summary, site, picture and favicon. This reads them once
  * and keeps them, without making a Saved item.
@@ -101,7 +101,7 @@ export function shapeOf(w: number | null | undefined, h: number | null | undefin
 export function faviconHref(html: string, base: string): string | null {
   const head = html.slice(0, 200_000);
   const found: Array<{ href: string; score: number }> = [];
-  // [^<>]* stops at the next "<", so a run of unclosed "<link " tags is read in one pass (security review M18).
+  // [^<>]* stops at the next "<", so a run of unclosed "<link " tags is read in one pass.
   for (const m of head.matchAll(/<link\b[^<>]*>/gi)) {
     const tag = m[0];
     const attr = (name: string) => new RegExp(`\\s${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i").exec(tag);
@@ -177,11 +177,10 @@ export const previewDeps = {
 /**
  * A richer way to read some addresses than fetching the page: one of the
  * owner's connected accounts that can open it (a private Notion page, which a
- * plain fetch only sees as a sign-in page). The owner chose (stage 1
- * questions): use a connector when there is one, else read it like any page.
- * Sources are registered by the server (netlify/lib/rich-links/connector-previews.ts);
- * `read` returns null when it has no account or can't open this one, and the
- * page is then read as usual.
+ * plain fetch only sees as a sign-in page). A connector is used when there is
+ * one, else it's read like any page. Sources are registered by the server
+ * (netlify/lib/rich-links/connector-previews.ts); `read` returns null when it
+ * has no account or can't open this one, and the page is then read as usual.
  */
 export interface PreviewSource {
   id: string;
@@ -228,7 +227,7 @@ export async function readPreview(url: string): Promise<PageRead> {
   let icon: string | null;
   try {
     page = await previewDeps.fetchHtml(url);
-    // Reading the page is inside the try too: a page that makes a parser throw is "failed", never a 500 (security review M21).
+    // Reading the page is inside the try too: a page that makes a parser throw is "failed", never a 500.
     if (tooDeep(page.html)) return failed;
     x = extractPage(page.html, page.url);
     thing = detectFromHtml(page.html, page.url, { title: x.title, author: x.author, hasText: !!x.text }) ?? fromUrl;

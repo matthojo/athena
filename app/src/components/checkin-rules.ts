@@ -76,10 +76,10 @@ export function listWords(xs: string[]): string {
 }
 
 /**
- * The day's questions (the owner's decision, 17 Nov 2026): pinned ones every
- * day; the rest take turns, least recently asked first, until the count is
- * reached. Asked in the routine's order. `lastAsked` maps a question id to the
- * last date it was in a plan. Questions no longer in the library drop out.
+ * The day's questions: pinned ones every day; the rest take turns, least
+ * recently asked first, until the count is reached. Asked in the routine's
+ * order. `lastAsked` maps a question id to the last date it was in a plan.
+ * Questions no longer in the library drop out.
  */
 export function pickPlan(routine: RoutineSettings, library: CheckinQuestion[], lastAsked: Record<string, string> = {}): CheckinQuestion[] {
   if (!routine.enabled) return [];
@@ -102,10 +102,9 @@ export function pickPlan(routine: RoutineSettings, library: CheckinQuestion[], l
 export const plannedCount = (r: RoutineSettings): number => Math.min(Math.max(1, r.per_day), Math.max(r.questions.length, 1));
 
 /**
- * Which cards Today shows (owner, 17 Nov 2026): a card for each routine
- * that's on, morning first, side by side, at any time of day; a done one
- * stays and says so. The set-up offer when both are off and it hasn't been
- * dismissed.
+ * Which cards Today shows: a card for each routine that's on, morning first,
+ * side by side, at any time of day; a done one stays and says so. The set-up
+ * offer when both are off and it hasn't been dismissed.
  */
 export type TodayCheckin = { show: "routines"; kinds: CheckinKind[] } | { show: "offer" } | { show: "none" };
 

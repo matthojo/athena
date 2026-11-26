@@ -24,7 +24,7 @@ test("Other MCP server is last and is the fallback", () => {
 });
 
 test("no known-read tool is named like a write", () => {
-  // One exception, owner's call (7 Nov): Zapier labels execute_zapier_read_action
+  // One exception: Zapier labels execute_zapier_read_action
   // a read, so its preset allowlists it although "execute" is a write verb.
   const allowed = new Set(["zapier:execute_zapier_read_action"]);
   for (const p of CONNECTOR_PRESETS)
@@ -52,7 +52,7 @@ test("work presets: issue trackers and code hosts feed work activity", () => {
   for (const id of ["atlassian", "asana", "clickup", "monday", "trello", "gitlab"]) {
     assert.ok(presetFor(id).recipes.includes("work-activity"), `${id}: work-activity`);
   }
-  // Often a personal list, so it doesn't feed work activity (owner, 7 Nov); its routines feed the Life log as habits.
+  // Often a personal list, so it doesn't feed work activity; its routines feed the Life log as habits.
   assert.deepEqual(presetFor("todoist").recipes, ["life-log", "plays-watches", "custom"]);
 });
 
@@ -94,7 +94,7 @@ test("business: ten or more services, each with a mark, category, tagline, help 
   for (const id of Object.keys(BUSINESS_MARKS)) assert.ok(BUSINESS_PRESETS.some((p) => p.id === id), `mark ${id} has no preset`);
 });
 
-// No published tool names (owner, 7 Nov): listed with nothing allowed by default.
+// No published tool names: listed with nothing allowed by default.
 const EMPTY_ALLOWLIST = ["otter", "fathom", "readai", "missive", "helpscout"];
 
 test("business: every known-read tool classifies as read, and the allowlist is never empty", () => {
@@ -163,14 +163,14 @@ test("business: Zapier allows only execute_zapier_read_action", () => {
   assert.equal(classifyTool("zapier", "execute_zapier_write_action", { readOnlyHint: true }), "write");
 });
 
-// ---- classifyTool (owner, 7 Nov) ----
+// ---- classifyTool ----
 test("classifyTool: CamelCase names and manage are writes, even when a server says read-only", () => {
   for (const t of ["CreateFolder", "UpdateMeeting", "DeleteTag", "createSharedLink", "ShareMeeting", "manage_crm_objects", "table_rows_manage", "ManageUsers"]) {
     assert.equal(classifyTool("custom", t), "write", t);
     assert.equal(classifyTool("custom", t, { readOnlyHint: true }), "write", `${t} with readOnlyHint`);
   }
   for (const t of ["GetFolder", "ListMeetings", "getJiraIssue", "searchConfluence", "HTMLSummary"]) assert.notEqual(classifyTool("custom", t), "write", t);
-  // A custom server's own readOnlyHint isn't trusted (security review M10): unknown, so off until the owner allows it.
+  // A custom server's own readOnlyHint isn't trusted: unknown, so off until the owner allows it.
   assert.equal(classifyTool("custom", "GetFolder", { readOnlyHint: true }), "unknown");
   assert.equal(classifyTool("dropbox", "GetFolder", { readOnlyHint: true }), "read");
 });

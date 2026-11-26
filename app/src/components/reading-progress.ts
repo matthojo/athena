@@ -10,7 +10,7 @@ import { field, input, select } from "./fields";
 import { defaultProgressUnit, parseProgress, type ProgressUnit, type ReadingProgress, type ReadingStatus } from "../../../lib/watch-read";
 import "../styles/reading-progress.css";
 
-/** Words on this row (docs/notes/rich-links-stage2s.md "New copy"). */
+/** Words on this row. */
 export const PROGRESS_COPY = {
   label: "Progress",
   of: "of",

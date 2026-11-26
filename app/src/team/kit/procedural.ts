@@ -50,7 +50,7 @@ export const LOOKS: Record<Species, [fur: string, accent: string][]> = {
   monster: [["mint", "lilac"], ["lilac", "mint"], ["sky", "butter"], ["butter", "coral"], ["blush", "lilac"], ["mint", "butter"]],
 };
 
-// Calm by default (16 Nov): round eyes lead; sparkle and the closed happy arcs are a treat, not the norm.
+// Calm by default: round eyes lead; sparkle and the closed happy arcs are a treat, not the norm.
 const EYE_WEIGHTS: Record<EyesId, number> = { round: 4, sparkle: 2, sleepy: 1.2, happy: 1 };
 
 /**

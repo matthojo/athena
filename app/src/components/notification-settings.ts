@@ -12,7 +12,7 @@
  *    device with notifications on.
  *
  * iOS shows no action buttons on web notifications, so every notification is
- * one tap that opens the right page (app/public/sw.js). Words: docs/notes/nudges.md.
+ * one tap that opens the right page (app/public/sw.js).
  */
 
 import "../styles/nudges.css";

@@ -17,8 +17,7 @@
  * the visible label. Entity labels conventionally start with "@"; note
  * labels don't.
  *
- * A link may carry how it's shown in the Markdown link title (rich links,
- * docs/notes/rich-links.md):
+ * A link may carry how it's shown in the Markdown link title (rich links):
  *
  *   [@Priya Shah](athena://person/<uuid> "card")
  *   [A slow walk](https://example.com/walk "embed")
@@ -244,7 +243,7 @@ export function parseWebLinks(markdown: string): WebLink[] {
   return out;
 }
 
-// ---------- Links Athena wrote (security review M6) ----------
+// ---------- Links Athena wrote ----------
 
 /**
  * Text a model wrote (an Ask reply, an answer, the briefing): every web

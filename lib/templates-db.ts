@@ -2,7 +2,7 @@
  * The owner's note templates (migration 0047, lib/templates.ts for the
  * rules). The six starters live in code; editing one saves a row carrying
  * its key, which then stands in for it. "Save as template" on a note makes
- * a row of its own. Names and bodies are sealed (SECURITY.md §11), so SQL
+ * a row of its own. Names and bodies are sealed (docs: security/encryption), so SQL
  * never compares them: names are matched here.
  *
  * Nothing is deleted: a template is archived, and archiving an edited

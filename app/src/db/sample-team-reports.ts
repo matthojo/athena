@@ -1,5 +1,5 @@
 /**
- * Sample mode's team reports (docs/team.md, "Home"): the cards the server
+ * Sample mode's team reports: the cards the server
  * would have sent for the sample day's runs (db/sample-team.ts), one per
  * assistant, as lib/team-run.ts teamNudge writes them: title "From <Name>",
  * the run's summary as the body, keyed "team:<run id>", with the

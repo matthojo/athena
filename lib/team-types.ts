@@ -1,5 +1,5 @@
 /**
- * Team: the shared types and constants (docs/team.md). Imported by the
+ * Team: the shared types and constants. Imported by the
  * server (lib/team.ts, netlify/lib/team-routes.ts) and the app
  * (app/src/db/team.ts, app/src/team/avatar.ts). Types and constants only,
  * so either side can import it without pulling in the other.
@@ -28,7 +28,7 @@ export type Species = (typeof SPECIES)[number];
 export const EYES = ["round", "sparkle", "sleepy", "happy"] as const;
 export type Eyes = (typeof EYES)[number];
 
-/** The 12 on the mouth sheet (docs/team-art/mouths-sheet.svg), left to right, top to bottom. */
+/** The 12 on the mouth sheet, left to right, top to bottom. */
 export const MOUTH_IDS = ["small-smile", "big-laugh", "wavy-frown", "cat-w", "buck-teeth", "fang-grin", "surprised-o", "smirk", "tongue-out", "button-nose", "triangle-nose", "heart-nose"] as const;
 export type MouthId = (typeof MOUTH_IDS)[number];
 
@@ -172,10 +172,10 @@ export interface TeamAssistant {
   allow: string[];
   /**
    * It may look things up online in its runs, checks and chats: search the web and read a page it found, while
-   * "Let Ask search the web" is on too (docs/team-notes/web-runs.md). Off unless the owner turned it on. Missing on older servers.
+   * "Let Ask search the web" is on too. Off unless the owner turned it on. Missing on older servers.
    */
   web?: boolean;
-  /** Its own thinking and picture models (docs/ai-models.md). Missing or empty: the same as Ask. Missing on older servers. */
+  /** Its own thinking and picture models. Missing or empty: the same as Ask. Missing on older servers. */
   models?: AssistantModels;
   /**
    * Someone else shared it and the owner imported it (migration 0087). Its runs and chats open only the connected
@@ -247,7 +247,7 @@ export interface TeamRun {
   waiting?: number;
   /** A second try: the first failed before anything ran, so it's queued again for the next pass. Missing on older servers. */
   retried?: boolean;
-  /** The model it thought with (docs/ai-models.md). Missing while it works, for a failed run, and on older servers. */
+  /** The model it thought with. Missing while it works, for a failed run, and on older servers. */
   model?: ModelRef;
   /** The chosen model failed before answering, so the default ran it. */
   fell_back?: boolean;
@@ -303,7 +303,7 @@ export interface TeamMemoryResponse {
   memory: AssistantMemory;
 }
 
-// ---------- an assistant's own skill (lib/team-skill.ts, docs/team.md "Skills") ----------
+// ---------- an assistant's own skill (lib/team-skill.ts) ----------
 
 export type { TeamAnswer, TeamQuestion };
 

@@ -297,7 +297,7 @@ test("Days: a Life log run, imports, health, places, conversion, Ask and search,
     const global = await recall("wager");
     const dayHit = global.find((h) => h.kind === "day");
     assert.equal(dayHit?.id, DAY);
-    // Journals are searched like any note body (owner, 7 Nov): ⌘K finds the day by what was written.
+    // Journals are searched like any note body: ⌘K finds the day by what was written.
     const byJournal = (await recall("rain lunch")).find((h) => h.kind === "day");
     assert.equal(byJournal?.id, DAY, "global search reaches the journal");
     assert.match(byJournal!.snippet, /«/, "with the match marked");

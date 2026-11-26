@@ -4,7 +4,7 @@
   functions = "netlify/functions"
 
 # Netlify Server (netlify/server/index.ts) needs Node 24; the build, the
-# functions and the server all run on this major. See docs/netlify-server.md.
+# functions and the server all run on this major.
 [build.environment]
   NODE_VERSION = "24"
 
@@ -30,8 +30,8 @@
 
 # The app routes by hash (/#/days/...), so every deep link is "/", a static
 # file. The old catch-all (/* -> /index.html) is gone: a rule that matches
-# every path is applied before Netlify Server and would take its requests
-# (docs/netlify-server.md). Only the share target still needs the shell.
+# every path is applied before Netlify Server and would take its requests.
+# Only the share target still needs the shell.
 [[redirects]]
   from = "/share-target"
   to = "/index.html"

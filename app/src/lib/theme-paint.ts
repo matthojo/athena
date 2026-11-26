@@ -1,5 +1,5 @@
 /**
- * A theme, worked out into what goes on the page (ARCHITECTURE.md, "Themes").
+ * A theme, worked out into what goes on the page (docs: architecture/theming).
  *
  * compileTheme() turns a theme that has been through the reader
  * (lib/theme.ts readTheme) into a Paint: custom properties grouped by the

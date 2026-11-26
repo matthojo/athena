@@ -1,5 +1,5 @@
 /**
- * Which model runs each role (docs/ai-models.md), and the owner's choices
+ * Which model runs each role, and the owner's choices
  * behind it.
  *
  * The owner's choices are one `settings` row, key `ai_models` (ModelSettings,

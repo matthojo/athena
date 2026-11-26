@@ -1,5 +1,5 @@
 /**
- * Team chat (docs/team.md "Team chat"): #/team/chat, and #/team/chat/<post
+ * Team chat: #/team/chat, and #/team/chat/<post
  * id> to open it at a post. One channel for the whole team, standing
  * assistants and guests alike.
  *

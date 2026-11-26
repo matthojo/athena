@@ -1,5 +1,5 @@
 /**
- * Sample mode's assignments and Team chat (docs/team.md "Assignments"): one
+ * Sample mode's assignments and Team chat: one
  * data set both read. A finished assignment with its document, one waiting
  * on a question, one waiting for Go, and the standing assistants' posts,
  * which come from the same runs the Team page shows (db/sample-team.ts).

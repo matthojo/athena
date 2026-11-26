@@ -14,11 +14,11 @@ export const GROUPS: ReadonlyArray<{ group: CatalogEntry["group"]; label: string
   { group: "team", label: "Assistants and Team" },
 ];
 
-/** Drafting steps: offered under Tell me, and they always wait for your Go (owner, 21 Nov 2026). */
+/** Drafting steps: offered under Tell me, and they always wait for your Go. */
 export const DRAFT_TOOLS: ReadonlySet<string> = new Set(["draft_email", "draft_message"]);
 export const isDraftTool = (tool: string): boolean => DRAFT_TOOLS.has(tool);
 
-/** The only changes a new step lets run alone: each just adds to your own Athena, with Undo (owner, 21 Nov 2026). The engine's AUTO_BY_DEFAULT (lib/flow-catalog.ts), which this file can't import; lib/flow-catalog.test.ts checks they match. */
+/** The only changes a new step lets run alone: each just adds to your own Athena, with Undo. The engine's AUTO_BY_DEFAULT (lib/flow-catalog.ts), which this file can't import; lib/flow-catalog.test.ts checks they match. */
 export const RUNS_ALONE_TOOLS: ReadonlySet<string> = new Set(["add_reminder", "add_todo", "add_to_list"]);
 
 /** A draft step's settings when the catalogue doesn't list them. */

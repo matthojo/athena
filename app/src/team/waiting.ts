@@ -1,5 +1,5 @@
 /**
- * What waits for you (docs/team.md "Team chat", owner 17 Nov 2026): one per
+ * What waits for you: one per
  * post that waits, so the count is the length of the chat's `waiting` list.
  * A plan is 1 whatever it holds, a question 1, an approval 1, a run that
  * didn't finish 1. One count for the sidebar, the Team page, Home, phone

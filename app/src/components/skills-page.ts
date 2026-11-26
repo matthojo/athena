@@ -7,7 +7,7 @@
  * whole text and files before anything is saved), or write one. A draft from a chat ("Make this a
  * skill" in Ask) opens here and is only saved when the owner taps Save.
  *
- * A Team assistant's own skill (docs/team.md, "Skills") is listed under Team,
+ * A Team assistant's own skill is listed under Team,
  * tagged with the assistant's avatar and name, with no switch: only that
  * assistant uses it, and main Ask never does.
  */

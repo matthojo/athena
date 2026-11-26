@@ -1,5 +1,5 @@
 /**
- * Saved actions (migration 0039; docs/notes/saved-actions.md): what can be
+ * Saved actions (migration 0039): what can be
  * done with a saved item, as a registry any feature can add to. A book can
  * go to Watch & read, a dress can be a gift idea for Rowan, a Maps link can
  * be saved as a place.

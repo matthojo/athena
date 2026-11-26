@@ -7,7 +7,7 @@
  * follow each service's documented shape (docs.habitify.me, docs.monzo.com,
  * developer.starlingbank.com/docs, Octopus's REST guide, developer.todoist.com),
  * with the fields Athena reads and a few it ignores. Replace them with
- * recorded replies once the owner connects (docs/notes/habits-money-home.md).
+ * recorded replies once the owner connects.
  *
  * The fetch stub is reading-social-recorded.ts's.
  */

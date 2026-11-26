@@ -1,6 +1,5 @@
 /**
- * Who you're talking to, wherever Ask can be reached (docs/team.md,
- * Experience → Home, Ask): Athena's orb or an assistant's character, the
+ * Who you're talking to, wherever Ask can be reached: Athena's orb or an assistant's character, the
  * picker that switches between them (a sheet on a phone, a popover on a
  * wide screen), the lead an assistant's replies carry with its status pill,
  * and the "Checked with <Name>" chip on a reply that asked a teammate.

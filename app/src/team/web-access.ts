@@ -1,8 +1,7 @@
 /**
  * Whether an assistant may look things up online while it works, the app
- * side (owner, 16 Nov 2026: "a switch per assistant, off by default,
- * suggested at hiring when the job clearly needs it"; docs/team.md,
- * "Looking things up online").
+ * side: a switch per assistant, off by default, suggested at hiring when the
+ * job clearly needs it.
  *
  * The contract is `web?: boolean` on `TeamAssistant`, on the input to
  * `createAssistant` and `updateAssistant`, and on `TeamDraft` (true when the
@@ -40,7 +39,7 @@ export const webPatch = (on: boolean): TeamAssistantInput => ({ web: on }) as We
 /**
  * Which assistants the server thought needed the web when they were hired
  * (`TeamDraft.web`), remembered on this device. The server keeps no hint of
- * its own yet (docs/team-notes/web-app.md, "For the integrator"), so an
+ * its own yet, so an
  * assistant hired on another device has none here, and its page says nothing
  * about needing it.
  */

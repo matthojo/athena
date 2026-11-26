@@ -1,6 +1,6 @@
 /**
  * A note as a file: "Download as Markdown", "Download as Word" and "Print
- * or save as PDF" in its menu (docs/team.md "Documents for download").
+ * or save as PDF" in its menu.
  *
  * Signed in, the server makes the file and keeps it on the note
  * (lib/document-make-db.ts), so it's under Files afterwards. In sample

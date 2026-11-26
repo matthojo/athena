@@ -17,7 +17,7 @@
  *    reference documents them as data retrieval, and no other action is sent.
  *  - HTTP is 200 even for errors: the body's status says what went wrong.
  *
- * Figures are health content (SECURITY.md §1): they go back to the run only,
+ * Figures are health content (docs: security/encryption): they go back to the run only,
  * never into an error or a log line.
  */
 import { WITHINGS_API_URL, WITHINGS_SCOPE } from "../../../lib/presets/health";

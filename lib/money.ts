@@ -1,6 +1,6 @@
 /**
  * Money and home: a day's spending from bank accounts (Monzo, Starling) and
- * its electricity and gas from Octopus Energy. SECURITY.md §1 has the rules.
+ * its electricity and gas from Octopus Energy. docs: security/encryption has the rules.
  *
  * Storage. Each (day, source) is one row in sensitive_blobs: domain 'money'
  * (spend per category, the count, and each card payment's merchant, time and
@@ -636,10 +636,10 @@ export async function saveMoneyPrefs(raw: unknown): Promise<MoneyPrefs> {
 // ---------- Ask: "Let Ask read transactions" ----------
 
 /**
- * The owner's switch for Ask's money tools (owner, 9 Nov 2026): off by
- * default, independent of the Days switch above. While it's off Ask isn't
- * offered `money` or `regular_payments` and a day read in full leaves its
- * spending out (lib/ask-tools.ts), so no amount or merchant reaches a prompt.
+ * The owner's switch for Ask's money tools: off by default, independent of
+ * the Days switch above. While it's off Ask isn't offered `money` or
+ * `regular_payments` and a day read in full leaves its spending out
+ * (lib/ask-tools.ts), so no amount or merchant reaches a prompt.
  */
 const ASK_MONEY_KEY = "ask_money";
 

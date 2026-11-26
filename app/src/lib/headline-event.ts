@@ -2,9 +2,8 @@ import { clockOfDay, uses12Hour } from "./clock";
 /**
  * Which of today's dates Home's headline leads with, as the day goes on.
  *
- * The headline used to name the day's first event all day: "Hospital
- * appointment at 09:00 is today" was still there in the afternoon (12 Nov).
- * Now it's the next one that hasn't happened: a timed event until half an
+ * It's the next one that hasn't happened, so a morning appointment isn't
+ * still the headline in the afternoon: a timed event until half an
  * hour after it starts, then the one after it; an all-day date when no timed
  * one is left to come; and nothing once the day's dates are behind you, so
  * the sentence moves on to what's due and what's new.

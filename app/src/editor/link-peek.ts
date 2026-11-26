@@ -1,6 +1,6 @@
 /**
  * Peek cards: a look at what a Mention or a Link points to without leaving
- * the note (from the approved prototype). On a desk they open after a short
+ * the note. On a desk they open after a short
  * hover, 380ms, then 80ms while moving between links, or after a 700ms pause
  * on a link reached with the keyboard. On a phone a long press opens the
  * context menu instead, with this same card as its preview (link-context.ts).

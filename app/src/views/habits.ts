@@ -83,8 +83,8 @@ function weekSplit(x: HabitSummary): HTMLElement {
 
 /**
  * The longest run, only while the current one is closing in on it (within
- * three): beside a broken run it reads as a loss (docs/notes/affection-2026-11.md,
- * voice fix 6). Runs are shown only while they're running.
+ * three): beside a broken run it reads as a loss. Runs are
+ * shown only while they're running.
  */
 export function showLongest(x: Pick<HabitSummary, "streak" | "longest">): boolean {
   return x.streak >= 1 && x.longest >= 3 && x.longest > x.streak && x.longest - x.streak <= 3;

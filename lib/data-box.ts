@@ -1,5 +1,5 @@
 /**
- * Encryption at rest for Athena's personal content (SECURITY.md §11).
+ * Encryption at rest for Athena's personal content (docs: security/encryption).
  *
  * Note titles and bodies, people's details, to-dos, catch-ups, facts and the
  * rest of the free text Athena keeps are sealed here, in the Functions,

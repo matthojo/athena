@@ -29,7 +29,7 @@ export function targetOf(node: PMNode): LinkTarget | null {
 
 export const keyOf = (t: LinkTarget) => (t.target === "athena" ? `${t.kind}:${t.id}` : t.url);
 
-// ---------- A note Athena wrote: its web links stay plain (security review M6) ----------
+// ---------- A note Athena wrote: its web links stay plain ----------
 
 /**
  * A note written by a collection, the assistant or anything but the owner

@@ -939,7 +939,7 @@ export interface AskPlan {
   needs_account?: { step: number; account: string; label: string | null; provider: string; assistant: string; skill?: { id: string | null; title: string }; results: Array<{ status: "done" | "skipped" | "failed"; error?: string; changes: AssistantChange[] }> };
 }
 
-/** Ask's start_assignment card (docs/team.md "Assignments"): the proposed lineup, and the assignment's id once Go started it. */
+/** Ask's start_assignment card: the proposed lineup, and the assignment's id once Go started it. */
 export interface AskLineupCard {
   lineup: import("../../lib/assignment-types").Lineup;
   /** The draft the server keeps it as (start_assignment): Go replaces that draft's lineup and starts it. */
@@ -1103,7 +1103,7 @@ export interface AskThread {
   messages: SavedAskMessage[];
   /** Archived from Ask: hidden there, listed on the Archived page. */
   archived_at?: string | null;
-  /** One of the Team's assistants this conversation is with (docs/team.md); null or missing: Athena. */
+  /** One of the Team's assistants this conversation is with; null or missing: Athena. */
   assistant_id?: string | null;
   created_at: string;
   updated_at: string;

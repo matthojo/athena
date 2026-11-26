@@ -238,7 +238,7 @@ test("import: new ids, blanks filled, every change step waits for Go, look steps
   assert.equal(new Set(all.map((s) => s.id)).size, 5);
   for (const s of all) assert.match(s.id, /^s[0-9a-z]{6}$/);
   assert.ok(all.every((s) => !["s1", "s2", "s3", "s4", "s5"].includes(s.id)));
-  // The owner's decision (24 Nov 2026): a step that only looks runs; one that changes something waits for Go.
+  // A step that only looks runs; one that changes something waits for Go.
   for (const s of all) if (s.kind === "tool") assert.equal(s.go, s.tool === "money" ? "auto" : "ask", s.tool);
   const todo = all.find((s) => s.kind === "tool" && s.tool === "add_todo");
   assert.ok(todo?.kind === "tool");

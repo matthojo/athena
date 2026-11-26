@@ -1,5 +1,5 @@
 /**
- * Your work, counted (owner decision, 12 Nov): a collection with no model.
+ * Your work, counted: a collection with no model.
  * Each run calls the work accounts' own read tools with fixed arguments
  * (callTool, never Claude) and stores only the owner's own activity in
  * work_items (lib/work.ts), sealed:

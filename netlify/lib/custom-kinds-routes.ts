@@ -18,7 +18,7 @@
  *   POST   /api/records/:id/archive|unarchive    → { kind, id, archived }
  *   DELETE /api/records/:id                      → { deleted }: with its links and values
  *
- * Permanent delete is the owner's, from the app (SECURITY.md §7); MCP has no
+ * Permanent delete is the owner's, from the app (docs: security/sign-in-and-keys); MCP has no
  * way to it. Errors in the owner's words come back as 400s from
  * AthenaInputError, which api.ts maps like every other route.
  */

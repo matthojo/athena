@@ -1,4 +1,4 @@
-// Security review M19: htmlToText on hostile email and calendar HTML, with a time bound, and what it still writes for ordinary HTML.
+// htmlToText on hostile email and calendar HTML, with a time bound, and what it still writes for ordinary HTML.
 // Run: npx tsx --test netlify/lib/connectors/html-to-text.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";

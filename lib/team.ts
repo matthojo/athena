@@ -1,5 +1,5 @@
 /**
- * Team: the assistants and their triggers (docs/team.md, migration 0067).
+ * Team: the assistants and their triggers (migration 0067).
  *
  * An assistant's words (name, job, instructions, personality, avatar) are
  * sealed in `payload` and what it remembers in `memory`, as ask_routines

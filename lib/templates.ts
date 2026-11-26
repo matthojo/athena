@@ -4,7 +4,7 @@
  * fills them from Athena's own records) and the PWA (the picker, the
  * template editor, and highlighting blanks in the note editor).
  *
- * Rules (docs/notes/documents.md):
+ * Rules:
  *  - every field has one named source (FIELDS); a field nobody knows is left
  *    as a blank for the owner;
  *  - a value only ever comes from a record Athena holds, never from a model:

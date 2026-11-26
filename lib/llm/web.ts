@@ -1,5 +1,5 @@
 /**
- * Web search and web fetch for a model that isn't Claude (docs/ai-models.md). They're Anthropic's server tools, so
+ * Web search and web fetch for a model that isn't Claude. They're Anthropic's server tools, so
  * another provider is offered them as ordinary tools, and each call is handed to one small Claude call that runs the
  * real tool. Its own result block comes back, so Ask's steps, leak checks and citations (lib/answer.ts noteWeb)
  * see exactly what they'd see from Claude. Only the query or the link goes to Claude, never the conversation.

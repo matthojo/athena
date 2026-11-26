@@ -1,5 +1,5 @@
 /**
- * Assignments and Team chat, in words (docs/team.md "Assignments"): what a
+ * Assignments and Team chat, in words: what a
  * stage and an assignment say about themselves, the lineup card's presets
  * and edits, what a post weighs in What waits for you, and how the channel
  * groups into threads. Pure, so every screen and the tests share it.

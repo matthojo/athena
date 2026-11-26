@@ -219,11 +219,11 @@ export function meets(t: Pick<Tracker, "kind" | "currency">, target: Pick<Tracke
   return target.op === "lte" ? v <= g : target.op === "gte" ? v >= g : v === g;
 }
 
-/** The server's summary, with what it adds after the contract (owner, 16 Nov 2026): the check that met the target. */
+/** The server's summary, with what it adds after the contract: the check that met the target. */
 type ServerSummary = TrackerSummary & { reached_by?: TrackerPoint | null };
 
 /**
- * Which check meets the target, if any (owner, 16 Nov 2026: "When any shop's current price meets it"). Each
+ * Which check meets the target, if any: when any shop's current price meets it. Each
  * source's latest check counts while it's within 14 days of the newest; of those that meet the target, the best
  * by the tracker's direction (or the newest). The server works this out (`summary.reached_by`); sample mode and
  * an older answer use this, the same rule.

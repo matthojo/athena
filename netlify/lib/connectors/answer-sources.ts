@@ -1,7 +1,7 @@
 /**
  * lib/answer.ts's SourcesPort: the owner's connected accounts, opened with
  * their stored sign-ins for the length of one answer. Same rules as
- * collections (SECURITY.md §9):
+ * collections (docs: security/connectors):
  *
  *  - only the tools the owner allowed for an account, re-checked as reads when
  *    they're listed (listAllowedTools), and a call to anything else is refused;
@@ -9,11 +9,11 @@
  *  - an account that needs signing in, or doesn't answer in time, is skipped
  *    and named, never fatal.
  *
- * Every allowed read tool is offered (ask-past-sources, 8 Nov): for the
- * services Athena knows, the ones that help answer a question come first
- * (searching and reading), then the rest of the account's allowlist. Each
- * account also says when Athena started collecting from it, so the model
- * knows to search the account itself for anything older.
+ * Every allowed read tool is offered: for the services Athena knows, the
+ * ones that help answer a question come first (searching and reading), then
+ * the rest of the account's allowlist. Each account also says when Athena
+ * started collecting from it, so the model knows to search the account
+ * itself for anything older.
  *
  * Life log accounts (Trakt, YouTube, Letterboxd, Goodreads, Reddit, Spotify,
  * Last.fm, Steam, Readwise, Bluesky, Mastodon) return JSON lists with a link per item: each link is named

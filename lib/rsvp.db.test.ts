@@ -112,7 +112,7 @@ test("invites: synced, answered, sent only with the switch, undone, and declined
   await sync("maybe", "accepted");
   assert.equal((await getEvent(ids.review))!.rsvp, "declined", "a failed send still holds at the next sync");
 
-  // ---- Ask: "I can't make Friday's design review" only prepares a card (security review M7); the owner's tap answers ----
+  // ---- Ask: "I can't make Friday's design review" only prepares a card; the owner's tap answers ----
   const cards: Array<{ kind: string; event_id?: string; answer?: string; series?: boolean; sends_to?: string | null }> = [];
   const confirm = (c: (typeof cards)[number]) => void cards.push(c);
   await answerEvent(ids.review, "going", { calendar });

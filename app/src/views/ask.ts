@@ -256,7 +256,7 @@ interface Chat {
   messages: Message[];
   saved: boolean;
   locked?: boolean;
-  /** One of the Team's assistants this conversation is with; null: Athena (docs/team.md). */
+  /** One of the Team's assistants this conversation is with; null: Athena. */
   assistant_id?: string | null;
 }
 
@@ -885,7 +885,7 @@ function assistantEl(m: AssistantMessage, ctx: AskContext, choose: (text: string
 /**
  * What a reply did, as the pieces that go with its words. `within` sits in the bubble under the text: what it
  * remembered ("Remembered · Undo") and the choices it's waiting on. `cards` follow the bubble: times to pick, what
- * would leave Athena (each waits for a tap, security review M7) and a plan. `changes` is the receipts, each with
+ * would leave Athena (each waits for a tap) and a plan. `changes` is the receipts, each with
  * Open and Undo.
  */
 function actedEls(m: Acting, ctx: AskContext, choose: (text: string) => void, repaint: () => void, save: () => void): { within: HTMLElement[]; cards: HTMLElement[]; changes: HTMLElement | null } {
@@ -1451,7 +1451,7 @@ async function samplePicture(q: string, c: Chat, step: (x: AskStep) => void, tex
   const last = [...c.messages].reverse().flatMap((x) => (x.role === "answer" || x.role === "assistant" ? ((x.reply as ModelNote | null)?.pictures ?? []).filter((p) => !x.undone.has(pictureKey(p.file.id)) && !p.file.removed) : []))[0] ?? null;
   const wants = samplePictureAsk(mentionsToText(q), last);
   if (!wants) return null;
-  // The sample's AI models settings say which picture model, if any (owner, 17 Nov 2026): Settings, AI models.
+  // The sample's AI models settings say which picture model, if any: Settings, AI models.
   const ref = await samplePictureModel(c.assistant_id ?? null);
   const plainReply = async (said: string, extra: Partial<AskReply> = {}): Promise<AskReply> => {
     const r: AskReply = { text: said, sources: [], related: [], searched: "", skipped: [], found: false, flagged: false, ...extra };
@@ -2049,7 +2049,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   let picked: AppSkill | null = null;
   /** The skill the message being sent right now goes with. */
   let askingSkill: string | null = null;
-  /** Who the conversation on screen is with (docs/team.md): Athena, or one of the Team's assistants. */
+  /** Who the conversation on screen is with: Athena, or one of the Team's assistants. */
   let who: Who = ATHENA;
   /** Whose conversations the list shows: Athena's (null) or one assistant's. Follows the open conversation. */
   let listWho: ThreadFilter = null;
@@ -2150,7 +2150,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
     );
   };
   const introMark = h("span", { class: "ask__intro-who" }, h("span", { class: "orb", "aria-hidden": "true" }));
-  /** A fresh conversation with an assistant: what it's done lately, each opening its conversation (docs/team.md, "Ask"). */
+  /** A fresh conversation with an assistant: what it's done lately, each opening its conversation. */
   const recentSlot = h("div", { class: "who-recent-slot" });
   const intro = h("div", { class: "ask__intro" }, introMark, introTitle, introLede, suggestionRow, recentSlot);
   async function paintRecent(of: Who) {
@@ -2375,7 +2375,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
       const state = ch && restoring.has(key) ? "restoring" : ch && m.undone.has(key) ? "undone" : ch && m.undoing.has(key) ? "undoing" : !ch?.undo || m.gone.has(key) ? "gone" : "ready";
       return pictureCard(p, {
         state,
-        // Undo archives it (owner, 17 Nov 2026): on the Archived page, and Restore here puts it back.
+        // Undo archives it: on the Archived page, and Restore here puts it back.
         onUndo: ch?.undo
           ? () =>
               void undoChange(key, ch.undo!, m, () => rebuild(m), save, ch.activity_id).then(() => {
@@ -2732,7 +2732,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   }
 
   /**
-   * The last reply clears the box and the tab bar (owner, 12 Nov 2026: a reply's button sat behind them on iPhone).
+   * The last reply clears the box and the tab bar, so a reply's button never sits behind them on iPhone.
    * A reply that fits between the head and the bars is brought wholly above them, follow-ups included. One too
    * long to fit is read from its start, as far up as it goes, and the thing it asks you to tap (Try again, Write the answer, Approve, a choice) is never left behind them.
    */
@@ -2818,9 +2818,9 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   }
 
   /**
-   * The line under the head's name: the assistant's status, or just "Working"
-   * while its newest reply here is still coming (owner, 15 Nov 2026). The step
-   * itself is in the pill beside the reply, in full, so the head never cuts it short.
+   * The line under the head's name: the assistant's status, or just "Working" while its
+   * newest reply here is still coming. The step itself is in the pill beside the reply,
+   * in full, so the head never cuts it short.
    */
   function paintWhoStatus() {
     const c = chat;
@@ -2829,7 +2829,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
     const busy = (!!who.id && !!c && c.assistant_id === who.id && !!last && isWorking(last)) || (!!who.id && onRun.has(who.id));
     const status = busy ? WORKING : who.id ? who.status : titleEl.textContent || ATHENA_STATUS;
     if (whoStatus.textContent !== status || busy !== whoStatus.classList.contains("is-working")) {
-      // Working: the breathing dot in the assistant's own colour (owner, 16 Nov 2026), and its ring in the head.
+      // Working: the breathing dot in the assistant's own colour, and its ring in the head.
       if (busy) whoStatus.replaceChildren(h("span", { class: "team-dot ask-who__dot", "aria-hidden": "true" }), status);
       else whoStatus.textContent = status;
     }
@@ -3425,7 +3425,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
         };
       }
     }
-    // An assignment (docs/team.md "Assignments"): the lineup comes back as a card for Go, as start_assignment's does.
+    // An assignment: the lineup comes back as a card for Go, as start_assignment's does.
     if (/\bassignment\b/i.test(plain)) {
       await playSampleSteps([["Picking a lineup", "Picked a lineup"]], step);
       const { lineup, fallback } = await draftLineup(plain.replace(/^.*?\bassignment\b[\s:,.-]*(?:to|for|on)?\s*/i, "") || plain);
@@ -3465,7 +3465,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
         ? { ...none, text: "Done. Every Friday at 16:00 I'll look at what slipped and send it to your phone. You can pause or change it in Settings → Ask.", changes: [sampleRoutineChange()] }
         : { ...none, text: "Here's the plan: three changes, and nothing happens until you tap Approve.", plan: samplePlan() };
     }
-    // What would leave Athena waits as a card for a tap, as a real request does (security review M7); a drafting request gets a sample draft to open.
+    // What would leave Athena waits as a card for a tap, as a real request does; a drafting request gets a sample draft to open.
     const waiting = (await sampleLog(plain)) ?? sampleConfirm(plain);
     const drafted = waiting ? null : sampleDraftChange(plain, samplePeople());
     if (!waiting && !drafted) return null;
@@ -3711,7 +3711,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
           const think = onlyModel(c).model ?? thinkingModel((await loadModels().catch(() => null))?.effective, c.assistant_id);
           return { text: `In sample mode I can keep and show ${names}, but not read ${one ? "it" : "them"}. Connect Athena and I'll read ${one ? "it" : "them"} for you.`, sources: [], related: [], searched: "Kept on this device", skipped: [], found: false, flagged: false, ...(think ? { model: think } : {}) } as AskReply;
         }
-        // Asking Athena about the Lego Ferrari: she checks with Moss, who watches gift prices (docs/team.md, "Checked with Moss").
+        // Asking Athena about the Lego Ferrari: she checks with Moss, who watches gift prices.
         if (!c.assistant_id && /\b(lego|ferrari)\b/i.test(q)) {
           await playSampleSteps([["Checking with Moss", "Checked with Moss"]], step);
           const said = "The Lego Ferrari is £34 at Smyths, £8 under the price when you saved it. You bought from them last Christmas.";
@@ -3795,7 +3795,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
       }
       const connected = online();
       pending.steps = [];
-      // A follow-up means something only with the turns before it: its words are never keyword-searched (owner, 12 Nov 2026).
+      // A follow-up means something only with the turns before it: its words are never keyword-searched.
       // The message is kept, the reply says plainly that it couldn't be had, and it's asked again by itself, once.
       const failed = error instanceof SampleHasNone ? null : afterFailure(error, { online: connected, earlierTurns: history.length, alreadyTried: !!pending.autoTried });
       if (failed?.show === "unreached") {
@@ -3997,7 +3997,7 @@ export function renderAsk(ctx: AskContext): { el: HTMLElement; destroy: () => vo
   }
 
   // ---------- Open on a new conversation ----------
-  // Ask opens ready for a new question (owner, 11 Nov 2026); the last conversation waits in the list. Two things keep the one
+  // Ask opens ready for a new question; the last conversation waits in the list. Two things keep the one
   // you were in: a reply that's still being written, and coming straight back (you tapped a source and returned).
   /** Opened with no chat to go back to (a new device): the first sync may bring one, so open it then. */
   let waitingForLast = false;

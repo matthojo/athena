@@ -3,7 +3,7 @@
  * row, key 'appliances', whose value is { sealed: <the whole ApplianceStore,
  * sealed with the data key> }. What an appliance is doing, and when it last
  * ran, shows when someone's home, so none of it is readable in the database
- * (SECURITY.md §11). No migration: `settings` already takes any key.
+ * (docs: security/encryption). No migration: `settings` already takes any key.
  *
  * Written by netlify/lib/home/appliance-sync.ts every 15 minutes; read by
  * the House page.

@@ -1,5 +1,5 @@
 /**
- * One run of a Team assistant (docs/team.md), and its record in `team_runs`.
+ * One run of a Team assistant, and its record in `team_runs`.
  *
  * A run is queued by a trigger (lib/team-triggers.ts) or Run now
  * (POST /api/team/:id/run) and run once by the background function
@@ -215,8 +215,8 @@ export async function finishTeamRun(id: string, out: { status: "done" | "failed"
 }
 
 /**
- * A triggered run that failed before anything ran goes back in the queue, once (owner, 15 Nov: "Try once more,
- * then tell me"). Nothing it would make was made, so trying again can't make anything twice. The next reminders
+ * A triggered run that failed before anything ran goes back in the queue, once, and a second
+ * failure is reported. Nothing it would make was made, so trying again can't make anything twice. The next reminders
  * pass hands it off (handOffQueuedRuns); a second failure is final. False when it isn't this run's to retry.
  */
 export async function retryTeamRun(id: string): Promise<boolean> {
@@ -601,7 +601,7 @@ const ASK_NOTHING = /^(?:I couldn't find anything about that\.?|Here's what I'd 
 export const TRACKER_NEWS = NEWS_MARKS;
 
 /**
- * A kept check with nothing new about it (owner, 16 Nov 2026): not a number's new best, not a change in a state or
+ * A kept check with nothing new about it: not a number's new best, not a change in a state or
  * in a number followed for any change, not the owner's target reached. It's in the tracker's history, not on Home.
  * Pure.
  */
@@ -610,7 +610,7 @@ export function isRoutineCheck(c: Pick<Change, "kind" | "action"> & { detail?: s
   return c.news ? !c.news.tell : !TRACKER_NEWS.test(c.detail ?? "");
 }
 
-/** A run's reply with its news first (owner, 16 Nov 2026): each kept check that's news, said before the rest unless the reply's first sentence already names it. Pure. */
+/** A run's reply with its news first: each kept check that's news, said before the rest unless the reply's first sentence already names it. Pure. */
 export function newsFirst(text: string, changes: Array<Pick<Change, "kind"> & { news?: Change["news"] }>): string {
   const first = (text.match(/^[^.!?]*[.!?]?/)?.[0] ?? "").toLowerCase();
   const lines: string[] = [];

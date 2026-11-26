@@ -1,5 +1,5 @@
 /**
- * Routines become assistants (docs/team.md, owner 12 Nov 2026). Each
+ * Routines become assistants. Each
  * `ask_routines` row becomes a Team assistant: its title as the name and
  * job, its question as the instructions, a schedule trigger on the same days
  * and time, and a character from a seed of the routine's id. `routine_id`

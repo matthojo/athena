@@ -1,7 +1,7 @@
 /**
  * Settings → AI spend (#/settings/spend): what Athena's AI cost today, in words first ("£1.20 of £3 today"),
  * where it went (Ask, each assistant, background work, pictures), the last 7 days, and the daily budget it won't
- * go past (owner, 17 Nov 2026). Spend always shows; the budget is unset until the owner sets one. Each
+ * go past. Spend always shows; the budget is unset until the owner sets one. Each
  * assistant's own cap is set on its page (components/spend-cap.ts) and listed here.
  *
  * Money is in the owner's currency (Profile → Region), converted by the server (lib/spend.ts).

@@ -1,5 +1,5 @@
 /**
- * Team: an assistant's character (docs/team.md, "Contracts" → Avatar).
+ * Team: an assistant's character.
  *
  *   renderAvatar(spec, { size, mood?, animate?, frame? }) → <svg>
  *   renderAvatarTile(spec, { size, mood?, animate? }) → <span class="kit-tile"> (every Team surface)

@@ -1,4 +1,4 @@
-// Team assistants that look things up online (docs/team-notes/web-runs.md), on real Postgres with a scripted model:
+// Team assistants that look things up online, on real Postgres with a scripted model:
 // a scheduled run searches (placed where the owner lives), opens the shop's page and reports the price with its link;
 // a run with the switch off never searches; the owner's web switch still rules; a saved item's own link reaches the
 // run; and the run's kept conversation says what it searched for and read.

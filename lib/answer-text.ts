@@ -129,7 +129,7 @@ export interface AnswerReply {
   checked?: Array<{ assistant_id: string; name: string; question: string; answer: string }>;
   /** Said by this Team assistant, not main Ask (lib/team-chat.ts). */
   assistant_id?: string;
-  /** The model that answered (docs/ai-models.md): "Answered with …". Missing on older servers. */
+  /** The model that answered: "Answered with …". Missing on older servers. */
   model?: ModelRef;
   /** The chosen model failed before answering, so the default answered instead. */
   fell_back?: boolean;
@@ -144,7 +144,7 @@ export interface AnswerReply {
  * LIVE_ONLY_KEPT (the app and lib/ask-threads.ts both follow the answer's `live_only`, which is set only while this
  * is on). False, such answers are kept like any other.
  */
-// Off (owner, 12 Nov): an answer about a teammate stays in the chat like any other, and can be deleted.
+// Off: an answer about a teammate stays in the chat like any other, and can be deleted.
 export const LIVE_ANSWERS_NOT_KEPT = false;
 
 /** What a chat keeps of an answer read live from the work accounts, in place of its text and sources. */

@@ -18,7 +18,7 @@
  *    app (safeFetch sends one), so its lookups are spaced.
  *
  * Only the artist's name is sent: a performer, not one of the owner's
- * contacts (SECURITY.md §13). Never throws.
+ * contacts (docs: security/outside-services). Never throws.
  */
 import { ArtFetchError, safeFetch } from "../../lib/art";
 import { getConnectorWithSecrets, listConnectors } from "../../lib/connectors";

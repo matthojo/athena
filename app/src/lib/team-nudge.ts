@@ -1,5 +1,5 @@
 /**
- * A nudge from one of the Team's assistants (rule 'team', docs/team.md): a run
+ * A nudge from one of the Team's assistants (rule 'team'): a run
  * result that Home shows as "From <Name>" with its avatar. The server side is
  * built in parallel, so this reads the assistant leniently from any of:
  *   n.assistant = { id, name, avatar }

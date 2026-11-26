@@ -1,5 +1,5 @@
 /**
- * This week's moment (docs/notes/affection-2026-11.md, moment 6): what the
+ * This week's moment: what the
  * picker at the end of the Week in review offers, what the "Kept" toast says,
  * and how a kept moment is stored (lib/week-moments.ts on the server).
  *

@@ -1,5 +1,5 @@
 /**
- * Team (docs/team.md, lib/team.ts):
+ * Team (lib/team.ts):
  *
  *   GET    /api/team                → { assistants, max }
  *   POST   /api/team                TeamAssistantInput (+ answers?) → the assistant (201); its skill is written after (lib/team-skill-make.ts)
@@ -60,7 +60,7 @@ async function teamRoutes(req: Request, url: URL, segments: string[], body: () =
   const [, second, third] = segments;
   const method = req.method;
   const nope = () => json({ error: "Method not allowed" }, 405);
-  // Assignments: lineups of guests and standing assistants (docs/team.md "Assignments").
+  // Assignments: lineups of guests and standing assistants.
   if (second === "assignments") return handleAssignmentRoutes(req, segments, body, json);
   if (segments.length > 3) return null;
 

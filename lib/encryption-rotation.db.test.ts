@@ -1,4 +1,4 @@
-// Key rotation (security review M14): seal under the old key, rotate, run the backfill, and check that
+// Key rotation: seal under the old key, rotate, run the backfill, and check that
 // the status only reads "on" once nothing is left under the old key, in every sealed store, and that
 // everything then opens under the new key alone. Rows that won't open sit at the front of each store,
 // more of them than one batch, and must not hold up the rows behind.

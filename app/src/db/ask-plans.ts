@@ -32,7 +32,7 @@ export async function undoPlanAll(plan: AskPlan): Promise<Array<{ activity_id?: 
 }
 
 // ---------- routines ----------
-// /api/routines is closed (410 Gone, owner 13 Nov 2026): routines are assistants now (db/team.ts).
+// /api/routines is closed (410 Gone): routines are assistants now (db/team.ts).
 
 const sample = { undone: new Set<string>() };
 

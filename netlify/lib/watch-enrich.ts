@@ -18,7 +18,7 @@
  *  - Anything else has no source: marked as looked at, nothing asked.
  *
  * Only titles and ids the item already holds are sent, to the service it
- * came from or the lookups art already uses (SECURITY.md §13). Never throws.
+ * came from or the lookups art already uses (docs: security/outside-services). Never throws.
  */
 import { artKeys, ArtFetchError, safeFetch, tmdbAuth } from "../../lib/art";
 import { getConnectorWithSecrets, listConnectors, type Connector, type ConnectorSecrets } from "../../lib/connectors";

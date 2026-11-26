@@ -1,7 +1,7 @@
 /**
  * The owner's skills (migration 0058, `ask_skills`): SKILL.md text, reference
  * files and where each came from, sealed in `payload` under the data key
- * (SECURITY.md §11). Readable columns are only the on switch, the starter key,
+ * (docs: security/encryption). Readable columns are only the on switch, the starter key,
  * the use count and times. Names are unique, checked here (they're sealed).
  *
  * Nothing is saved without the owner: an import is a preview first
@@ -9,7 +9,7 @@
  * (lib/skill-draft.ts) only opens the editor. A new skill starts off unless
  * the owner saves it on.
  *
- * An assistant's own skill (0069, docs/team.md "Skills") has `assistant_id`
+ * An assistant's own skill (0069) has `assistant_id`
  * set: Athena writes it for that Team assistant, its turns always load it,
  * and main Ask never lists or loads it (enabledSkills skips it; it stays off).
  * It doesn't count toward the owner's 50, and it goes with its assistant.

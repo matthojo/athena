@@ -1,6 +1,6 @@
 /**
  * The connected accounts one turn may open, when something someone else shared is in it (lib/shared-limits.ts,
- * SECURITY.md §10 "Items someone else shared"):
+ * docs: security/community-sharing:
  *
  *  - an imported assistant's turn (a chat, a run, a flow's think step) starts limited to the accounts the owner
  *    ticked for it (lib/team-chat.ts);

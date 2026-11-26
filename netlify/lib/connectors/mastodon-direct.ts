@@ -93,7 +93,7 @@ export const mastodonNet = {
   lookup: (host: string): Promise<Array<{ address: string; family: number }>> => lookup(host, { all: true }),
 };
 
-/** Refuse a server that is, or resolves to, an internal address (SECURITY.md: the same guard as custom servers' logos). */
+/** Refuse a server that is, or resolves to, an internal address (the same guard as custom servers' logos; docs: security/connectors). */
 async function assertPublic(host: string): Promise<void> {
   let addresses: Array<{ address: string; family: number }>;
   try {

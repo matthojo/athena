@@ -1,5 +1,5 @@
 /**
- * Assignments (docs/team.md, "Routes and client"; lib/assignment-run.ts):
+ * Assignments (lib/assignment-run.ts):
  *
  *   POST   /api/team/assignments/lineup        { text } → { lineup, fallback? }   (nothing is kept)
  *   POST   /api/team/assignments               the accepted Lineup (+ id?: a draft it replaces) → the assignment (201); starts it

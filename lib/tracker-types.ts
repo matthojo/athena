@@ -1,9 +1,8 @@
 /**
- * Tracking: anything the owner wants followed over time (docs/team.md,
- * "Tracking"). Owner, 16 Nov 2026: generalise the price trend so "a user can
- * track anything numeric over time", with a label and a prefix or suffix
- * (label "price", prefix "£"); then: numbers AND states ("in stock"), on a
- * saved item OR on its own, several per thing, called "Tracking" in the app.
+ * Tracking: anything the owner wants followed over time. A tracker holds
+ * numbers or states ("in stock"), with a label and a prefix or suffix (label
+ * "price", prefix "£"), on a saved item or on its own, several per thing.
+ * The app calls it "Tracking".
  *
  * A price is one preset of a tracker: label "price", a currency, lower is
  * better, a target of "at or under". Stock is another: a state, with a target
@@ -106,18 +105,18 @@ export interface TrackerSummary {
   changed_at: string | null;
   /** The latest check meets the target. */
   target_reached: boolean;
-  /** The latest check is recent enough to call "now" (14 days, owner 16 Nov 2026). */
+  /** The latest check is recent enough to call "now" (14 days). */
   fresh: boolean;
   checks: number;
   sources: number;
   /**
    * Added by the server session (additive): the check that counts as "now". For a number with a direction, the best
-   * of each source's latest check within 14 days of the newest ("best price now", owner 16 Nov 2026); otherwise the
+   * of each source's latest check within 14 days of the newest ("best price now"); otherwise the
    * latest. `target_reached` is judged on it. Always present in the server's answers.
    */
   now?: TrackerPoint;
   /**
-   * Added (additive; owner, 16 Nov 2026): the check that meets the target. A target on a number is reached while
+   * Added (additive): the check that meets the target. A target on a number is reached while
    * any source's current value meets it (each source's latest check within 14 days of the newest), so a dearer check
    * at another shop doesn't clear it. Null when it isn't reached.
    */

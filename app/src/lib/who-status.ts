@@ -1,5 +1,5 @@
 /**
- * Who Ask is talking to, in words (docs/team.md, Vocabulary → Status line):
+ * Who Ask is talking to, in words:
  * a short present-tense line under an assistant's name. While it works the
  * line is its current step ("Creating shopping list"); idle, it says when it
  * last ran today ("Last ran 9:12") or what it watches ("Watching Linear").

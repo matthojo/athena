@@ -1,6 +1,6 @@
 /**
  * Rich links in the editor: what happens when someone pastes, clicks, holds
- * or right-clicks a link (docs/notes/rich-links.md, with the owner's answers).
+ * or right-clicks a link.
  *
  *   paste      a lone web address on an empty line becomes a Card (an Embed
  *              for the nine players); inside a sentence it's a Link. Either
