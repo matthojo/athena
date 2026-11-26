@@ -308,7 +308,7 @@ function countPill(n: number): HTMLElement {
   return h("span", { class: "src-pill", "aria-label": `${n} ${plural(n, "needs", "need")} you` }, String(n));
 }
 
-function section(id: SettingsSection, ctx: { go: (view: ViewId) => void; open: (id: SettingsSection) => void; connected: string | null; /** A phone page of its own: its heading is the page's h1. */ page?: boolean }): { el: HTMLElement; destroy: () => void } {
+function section(id: SettingsSection, ctx: { go: (view: ViewId) => void; open: (id: SettingsSection) => void; connected: string | null; /** A phone page of its own: its heading is the page's h1. */ page?: boolean; /** Appearance: a theme to open in its editor (#/settings/appearance/<id>). */ theme?: string | null }): { el: HTMLElement; destroy: () => void } {
   if (id === "fields") return fieldsSection({ go: ctx.go });
   if (id === "about") {
     // What Athena knows, from Ask and everywhere else, is one step in from here.
@@ -334,7 +334,7 @@ function section(id: SettingsSection, ctx: { go: (view: ViewId) => void; open: (
   if (id === "todo") return todoContextsSection();
   if (id === "maps") return mapsArtSection();
   if (id === "drafts") return draftSettingsSection();
-  if (id === "appearance") return appearanceSection();
+  if (id === "appearance") return appearanceSection({ open: ctx.theme });
   if (id === "recipes") {
     // Loaded with the Recipes code, so Settings stays light.
     const slot = h("div", { style: "display:contents" });
@@ -455,11 +455,14 @@ export function renderSettings(ctx: {
 }): { el: HTMLElement; destroy: () => void } {
   // Skills: a full page of its own, on a phone and a wide screen alike, with a way back.
   if (ctx.section === "skills" || ctx.section?.startsWith("skills/")) return skillsPage(ctx.section, (id) => ctx.go("settings", { noteId: id }));
-  const asked = ctx.section ? ALIASES[ctx.section] ?? ctx.section : null;
+  // #/settings/appearance/<id>: Appearance, with that theme's editor open (a theme added through Community lands here).
+  const themeAt = ctx.section?.startsWith("appearance/") ? decodeURIComponent(ctx.section.slice("appearance/".length)) : null;
+  const plain = themeAt !== null ? "appearance" : ctx.section;
+  const asked = plain ? ALIASES[plain] ?? plain : null;
   const chosen = SECTIONS.find((s) => s.id === asked)?.id ?? (asked && asked in SUBPAGES ? (asked as SettingsSection) : null);
   const open = (id: SettingsSection | null) => ctx.go("settings", { noteId: id });
   const go = (view: ViewId) => ctx.go(view);
-  const sectionCtx = { go, open, connected: ctx.connected };
+  const sectionCtx = { go, open, connected: ctx.connected, theme: themeAt };
   const head = () => pageHead({ title: "Settings", lede: "Make Athena fit how you keep track of things." });
 
   if (ctx.isDesktop()) {

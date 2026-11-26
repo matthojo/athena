@@ -1,6 +1,5 @@
 {
-  "format": "athena-theme",
-  "version": 1,
+  "format": 1,
   "name": "High contrast",
   "summary": "Black on white with strong lines and slightly larger text",
   "colours": {

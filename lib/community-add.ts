@@ -6,7 +6,7 @@
  * - `itemFiles`: a folder's, zip's or link's files, cut down to the item's own: the folder holding the file that
  *   names its kind, text files only, within the catalogue's caps. Everything else is listed as not used.
  * - `buildPreview`: those files read by the reader for their kind (readShared, intakeEntries, readSharedFlow,
- *   readSharedCheckins, readSharedTemplate), with
+ *   readSharedCheckins, readSharedTemplate, readSharedTheme), with
  *   their reach and hash worked out here. Nothing is kept, and nothing in a file is a permission.
  *
  * A file made for a newer Athena throws NewerFormatError, so the screen can say "Update Athena to add this".
@@ -16,7 +16,8 @@ import type { AddPreview, AddPreviewItem } from "./community-api";
 import { checkSharedFlowSteps, readSharedFlow } from "./flow-share";
 import { readSharedCheckins } from "./checkin-share";
 import { readSharedTemplate } from "./template-share";
-import { reachOf } from "./reach";
+import { readSharedTheme } from "./theme-share";
+import { NO_KIND_FILE, reachOf } from "./reach";
 import { detectKind, KIND_FILES, kindOfFile, readHeader, type ShareHeader, type ShareKind } from "./share-kinds";
 import { cleanPath, intakeEntries, NOT_USED_BIG, NOT_USED_FULL, NOT_USED_SCRIPT, NOT_USED_UNREAD, SKILL_LIMITS, SkillFormatError, skillTitle, textOf, TEXT_EXTENSIONS, type IntakeEntry, type SkillSource } from "./skills";
 import { bundleFromEntries, ShareFormatError, type SharedAsk } from "./team-share";
@@ -34,7 +35,7 @@ export class NewerFormatError extends ShareFormatError {
   }
 }
 
-const KIND_WORDS: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "set of check-in questions", template: "template" };
+const KIND_WORDS: Record<ShareKind, string> = { assistant: "assistant", skill: "skill", flow: "flow", checkin: "set of check-in questions", template: "template", theme: "theme" };
 const hidden = (path: string) => path.split("/").some((p) => p.startsWith(".") || p === "__MACOSX");
 const depthOf = (path: string) => path.split("/").length;
 const extOf = (path: string) => {
@@ -73,7 +74,7 @@ export function itemFiles(entries: readonly IntakeEntry[]): ItemFiles {
   const kind = detectKind(clean.map((e) => e.path));
   if (!kind) {
     if (clean.some((e) => kindOfFile(e.path))) throw new ShareFormatError("That holds two kinds of thing side by side. Add them one at a time, from their own folders.");
-    throw new ShareFormatError("There's no assistant.json, SKILL.md, flow.json, checkin.json or template.json in that.");
+    throw new ShareFormatError(NO_KIND_FILE);
   }
   const mains = clean.filter((e) => kindOfFile(e.path) === kind).sort((a, b) => depthOf(a.path) - depthOf(b.path));
   const top = depthOf(mains[0].path);
@@ -104,7 +105,7 @@ export function itemFiles(entries: readonly IntakeEntry[]): ItemFiles {
   return { kind, files, skipped, folder: folder ? folder.split("/").pop()! : null };
 }
 
-/** What a lone file is, by what it holds: flow.json (a trigger and steps), assistant.json (a job), checkin.json (questions), template.json (a body), SKILL.md (front matter). */
+/** What a lone file is, by what it holds: flow.json (a trigger and steps), assistant.json (a job), checkin.json (questions), template.json (a body), theme.json (colours, or a theme's first spelling), SKILL.md (front matter). */
 function loneFileName(e: IntakeEntry): string | null {
   const ext = extOf(e.path);
   if (e.bytes.byteLength > CATALOGUE_LIMITS.fileBytes || (ext !== ".json" && ext !== ".md")) return null;
@@ -118,6 +119,7 @@ function loneFileName(e: IntakeEntry): string | null {
     if ("job" in o) return KIND_FILES.assistant;
     if (Array.isArray(o.questions) && !("steps" in o)) return KIND_FILES.checkin;
     if (typeof o.body === "string" && !("steps" in o) && !("job" in o) && !("questions" in o)) return KIND_FILES.template;
+    if ((o.format === "athena-theme" || (o.colours && typeof o.colours === "object")) && !("steps" in o) && !("job" in o) && !("questions" in o) && !("body" in o)) return KIND_FILES.theme;
   } catch {
     // not JSON: the usual words say so
   }
@@ -154,8 +156,11 @@ function parseJson(text: string, file: string): Record<string, unknown> {
 /** Throws NewerFormatError when the file says it's a newer format than this Athena reads. Pure. */
 export function checkFormat(kind: ShareKind, files: readonly CatalogueFile[]): void {
   if (kind === "skill") return;
-  const format = parseJson(mainText(kind, files), KIND_FILES[kind]).format;
+  const main = parseJson(mainText(kind, files), KIND_FILES[kind]);
+  const format = main.format;
   if (typeof format === "number" && format > KIND_FORMATS[kind]) throw new NewerFormatError(kind);
+  // A theme's first spelling counted its format in `version` (lib/theme.ts).
+  if (kind === "theme" && format === "athena-theme" && typeof main.version === "number" && main.version > 1) throw new NewerFormatError(kind);
 }
 
 /** What the file is, read by its kind's own reader. Throws ShareFormatError. Pure. */
@@ -168,6 +173,7 @@ export function readItem(kind: ShareKind, files: readonly CatalogueFile[], sourc
     if (kind === "skill") return { kind, skill: intakeEntries(entriesOf(files), source) };
     if (kind === "checkin") return { kind, checkins: readSharedCheckins(parseJson(mainText(kind, files), KIND_FILES.checkin)) };
     if (kind === "template") return { kind, template: readSharedTemplate(parseJson(mainText(kind, files), KIND_FILES.template)) };
+    if (kind === "theme") return { kind, theme: readSharedTheme(parseJson(mainText(kind, files), KIND_FILES.theme)) };
     const flow = readSharedFlow(parseJson(mainText(kind, files), KIND_FILES.flow));
     checkSharedFlowSteps(flow);
     return { kind, flow };
@@ -186,6 +192,7 @@ export function describe(item: AddPreviewItem): { name: string; summary: string;
   if (item.kind === "skill") return { name: skillTitle(item.skill.name), summary: item.skill.description, header: {} };
   if (item.kind === "checkin") return { name: item.checkins.name, summary: item.checkins.summary, header: readHeader(item.checkins as unknown as Record<string, unknown>) };
   if (item.kind === "template") return { name: item.template.name, summary: item.template.summary, header: readHeader(item.template as unknown as Record<string, unknown>) };
+  if (item.kind === "theme") return { name: item.theme.name, summary: item.theme.summary, header: { ...(item.theme.version ? { version: item.theme.version } : {}), ...(item.theme.author ? { author: item.theme.author } : {}), ...(item.theme.based_on ? { based_on: item.theme.based_on } : {}) } };
   return { name: item.flow.name, summary: item.flow.summary, header: readHeader(item.flow as unknown as Record<string, unknown>) };
 }
 

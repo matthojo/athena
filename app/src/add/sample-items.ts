@@ -1,5 +1,5 @@
 /**
- * Sample mode's shared items for the Add screen: made-up assistants, skills, flows and check-in questions behind made-up GitHub links,
+ * Sample mode's shared items for the Add screen: made-up assistants, skills, flows, check-in questions and a theme behind made-up GitHub links,
  * one for each state the screen has (each reach tier, an account that isn't connected, a long one, one made for a
  * newer Athena). No real person, account or place.
  */
@@ -178,6 +178,28 @@ const ITEMS: Record<string, { title: string; files: CatalogueFile[] }> = {
         text: "---\nname: packing-list\ndescription: Use when I ask what to pack for a trip.\n---\n\n# Packing list\n\n1. Look at the trip: where, how long, and what's planned each day.\n2. Check the forecast for those days if you can.\n3. List what to pack, grouped: clothes, wash bag, documents, tech, anything for the plans.\n4. Mark anything I usually forget, from reference/forgotten.md.\n5. Keep it to one screen.\n",
       },
       { path: "reference/forgotten.md", text: "# Usually forgotten\n\n- Phone charger\n- Plug adaptor\n- Reading glasses\n" },
+    ],
+  },
+  "sea-glass": {
+    title: "Sea glass, a theme with a font and a picture link Athena leaves out",
+    files: [
+      {
+        path: "theme.json",
+        text: json({
+          format: 1,
+          name: "Sea glass",
+          version: "0.9",
+          author: "sample-author",
+          summary: "Pale aqua glass on a sandy page, with deep-water text.",
+          font: "Comic Sans MS",
+          colours: {
+            light: { page: "#eef3ef", surface: "#f8fbf8", sunken: "#e2ebe5", border: "#cfdcd4", text: "#123238", textMuted: "#4a6a6e", accent: "#1f8a8a", onAccent: "#f4fffd", glow: "url(https://example.com/glow.png)" },
+            dark: { page: "#0d1a1c", surface: "#132427", sunken: "#1a2e31", border: "#24393c", text: "#e2f1ef", textMuted: "#9fbcb9", accent: "#5cc8c0", onAccent: "#062120" },
+          },
+          shape: { radius: 2.4, density: 1 },
+          text: { scale: 1 },
+        }),
+      },
     ],
   },
   "newer-flow": {

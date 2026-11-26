@@ -3,15 +3,17 @@
  * "Themes").
  *
  * A theme is a small, versioned piece of JSON, the same shape whether it is
- * built in, made in Settings → Appearance, or (later) shared through
- * Community as a theme.json:
+ * built in, made in Settings → Appearance, or shared through Community as a
+ * theme.json (lib/theme-share.ts). It has the header every shared file
+ * carries (lib/share-kinds.ts):
  *
  *   {
- *     "format": "athena-theme",
- *     "version": 1,
+ *     "format": 1,                               the file format, as the other kinds have it
  *     "name": "Clay",
- *     "author": "Someone",                       (optional)
  *     "summary": "Warm paper and terracotta",    (optional)
+ *     "version": "1.0",                          (optional: its author's own, free text)
+ *     "author": "a-github-username",             (optional)
+ *     "based_on": "https://github.com/…",        (optional)
  *     "colours": {
  *       "light": { "page": "#f6f0e8", "accent": "#b4532a", ... },
  *       "dark":  { ... }                         (either, or both)
@@ -21,6 +23,10 @@
  *     "chart": { "light": [five colours], "dark": [five colours] }   (optional)
  *   }
  *
+ * The first spelling, from before themes could be shared, is read too:
+ * "format": "athena-theme" with "version": 1 as the format's number and a
+ * free-text author. themeJson() writes the shape above.
+ *
  * What a theme can set is the public colours (the --theme-* colours in
  * tokens.css), the corner radius, the density and the text scale, and
  * optionally five data colours for charts. Where it leaves a scheme or a
@@ -28,7 +34,7 @@
  * can't load anything.
  *
  * Every theme is untrusted, the owner's own included, because the same reader
- * will read shared ones. readTheme() keeps only known keys, accepts colours
+ * reads shared ones. readTheme() keeps only known keys, accepts colours
  * only in a small safe syntax (hex, rgb(), hsl() and oklch() with plain
  * numbers: no url(), no var(), nothing that loads or refers to anything) and
  * writes each back out as oklch(), clamps the numbers,
@@ -36,8 +42,11 @@
  * that canonical form.
  */
 
-export const THEME_FORMAT = "athena-theme";
-export const THEME_VERSION = 1;
+/** The file format a theme is written in: a whole number, as every shared file's `format` is. */
+export const THEME_FORMAT = 1;
+/** The first spelling of the format, read but never written: "format": "athena-theme", "version": 1. */
+export const LEGACY_FORMAT = "athena-theme";
+const LEGACY_VERSION = 1;
 
 /** The public colours, by their key in a theme and the token each sets. */
 export const COLOUR_KEYS = ["page", "surface", "sunken", "border", "text", "textMuted", "accent", "onAccent", "focus"] as const;
@@ -63,7 +72,6 @@ export const CHART_SERIES = 5;
 
 export interface Theme {
   format: typeof THEME_FORMAT;
-  version: typeof THEME_VERSION;
   name: string;
   author?: string;
   summary?: string;
@@ -247,7 +255,7 @@ export function closePairs(colours: string[]): [number, number][] {
 /** Something the reader left out of a theme, and why: for the person reading or writing one. */
 export interface ThemeProblem {
   path: string;
-  why: "unknown" | "not-a-colour" | "not-a-number" | "clamped" | "too-long" | "chart-size" | "chart-close" | "not-text";
+  why: "unknown" | "not-a-colour" | "not-a-number" | "clamped" | "too-long" | "chart-size" | "chart-close" | "not-text" | "not-a-handle";
 }
 
 export interface ReadResult {
@@ -298,17 +306,27 @@ export function readTheme(input: unknown): ReadResult {
       return { theme: null, error: "not-json", problems };
     }
   }
-  if (!isObject(raw) || raw.format !== THEME_FORMAT) return { theme: null, error: "not-a-theme", problems };
-  if (typeof raw.version !== "number" || !Number.isInteger(raw.version) || raw.version < 1) return { theme: null, error: "not-a-theme", problems };
-  if (raw.version > THEME_VERSION) return { theme: null, error: "newer-version", problems };
+  if (!isObject(raw)) return { theme: null, error: "not-a-theme", problems };
+  const legacy = raw.format === LEGACY_FORMAT;
+  if (legacy) {
+    if (typeof raw.version !== "number" || !Number.isInteger(raw.version) || raw.version < 1) return { theme: null, error: "not-a-theme", problems };
+    if (raw.version > LEGACY_VERSION) return { theme: null, error: "newer-version", problems };
+  } else {
+    if (typeof raw.format !== "number" || !Number.isInteger(raw.format) || raw.format < 1) return { theme: null, error: "not-a-theme", problems };
+    if (raw.format > THEME_FORMAT) return { theme: null, error: "newer-version", problems };
+    // A shared file's `format` is a number for every kind, so a theme has to have something a theme has.
+    if (!["colours", "shape", "text", "chart"].some((k) => own(raw, k))) return { theme: null, error: "not-a-theme", problems };
+  }
 
-  for (const k of Object.keys(raw)) if (!["format", "version", "name", "author", "summary", "colours", "shape", "text", "chart"].includes(k)) problems.push({ path: k, why: "unknown" });
+  // The header fields (version, based_on) are read by lib/share-kinds.ts readHeader, not kept here; they aren't unknown.
+  const known = legacy ? ["format", "version", "name", "author", "summary", "colours", "shape", "text", "chart"] : ["format", "name", "summary", "version", "author", "based_on", "colours", "shape", "text", "chart"];
+  for (const k of Object.keys(raw)) if (!known.includes(k)) problems.push({ path: k, why: "unknown" });
 
   const name = cleanText(raw.name, NAME_MAX);
   if (!name) return { theme: null, error: "no-name", problems };
   if (typeof raw.name === "string" && [...raw.name.trim()].length > NAME_MAX) problems.push({ path: "name", why: "too-long" });
 
-  const theme: Theme = { format: THEME_FORMAT, version: THEME_VERSION, name, colours: {}, shape: { radius: 1, density: 1 }, text: { scale: 1 } };
+  const theme: Theme = { format: THEME_FORMAT, name, colours: {}, shape: { radius: 1, density: 1 }, text: { scale: 1 } };
   for (const [key, max] of [["author", AUTHOR_MAX], ["summary", SUMMARY_MAX]] as const) {
     if (raw[key] === undefined) continue;
     const t = cleanText(raw[key], max);
@@ -385,11 +403,25 @@ export function readTheme(input: unknown): ReadResult {
   return { theme, problems };
 }
 
-/** A theme as the JSON Athena writes (and would share): its keys in a fixed order, nothing else. */
-export function themeJson(theme: Theme): string {
-  const out: Record<string, unknown> = { format: THEME_FORMAT, version: THEME_VERSION, name: theme.name };
-  if (theme.author) out.author = theme.author;
+/** The header a shared theme.json carries beside the theme (lib/share-kinds.ts ShareHeader). */
+export interface ThemeHeader {
+  version?: string;
+  author?: string;
+  based_on?: string;
+}
+
+/**
+ * A theme as the JSON Athena writes, and shares as theme.json: its keys in a fixed order, nothing else. With a
+ * header, its author is the header's (a GitHub username) and the theme's own free-text author is left out.
+ */
+export function themeJson(theme: Theme, header?: ThemeHeader): string {
+  const out: Record<string, unknown> = { format: THEME_FORMAT, name: theme.name };
   if (theme.summary) out.summary = theme.summary;
+  if (header) {
+    if (header.version) out.version = header.version;
+    if (header.author) out.author = header.author;
+    if (header.based_on) out.based_on = header.based_on;
+  } else if (theme.author) out.author = theme.author;
   const colours: Record<string, SchemeColours> = {};
   for (const s of SCHEMES) {
     const set = theme.colours[s];
@@ -404,10 +436,46 @@ export function themeJson(theme: Theme): string {
 
 // ---------- The person's own themes, and which one is chosen ----------
 
-/** One of the person's own themes, as stored: an id of Athena's own, and the theme. */
+/**
+ * Where a theme the person added came from (lib/theme-share.ts). Missing on a theme they made. Plain: a public
+ * catalogue id, a hash, an author's username and version, nothing they wrote.
+ */
+export interface ThemeOrigin {
+  /** The Community listing it came from; null for a file or a link. */
+  catalogue_id: string | null;
+  /** SHA-256 of the listing's files as added. Null once it stops following the listing (an Update went beside it). */
+  hash: string | null;
+  /** Its author's version, as the file or listing said. */
+  version: string | null;
+  /** Its author's GitHub username, if they gave one. */
+  author: string | null;
+  /** The person has changed it since adding it: an Update then goes beside it, never over it. */
+  changed: boolean;
+}
+
+/** One of the person's own themes, as stored: an id of Athena's own, the theme, and where it came from if they added it. */
 export interface OwnTheme {
   id: string;
   theme: Theme;
+  origin?: ThemeOrigin;
+}
+
+const ORIGIN_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const ORIGIN_HASH = /^sha256-[0-9a-f]{64}$/;
+const ORIGIN_VERSION = /^[0-9A-Za-z][0-9A-Za-z.+-]{0,19}$/;
+const ORIGIN_AUTHOR = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
+
+/** An origin as stored, checked field by field; anything that doesn't fit is left out. Null when there's none. */
+export function readOrigin(raw: unknown): ThemeOrigin | null {
+  if (!isObject(raw)) return null;
+  const pick = (v: unknown, re: RegExp) => (typeof v === "string" && re.test(v) ? v : null);
+  return {
+    catalogue_id: pick(raw.catalogue_id, ORIGIN_ID),
+    hash: pick(raw.hash, ORIGIN_HASH),
+    version: pick(raw.version, ORIGIN_VERSION),
+    author: pick(raw.author, ORIGIN_AUTHOR),
+    changed: raw.changed === true,
+  };
 }
 
 /** Which theme is in use: Athena's own, a built-in one, or one of the person's. */
@@ -433,7 +501,8 @@ export function readOwnThemes(raw: unknown): OwnTheme[] {
     const { theme } = readTheme(item.theme);
     if (!theme) continue;
     seen.add(item.id);
-    out.push({ id: item.id, theme });
+    const origin = readOrigin(item.origin);
+    out.push(origin ? { id: item.id, theme, origin } : { id: item.id, theme });
   }
   return out;
 }

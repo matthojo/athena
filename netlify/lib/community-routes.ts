@@ -16,7 +16,8 @@ import { COMMUNITY_KEY, readCommunityCheck, saveCommunityCheck, submitPageUrl } 
 import { CatalogueError } from "../../lib/catalogue-types";
 import type { CatalogueView, CommunitySettings, UpdateCheck } from "../../lib/community-api";
 import type { Reach } from "../../lib/reach";
-import { catalogueDeps, compareInstalled, flowTier, getIndex, pauseKey, readableItems, toPause, type InstalledItem } from "./community-catalogue";
+import type { CatalogueItem } from "../../lib/catalogue-types";
+import { catalogueDeps, compareInstalled, flowTier, getIndex, pauseKey, readableItems, themeSwatchesFor, toPause, type InstalledItem } from "./community-catalogue";
 
 type Json = (data: unknown, status?: number) => Response;
 
@@ -30,6 +31,8 @@ export interface CommunityStore {
   rememberPaused(keys: string[]): Promise<void>;
   pause(rows: InstalledItem[]): Promise<void>;
   tierHere(row: InstalledItem): Promise<Reach["tier"] | null>;
+  /** A few colours of each listed theme, for its row (netlify/lib/community-catalogue.ts themeSwatchesFor). */
+  swatches?(items: CatalogueItem[]): Promise<CatalogueView["swatches"]>;
 }
 
 const PAUSED_KEY = "community_paused";
@@ -43,7 +46,9 @@ export const dbCommunityStore: CommunityStore = {
   },
   saveSwitch: (on) => saveCommunityCheck({ on }),
   async installed() {
-    return q<InstalledItem>(
+    // Themes ride in the `theme` settings row with the owner's own (lib/theme-prefs.ts), not in a table of their own.
+    const themes = await (await import("../../lib/theme-prefs")).themesFromCommunity();
+    const rows = await q<InstalledItem>(
       `SELECT 'assistant' AS kind, id::text AS id, catalogue_id, catalogue_hash, catalogue_version, NOT paused AS "on" FROM team_assistants WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL
        UNION ALL
        SELECT 'skill', id::text, catalogue_id, catalogue_hash, catalogue_version, enabled FROM ask_skills WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL AND assistant_id IS NULL
@@ -54,6 +59,7 @@ export const dbCommunityStore: CommunityStore = {
        UNION ALL
        SELECT 'template', id::text, catalogue_id, catalogue_hash, catalogue_version, false FROM note_templates WHERE catalogue_id IS NOT NULL AND catalogue_hash IS NOT NULL AND archived_at IS NULL AND origin = 'shared'`
     );
+    return [...rows, ...themes];
   },
   async pausedBefore() {
     const [row] = await q<{ value: { keys?: unknown } }>(`SELECT value FROM settings WHERE key = $1`, [PAUSED_KEY]);
@@ -73,12 +79,15 @@ export const dbCommunityStore: CommunityStore = {
     // A set switched off: its questions aren't asked until the owner switches it back on (lib/checkin-sets.ts).
     if (ids("checkin").length) await q(`UPDATE checkin_sets SET paused = true, updated_at = now() WHERE id = ANY($1::uuid[])`, [ids("checkin")]);
     // A template never runs, so there's nothing to switch off: installed() reports it as not running, and a taken-down
-    // template only shows the catalogue's reason beside it. It stays the owner's, usable, until they remove it.
+    // template only shows the catalogue's reason beside it. It stays the owner's, usable, until they remove it. The
+    // same goes for a theme: it stays in use if it is, with the reason in its editor.
   },
+  swatches: (items) => themeSwatchesFor(items),
   async tierHere(row) {
     if (row.kind === "skill") return 2;
     if (row.kind === "checkin") return (await import("../../lib/checkin-sets")).checkinSetTier(row.id);
     if (row.kind === "template") return (await import("../../lib/templates-db")).templateTier(row.id);
+    if (row.kind === "theme") return (await import("../../lib/theme-prefs")).themeTier(row.id);
     if (row.kind === "assistant") {
       const [a] = await q<{ web: boolean }>(`SELECT web FROM team_assistants WHERE id = $1::uuid`, [row.id]);
       return a ? (a.web ? 3 : 2) : null;
@@ -101,7 +110,9 @@ export async function catalogueView(store: CommunityStore = dbCommunityStore): P
   const added = [...new Set((await store.installed()).map((r) => r.catalogue_id))];
   try {
     const read = await getIndex();
-    return { ...view, generated_at: read.index.generated_at, items: readableItems(read.index), added, error: read.error };
+    const items = readableItems(read.index);
+    const swatches = items.some((i) => i.kind === "theme") ? ((await store.swatches?.(items).catch(() => undefined)) ?? undefined) : undefined;
+    return { ...view, generated_at: read.index.generated_at, items, added, error: read.error, ...(swatches ? { swatches } : {}) };
   } catch (e) {
     return { ...view, added, error: e instanceof Error ? e.message : "Athena couldn't reach the Community catalogue." };
   }

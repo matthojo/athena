@@ -1,5 +1,5 @@
 /**
- * Sample mode's Community catalogue: made-up items across the five kinds and the three reach tiers, each
+ * Sample mode's Community catalogue: made-up items across the six kinds and the three reach tiers, each
  * with real files, so the `#/community` list and the `#/add` preview work with no server. The hashes are worked out
  * from the files (bundleHash), as the catalogue's build does, and each item's reach is the one its files give
  * (sample-community.test.ts checks both). Authors are made-up GitHub-style names.
@@ -11,6 +11,10 @@
  * Templates are a gentle, journaling corner: a weekly look back, a gratitude page and a year-end reflection. Sample
  * mode starts with two added already (SAMPLE_ADDED_TEMPLATE_ROWS, kept by db/documents.ts): Gratitude page at an
  * older version, and Morning pages, taken down since.
+ *
+ * Themes are three with their own look: Paper lantern (light and dark), Night garden (dark only) and Risograph
+ * (light only). Sample mode starts with Paper lantern added at version 1.0 (db/sample-themes.ts), so its update shows,
+ * and with Fog lamp, added and taken down since.
  */
 import { bundleHash, type CatalogueBundle, type CatalogueFile, type CatalogueIndex, type CatalogueItem } from "../../../lib/catalogue-types";
 import type { Reach } from "../../../lib/reach";
@@ -19,6 +23,8 @@ import type { UpdateCheck } from "../../../lib/community-api";
 import { SAMPLE_FLOW_IDS } from "./sample-flows";
 import { SAMPLE_TEAM_IDS } from "./sample-team";
 import { SAMPLE_SET_ID, sampleSetOf } from "./sample-checkins";
+import { FOG_LAMP_LISTING, PAPER_LANTERN_LISTING } from "./sample-themes";
+import type { OwnTheme } from "../../../lib/theme";
 
 interface Seed {
   id: string;
@@ -44,6 +50,7 @@ const assistant = (o: Record<string, unknown>) => json({ format: 1, ...o });
 const flow = (o: Record<string, unknown>) => json({ format: 1, asks: [], needs: [], money: false, web: false, ...o });
 const checkins = (o: Record<string, unknown>) => json({ format: 1, ...o });
 const template = (o: Record<string, unknown>) => json({ format: 1, ...o });
+const theme = (o: Record<string, unknown>) => json({ format: 1, ...o });
 
 /** The sample templates' bodies, so the listing and an older copy added here can share words. */
 const GRATITUDE_BODY = `# Gratitude, {{date}}
@@ -66,6 +73,100 @@ const at = (days: number) => new Date(Date.UTC(2026, 10, 24, 9) - days * DAY).to
 
 /** Every item, newest first by `days` ago. Ids are made up, in the catalogue's alphabet. */
 const SEEDS: Seed[] = [
+  {
+    id: PAPER_LANTERN_LISTING,
+    kind: "theme",
+    slug: "paper-lantern",
+    name: "Paper lantern",
+    summary: "Warm rice paper and a lantern amber, for evenings in. Version 1.1 deepens the amber and adds its own chart colours.",
+    author: "lamplight-co",
+    version: "1.1",
+    reach: reach(1),
+    featured: true,
+    days: 1,
+    downloads: 1840,
+    files: [
+      {
+        path: "theme.json",
+        text: theme({
+          name: "Paper lantern",
+          summary: "Warm rice paper and a lantern amber, for evenings in.",
+          version: "1.1",
+          author: "lamplight-co",
+          colours: {
+            light: { page: "#f6efe2", surface: "#fdf8ef", sunken: "#efe5d3", border: "#e2d4bb", text: "#2e2418", textMuted: "#6b5a44", accent: "#a8600f", onAccent: "#fffaf2" },
+            dark: { page: "#1a1611", surface: "#231e17", sunken: "#2c261d", border: "#3a3226", text: "#f2e8d8", textMuted: "#c4b49b", accent: "#eaa045", onAccent: "#1f170c" },
+          },
+          shape: { radius: 1.3, density: 1.05 },
+          text: { scale: 1 },
+          chart: {
+            light: ["#a8600f", "#4f7a5a", "#8a4f7d", "#2f6f8f", "#c2412d"],
+            dark: ["#eaa045", "#8cc59a", "#d79ccb", "#7fbcd9", "#f07a61"],
+          },
+        }),
+      },
+    ],
+  },
+  {
+    id: "n6p1q5r9s3t8v2w7",
+    kind: "theme",
+    slug: "night-garden",
+    name: "Night garden",
+    summary: "Dark only: deep leaf green, moonlit text and a glow-worm accent. Light mode keeps Athena's own.",
+    author: "moss-and-moth",
+    version: "2.0",
+    reach: reach(1),
+    featured: false,
+    days: 2,
+    downloads: 612,
+    files: [
+      {
+        path: "theme.json",
+        text: theme({
+          name: "Night garden",
+          summary: "Deep leaf green, moonlit text and a glow-worm accent.",
+          version: "2.0",
+          author: "moss-and-moth",
+          colours: {
+            dark: { page: "#0f1712", surface: "#16211a", sunken: "#1c2a21", border: "#28392d", text: "#e6efe4", textMuted: "#a9bfaa", accent: "#b6e36b", onAccent: "#122008", focus: "#e3f59a" },
+          },
+          shape: { radius: 1.6, density: 1.1 },
+          text: { scale: 1.05 },
+          chart: { dark: ["#b6e36b", "#6fc3c9", "#e39bd3", "#f2c35b", "#8f9cf2"] },
+        }),
+      },
+    ],
+  },
+  {
+    id: "r2s6t1v5w9x3y8z4",
+    kind: "theme",
+    slug: "risograph",
+    name: "Risograph",
+    summary: "Light only: off-white stock, fluorescent pink and teal ink, square corners and a tight layout.",
+    author: "inkroom-press",
+    version: "1.0",
+    reach: reach(1),
+    featured: false,
+    days: 5,
+    downloads: 233,
+    files: [
+      {
+        path: "theme.json",
+        text: theme({
+          name: "Risograph",
+          summary: "Off-white stock, fluorescent pink and teal ink, square corners and a tight layout.",
+          version: "1.0",
+          author: "inkroom-press",
+          colours: {
+            light: { page: "#f4f1ea", surface: "#fbf9f4", sunken: "#ebe6db", border: "#d9d1c1", text: "#1d2a3a", textMuted: "#4d5a6a", accent: "#e8417f", onAccent: "#ffffff", focus: "#0f8b8d" },
+          },
+          shape: { radius: 0.25, density: 0.9 },
+          text: { scale: 1 },
+          chart: { light: ["#e8417f", "#0f8b8d", "#f2a900", "#3d5a98", "#7a4ea3"] },
+        }),
+      },
+    ],
+  },
   {
     id: "t4v8w2x6y1z5a9b3",
     kind: "template",
@@ -522,6 +623,8 @@ const WITHDRAWN = [
   { id: "m4n8p2q6r1s5t9v3", reason: "Its author asked for it to come down while they rewrite it." },
   // Morning pages, a template sample mode added before it was taken down (SAMPLE_ADDED_TEMPLATE_ROWS).
   { id: "p5q9r3s7t2v6w1x4", reason: "Its author is folding it into a longer set of morning prompts." },
+  // Fog lamp, a theme sample mode adds before it was taken down (db/sample-themes.ts SAMPLE_WITHDRAWN_THEME).
+  { id: FOG_LAMP_LISTING, reason: "Its author took it down while they fix two colours that were too alike on some screens." },
 ];
 
 const GRATITUDE = "g7h2j6k1m5n9p4q8";
@@ -633,7 +736,7 @@ export const sampleAddedIds = (): string[] => [...new Set([...SAMPLE_ADDED, ...a
  * `templates`: the added templates as they are now (db/documents.ts sampleTemplateListings); the two it starts with
  * when not given.
  */
-export async function sampleUpdates(templates: readonly SampleTemplateListing[] = seededListings): Promise<UpdateCheck[]> {
+export async function sampleUpdates(templates: readonly SampleTemplateListing[] = seededListings, themes: readonly OwnTheme[] = []): Promise<UpdateCheck[]> {
   const gift = (await build()).find((a) => a.item.id === GIFT)!.item;
   const here = added.get(GIFT)!;
   const newer: UpdateCheck[] =
@@ -657,7 +760,22 @@ export async function sampleUpdates(templates: readonly SampleTemplateListing[] 
     // Until it's removed in Settings this visit.
     ...(sampleSetOf(SAMPLE_SET_ID) ? [{ kind: "checkin" as const, id: SAMPLE_SET_ID, catalogue_id: WITHDRAWN[1].id, version: "1.1", hash: `sha256-${"3".repeat(64)}`, newer: null, withdrawn: { at: at(3), reason: WITHDRAWN[1].reason } }] : []),
     ...(await templateChecks(templates)),
+    ...(await themeChecks(themes)),
   ];
+}
+
+/** Updates and withdrawals for the themes here that follow a sample listing, as compareInstalled works them out. */
+async function themeChecks(themes: readonly OwnTheme[]): Promise<UpdateCheck[]> {
+  const items = new Map((await build()).map((a) => [a.item.id, a.item]));
+  return themes.flatMap((t) => {
+    const o = t.origin;
+    if (!o?.catalogue_id || !o.hash) return [];
+    const listed = items.get(o.catalogue_id);
+    const gone = WITHDRAWN.find((w) => w.id === o.catalogue_id);
+    const newer = listed && listed.kind === "theme" && listed.hash !== o.hash ? { version: listed.version, hash: listed.hash, summary: listed.summary, reach: listed.reach } : null;
+    if (!newer && !gone) return [];
+    return [{ kind: "theme" as const, id: t.id, catalogue_id: o.catalogue_id, version: o.version, hash: o.hash, newer, tier_here: newer ? 1 : undefined, withdrawn: gone ? { at: at(3), reason: gone.reason } : null }];
+  });
 }
 
 /** Updates and withdrawals for the templates here, against the sample index, as the server's compareInstalled works them out. */

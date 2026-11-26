@@ -26,6 +26,7 @@ import { fetchSkill, fetchSkills, saveSkill } from "./skills";
 import { flowsChanged, sampleAddSharedFlow, sampleReplaceSharedFlow } from "./flows";
 import { checkinsChanged } from "./checkins";
 import { templatesChanged } from "./documents";
+import { ATHENA_THEME_NAMES, addThemeTo, readSharedTheme, replaceThemeIn, themeFromListing, themeSwatches, THEME_FILE } from "../../../lib/theme-share";
 
 export type { AddChoices, AddPreview, AddResult, CatalogueView, CommunitySettings, UpdateCheck };
 
@@ -99,7 +100,16 @@ async function sampleView(): Promise<CatalogueView> {
   const { sampleTemplateListings } = await import("./documents");
   const index = await sampleCatalogue();
   const items = [...index.items].sort((a, b) => Date.parse(b.added_at) - Date.parse(a.added_at));
-  return { ...view, generated_at: index.generated_at, items, added: [...new Set([...sampleAddedIds(), ...(await sampleTemplateListings()).map((t) => t.catalogue_id)])] };
+  const { themeState } = await import("../lib/theme");
+  const themeIds = themeState().themes.flatMap((t) => (t.origin?.catalogue_id ? [t.origin.catalogue_id] : []));
+  // A theme's colours for its row, read from its files as the server reads them.
+  const { sampleBundle } = await import("./sample-community");
+  const swatches: NonNullable<CatalogueView["swatches"]> = {};
+  for (const i of items.filter((x) => x.kind === "theme")) {
+    const text = (await sampleBundle(i.id))?.bundle.files.find((f) => f.path === THEME_FILE)?.text;
+    if (text) swatches[i.id] = themeSwatches(readSharedTheme(JSON.parse(text)).theme);
+  }
+  return { ...view, generated_at: index.generated_at, items, added: [...new Set([...sampleAddedIds(), ...(await sampleTemplateListings()).map((t) => t.catalogue_id), ...themeIds])], swatches };
 }
 
 /** GET /api/community: the catalogue as the server last read it, and the owner's switch. */
@@ -151,8 +161,11 @@ export async function previewAdd(source: AddSource): Promise<AddPreview> {
 
 /** POST /api/community/add: keeps it, switched off, with only what the owner chose. */
 export async function addItem(preview: AddPreview, choices: AddChoices): Promise<AddResult> {
+  // A theme joins the `theme` settings row: a change made offline goes up first, so Add builds on it.
+  if (preview.kind === "theme") await (await import("../lib/theme")).flushTheme();
   const result = isSampleMode() ? await sampleAdd(preview, choices) : await request<AddResult>("/community/add", { method: "POST", body: JSON.stringify({ preview, choices }) });
   // The lists that hold it follow, and an Update clears its "Update available".
+  if (result.kind === "theme" && result.theme && !isSampleMode()) (await import("../lib/theme")).adoptThemeState(result.theme.prefs);
   if (result.kind === "assistant") teamChanged();
   else if (result.kind === "flow") flowsChanged();
   else if (result.kind === "checkin") checkinsChanged();
@@ -178,8 +191,13 @@ async function samplePreview(source: AddSource): Promise<AddPreview> {
     const kind = item.kind;
     // A template is found among the templates here, as the catalogue_* columns would find it, and also says whether the
     // owner changed it since adding it: an Update then goes beside it.
-    const listed = kind === "template" ? (await import("./documents").then((m) => m.sampleTemplateListings())).find((t) => t.catalogue_id === item.id) : undefined;
-    const had = kind === "template" ? (listed ? { kind, id: listed.id, hash: listed.hash, version: listed.version } : null) : sampleAddedFrom(item.id);
+    const listed =
+      kind === "template"
+        ? (await import("./documents").then((m) => m.sampleTemplateListings())).find((t) => t.catalogue_id === item.id)
+        : kind === "theme"
+          ? await import("../lib/theme").then((m) => themeFromListing(m.themeState(), item.id) ?? undefined)
+          : undefined;
+    const had = kind === "template" || kind === "theme" ? (listed ? { kind, id: listed.id, hash: listed.hash ?? "", version: listed.version } : null) : sampleAddedFrom(item.id);
     const existing = had && had.kind === kind ? { id: had.id, version: had.version, href: HREF[kind](had.id), newer: had.hash !== item.hash, ...(listed ? { changed: listed.changed } : {}) } : null;
     return await buildPreview({ files: { kind, files: bundle.files, skipped: [], folder: null }, from: { catalogue: item.id }, source: sourceFor({ catalogue: item.id }, at, COMMUNITY_SITE), listing: item, existing });
   }
@@ -201,6 +219,7 @@ const HREF: Record<AddPreview["kind"], (id: string) => string> = {
   flow: (id) => `#/flows/${encodeURIComponent(id)}`,
   checkin: () => "#/settings/checkins",
   template: (id) => `#/notes?template=${encodeURIComponent(id)}`,
+  theme: (id) => `#/settings/appearance/${encodeURIComponent(id)}`,
 };
 
 async function sampleAdd(p: AddPreview, choices: AddChoices): Promise<AddResult> {
@@ -211,8 +230,17 @@ async function sampleAdd(p: AddPreview, choices: AddChoices): Promise<AddResult>
 
 /** Sample mode's Update: as the server's, the one from that listing only, keeping its name, switched off. */
 async function sampleReplace(p: AddPreview, choices: AddChoices, id: string): Promise<AddResult> {
-  const had = "catalogue" in p.from ? sampleAddedFrom(p.from.catalogue) : null;
-  if (!had || had.id !== id) throw new ShareFormatError("That isn't the one you added from this listing any more. Look at it again.");
+  // The one added from this listing, found where its kind keeps it, as the server's `existing` finds it: templates
+  // among the templates here, themes among the themes, the rest in this visit's record of adds.
+  const listing = "catalogue" in p.from ? p.from.catalogue : null;
+  const hadId = !listing
+    ? null
+    : p.kind === "theme"
+      ? (themeFromListing((await import("../lib/theme")).themeState(), listing)?.id ?? null)
+      : p.kind === "template"
+        ? ((await import("./documents").then((m) => m.sampleTemplateListings())).find((t) => t.catalogue_id === listing)?.id ?? null)
+        : (sampleAddedFrom(listing)?.id ?? null);
+  if (!hadId || hadId !== id) throw new ShareFormatError("That isn't the one you added from this listing any more. Look at it again.");
   const item = p.item;
   if (item.kind === "assistant") {
     const w = item.shared;
@@ -226,6 +254,12 @@ async function sampleReplace(p: AddPreview, choices: AddChoices, id: string): Pr
     const got = await sampleReplaceCheckins(id, item.checkins, { id: p.listing!.id, hash: p.hash, version: p.listing?.version ?? null });
     forgetUpdates();
     return { kind: "checkin", id, href: HREF.checkin(id), updated: true, checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } };
+  } else if (item.kind === "theme") {
+    const m = await import("../lib/theme");
+    const got = replaceThemeIn(m.themeState(), id, item.theme, { id: p.listing!.id, hash: p.hash, version: p.listing?.version ?? null }, { builtIn: ATHENA_THEME_NAMES });
+    m.setThemeState(got.list);
+    forgetUpdates();
+    return { kind: "theme", id: got.added.id, href: HREF.theme(got.added.id), updated: true, theme: { ...got.added, prefs: m.themeState() } };
   } else if (item.kind === "template") {
     const { sampleReplaceTemplate } = await import("./documents");
     const got = await sampleReplaceTemplate(id, item.template, { id: p.listing!.id, hash: p.hash, version: p.listing?.version ?? null });
@@ -261,6 +295,13 @@ async function sampleAddNew(p: AddPreview, choices: AddChoices): Promise<AddResu
     const got = await sampleAddCheckins(item.checkins, listing, { start: choices.start !== false });
     return { kind: "checkin", id: got.id, href: HREF.checkin(got.id), checkins: { added: got.added, skipped: got.skipped, off: got.off, full: got.full } };
   }
+  if (item.kind === "theme") {
+    const m = await import("../lib/theme");
+    const listing = "catalogue" in p.from && p.listing ? { id: p.listing.id, hash: p.hash, version: p.listing.version } : undefined;
+    const got = addThemeTo(m.themeState(), item.theme, listing, { use: choices.use === true, builtIn: ATHENA_THEME_NAMES });
+    m.setThemeState(got.list);
+    return { kind: "theme", id: got.added.id, href: HREF.theme(got.added.id), theme: { ...got.added, prefs: m.themeState() } };
+  }
   if (item.kind === "template") {
     const { sampleAddTemplate } = await import("./documents");
     const listing = "catalogue" in p.from && p.listing ? { id: p.listing.id, hash: p.hash, version: p.listing.version } : undefined;
@@ -281,7 +322,7 @@ export async function checkUpdates(): Promise<UpdateCheck[]> {
   const checks = isSampleMode()
     ? store.get(SAMPLE_COMMUNITY_SWITCH) === "off"
       ? Promise.resolve([])
-      : Promise.all([import("./sample-community"), import("./documents")]).then(async ([m, d]) => m.sampleUpdates(await d.sampleTemplateListings()))
+      : Promise.all([import("./sample-community"), import("./documents"), import("../lib/theme")]).then(async ([m, d, t]) => m.sampleUpdates(await d.sampleTemplateListings(), t.themeState().themes))
     : request<{ updates: UpdateCheck[] }>("/community/updates").then((r) => r.updates);
   updatesCache = { at: Date.now(), checks };
   checks.catch(() => (updatesCache = null));

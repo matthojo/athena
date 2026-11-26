@@ -107,7 +107,7 @@ test("hostile and broken input: unknown keys dropped, numbers clamped, nothing e
   assert.equal(theme.chart, undefined, "too few in light, two alike in dark");
   assert.equal(({} as Record<string, unknown>).polluted, undefined);
   const keys = Object.keys(theme).sort();
-  assert.deepEqual(keys, ["colours", "format", "name", "shape", "text", "version"]);
+  assert.deepEqual(keys, ["colours", "format", "name", "shape", "text"]);
   const why = (path: string) => problems.find((p) => p.path === path)?.why;
   assert.equal(why("css"), "unknown");
   assert.equal(why("font"), "unknown", "a theme never names a typeface");
@@ -119,6 +119,26 @@ test("hostile and broken input: unknown keys dropped, numbers clamped, nothing e
   assert.equal(why("chart.light"), "chart-size");
   assert.equal(why("chart.dark"), "chart-close");
   assert.equal(JSON.stringify(theme).includes("url("), false);
+});
+
+test("one shape: the first spelling still reads, and themeJson writes the shape every shared file has", () => {
+  const legacy = readTheme(base({ author: "Sam Example", colours: { light: { accent: "#b0502a" } } }));
+  assert.ok(legacy.theme);
+  assert.deepEqual(legacy.problems, []);
+  assert.equal(legacy.theme.format, 1);
+  const written = JSON.parse(themeJson(legacy.theme));
+  assert.equal(written.format, 1);
+  assert.equal("version" in written, false, "the format's number isn't written as a version");
+  const shared = JSON.parse(themeJson(legacy.theme, { version: "1.2", author: "sample-author", based_on: "https://github.com/sample-author/x" }));
+  assert.deepEqual(Object.keys(shared), ["format", "name", "version", "author", "based_on", "colours", "shape", "text"]);
+  assert.equal(shared.author, "sample-author", "with a header, the author is the header's");
+  // The new spelling: version and based_on are header fields, not unknown keys.
+  const again = readTheme(shared);
+  assert.deepEqual(again.problems, []);
+  // A shared file's format is a number for every kind, so a theme needs something only a theme has.
+  assert.equal(readTheme({ format: 1, name: "A template", body: "# Hi" }).error, "not-a-theme");
+  assert.equal(readTheme({ format: 2, name: "Later", colours: {} }).error, "newer-version");
+  assert.equal(readTheme({ format: "1", name: "x", colours: {} }).error, "not-a-theme");
 });
 
 test("what isn't a theme comes back as null, with the reason", () => {

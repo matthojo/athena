@@ -77,6 +77,8 @@ export function parseRoute(hash: string, today = localToday()): Route {
   // #/settings/accounts?connected=<id> is where an account sign-in returns to.
   // #/settings/skills/<id> (or …/new): one of Ask's skills, a page of its own.
   if (view === "settings" && id === "skills" && path.split("/")[2]) return { view: "settings", source: null, noteId: `skills/${decodeURIComponent(path.split("/")[2])}` };
+  // #/settings/appearance/<id>: Appearance with one of the person's themes open in its editor.
+  if (view === "settings" && id === "appearance" && path.split("/")[2]) return { view: "settings", source: null, noteId: `appearance/${decodeURIComponent(path.split("/")[2])}` };
   if (view === "settings") return { view: "settings", source: new URLSearchParams(qs ?? "").get("connected"), noteId: id ? decodeURIComponent(id) : null };
   // Connectors moved into Settings: old links (and sign-ins started before the move) land there.
   if (view === "connectors") {
@@ -109,6 +111,7 @@ export function routeHash(r: Route): string {
   if (r.view === "week") return `#/days/${thisWeekPath()}`;
   if (r.view === "recipes") return `#/recipes${r.noteId ? `/${r.noteId.split("/").map(encodeURIComponent).join("/")}` : ""}`;
   if (r.view === "settings" && r.noteId?.startsWith("skills/")) return `#/settings/skills/${encodeURIComponent(r.noteId.slice("skills/".length))}`;
+  if (r.view === "settings" && r.noteId?.startsWith("appearance/")) return `#/settings/appearance/${encodeURIComponent(r.noteId.slice("appearance/".length))}`;
   if (r.view === "settings") return `#/settings${r.noteId ? `/${encodeURIComponent(r.noteId)}` : ""}`;
   if (r.view === "team") return `#/team${r.noteId ? `/${r.noteId.split("/").map(encodeURIComponent).join("/")}` : ""}`;
   if (r.view === "community") return `#/community${r.source ? `?${r.source}` : ""}`;

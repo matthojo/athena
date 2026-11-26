@@ -8,6 +8,10 @@
  *   for the public colours, sliders for corners, spacing and text size, an
  *   optional chart palette, and a live preview (lib/theme.ts). The same on
  *   every device.
+ *   Themes added from Community or a file are tiles too, each saying where it
+ *   came from, with a dot when Community has a newer version; their editor
+ *   says who made them and carries Community's update or take-down news.
+ *   A theme the person made has Share in its editor (theme-share-sheet.ts).
  * - Your font and Text size: this device's own, above any theme.
  *
  * Every choice is a native radio button or input, so arrow keys work and a
@@ -23,6 +27,8 @@ import { ATHENA, BUILT_IN, chooseTheme, deleteOwnTheme, onPersonalChange, onThem
 import { SIZE_LIMITS, SYSTEM_FONT } from "../lib/theme-paint";
 import { canListFonts, commonFontsHere, fontPermission, listDeviceFonts } from "../lib/fonts";
 import athenaChart from "../themes/athena-chart.json";
+import { catalogueStatus, updateDot } from "../community/status";
+import { themeChangeWords, themeFromShort, themeFromWords } from "./theme-share-words";
 import { CHART_SERIES, COLOUR_KEYS, LIMITS, NAME_MAX, SCHEMES, closePairs, parseColour, readTheme, toHex, type ColourKey, type Scheme, type Theme, type ThemeChoice } from "../../../lib/theme";
 
 export const APPEARANCE_COPY = {
@@ -39,6 +45,7 @@ export const APPEARANCE_COPY = {
   themeLegend: "Theme",
   themeHint: "Your theme is the same on all your devices.",
   yours: "Yours",
+  share: "Share",
   make: "Make your own",
   edit: "Edit",
   delete: "Delete",
@@ -189,7 +196,8 @@ function bigPreview(): { el: HTMLElement; paint: (theme: Theme | null, scheme: S
 
 // ---------- The section ----------
 
-export function appearanceSection(): { el: HTMLElement; destroy: () => void } {
+/** `open`: the id of one of the person's themes to open in its editor straight away (#/settings/appearance/<id>). */
+export function appearanceSection(opts: { open?: string | null } = {}): { el: HTMLElement; destroy: () => void } {
   const C = APPEARANCE_COPY;
   const stops: (() => void)[] = [];
 
@@ -223,7 +231,13 @@ export function appearanceSection(): { el: HTMLElement; destroy: () => void } {
     const input = h("input", { class: "theme-tile__input", type: "radio", name: "theme", value: choice, id: inputId }) as HTMLInputElement;
     input.checked = themeState().choice === choice;
     input.addEventListener("change", () => input.checked && chooseTheme(choice));
-    const label = h("label", { class: "theme-tile", for: inputId }, input, tileArt(theme), h("span", { class: "theme-tile__name" }, name, ownId ? h("span", { class: "theme-tile__tag" }, C.yours) : null));
+    const origin = ownId ? themeState().themes.find((t) => t.id === ownId)?.origin : undefined;
+    // One they made says "Yours"; one they added says where it came from, with a dot when Community has a newer one.
+    const dot = origin?.catalogue_id && origin.hash ? updateDot("theme", ownId!, () => input.setAttribute("aria-describedby", `${inputId}-update`)) : null;
+    if (dot) dot.id = `${inputId}-update`;
+    const nameEl = h("span", { class: "theme-tile__name" }, h("span", { class: "theme-tile__label" }, name), ownId && !origin ? h("span", { class: "theme-tile__tag" }, C.yours) : null, dot);
+    const from = origin ? h("span", { class: "theme-tile__from" }, themeFromShort(origin)) : null;
+    const label = h("label", { class: "theme-tile", for: inputId }, input, tileArt(theme), nameEl, from);
     if (!ownId) return h("div", { class: "theme-tile-wrap" }, label);
     const edit = h("button", { class: "btn btn--ghost btn--sm", type: "button", "aria-label": `${C.edit} ${name}` }, icons.pen(), C.edit);
     const del = h("button", { class: "btn btn--ghost btn--sm", type: "button", "aria-label": `${C.delete} ${name}` }, icons.trash(), C.delete);
@@ -249,6 +263,7 @@ export function appearanceSection(): { el: HTMLElement; destroy: () => void } {
   };
 
   const openEditor = (id?: string) => {
+    if (id && !themeState().themes.some((t) => t.id === id)) return;
     editing?.close();
     const ed = themeEditor(id, () => {
       editorSlot.replaceChildren();
@@ -270,6 +285,8 @@ export function appearanceSection(): { el: HTMLElement; destroy: () => void } {
 
   paintMode();
   paintTiles();
+  // Opened at a theme's address (from Community's Add, or its update dot): its editor, once the section is on the page.
+  if (opts.open) requestAnimationFrame(() => openEditor(opts.open!));
   stops.push(onSchemeChange(() => (paintMode(), paintTiles())));
   stops.push(onThemeChange(paintTiles));
   stops.push(onPersonalChange(paintTiles));
@@ -432,13 +449,30 @@ function themeEditor(id: string | undefined, done: () => void): { el: HTMLElemen
   const preview = bigPreview();
   const save = h("button", { class: "btn btn--primary", type: "submit" }, C.save);
   const cancel = h("button", { class: "btn btn--ghost", type: "button" }, C.cancel);
+  // A theme they made can go out as a file; Athena's own and ones they added can't.
+  const own = id ? s.themes.find((t) => t.id === id) : undefined;
+  const share = own && !own.origin ? (h("button", { class: "btn btn--soft theme-editor__share", type: "button" }, icons.arrowUp(), C.share) as HTMLButtonElement) : null;
+  share?.addEventListener("click", () => {
+    const now = themeState().themes.find((t) => t.id === id);
+    if (now) void import("./theme-share-sheet").then((m) => m.openShareTheme(now));
+  });
+  // Where one they added came from, what changing it means, and Community's news about it.
+  const originEl = own?.origin
+    ? h(
+        "div",
+        { class: "theme-editor__origin" },
+        h("p", { class: "theme-editor__from" }, icons.copy(), h("span", {}, themeFromWords(own.origin))),
+        h("p", { class: "form__hint" }, themeChangeWords(own.origin)),
+        own.origin.catalogue_id ? catalogueStatus("theme", own.id, { actions: false }) : null
+      )
+    : null;
 
   /** The theme as it stands, through the reader like any other. */
   const draft = (): Theme | null => {
     const raw = {
-      format: "athena-theme",
-      version: 1,
+      format: 1,
       name: nameInput.value || C.namePlaceholder,
+      ...(existing?.summary ? { summary: existing.summary } : {}),
       colours: Object.fromEntries(
         SCHEMES.filter((sc) => include[sc]).map((sc) => [sc, Object.fromEntries(COLOUR_KEYS.filter((k) => k !== "focus" || focusSet[sc]).map((k) => [k, colours[sc][k]]))])
       ),
@@ -471,6 +505,7 @@ function themeEditor(id: string | undefined, done: () => void): { el: HTMLElemen
     "form",
     { class: "theme-editor", "aria-labelledby": `${uid}-title`, novalidate: true },
     h("h3", { class: "theme-editor__title", id: `${uid}-title` }, existing ? C.editorEdit : C.editorNew),
+    originEl,
     h("div", { class: "theme-editor__field" }, h("label", { class: "field-label", for: `${uid}-name` }, C.name), nameInput, nameError),
     h("fieldset", { class: "theme-editor__group" }, h("legend", { class: "field-label" }, C.schemesLegend), h("div", { class: "theme-editor__inlines" }, incLight.el, incDark.el), h("p", { class: "form__hint" }, C.schemesHint)),
     h(
@@ -500,7 +535,7 @@ function themeEditor(id: string | undefined, done: () => void): { el: HTMLElemen
       ),
       h("div", { class: "theme-editor__preview" }, h("p", { class: "field-label", "aria-hidden": "true" }, C.preview), preview.el)
     ),
-    h("div", { class: "theme-editor__actions" }, save, cancel)
+    h("div", { class: "theme-editor__actions" }, save, cancel, share)
   );
 
   form.addEventListener("submit", (e) => {

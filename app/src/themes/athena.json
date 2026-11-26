@@ -1,6 +1,5 @@
 {
-  "format": "athena-theme",
-  "version": 1,
+  "format": 1,
   "name": "Athena",
   "summary": "Cool paper and cobalt, with a blue and mint glow",
   "colours": {

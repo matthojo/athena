@@ -8,6 +8,9 @@
  *   fresh copy can't be read, the last one is used and the reason is passed on in words.
  * - A bundle is fetched when an item is opened, checked against its schema, then against its hash and the index's
  *   word for it (`verifyBundle`). A bundle that doesn't match is never used.
+ * - A listed theme's colours, for its row in the list: its bundle fetched and checked like any other, read by
+ *   readTheme(), and a few colours kept in the `community` store under the bundle's hash, so each version of a theme's
+ *   files is read once (`themeSwatchesFor`).
  * - Updates and withdrawals are worked out from the index as it is, against what was added here (pure:
  *   `compareInstalled`, `toPause`). A withdrawn item is paused once; if the owner switches it back on, it stays on.
  */
@@ -32,6 +35,7 @@ import { FLOW_DRAFT_TOOLS } from "../../lib/flow-share";
 import type { ShareKind } from "../../lib/share-kinds";
 import type { UpdateCheck } from "../../lib/community-api";
 import type { FlowStep } from "../../lib/flow-types";
+import { readSharedTheme, themeSwatches, THEME_FILE, type ThemeSwatches } from "../../lib/theme-share";
 
 /** How long a copy of the index is used before it's read again. */
 export const INDEX_TTL_MS = 24 * 60 * 60 * 1000;
@@ -88,6 +92,32 @@ export const blobIndexCache: IndexCache = {
   },
 };
 
+/** A theme's colours for its row, kept by its files' hash: what a hash names never changes. */
+export interface SwatchCache {
+  get(hash: string): Promise<ThemeSwatches | null>;
+  set(hash: string, s: ThemeSwatches): Promise<void>;
+}
+
+const swatchKey = (hash: string) => `swatches/${hash.replace(/^sha256-/, "")}`;
+
+export const blobSwatchCache: SwatchCache = {
+  async get(hash) {
+    try {
+      const raw = (await getStore({ name: STORE, consistency: "strong" }).get(swatchKey(hash), { type: "json" })) as ThemeSwatches | null;
+      return raw && typeof raw === "object" ? raw : null;
+    } catch {
+      return null;
+    }
+  },
+  async set(hash, s) {
+    try {
+      await getStore({ name: STORE, consistency: "strong" }).setJSON(swatchKey(hash), s);
+    } catch (e) {
+      console.error("Athena community: keeping a theme's colours failed", e);
+    }
+  },
+};
+
 const localRoot = (root: string) => /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(root);
 
 /** Replaceable in tests. Production always goes through publicFetch; plain fetch only for a localhost catalogue under `netlify dev`. */
@@ -96,6 +126,7 @@ export const catalogueDeps = {
   root: (): string => catalogueUrl(),
   on: (): Promise<boolean> => loadCommunityCheck(),
   cache: blobIndexCache as IndexCache,
+  swatches: blobSwatchCache as SwatchCache,
   now: (): Date => new Date(),
 };
 
@@ -260,6 +291,37 @@ export async function loadBundle(id: string): Promise<{ item: CatalogueItem; bun
     }
   }
   throw new CatalogueError(CATALOGUE_WORDS.mismatch);
+}
+
+/** The most themes whose colours one list reads, four at a time. Past it, a row shows its icon alone. */
+const SWATCH_ITEMS = 60;
+
+/**
+ * A few colours of each listed theme, by listing id: from the cache by hash, else its bundle fetched and checked
+ * (verifyBundle) and read by readTheme(). A theme whose files can't be read is left out. Never throws.
+ */
+export async function themeSwatchesFor(items: readonly CatalogueItem[]): Promise<Record<string, ThemeSwatches>> {
+  const root = catalogueDeps.root();
+  const out: Record<string, ThemeSwatches> = {};
+  if (!root) return out;
+  const themes = items.filter((i) => i.kind === "theme").slice(0, SWATCH_ITEMS);
+  const one = async (item: CatalogueItem) => {
+    try {
+      const kept = await catalogueDeps.swatches.get(item.hash);
+      if (kept) return void (out[item.id] = kept);
+      const bundle = await fetchBundle(root, item);
+      if (!(await verifyBundle(bundle, item))) return;
+      const file = bundle.files.find((f) => f.path === THEME_FILE);
+      if (!file) return;
+      const s = themeSwatches(readSharedTheme(JSON.parse(file.text)).theme);
+      out[item.id] = s;
+      await catalogueDeps.swatches.set(item.hash, s);
+    } catch {
+      // Its row shows its icon alone.
+    }
+  };
+  for (let i = 0; i < themes.length; i += 4) await Promise.all(themes.slice(i, i + 4).map(one));
+  return out;
 }
 
 // ---------- what was added here, against the index ----------

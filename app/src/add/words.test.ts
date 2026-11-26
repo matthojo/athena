@@ -105,3 +105,31 @@ test("a template: it stays in Athena, joins under a free name, and an Update nev
   assert.match(w.madePlainWords(true)!, /nothing in it loads by itself/);
   assert.equal(w.fieldLine(null), "Athena doesn't know this one, so it stays a blank for you");
 });
+
+test("theme words: the modes it has, what was left out, where it goes, and what Add and use did", async () => {
+  const { themeModesWords, themeProblemWords, themeGoesWords, themeAddedWords, themeRoomWords, reachWords: reach } = await import("./words");
+  assert.equal(themeModesWords(["light", "dark"]), null);
+  assert.match(themeModesWords(["dark"])!, /dark colours only/);
+  assert.match(themeModesWords([])!, /Athena's own colours/);
+  const lines = themeProblemWords([
+    { path: "font", why: "unknown" },
+    { path: "colours.light.page", why: "not-a-colour" },
+    { path: "shape.radius", why: "clamped" },
+    { path: "chart.dark", why: "chart-close" },
+    { path: "author", why: "not-a-handle" },
+  ]);
+  assert.equal(lines.length, 5);
+  assert.match(lines[0], /“font”/);
+  assert.match(lines[3], /dark mode/);
+  assert.deepEqual(themeProblemWords([]), []);
+  assert.match(themeGoesWords("Ember", "Ember (2)")[0], /joins as “Ember \(2\)”/);
+  assert.ok(themeGoesWords("Ember", "Ember").some((l) => /font and text size/.test(l)));
+  assert.equal(themeAddedWords("Ember", { name: "Ember", renamed: false, used: true }).title, "You're using Ember");
+  assert.equal(themeAddedWords("Ember", { name: "Ember", renamed: false, used: false }).title, "Ember is in your themes");
+  assert.equal(themeRoomWords(true), null);
+  assert.equal(reach({ tier: 1, model: false, web: false, lookups: [], needs: [] }, "theme").title, "Stays in Athena");
+  // Never the bare word "Shared" for where something came from.
+  const { themeFromWords, themeFromShort } = await import("../components/theme-share-words");
+  assert.equal(themeFromWords({ catalogue_id: "x", author: "lamplight-co", version: "1.0" }), "From Community · by @lamplight-co · version 1.0");
+  assert.equal(themeFromShort({ catalogue_id: null }), "From a file");
+});

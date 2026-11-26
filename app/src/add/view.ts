@@ -9,7 +9,10 @@
  * unticked); what it may do alone (all unticked; "Always asks first" for what it can't be given); then the whole
  * of it, readable. Nothing is kept until Add, and what's added starts switched off, except check-in questions:
  * there the owner chooses under "When to start", and asking them is the default. A note template does nothing by
- * itself, so it's simply added to the owner's templates: the screen draws it as a note from it would look.
+ * itself, so it's simply added to the owner's templates: the screen draws it as a note from it would look. A theme
+ * is drawn as a small Athena screen in its own colours, per mode, can be tried on the whole app first ("Try it on
+ * Athena", put back by "Put yours back" or by leaving), and is added beside the owner's themes: Add keeps the theme in
+ * use, "Add and use" switches to it.
  */
 import "./add.css";
 // The sticky foot is shared with the flow page (styles/flows.css, "Sticky foot").
@@ -53,6 +56,10 @@ import { templatePreview } from "./template-preview";
 import { loadTemplates, type NoteTemplate } from "../db/documents";
 import { freeTemplateName, plainTemplateBody, TEMPLATE_FILE } from "../../../lib/template-share";
 import { madePlainWords, templateAddedWords, templateGoesWords } from "./words";
+import { ADD_AND_USE, themeAddedWords, themeGoesWords, themeProblemWords, themeRoomWords, TRY_WORDS } from "./words";
+import { themeHeroTile, themePreview } from "./theme-preview";
+import { ATHENA_THEME_NAMES, freeThemeName, themeRoom } from "../../../lib/theme-share";
+import { scheme as appScheme } from "../lib/appearance";
 
 type Go = (view: ViewId, opts?: { source?: string | null; noteId?: string | null }) => void;
 
@@ -62,7 +69,7 @@ export interface AddViewContext {
 
 const errorText = (error: unknown) => (error instanceof Error && error.message && !/fetch|network|Failed|^\d{3} /i.test(error.message) ? error.message : "That didn't work. Check you're online and try again.");
 
-const KIND_ICON: Record<ShareKind, keyof typeof icons> = { assistant: "team", skill: "book", flow: "loop", checkin: "chat", template: "copy" };
+const KIND_ICON: Record<ShareKind, keyof typeof icons> = { assistant: "team", skill: "book", flow: "loop", checkin: "chat", template: "copy", theme: "contrast" };
 
 const size = (text: string) => {
   const n = new TextEncoder().encode(text).byteLength;
@@ -209,7 +216,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
   }
 
   function startOver() {
-    el.classList.remove("add--checkin", "add--template");
+    el.classList.remove("add--checkin", "add--template", "add--theme");
     history.replaceState(history.state, "", "#/add");
     choose();
     focusHeading();
@@ -229,8 +236,10 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     ]);
     // A template's name is checked against the owner's: one already in use means this one gets a number on the end.
     const ownTemplates: NoteTemplate[] | null = p.kind === "template" ? await loadTemplates().catch(() => null) : null;
+    // A theme's name is checked against the owner's themes and Athena's own, and there's room for 40.
+    const ownThemes = p.kind === "theme" ? (await import("../lib/theme")).themeState() : null;
     if (!alive) return;
-    const room = p.kind !== "assistant" || !team || team.length < MAX_ASSISTANTS;
+    const room = p.kind === "theme" ? !ownThemes || themeRoom(ownThemes) : p.kind !== "assistant" || !team || team.length < MAX_ASSISTANTS;
     const item = p.item;
     const name = p.name;
     const answers: Record<string, string> = {};
@@ -240,7 +249,9 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     const lead =
       item.kind === "assistant"
         ? renderAvatarTile(item.shared.avatar ?? avatarFromSeed(shareSeed(item.shared)), { size: 72, animate: true })
-        : h("span", { class: `add-hero__tile add-hero__tile--${p.kind}`, "aria-hidden": "true" }, icons[KIND_ICON[p.kind]]());
+        : item.kind === "theme"
+          ? themeHeroTile(item.theme, appScheme())
+          : h("span", { class: `add-hero__tile add-hero__tile--${p.kind}`, "aria-hidden": "true" }, icons[KIND_ICON[p.kind]]());
     const title = h("h1", { class: "page-title add-hero__name", tabindex: "-1" }, name);
     const job = item.kind === "assistant" && item.shared.name ? h("p", { class: "add-hero__job" }, item.shared.job) : null;
     const hero = h(
@@ -430,6 +441,37 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       if (tp.fields) tplNote = section("fields", "Its fields", h("p", { class: "form__hint add-sec__lede" }, "Each fills in from your own records when you use it. Anything Athena can't fill stays for you."), tp.fields);
     }
 
+    // A theme: how it looks in each mode it has, a way to try it on the whole app, and what reading it left out.
+    let tryEl: HTMLElement | null = null;
+    let leftOutSec: HTMLElement | null = null;
+    let themeCleanup: (() => void) | null = null;
+    if (item.kind === "theme") {
+      const m = await import("../lib/theme");
+      if (!alive) return;
+      const btn = h("button", { class: "btn btn--soft btn--sm", type: "button", "aria-pressed": "false" }, icons.contrast(), h("span", {}, TRY_WORDS.label)) as HTMLButtonElement;
+      // Its line changes with the button, and is read out when it does.
+      const line = h("p", { class: "add-try__line", "aria-live": "polite" }, TRY_WORDS.line);
+      tryEl = h("div", { class: "add-try" }, btn, line);
+      const paintTry = (on: boolean) => {
+        tryEl!.classList.toggle("is-on", on);
+        btn.setAttribute("aria-pressed", String(on));
+        btn.lastElementChild!.textContent = on ? TRY_WORDS.on : TRY_WORDS.label;
+        const mode = appScheme();
+        line.textContent = on ? (item.theme.theme.colours[mode] ? TRY_WORDS.onLine : TRY_WORDS.onLineOther(mode)) : TRY_WORDS.line;
+      };
+      btn.addEventListener("click", () => {
+        const on = !m.isTrying();
+        if (on) m.tryTheme(item.theme.theme);
+        else m.stopTrying();
+        paintTry(on);
+      });
+      // Leaving the screen, or reading something else, puts the owner's theme back.
+      themeCleanup = () => m.stopTrying();
+      questionsSec = section("questions", "How it looks", themePreview(item.theme), tryEl);
+      const lines = themeProblemWords(item.theme.problems);
+      if (lines.length) leftOutSec = section("left-out", "What Athena left out", h("p", { class: "form__hint add-sec__lede" }, "Reading its file, Athena kept only what a theme can have."), h("ul", { class: "add-bullets" }, ...lines.map((l) => h("li", {}, l))));
+    }
+
     // Accounts it may open: assistants and skills, all unticked, the ones it needs first.
     let accountsValue: () => string[] = () => [];
     let accountsSec: HTMLElement | null = null;
@@ -500,6 +542,9 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
         plain = null;
       }
       aloneSec = section("alone", "Where it goes", h("ul", { class: "add-bullets" }, ...[...lines, ...(plain ? [plain] : [])].map((l) => h("li", {}, l))));
+    } else if (item.kind === "theme") {
+      const free = ownThemes ? freeThemeName(name, [...ATHENA_THEME_NAMES, ...ownThemes.themes.map((t) => t.theme.name)]) : name;
+      aloneSec = section("alone", "Where it goes", h("ul", { class: "add-bullets" }, ...themeGoesWords(name, free).map((l) => h("li", {}, l))));
     } else {
       const lines: string[] = ["Every step that changes something waits for your approval, even if the flow asked to run on its own."];
       if (item.flow.steps.length && JSON.stringify(item.flow.steps).includes('"kind":"think"')) lines.push("Its thinking steps need an assistant. Choose one on the flow's page once it's added.");
@@ -513,7 +558,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     const links = linkedHosts(texts);
     const notes = [
       links.length ? h("p", { class: "add-note" }, icons.globe(), h("span", {}, `Its words link to ${links.join(", ")}. Athena didn't check ${links.length === 1 ? "that site" : "those sites"}.`)) : null,
-      !room ? h("p", { class: "add-note add-note--bad", role: "alert" }, icons.flag(), h("span", {}, `Your team has ${MAX_ASSISTANTS} assistants, the most it can have. Remove one to make room.`)) : null,
+      !room ? h("p", { class: "add-note add-note--bad", role: "alert" }, icons.flag(), h("span", {}, p.kind === "theme" ? themeRoomWords(false)! : `Your team has ${MAX_ASSISTANTS} assistants, the most it can have. Remove one to make room.`)) : null,
     ];
 
     // All of it, readable.
@@ -523,7 +568,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       const skipped = p.skipped.length ? h("div", { class: "add-skipped" }, h("p", { class: "add-sub" }, "Not used"), h("ul", { class: "skill-skipped", "aria-label": "Files not used" }, ...p.skipped.map((s) => h("li", {}, h("span", { class: "skill-file__name" }, s.path), h("span", { class: "skill-skipped__why" }, s.reason))))) : null;
       if (item.kind === "flow") return section("content", "Its steps", sharedFlowSteps(item.flow, catalog), skipped);
       // Its questions (or a template's page) above are all of it; only files left out are listed.
-      if (item.kind === "checkin" || item.kind === "template") return skipped ? section("content", "Not used", skipped) : null;
+      if (item.kind === "checkin" || item.kind === "template" || item.kind === "theme") return skipped ? section("content", "Not used", skipped) : null;
       if (item.kind === "skill") {
         const s = item.skill;
         return section("content", "All of it", h("p", { class: "add-sub" }, "Use when"), h("p", { class: "add-usewhen" }, s.description), h("p", { class: "add-sub" }, "Instructions"), pre(s.body, " skill-pre--body"), s.files.length ? h("p", { class: "add-sub" }, s.files.length === 1 ? "1 file" : `${s.files.length} files`) : null, ...fileDetails(s.files), skipped);
@@ -562,16 +607,25 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
     let copying = !had;
 
     // Add, or Update.
-    const addBtn = h("button", { class: "btn btn--primary add-foot__add", type: "button", disabled: !room && !had?.newer }, icons.plus(), addLabel(p.kind, name)) as HTMLButtonElement;
+    const addBtn = h("button", { class: "btn btn--primary add-foot__add", type: "button", disabled: !room && !had?.newer }, icons.plus(), h("span", { class: "add-foot__label" }, addLabel(p.kind, name))) as HTMLButtonElement;
     const cancel = h("button", { class: "btn btn--ghost add-foot__cancel", type: "button" }, "Cancel");
+    // A theme: "Add and use" beside Add, for a new one only. Add alone keeps the theme in use as it is.
+    const useBtn = p.kind === "theme" ? (h("button", { class: "btn btn--soft add-foot__use", type: "button", disabled: !room }, ADD_AND_USE) as HTMLButtonElement) : null;
     const problem = h("p", { class: "add-foot__problem", role: "alert", hidden: true });
     const label = () => (copying ? addLabel(p.kind, name) : had?.newer ? `Update ${name}` : w!.open);
     const paintFoot = () => {
-      addBtn.replaceChildren(copying ? icons.plus() : had?.newer ? icons.refresh() : icons.arrowRight(), label());
+      // The label sits in its own span, which ends in an ellipsis when a long name won't fit; the full words stay its name.
+      addBtn.replaceChildren(copying ? icons.plus() : had?.newer ? icons.refresh() : icons.arrowRight(), h("span", { class: "add-foot__label" }, label()));
       addBtn.disabled = copying && !room;
+      if (useBtn) {
+        useBtn.hidden = !copying;
+        useBtn.disabled = !room;
+      }
       if (copyBtn) copyBtn.hidden = copying;
       // Only a new set gets the switch: an Update keeps the set's own.
       if (startSec) startSec.hidden = !copying;
+      // A theme's "Where it goes" is about a new one; an Update's note under the button says what it changes.
+      if (p.kind === "theme" && aloneSec) aloneSec.hidden = !copying;
     };
     copyBtn?.addEventListener("click", () => {
       copying = true;
@@ -580,7 +634,7 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       addBtn.focus();
     });
     cancel.addEventListener("click", startOver);
-    addBtn.addEventListener("click", async () => {
+    const go = async (use: boolean) => {
       if (had && !copying && !had.newer) {
         location.hash = had.href;
         return;
@@ -595,29 +649,37 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
       addBtn.disabled = true;
       addBtn.classList.add("is-busy");
       addBtn.lastChild!.textContent = copying ? "Adding…" : "Updating…";
-      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null, replace: copying ? null : had!.id, start: starting() };
+      if (useBtn) useBtn.disabled = true;
+      const choices: AddChoices = { answers: { ...answers }, accounts: accountsValue(), allow: allowValue(), web: !!webBox?.checked, money: false, assistant_id: null, replace: copying ? null : had!.id, start: starting(), use };
       try {
         const result = await addItem(p, choices);
         added(p.kind, name, result.href, !!result.updated, result, joinsKinds, starting());
       } catch (error) {
         if (!alive) return;
         addBtn.disabled = false;
+        if (useBtn) useBtn.disabled = !room;
         addBtn.classList.remove("is-busy");
         addBtn.lastChild!.textContent = label();
         problem.hidden = false;
         problem.textContent = errorText(error);
       }
-    });
+    };
+    addBtn.addEventListener("click", () => void go(false));
+    useBtn?.addEventListener("click", () => void go(true));
     const footNote = h("p", { class: "add-foot__note" });
     const paintNote = () => (footNote.textContent = copying ? landsWords(p.kind) : had?.newer ? updateLandsWords(p.kind, !!had.changed) : "");
     paintFoot();
     paintNote();
-    const foot = h("div", { class: "add-foot" }, problem, h("div", { class: "add-foot__row" }, cancel, addBtn), footNote);
+    const foot = h("div", { class: "add-foot" }, problem, h("div", { class: "add-foot__row" }, cancel, useBtn, addBtn), footNote);
 
     if (p.kind === "checkin") el.classList.add("add--checkin");
     if (p.kind === "template") el.classList.add("add--template");
-    show(hero, haveCard, facts, reachCard, ...notes, offNote, needsSec, questionsSec, tplNote, accountsSec, aloneSec, asksFirstSec, content, startSec, foot);
-    if (tplDestroy) unmount = tplDestroy;
+    if (p.kind === "theme") el.classList.add("add--theme");
+    show(hero, haveCard, facts, reachCard, ...notes, offNote, needsSec, questionsSec, leftOutSec, tplNote, accountsSec, aloneSec, asksFirstSec, content, startSec, foot);
+    unmount = () => {
+      tplDestroy?.();
+      themeCleanup?.();
+    };
     focusHeading();
   }
 
@@ -629,8 +691,10 @@ export function renderAdd(ctx: AddViewContext): { el: HTMLElement; destroy: () =
         ? checkinAddedWords(name, result.checkins, joins, started)
         : kind === "template" && result?.template && !updated
           ? templateAddedWords(name, result.template)
-          : updated
-            ? updatedWords(kind, name, !!result?.template?.beside)
+          : kind === "theme" && result?.theme && !updated
+            ? themeAddedWords(name, result.theme)
+            : updated
+            ? updatedWords(kind, name, !!(result?.template?.beside || result?.theme?.beside))
             : addedWords(kind, name);
     const open = h("a", { class: "btn btn--primary", href }, w.open, icons.arrowRight());
     const more = h("button", { class: "btn btn--soft", type: "button" }, "Add something else");
