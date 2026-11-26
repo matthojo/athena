@@ -77,6 +77,7 @@ import { handleTodoContextRoutes } from "../lib/todo-contexts-routes";
 import { handleTodoPeopleRoutes } from "../lib/todo-people-routes";
 import { handleDocumentRoutes } from "../lib/documents-routes";
 import { handleThemeRoutes } from "../lib/theme-routes";
+import { handleSetupRoutes, hasSiteSession } from "../lib/setup-routes";
 import { handleRecipeRoutes } from "../lib/recipes-routes";
 import { handleWeekMomentRoutes } from "../lib/week-moments-routes";
 import { handleSpendRoutes } from "../lib/spend-routes";
@@ -1857,6 +1858,14 @@ export default async (req: Request, _context: Context) => {
     if (checkBearer(req)) return errorResponse(req, 400, "The access token isn't a key, so there's nothing to remove");
     if (!(await removeOwnApiKey(req))) return errorResponse(req, 401, "Unauthorized");
     return new Response(null, { status: 204, headers: corsHeaders(req) });
+  }
+
+  // The guided setup (netlify/lib/setup-routes.ts): its status is open to a browser past the site password too, so a new
+  // owner is greeted before they've pasted their token. Changing it takes the token or a full key.
+  if (first === "setup" && segments.length === 2) {
+    const signedIn = await authorized(req);
+    if (!signedIn && !(req.method === "GET" && hasSiteSession(req))) return errorResponse(req, 401, "Unauthorized");
+    return await handleSetupRoutes(req, signedIn, (d, s) => json(req, d, s));
   }
 
   // Everything else: the master token or a full key. An MCP-only key (scope "mcp") is for /mcp alone and is refused here.

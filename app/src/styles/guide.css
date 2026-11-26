@@ -1,0 +1,740 @@
+/* ==========================================================================
+   The guided setup (app/src/guide/view.ts): one card on the aurora, like the
+   Connect screen, a little wider, that moves through the steps. A row of
+   dots says where you are; cobalt only on what's done and where you are.
+   Checks pair a mark with a word, never colour alone. Tokens only; every
+   movement has a reduced-motion cut.
+   ========================================================================== */
+
+.guide {
+  min-height: 100dvh;
+  display: grid;
+  place-items: start center;
+  align-content: start;
+  padding: calc(var(--safe-top) + var(--space-xl)) var(--space-md) calc(var(--safe-bottom) + var(--space-xl));
+}
+
+@media (min-height: 760px) and (min-width: 600px) {
+  .guide {
+    align-content: center;
+  }
+}
+
+.guide__card {
+  width: min(520px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-float);
+  animation: rise var(--dur-slow) var(--ease-out);
+}
+
+@media (min-width: 600px) {
+  .guide__card {
+    padding: var(--space-xl-2xl) var(--space-xl-2xl) var(--space-xl);
+  }
+}
+
+.guide__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.guide__top .brand-mark {
+  width: 36px;
+  height: 36px;
+}
+
+/* ---------- Where you are ---------- */
+
+.guide__progress {
+  display: flex;
+  gap: var(--space-2xs-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken-strong);
+  transition:
+    width var(--dur-base) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out);
+}
+
+.guide__dot--done {
+  background: color-mix(in oklab, var(--accent) 45%, var(--surface));
+}
+
+.guide__dot--now {
+  width: 24px;
+  background: var(--accent);
+}
+
+.guide__kicker {
+  margin-bottom: calc(var(--space-sm) - var(--space-lg));
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.guide__kicker[hidden] {
+  display: none;
+}
+
+/* ---------- A step ---------- */
+
+.guide__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md-lg);
+  min-width: 0;
+}
+
+.guide__body.is-in-next {
+  animation: guide-in-next var(--dur-base) var(--ease-out-expo) both;
+}
+
+.guide__body.is-in-back {
+  animation: guide-in-back var(--dur-base) var(--ease-out-expo) both;
+}
+
+@keyframes guide-in-next {
+  from {
+    opacity: 0;
+    transform: translateX(var(--space-lg));
+  }
+}
+
+@keyframes guide-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(calc(-1 * var(--space-lg)));
+  }
+}
+
+.guide__title {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.022em;
+  outline: none;
+}
+
+.guide__lede {
+  margin-top: calc(var(--space-2xs) - var(--space-md-lg));
+  font-size: var(--text-ui);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.guide__label {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.guide__fine {
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.guide__fine svg,
+.guide__ok svg,
+.guide__panel-title svg,
+.guide__panel-head svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.guide__shield,
+.guide__zone {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs-xs);
+}
+
+/* ---------- Welcome: the plan ---------- */
+
+.guide__plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-md);
+  list-style: none;
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.guide__plan-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+.guide__plan-n {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.guide__plan-name {
+  display: block;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+}
+
+.guide__plan-line {
+  display: block;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.guide__token {
+  padding-top: var(--space-2xs);
+}
+
+/* ---------- Site: the checks ---------- */
+
+.guide__checks {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.guide__check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+  padding: var(--space-sm-md) var(--space-md);
+}
+
+.guide__check + .guide__check {
+  border-top: 1px solid var(--line);
+}
+
+.guide__check-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  color: var(--ink-3);
+}
+
+.guide__check-mark svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+.guide__check--good .guide__check-mark {
+  background: color-mix(in oklab, var(--good) 14%, var(--surface));
+  color: var(--good);
+}
+
+.guide__check--warn .guide__check-mark {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.guide__check-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  min-width: 0;
+}
+
+.guide__check-name {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.guide__check-name--mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+}
+
+.guide__check-line {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.guide__check--bad .guide__check-line {
+  color: var(--ink);
+}
+
+.guide__ok {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs-xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--good);
+}
+
+.guide__ok[hidden],
+.guide__how[hidden],
+.guide__wait[hidden] {
+  display: none;
+}
+
+.guide__key-wrap:empty {
+  display: none;
+}
+
+/* ---------- Panels: the data key, the phone, a note ---------- */
+
+.guide__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md-lg);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.guide__panel--good {
+  background: color-mix(in oklab, var(--good) 10%, var(--surface));
+}
+
+.guide__panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+}
+
+.guide__panel-head svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.guide__panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-semibold);
+}
+
+.guide__panel--good .guide__panel-title {
+  color: var(--good);
+}
+
+.guide__panel-line {
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--ink-2);
+}
+
+.guide__panel-line--warn {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.guide__panel > .btn {
+  align-self: flex-start;
+}
+
+/* The key: big enough to check by eye, broken anywhere so it never scrolls sideways. */
+.guide__key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-xs);
+  align-items: center;
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.guide__key {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.guide__copy {
+  align-self: start;
+}
+
+.guide__saved {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+  min-height: 44px;
+  padding-top: var(--space-2xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.guide__tick {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.guide__how {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.guide__how.is-in {
+  animation: rise var(--dur-base) var(--ease-out);
+}
+
+.guide__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: guide-step;
+}
+
+.guide__step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding-left: var(--space-xl);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  counter-increment: guide-step;
+}
+
+.guide__step::before {
+  content: counter(guide-step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+/* On the sunken panel, a soft button would vanish: these sit on the card's surface. */
+.guide__panel .btn--soft {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.guide__step code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+  overflow-wrap: anywhere;
+}
+
+.guide__out svg {
+  width: 14px;
+  height: 14px;
+}
+
+.guide__wait {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.guide__wait-text {
+  flex: 1 1 200px;
+}
+
+.guide__spinner {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  animation: guide-spin var(--dur-spin) var(--ease-linear) infinite;
+}
+
+@keyframes guide-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* ---------- Sources ---------- */
+
+.guide__starters {
+  display: grid;
+  gap: var(--space-xs);
+  margin-top: calc(var(--space-xs) - var(--space-md-lg));
+}
+
+@media (min-width: 600px) {
+  .guide__starters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.guide__starter {
+  min-height: 84px;
+}
+
+.guide__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2xs) var(--space-xs);
+  margin-top: calc(var(--space-2xs) - var(--space-md-lg));
+}
+
+.guide__more[hidden] {
+  display: none;
+}
+
+.guide__connected {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.guide__connected[hidden] {
+  display: none;
+}
+
+.guide__tickmark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--good) 14%, var(--surface));
+  color: var(--good);
+}
+
+.guide__tickmark svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+/* ---------- Phone ---------- */
+
+.guide__notify {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* ---------- Done ---------- */
+
+.guide__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: calc(var(--space-2xs) - var(--space-md-lg)) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs-xs);
+  min-height: 32px;
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.guide__chip svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+  color: var(--good);
+}
+
+.guide__chip--quiet {
+  color: var(--ink-2);
+  font-weight: var(--weight-regular);
+}
+
+/* What happens next: a quiet timeline down the left. */
+.guide__next {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: calc(var(--space-2xs) - var(--space-md-lg)) 0 0;
+  padding: 0 0 0 var(--space-lg);
+  list-style: none;
+}
+
+.guide__next::before {
+  content: "";
+  position: absolute;
+  left: 4px; /* fixed: icon */
+  top: 8px; /* fixed: icon */
+  bottom: 8px; /* fixed: icon */
+  width: 1px;
+  background: var(--line-strong);
+}
+
+.guide__next-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+}
+
+.guide__next-item::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--space-lg));
+  top: 6px; /* fixed: icon */
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--line-strong);
+}
+
+.guide__next-item:first-child::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.guide__next-when {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.guide__next-item:first-child .guide__next-when {
+  color: var(--accent-ink);
+}
+
+.guide__next-what {
+  font-size: var(--text-ui);
+}
+
+/* ---------- The buttons ---------- */
+
+.guide__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--line);
+}
+
+.guide__actions[hidden] {
+  display: none;
+}
+
+.guide__spacer {
+  flex: 1;
+}
+
+.guide__main svg,
+.guide__back svg {
+  width: 16px;
+  height: 16px;
+}
+
+.guide__back {
+  margin-left: calc(-1 * var(--space-sm));
+}
+
+/* On a phone the main button takes the row, so it sits under the thumb. */
+@media (max-width: 479px) {
+  .guide__actions:has(.guide__main) .guide__main {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .guide__actions .guide__spacer {
+    display: none;
+  }
+}
+
+.guide__sample {
+  margin-top: var(--space-md);
+  font-size: var(--text-meta);
+  text-align: center;
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide__card,
+  .guide__body.is-in-next,
+  .guide__body.is-in-back,
+  .guide__how.is-in {
+    animation: none;
+  }
+
+  .guide__dot {
+    transition: none;
+  }
+
+  .guide__spinner {
+    animation-duration: calc(var(--dur-spin) * 3);
+  }
+}

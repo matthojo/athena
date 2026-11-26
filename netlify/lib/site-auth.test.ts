@@ -110,3 +110,10 @@ test("the login page keeps its own headers", async () => {
   assert.match(res.headers.get("Content-Security-Policy") ?? "", /default-src 'none'/);
   assert.equal(res.headers.get("Cache-Control"), "no-store");
 });
+
+test("a cookie the gate issues is one a Function accepts (lib/site-session.ts), and only for the same password", async () => {
+  const { validSiteSession } = await import("../../lib/site-session");
+  const cookie = cookieOf(await makeSessionCookie(env.get("SESSION_SECRET")!, env.get("SITE_PASSWORD")!));
+  assert.equal(validSiteSession(cookie, env.get("SESSION_SECRET"), env.get("SITE_PASSWORD")), true);
+  assert.equal(validSiteSession(cookie, env.get("SESSION_SECRET"), "another password"), false);
+});

@@ -155,8 +155,8 @@ function statusWord(tone: Tone, text: string): HTMLElement {
 
 const chevron = () => h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight());
 
-/** Starters by what you get, not by service (first run). */
-const STARTERS: Array<{ recipe: RecipeId; title: string; line: string; category?: string }> = [
+/** Starters by what you get, not by service (first run, and the guided setup's Sources step, app/src/guide/view.ts). */
+export const SOURCE_STARTERS: Array<{ recipe: RecipeId; title: string; line: string; category?: string }> = [
   { recipe: "email-digest", title: "Your email", line: "Things to act on, trips and orders" },
   { recipe: "calendar-meetings", title: "Your calendar", line: "What's coming up, and a note per meeting" },
   { recipe: "work-activity", title: "Your work", line: "What shipped, what was decided" },
@@ -589,7 +589,7 @@ function sourcesSection(opts: { connected: string | null }): { el: HTMLElement; 
   /** Before any account: starters by what you'd get. */
   function firstRun(s: ConnectorsState): HTMLElement[] {
     const ready = s.setup.encryption;
-    const card = (st: (typeof STARTERS)[number]) => {
+    const card = (st: (typeof SOURCE_STARTERS)[number]) => {
       const logos = CONNECTOR_PRESETS.filter((p) => p.id !== "custom" && p.recipes.includes(st.recipe) && (st.category ? p.category === st.category : p.category !== "health" && p.category !== "travel")).slice(0, 3);
       const b = h(
         "button",
@@ -603,7 +603,7 @@ function sourcesSection(opts: { connected: string | null }): { el: HTMLElement; 
     const browse = h("button", { class: "src-browse", type: "button", disabled: !ready }, "Browse all services");
     browse.addEventListener("click", () => addAccount());
     return [
-      h("div", { class: "src-starters" }, ...STARTERS.map(card)),
+      h("div", { class: "src-starters" }, ...SOURCE_STARTERS.map(card)),
       ready ? browse : h("p", { class: "src-note" }, "These work once that setting is added."),
     ];
   }
