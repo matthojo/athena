@@ -1015,15 +1015,18 @@ const webSearchTool = (left: number, region: Region | null = null, tz?: string):
  * loop sees (a step for the owner, a leak check, Jev). It may open only a link already in the conversation: the
  * turn's own message (the saved item's link), a page web_search returned, or what find_saved gave. A link in an
  * email, a note or another tool's result never counts, so nothing from those can be sent anywhere by opening it.
+ * In a chat a link on a page it opened counts too. In an unattended run (`unattended`) it doesn't: a page's author
+ * could otherwise steer which link it opens next, and say something about the owner by the choice, with nobody
+ * watching. "Every web result but web_fetch's" is web_search's alone, and names a tool that's always in the request.
  */
-const webFetchTool = (left: number, clientTools: readonly string[]): Anthropic.WebFetchTool20250910 => ({
+const webFetchTool = (left: number, clientTools: readonly string[], unattended = false): Anthropic.WebFetchTool20250910 => ({
   type: "web_fetch_20250910",
   name: "web_fetch",
   max_uses: Math.max(1, left),
   max_content_tokens: PAGE_TOKENS,
   url_sources: {
     user_input: { type: "all" },
-    server_tool_results: { type: "all" },
+    server_tool_results: unattended ? { type: "except", tools: [{ type: "tool_reference", name: FETCH_TOOL_NAME }] } : { type: "all" },
     client_tool_results: clientTools.includes("find_saved") ? { type: "only", tools: [{ type: "tool_reference", name: "find_saved" }] } : { type: "none" },
   },
 });
@@ -1769,7 +1772,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
             const acc = byTool.get(t.name);
             return !acc || scope.has(acc.account.connector?.id);
           });
-          return [...offered, ...(web ? [webSearchTool(searchBudget - searches, region, tz)] : []), ...(fetchOn ? [webFetchTool(webTurn!.pages - pages, offered.map((t) => t.name))] : [])];
+          return [...offered, ...(web ? [webSearchTool(searchBudget - searches, region, tz)] : []), ...(fetchOn ? [webFetchTool(webTurn!.pages - pages, offered.map((t) => t.name), unattended)] : [])];
         };
         const params = (): Anthropic.MessageCreateParamsNonStreaming => ({ model, max_tokens: MAX_TOKENS, system, tools: sent(), messages, output_config: { effort: lim.effort }, cache_control: { type: "ephemeral" } });
         // The gateway refused and lib/ai.ts is waiting to ask again (up to a minute): the owner sees why nothing is moving.
