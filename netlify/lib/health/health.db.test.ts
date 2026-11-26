@@ -161,10 +161,11 @@ test("Health: sealed by the Shortcut and the tool, charted, one line on each Day
   assert.equal(r.json.life_log, "written");
   assert.equal(await lineOn(addDays(today, -2)), "4,100 steps", "no weigh-in, no weight");
 
-  // ---- no key here (a deploy preview): refused, never stored readable ----
+  // ---- no key here (a deploy preview): refused, never stored readable. An API key doesn't open without the data key either ----
   delete process.env.ATHENA_DATA_KEY;
   r = await call("POST", "/health/day", { steps: 1 }, capture);
-  assert.equal(r.status, 503);
+  assert.equal(r.status, 401);
+  assert.equal((await call("POST", "/health/day", { steps: 1 }, "master-token-for-tests")).status, 503, "the master token gets in, and the write is refused");
   process.env.ATHENA_DATA_KEY = KEY;
 
   // ---- a key rotation re-seals health days ----
