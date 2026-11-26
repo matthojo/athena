@@ -97,7 +97,7 @@ test("reminders: meeting prep, then how it went, from seeded data; deduped, mute
   // The fake service is on localhost, and the subscription is the master token's.
   pushDeps.allowed = () => true;
   process.env.MCP_BEARER_TOKEN ??= "test-master-token";
-  const credential = pushCredential(new Request("https://athena.test/", { headers: { authorization: `Bearer ${process.env.MCP_BEARER_TOKEN}` } }))!;
+  const credential = pushCredential({ id: "master" })!;
   await savePushSubscription({ endpoint: `${base}/push/device-1`, p256dh: device.getPublicKey().toString("base64url"), auth: auth.toString("base64url") }, credential);
   await saveNotificationPrefs({ evening: false, weekly: false, briefing: false, reminders: false });
   await claimReminder("briefing:2026-12-07");

@@ -13,6 +13,7 @@
 import { createHash } from "node:crypto";
 import webpush from "web-push";
 import { keepPushSubscriptionsOf, listPushSubscriptions, qRaw, removePushSubscription } from "./db";
+import { listApiKeys } from "./api-keys";
 import { currentKeyId, dataKeyConfigured, isSealed, openStrict, sealText, sealedKeyId } from "./data-box";
 import { mergePrefs, PREFS_KEY, readPrefs, type NotificationPrefs } from "./nudges";
 
@@ -163,23 +164,28 @@ export function pushEndpoint(raw: unknown): string | null {
 export const pushDeps = { allowed: (endpoint: string): boolean => pushEndpoint(endpoint) !== null };
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
-/** From a token's SHA-256 (what lib/api-keys.ts stores for a key), so neither the token nor that hash is kept again. */
-const fingerprint = (tokenHash: string) => sha256(`athena-push-credential\u0000${tokenHash}`).slice(0, 32);
+const fingerprint = (of: string) => sha256(`athena-push-credential\u0000${of}`).slice(0, 32);
 
-/** The fingerprint of the bearer token a request carried, recorded with the subscription it registers. */
-export function pushCredential(req: Request): string | null {
-  const token = req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
-  return token ? fingerprint(sha256(token)) : null;
+/**
+ * What a subscription is tied to: the credential that registered it, as netlify/lib/mcp/bearer.ts names it ("master",
+ * or "key:<id>"). The master token by a hash of it, so a new token drops its subscriptions; an API key by its id, so
+ * removing the key drops them, whatever form lib/api-keys.ts keeps the key in. Never the token itself. Null when it
+ * names neither (or the master token isn't set).
+ */
+export function pushCredential(who: { id: string }): string | null {
+  if (who.id === "master") {
+    const master = env("MCP_BEARER_TOKEN");
+    return master ? fingerprint(sha256(master)) : null;
+  }
+  const key = /^key:(.+)$/.exec(who.id)?.[1];
+  return key ? fingerprint(`key\u0000${key}`) : null;
 }
 
-/** The fingerprints of every credential that still works: the master token and each API key. */
+/** The fingerprints of every credential that still works: the master token and each API key that can be used. */
 export async function liveCredentials(): Promise<string[]> {
-  const out: string[] = [];
-  const master = env("MCP_BEARER_TOKEN");
-  if (master) out.push(fingerprint(sha256(master)));
-  const [row] = await qRaw<{ value: unknown }>(`SELECT value FROM settings WHERE key = 'api_keys'`);
-  for (const k of Array.isArray(row?.value) ? (row.value as Array<{ hash?: unknown }>) : []) if (typeof k?.hash === "string") out.push(fingerprint(k.hash));
-  return out;
+  const out = (await listApiKeys()).map((k) => pushCredential({ id: `key:${k.id}` })!);
+  const master = pushCredential({ id: "master" });
+  return master ? [master, ...out] : out;
 }
 
 /** Ten seconds for one push service to answer; without it web-push sets no timeout and one stalled endpoint holds the whole run. */
