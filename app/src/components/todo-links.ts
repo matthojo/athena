@@ -79,6 +79,8 @@ export function linksEditor(opts: {
     if (target) return h("span", { class: "tlink__tile", "data-kind": target.kind, "aria-hidden": "true" }, icons[mentionIcon(target.kind)]());
     const site = linkSite(link.url);
     const t = h("span", { class: "tlink__tile tlink__tile--web", style: `--hue:${hueFor(site)}`, "aria-hidden": "true" }, site.slice(0, 1).toUpperCase());
+    // A link a model or an agent added is held: its page isn't fetched (lib/todo-details.ts TodoLink.held).
+    if (link.held) return t;
     // The page's own icon, when its preview has one.
     void import("../db/rich-links").then(({ loadPreview }) =>
       loadPreview(link.url).then((p) => {

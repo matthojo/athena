@@ -48,6 +48,11 @@ test("track with a link a model chose always waits for Go; one on a saved item's
   assert.equal(needsOwnersGo("add_todo", { url: PAGE }), false);
 });
 
+test("import_recipe fetches the link it's given, so it always waits for Go", () => {
+  assert.equal(needsOwnersGo("import_recipe", { url: "https://recipes.example.com/soup?note=private" }), true);
+  assert.equal(needsOwnersGo("import_recipe", { url: " " }), false);
+});
+
 test("the Go card shows the whole link and its host in Athena's words, never the model's line", () => {
   const long = `https://shop.example.com/${"kettles/".repeat(20)}blue?colour=blue&size=1.7l#top`;
   const label = stepLabel("track", { name: "Blue kettle", url: long, preset: "price", step: "Just a small thing" });

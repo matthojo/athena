@@ -136,7 +136,8 @@ export function isLookingTool(name: string): boolean {
 }
 
 /** Never on an allowlist: they wait for the owner's own tap anyway, or belong to the runner. */
-const NEVER_ALONE = new Set(["answer_invite", "send_note", "draft_message", "draft_email", "save_routine", "move_event"]);
+// import_recipe fetches a page from a link the model chose (lib/ask-guard.ts needsOwnersGo): never alone.
+const NEVER_ALONE = new Set(["answer_invite", "send_note", "draft_message", "draft_email", "save_routine", "move_event", "import_recipe"]);
 
 /** The change tools an assistant can be allowed to run alone, from Ask's real tool list. */
 export function allowableTools(tools: ReadonlyArray<{ name: string }>): string[] {

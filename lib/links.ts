@@ -254,6 +254,28 @@ export function plainWebLinks(text: string): string {
   return text.replace(webLinkRegex(), (_m, label: string, url: string) => `[${label}](${url})`);
 }
 
+/** The Markdown fields a model or an agent fills on a record or a to-do, where a link's mode would make Athena fetch the page. */
+const MODEL_TEXT_FIELDS = ["notes", "description"] as const;
+
+/**
+ * A tool's input from a model (lib/assistant.ts runTool) or an agent (netlify/lib/mcp/results.ts safe), with every
+ * web link's mode dropped in its notes and description (plainWebLinks). A to-do or record a model wrote can't make
+ * Athena fetch a page to preview it, as a note it wrote can't (modelWroteInto): the address could carry the owner's
+ * data out in its query. Anything else passes through as it is. Pure.
+ */
+export function plainModelText<T>(input: T): T {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
+  const record = input as Record<string, unknown>;
+  let out: Record<string, unknown> | null = null;
+  for (const key of MODEL_TEXT_FIELDS) {
+    const value = record[key];
+    if (typeof value !== "string") continue;
+    const plain = plainWebLinks(value);
+    if (plain !== value) (out ??= { ...record })[key] = plain;
+  }
+  return (out ?? input) as T;
+}
+
 /**
  * Text a model wrote into a note the owner wrote (save_note with a note id): every web link's mode is dropped, as
  * plainWebLinks does, except a link whose address already had that same mode in the note before (the owner's own
