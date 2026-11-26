@@ -363,6 +363,28 @@ export function sampleSuggestions(): Suggestion[] {
       confidence: 0.62,
       email: { from: "Northfield Leisure <bookings@mail.northfield.example>", subject: "Your spin class is booked", connector_id: null },
     }, 2.5),
+    // A delivery email for an order already in Purchases: its card says "Update status".
+    s(16, {
+      op: "purchase",
+      summary: "Out for delivery: KALLAX shelf unit and 1 more from IKEA",
+      payload: { retailer: "IKEA", order_number: "IK-1155-0287", items: ["KALLAX shelf unit", "Desk lamp"], status: "out_for_delivery", carrier: "DPD", tracking_number: "15501234567890", detail: "Arriving between 12:00 and 13:00" },
+      source: "email-digest-personal",
+      source_ref: null,
+      source_quote: "Your parcel is out for delivery today. Your driver will be with you between 12:00 and 13:00.",
+      confidence: 0.64,
+      email: { from: "DPD <notifications@parcels.example>", subject: "Your IKEA order is on its way", connector_id: null },
+    }, 0.25),
+    // One that isn't: "Add to Purchases".
+    s(17, {
+      op: "purchase",
+      summary: "Ordered: Bamboo desk organiser from Larkspur Home",
+      payload: { retailer: "Larkspur Home", order_number: "LH-30418", items: ["Bamboo desk organiser"], status: "ordered" },
+      source: "email-digest-personal",
+      source_ref: null,
+      source_quote: "Thanks for your order! We'll let you know as soon as it's on its way.",
+      confidence: 0.58,
+      email: { from: "Larkspur Home <orders@larkspur.example>", subject: "Order LH-30418 confirmed", connector_id: null },
+    }, 0.6),
     s(4, {
       op: "interaction",
       summary: "You saw Tom at the residents' meeting",

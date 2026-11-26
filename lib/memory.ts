@@ -21,6 +21,7 @@
  */
 import { dayRecallHits } from "./days";
 import { sameKey, type SuggestionEmail } from "./suggestion-similar";
+import type { SuggestionTarget } from "./suggestion-target";
 import {
   AthenaInputError,
   byName,
@@ -1121,6 +1122,8 @@ export interface Suggestion {
   created_at: string;
   /** The email it came from (0086, sealed): null when it wasn't one, or was filed before. */
   email: SuggestionEmail | null;
+  /** What accepting would update, when it's already saved: worked out when the Inbox is listed (lib/suggestion-target-db.ts), never stored. */
+  existing?: SuggestionTarget | null;
 }
 
 /**

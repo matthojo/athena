@@ -435,6 +435,33 @@ function matchBooking(candidates: Candidate[], kind: BookingKind, segment: strin
 }
 
 /**
+ * The saved booking an email's booking would update, if there is one: the
+ * one named, else the same reference matched the way saveBooking matches.
+ * The Inbox says "Update booking" rather than "Add to Trips".
+ */
+export async function bookingFor(input: Partial<Pick<BookingInput, "booking_id" | "kind" | "reference" | "segment" | "start_local">>): Promise<{ id: string; title: string; status: BookingStatus; owner_archived: boolean } | null> {
+  const found = async (): Promise<Candidate | null> => {
+    if (input.booking_id) {
+      if (!UUID_RE.test(input.booking_id)) return null;
+      const [row] = await q<Candidate>(
+        `SELECT b.id, b.trip_id, b.kind, b.reference, b.segment, b.title, to_char(b.start_date, 'YYYY-MM-DD') AS start_date, b.status,
+                b.archived_at IS NOT NULL AS archived, t.archived_at IS NOT NULL AS trip_archived, b.source
+         FROM trip_bookings b JOIN trips t ON t.id = b.trip_id WHERE b.id = $1`,
+        [input.booking_id],
+      );
+      return row ?? null;
+    }
+    const kind = input.kind && BOOKING_KINDS.includes(input.kind) ? input.kind : null;
+    const ref = normaliseReference(input.reference ?? "");
+    const day = /^\d{4}-\d{2}-\d{2}/.exec(input.start_local ?? "")?.[0];
+    if (!kind || !ref || !day) return null;
+    return matchBooking(await withReference(ref), kind, clean(input.segment), day);
+  };
+  const b = await found();
+  return b ? { id: b.id, title: b.title, status: b.status, owner_archived: b.archived || b.trip_archived } : null;
+}
+
+/**
  * The trip a new booking belongs to. A live trip to the same place whose
  * dates are within three days of it; else one whose dates overlap it and that
  * shares a city with it (the flight home leaves from where you stayed);
@@ -786,6 +813,25 @@ async function findPurchase(order: string, tracking: string, retailer: string): 
   if (byOrder.length) return byOrder[0];
   const byTracking = tracking ? rows.filter((r) => normaliseReference(r.tracking_number) === tracking) : [];
   return byTracking[0] ?? null;
+}
+
+/**
+ * The saved order a delivery update would move on, if there is one: the one
+ * named, else the same order or tracking number, as savePurchase matches.
+ * The Inbox says "Update status" rather than "Add to Purchases".
+ */
+export async function purchaseFor(input: Partial<Pick<PurchaseInput, "purchase_id" | "order_number" | "tracking_number" | "retailer">>): Promise<{ id: string; status: PurchaseStatus; owner_archived: boolean } | null> {
+  let row: PurchaseCandidate | null = null;
+  if (input.purchase_id) {
+    if (!UUID_RE.test(input.purchase_id)) return null;
+    [row] = await q<PurchaseCandidate>(
+      `SELECT id, retailer, order_number, tracking_number, status, status_at, archived_at IS NOT NULL AS archived, archived_by_athena, source FROM purchases WHERE id = $1`,
+      [input.purchase_id],
+    );
+  } else {
+    row = await findPurchase(normaliseReference(input.order_number ?? ""), normaliseReference(input.tracking_number ?? ""), clean(input.retailer));
+  }
+  return row ? { id: row.id, status: row.status, owner_archived: row.archived && !row.archived_by_athena } : null;
 }
 
 /**

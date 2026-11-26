@@ -1,16 +1,18 @@
 /**
  * The review inbox: what an agent found but wasn't sure enough to add on its
  * own — a promise in a meeting, a date in an email. Each card says what
- * accepting will do, quotes the words it came from, and how sure the agent
- * was. Add it or dismiss it: buttons, a swipe on a phone (right adds, left
+ * accepting will do, and its button names it ("Add to Purchases", or "Update
+ * status" for an order already there: lib/suggestion-effect.ts); it quotes
+ * the words it came from and how sure the agent was. Accept it or dismiss
+ * it: buttons, a swipe on a phone (right adds, left
  * dismisses), or A / R on a keyboard for the top card. What Athena worked out
  * about the owner (fact suggestions about "me") is grouped under About you,
  * after the rest. A card that's answered lifts away and the next one rises
  * into its place (lib/finish-motion.ts).
  *
  * The same thing found more than once (a booking email, then its reminder)
- * is one card, "Found 3 times", and its answer covers them all: Add it adds
- * it once (lib/suggestion-similar.ts sameKey). Another date is another card. A card from an
+ * is one card, "Found 3 times", and its answer covers them all: accepting
+ * applies it once (lib/suggestion-similar.ts sameKey). Another date is another card. A card from an
  * email can ignore emails like it in future syncs (components/ignore-sheet.ts),
  * and one put on the calendar with Add to calendar is done, so it leaves.
  */
@@ -23,20 +25,20 @@ import { showToast } from "../components/toast";
 import { confidenceLabel } from "../components/commitment-sheet";
 import { loadSuggestions, onMemoryChange, resolveSuggestion } from "../db/memory";
 import { loadRecords } from "../db/records";
-import { calendarDate, relativeTime } from "../lib/format";
-import { CHANNEL_META, COMMITMENT_META, SUGGESTION_META } from "../lib/memory-meta";
+import { relativeTime } from "../lib/format";
+import { SUGGESTION_META } from "../lib/memory-meta";
 import { describeSource } from "../lib/sources";
 import { collapse, dur, expand, flip, motionWait } from "../lib/finish-motion";
 import { prefersReducedMotion } from "../lib/motion";
-import type { CommitmentKind, InteractionChannel, Suggestion } from "../types";
+import type { Suggestion } from "../types";
 import { pageHead } from "../components/page-head";
 import { openTimesSheet } from "../components/slot-card";
 import { openCreateSheet, zonedInstant } from "../components/create-sheet";
 import { bookingAsk } from "../lib/create-event";
 import { prepareCreate } from "../db/scheduling";
 import { localToday } from "../lib/time";
-import { clockOfDay } from "../lib/clock";
 import { groupSame } from "../../../lib/suggestion-similar";
+import { acceptLabel, acceptedToast, consequence } from "../lib/suggestion-effect";
 import { openIgnoreSheet, senderName } from "../components/ignore-sheet";
 
 /** An email or event asking to meet, talk or move something: Check in offers "Suggest times". */
@@ -52,57 +54,6 @@ export function meetingAsk(s: Pick<Suggestion, "summary" | "source_quote" | "pay
   const m = /(\d{2,3})\s*(?:min|minutes)\b/i.exec(words);
   const minutes = m ? Math.min(240, Math.max(15, Number(m[1]))) : /\b(an|one) hour\b/i.test(words) ? 60 : 30;
   return { who, minutes };
-}
-
-const ADDED: Record<Suggestion["op"], string> = {
-  commitment: "Added to To do",
-  fact: "Remembered",
-  interaction: "Catch-up logged",
-  event: "Added to Events",
-  person: "Added to People",
-  link: "Linked",
-  booking: "Added to Trips",
-  purchase: "Added to Purchases",
-};
-
-/** What accepting will do, in a short line built from the payload. */
-function consequence(s: Suggestion, names: Map<string, string>): string {
-  const p = s.payload;
-  const name = (id: unknown) => (typeof id === "string" ? names.get(id) : undefined);
-  switch (s.op) {
-    case "commitment": {
-      const kind = (p.kind as CommitmentKind) ?? "todo";
-      const who = name(p.person_id);
-      const what = kind === "waiting_on" ? `Waiting on${who ? ` ${who}` : ""}` : kind === "decision" ? "Decision" : `To do${who ? ` · for ${who}` : ""}`;
-      return [what, typeof p.due_on === "string" ? `due ${calendarDate(p.due_on)}` : ""].filter(Boolean).join(", ");
-    }
-    case "fact": {
-      if (p.subject_kind === "me") return "Saves it in Settings, under About you";
-      const who = p.subject_kind === "me" ? "You" : name(p.subject_id) ?? "Them";
-      return `${who} · ${String(p.key ?? "")}: ${String(p.value ?? "")}`;
-    }
-    case "interaction": {
-      const ids = Array.isArray(p.person_ids) ? p.person_ids : [];
-      const people = ids.map(name).filter(Boolean).join(", ");
-      const channel = CHANNEL_META[(p.channel as InteractionChannel) ?? "other"]?.label ?? "Catch-up";
-      return `Logs a catch-up${people ? ` with ${people}` : ""} · ${channel.toLowerCase()}`;
-    }
-    case "event":
-      return [typeof p.date === "string" ? calendarDate(p.date, true) : "", typeof p.time === "string" ? clockOfDay(p.time) : ""].filter(Boolean).join(" at ");
-    case "person":
-      return `New person: ${String(p.name ?? "")}`;
-    case "link":
-      return "Connects two things in your graph";
-    case "booking": {
-      const start = typeof p.start_local === "string" ? p.start_local : "";
-      const day = /^\d{4}-\d{2}-\d{2}/.test(start) ? calendarDate(start.slice(0, 10), true) : "";
-      const time = /T(\d{2}:\d{2})/.exec(start)?.[1] ?? "";
-      const where = typeof p.start_city === "string" && p.start_city ? ` from ${p.start_city}` : "";
-      return `Adds it to a trip${day ? ` · ${day}${time ? ` at ${clockOfDay(time)}` : ""}` : ""}${where}`;
-    }
-    case "purchase":
-      return `Follows the order${typeof p.retailer === "string" ? ` from ${p.retailer}` : ""} in Purchases`;
-  }
 }
 
 /** Something Athena worked out about the owner: it belongs under About you. */
@@ -167,7 +118,7 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
 
   /**
    * Answer a card: every find it holds is the same thing, so one answer covers
-   * them all. Add it applies the first and marks the rest done (nothing added
+   * them all. Accepting applies the first and marks the rest done (nothing added
    * twice); Not right dismisses them all; Add to calendar marks them all done.
    */
   async function act(group: Suggestion[], action: "accept" | "reject" | "done", card: HTMLElement, how: "tap" | "swipe" = "tap") {
@@ -191,7 +142,7 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
     }
     const cleared = group.length > 1 ? `. All ${group.length} cleared from your Inbox` : "";
     if (action === "done") showToast(`Added to your calendar${cleared}`, { icon: "check" });
-    else if (action === "accept") showToast(`${ADDED[lead.op]}${cleared}`, { icon: "check" });
+    else if (action === "accept") showToast(`${acceptedToast(lead)}${cleared}`, { icon: "check" });
     else showToast(group.length > 1 ? `Dismissed all ${group.length}` : "Dismissed", { icon: "close" });
   }
 
@@ -238,7 +189,7 @@ export function renderReview(): { el: HTMLElement; destroy: () => void } {
   function card(s: Suggestion, others: Suggestion[] = []): HTMLElement {
     const meta = SUGGESTION_META[s.op];
     const src = describeSource(s.source ?? null);
-    const accept = h("button", { class: "btn btn--primary", type: "button" }, icons.check(), "Add it");
+    const accept = h("button", { class: "btn btn--primary", type: "button" }, icons.check(), acceptLabel(s));
     const reject = h("button", { class: "btn btn--ghost", type: "button" }, "Not right");
     const meet = meetingAsk(s, names);
     const suggest = meet ? h("button", { class: "btn btn--soft suggestion__times", type: "button" }, icons.clock(), "Suggest times") : null;
