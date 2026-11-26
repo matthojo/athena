@@ -103,7 +103,7 @@ async function opened(which: "tiles" | "tmdb", k: StoredKey | undefined): Promis
   try {
     const key = open(k.key, sealedFor(which));
     // Sealed in the older format or under a previous key: seal again, unless it was replaced meanwhile.
-    if (needsReseal(k.key)) {
+    if (needsReseal(k.key) && secretBoxConfigured()) {
       await qRaw(
         `UPDATE settings SET value = jsonb_set(value, ARRAY[$2, 'key'], to_jsonb($3::text)) WHERE key = $1 AND value->$2->>'key' = $4`,
         [ROW, which, seal(key, sealedFor(which)), k.key],

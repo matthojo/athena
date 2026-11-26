@@ -118,7 +118,7 @@ export async function voiceCredentials(): Promise<{
   try {
     const key = open(s.key, SEALED_FOR);
     // Sealed in the older format or under a previous key: seal again, unless it was replaced meanwhile.
-    if (needsReseal(s.key)) {
+    if (needsReseal(s.key) && secretBoxConfigured()) {
       await qRaw(`UPDATE settings SET value = jsonb_set(value, '{key}', to_jsonb($2::text)) WHERE key = $1 AND value->>'key' = $3`, [ROW, seal(key, SEALED_FOR), s.key]).catch(() => undefined);
     }
     return { key, voice: s.voice, status: s.status, geminiBackup: s.gemini_backup !== false };

@@ -347,7 +347,11 @@ export async function getConnectorWithSecrets(id: string): Promise<{ connector: 
   const secrets = openJson<ConnectorSecrets>(row.credentials, secretsContext(row)) ?? {};
   // Sealed in the older format or under a previous key: seal again now, unless it changed meanwhile.
   if (needsReseal(row.credentials)) {
-    await q(`UPDATE connectors SET credentials = $2 WHERE id = $1 AND credentials = $3`, [id, sealJson(secrets, secretsContext(row)), row.credentials]).catch(() => undefined);
+    try {
+      await q(`UPDATE connectors SET credentials = $2 WHERE id = $1 AND credentials = $3`, [id, sealJson(secrets, secretsContext(row)), row.credentials]);
+    } catch {
+      // No current key to seal with, or the write failed: it's sealed again next time.
+    }
   }
   return { connector: present(row), secrets };
 }
