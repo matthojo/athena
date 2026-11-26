@@ -139,3 +139,37 @@ export function submitSteps(kind: ShareKind, file: string): { hint: string; lede
     note: "The site opens in your browser. Athena sends it nothing.",
   };
 }
+
+// ---------- when the list was read, and "Check for new items" ----------
+
+const clock = (d: Date, timeZone?: string) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone }).format(d);
+const dayKey = (d: Date, timeZone?: string) => new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone }).format(d);
+
+/** "today at 09:14", "yesterday at 21:03", "24 Nov at 09:14". Pure. */
+export function readWhen(iso: string, now = new Date(), timeZone?: string): string {
+  const at = new Date(iso);
+  const day = dayKey(at, timeZone);
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const when = day === dayKey(now, timeZone) ? "today" : day === dayKey(yesterday, timeZone) ? "yesterday" : new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone }).format(at);
+  return `${when} at ${clock(at, timeZone)}`;
+}
+
+/** The line beside "Check for new items": "Last read today at 09:14." Null when the list was never read. Pure. */
+export const lastReadWords = (fetchedAt: string | null | undefined, now = new Date(), timeZone?: string): string | null => (fetchedAt ? `Last read ${readWhen(fetchedAt, now, timeZone)}.` : null);
+
+/**
+ * What a check says, for the polite live region: up to date as of the copy's time, read just now with how many items
+ * weren't in the list before, or the catalogue's words and the time of the list still shown. Pure.
+ */
+export function checkWords(v: { checked?: "read" | "recent"; error: string | null; fetched_at: string | null; items: readonly { id: string }[] }, before: ReadonlySet<string>, now = new Date(), timeZone?: string): string {
+  const when = v.fetched_at ? readWhen(v.fetched_at, now, timeZone) : null;
+  if (v.error) return when ? `${v.error} Showing the list from ${when}.` : v.error;
+  if (v.checked === "recent") return when ? `Up to date as of ${when}.` : "Up to date.";
+  const added = v.items.filter((i) => !before.has(i.id)).length;
+  return added ? `Read just now. ${added} new ${added === 1 ? "item" : "items"}.` : "Read just now. Nothing new.";
+}
+
+/** A kind with nothing listed: its name, and when the list was last read so the check beside it makes sense. Pure. */
+export function emptyKindWords(kind: ShareKind, fetchedAt: string | null, now = new Date(), timeZone?: string): { title: string; sub: string } {
+  return { title: `No ${KIND_WORDS[kind].many.toLowerCase()} yet`, sub: lastReadWords(fetchedAt, now, timeZone) ?? "" };
+}

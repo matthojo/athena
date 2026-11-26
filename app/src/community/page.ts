@@ -7,8 +7,10 @@
  * not; tapping one opens its preview at #/add?catalogue=<id>, where nothing is kept until the owner says Add.
  *
  * Only Athena's server reads the catalogue (app/src/db/community.ts → GET /api/community). A plain line under the
- * title says what is read and from where, with the switch that stops it. States: loading, offline, unreachable,
- * an empty search, the check switched off, and not set up.
+ * title says what is read and from where, with the switch that stops it. Under it, when the list was last read and
+ * "Check for new items" (POST /api/community/check: the server reads again only if its copy is over ten minutes old),
+ * whose result is said in a polite live region. A kind with nothing listed says when the list was read and offers the
+ * same check. States: loading, offline, unreachable, an empty search, the check switched off, and not set up.
  */
 import "../styles/community.css";
 import { h } from "../lib/dom";
@@ -20,11 +22,11 @@ import { showToast } from "../components/toast";
 import { brandLogo } from "../components/brand-logo";
 import { shortDate } from "../lib/format";
 import { accountName } from "../team/share-words";
-import { addHash, ADD_ROUTE, fetchCatalogue, setCommunityCheck, type CatalogueView } from "../db/community";
+import { addHash, ADD_ROUTE, checkCatalogue, fetchCatalogue, setCommunityCheck, type CatalogueView } from "../db/community";
 import { itemAccounts } from "../db/item-accounts";
 import type { CatalogueItem } from "../../../lib/catalogue-types";
 import type { ShareKind } from "../../../lib/share-kinds";
-import { communityHash, downloadWords, filtered, hasDownloads, KIND_WORDS, readKind, readSort, tierDetail, tierIcon, tierWords, type CommunitySort, type KindFilter } from "./words";
+import { checkWords, communityHash, downloadWords, emptyKindWords, lastReadWords, filtered, hasDownloads, KIND_WORDS, readKind, readSort, tierDetail, tierIcon, tierWords, type CommunitySort, type KindFilter } from "./words";
 
 const KIND_ICON: Record<ShareKind, IconName> = { assistant: "person", skill: "book", flow: "loop", checkin: "chat", template: "copy", theme: "contrast" };
 const FILTERS: KindFilter[] = ["all", "assistant", "skill", "flow", "checkin", "template", "theme"];
@@ -53,7 +55,15 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
   const swId = "community-check";
   const sw = h("input", { type: "checkbox", role: "switch", class: "switch", id: swId, "aria-describedby": `${swId}-line`, disabled: true }) as HTMLInputElement;
   const lineText = h("span", { class: "cm-check__text", id: `${swId}-line` });
-  const check = h("div", { class: "cm-check", hidden: true }, icons.cloud(), h("label", { class: "cm-check__label", for: swId }, lineText), sw);
+  let checking = false;
+  /** Said after a check, until the next paint that isn't one. */
+  let said: string | null = null;
+  const checkButtons = new Set<HTMLButtonElement>();
+  // When the list was read, and a way to ask for a fresh one. The words are a polite live region: a check's result is said.
+  const freshText = h("span", { class: "cm-fresh__text", role: "status", "aria-live": "polite" });
+  const freshButton = checkButton("btn btn--ghost btn--sm cm-fresh__btn");
+  const fresh = h("div", { class: "cm-fresh", hidden: true }, freshText, freshButton);
+  const check = h("div", { class: "cm-check", hidden: true }, icons.cloud(), h("label", { class: "cm-check__label", for: swId }, lineText), sw, fresh);
 
   // ---------- the controls ----------
   const searchInput = h("input", { type: "search", placeholder: "Search Community", "aria-label": "Search Community", autocomplete: "off", enterkeyhint: "search" }) as HTMLInputElement;
@@ -133,6 +143,49 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
       sw.disabled = false;
     }
   });
+
+  // ---------- "Check for new items" ----------
+
+  function checkButton(cls: string): HTMLButtonElement {
+    const b = h("button", { class: cls, type: "button" }, icons.refresh(), h("span", {}, "Check for new items")) as HTMLButtonElement;
+    b.addEventListener("click", () => void runCheck(b));
+    checkButtons.add(b);
+    return b;
+  }
+
+  async function runCheck(from: HTMLButtonElement) {
+    if (checking || !view?.on) return;
+    checking = true;
+    // Disabling a button drops its focus, so note it first.
+    const hadFocus = document.activeElement === from;
+    const before = new Set(view.items.map((i) => i.id));
+    for (const b of checkButtons) {
+      b.disabled = true;
+      b.setAttribute("aria-busy", "true");
+      b.querySelector("span")!.textContent = "Checking";
+    }
+    try {
+      const v = await checkCatalogue();
+      if (!alive) return;
+      // A failed read still answers with the copy kept, so the list shown stays.
+      view = v;
+      said = v.on ? checkWords(v, before) : null;
+    } catch {
+      if (!alive) return;
+      said = "That didn't work. Check you're online.";
+    } finally {
+      checking = false;
+      for (const b of [...checkButtons]) {
+        b.disabled = false;
+        b.removeAttribute("aria-busy");
+        b.querySelector("span")!.textContent = "Check for new items";
+      }
+    }
+    paint();
+    // Keep focus on a check button: the one pressed, or, when the list was painted again, the empty state's new one
+    // or the one under the switch.
+    if (hadFocus) (from.isConnected ? from : ((list.querySelector(".cm-state .btn") as HTMLButtonElement | null) ?? freshButton)).focus();
+  }
 
   // ---------- states ----------
 
@@ -232,11 +285,17 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
     if (!alive || !view) return;
     const v = view;
     check.hidden = !v.configured;
+    // Buttons from an empty state that's gone no longer count.
+    for (const b of [...checkButtons]) if (b !== freshButton && !b.isConnected) checkButtons.delete(b);
+    fresh.hidden = !v.on || !v.fetched_at;
+    // A list that couldn't be read again says so here, with when the list shown was read.
+    freshText.textContent = said ?? (v.error ? checkWords(v, new Set(v.items.map((i) => i.id))) : lastReadWords(v.fetched_at)) ?? "";
+    said = null;
     sw.checked = v.on;
     sw.disabled = false;
     lineText.replaceChildren(
       v.on
-        ? h("span", {}, "Athena's server reads this list from ", h("strong", {}, v.host ?? "the catalogue"), " once a day, a theme's colours once for each version, and an item when you open it. Nothing about you is sent.")
+        ? h("span", {}, "Athena's server reads this list from ", h("strong", {}, v.host ?? "the catalogue"), " at most once a day, or when you check for new items. It reads a theme's colours once for each version, and an item when you open it. Nothing about you is sent.")
         : h("span", {}, "Athena doesn't contact ", h("strong", {}, v.host ?? "the catalogue"), " while this is off.")
     );
     const browsing = v.configured && v.on && v.items.length > 0;
@@ -256,9 +315,10 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
     }
     if (!v.items.length) {
       if (v.error) return show(state({ icon: "cloud", title: "Community didn't load", sub: `${v.error} Try again in a few minutes.`, actions: [retryButton()] }));
-      return show(state({ icon: "globe", title: "Nothing listed yet", sub: "The catalogue is empty for now. Check back later." }));
+      const read = lastReadWords(v.fetched_at);
+      return show(state({ icon: "globe", title: "Nothing listed yet", sub: read ? `The catalogue is empty for now. ${read}` : "The catalogue is empty for now.", actions: v.fetched_at ? [checkButton("btn btn--soft btn--sm")] : [] }));
     }
-    if (v.error) {
+    if (v.error && !v.fetched_at) {
       note.hidden = false;
       note.replaceChildren(icons.clock(), h("span", {}, `${v.error} This is the list from ${v.generated_at ? shortDate(v.generated_at) : "earlier"}.`));
     }
@@ -278,7 +338,9 @@ export function renderCommunity(ctx: { query: string | null; go?: (view: ViewId)
       const clear = h("button", { class: "btn btn--soft btn--sm", type: "button" }, "Clear search");
       clear.addEventListener("click", clearSearch);
       const where = kind === "all" ? "" : ` in ${KIND_WORDS[kind].many.toLowerCase()}`;
-      return show(state({ icon: "search", title: searching ? `Nothing matches “${query.trim()}”${where}` : `No ${KIND_WORDS[kind as ShareKind].many.toLowerCase()} yet`, sub: searching ? "Try fewer words, or a name, an account or an author." : "Try another kind.", actions: searching ? [clear] : [] }));
+      if (searching) return show(state({ icon: "search", title: `Nothing matches “${query.trim()}”${where}`, sub: "Try fewer words, or a name, an account or an author.", actions: [clear] }));
+      const empty = emptyKindWords(kind as ShareKind, v.fetched_at);
+      return show(state({ icon: "search", title: empty.title, sub: empty.sub, actions: v.fetched_at ? [checkButton("btn btn--soft btn--sm")] : [] }));
     }
     if (searching) return show(...group(`${items.length} ${items.length === 1 ? "result" : "results"}`, items, added, { first: true }));
     // The order's own name is on the button beside it, so the heading says how many.

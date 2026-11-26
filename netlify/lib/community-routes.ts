@@ -3,12 +3,15 @@
  *
  *   GET /api/community            → CatalogueView. The first time it's opened, the check is switched on (the
  *                                   owner's decision, 24 Nov 2026); once the owner has set the switch, it's theirs.
+ *   POST /api/community/check     → CatalogueView with `checked`: "Check for new items". The index is read again only
+ *                                   when the copy kept is over ten minutes old (community-catalogue.ts checkIndex).
  *   GET /api/community/updates    → { updates: UpdateCheck[] }: what was added from the catalogue that has a newer
  *                                   listing or was taken down. Pauses a withdrawn item once.
  *   PUT /api/community/settings   { on: boolean } → { on: boolean }
  *
  * Nothing here contacts the catalogue while ATHENA_CATALOGUE_URL is empty or the switch is off, and the updates
- * check fetches nothing while nothing from the catalogue is added. The index is read at most once a day
+ * check fetches nothing while nothing from the catalogue is added. The index is read at most once a day unless
+ * the owner asks for a fresh list, or the copy kept was made by an Athena that knew fewer kinds
  * (netlify/lib/community-catalogue.ts); the daily check (netlify/functions/community-check.ts) uses the same code.
  */
 import { AthenaInputError, q } from "../../lib/db";
@@ -17,7 +20,7 @@ import { CatalogueError } from "../../lib/catalogue-types";
 import type { CatalogueView, CommunitySettings, UpdateCheck } from "../../lib/community-api";
 import type { Reach } from "../../lib/reach";
 import type { CatalogueItem } from "../../lib/catalogue-types";
-import { catalogueDeps, compareInstalled, flowTier, getIndex, pauseKey, readableItems, themeSwatchesFor, toPause, type InstalledItem } from "./community-catalogue";
+import { catalogueDeps, checkIndex, compareInstalled, flowTier, getIndex, pauseKey, readableItems, themeSwatchesFor, toPause, type InstalledItem } from "./community-catalogue";
 
 type Json = (data: unknown, status?: number) => Response;
 
@@ -98,23 +101,26 @@ export const dbCommunityStore: CommunityStore = {
   },
 };
 
-/** The Community screen's data. Opening it the first time switches the check on. */
-export async function catalogueView(store: CommunityStore = dbCommunityStore): Promise<CatalogueView> {
+/**
+ * The Community screen's data. Opening it the first time switches the check on. With `check`, the owner asked for a
+ * fresh list: the index is read again only if the copy kept is over ten minutes old, and `checked` says which.
+ */
+export async function catalogueView(store: CommunityStore = dbCommunityStore, opts: { check?: boolean } = {}): Promise<CatalogueView> {
   const configured = !!catalogueDeps.root();
   const raw = await store.switchRow();
   let on = readCommunityCheck(raw);
-  if (configured && raw === undefined) on = (await store.saveSwitch(true)).on;
+  if (configured && raw === undefined && !opts.check) on = (await store.saveSwitch(true)).on;
   const root = catalogueDeps.root();
-  const view: CatalogueView = { configured, on, host: root ? root.replace(/^https?:\/\//, "") : null, generated_at: null, items: [], added: [], error: null };
+  const view: CatalogueView = { configured, on, host: root ? root.replace(/^https?:\/\//, "") : null, generated_at: null, fetched_at: null, items: [], added: [], error: null };
   if (!configured || !on) return view;
   const added = [...new Set((await store.installed()).map((r) => r.catalogue_id))];
   try {
-    const read = await getIndex();
+    const read = opts.check ? await checkIndex() : await getIndex();
     const items = readableItems(read.index);
     const swatches = items.some((i) => i.kind === "theme") ? ((await store.swatches?.(items).catch(() => undefined)) ?? undefined) : undefined;
-    return { ...view, generated_at: read.index.generated_at, items, added, error: read.error, ...(swatches ? { swatches } : {}) };
+    return { ...view, generated_at: read.index.generated_at, fetched_at: read.fetched_at, items, added, error: read.error, ...(opts.check ? { checked: read.cached && !read.error ? "recent" : "read" } : {}), ...(swatches ? { swatches } : {}) };
   } catch (e) {
-    return { ...view, added, error: e instanceof Error ? e.message : "Athena couldn't reach the Community catalogue." };
+    return { ...view, added, error: e instanceof Error ? e.message : "Athena couldn't reach the Community catalogue.", ...(opts.check ? { checked: "read" as const } : {}) };
   }
 }
 
@@ -147,12 +153,13 @@ export async function communityUpdates(store: CommunityStore = dbCommunityStore)
 }
 
 export async function handleCommunityRoutes(req: Request, segments: string[], body: () => Promise<Record<string, unknown> | null>, json: Json, store: CommunityStore = dbCommunityStore): Promise<Response | null> {
-  // ["api", "community", <updates | settings>?]
+  // ["api", "community", <check | updates | settings>?]
   const [, , second] = segments;
   const method = req.method;
   const nope = () => json({ error: "Method not allowed" }, 405);
   try {
     if (!second && segments.length === 2) return method === "GET" ? json(await catalogueView(store)) : nope();
+    if (second === "check" && segments.length === 3) return method === "POST" ? json(await catalogueView(store, { check: true })) : nope();
     if (second === "updates" && segments.length === 3) return method === "GET" ? json({ updates: await communityUpdates(store) }) : nope();
     if (second === "settings" && segments.length === 3) {
       if (method === "GET") {

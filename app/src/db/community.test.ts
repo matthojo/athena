@@ -2,7 +2,7 @@
 // Run: npx tsx --test app/src/db/community.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ADD_ROUTE, addHash, checkUpdates, COMMUNITY_ROUTE, fetchCatalogue, isNewerFormat, parseAddHash } from "./community";
+import { ADD_ROUTE, addHash, checkCatalogue, checkUpdates, COMMUNITY_ROUTE, fetchCatalogue, isNewerFormat, parseAddHash } from "./community";
 
 test("the routes", () => {
   assert.equal(ADD_ROUTE, "#/add");
@@ -43,7 +43,7 @@ test("fetchCatalogue and checkUpdates call their routes", async () => {
   g.localStorage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
   g.fetch = async (url: string) => {
     seen.push(String(url));
-    const body = String(url).endsWith("/updates") ? { updates: [] } : { configured: false, on: false, generated_at: null, items: [], added: [], error: null };
+    const body = String(url).endsWith("/updates") ? { updates: [] } : { configured: false, on: false, generated_at: null, fetched_at: null, items: [], added: [], error: null };
     return new Response(JSON.stringify(body), { status: 200 });
   };
   try {
@@ -53,6 +53,24 @@ test("fetchCatalogue and checkUpdates call their routes", async () => {
       seen.map((u) => u.replace(/^.*\/api/, "/api")),
       ["/api/community", "/api/community/updates"]
     );
+  } finally {
+    g.fetch = was.fetch;
+    g.localStorage = was.localStorage;
+  }
+});
+
+test("checkCatalogue posts to the check route", async () => {
+  const seen: Array<{ url: string; method?: string }> = [];
+  const g = globalThis as Record<string, unknown>;
+  const was = { fetch: g.fetch, localStorage: g.localStorage };
+  g.localStorage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
+  g.fetch = async (url: string, init?: RequestInit) => {
+    seen.push({ url: String(url).replace(/^.*\/api/, "/api"), method: init?.method });
+    return new Response(JSON.stringify({ configured: true, on: true, generated_at: null, fetched_at: "2026-11-26T09:14:00Z", items: [], added: [], error: null, checked: "recent" }), { status: 200 });
+  };
+  try {
+    assert.equal((await checkCatalogue()).checked, "recent");
+    assert.deepEqual(seen, [{ url: "/api/community/check", method: "POST" }]);
   } finally {
     g.fetch = was.fetch;
     g.localStorage = was.localStorage;
