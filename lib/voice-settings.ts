@@ -16,6 +16,7 @@
 
 import { qRaw } from "./db";
 import { needsReseal, open, seal, secretBoxConfigured } from "./secret-box";
+import { loadSecretFormat, VOICE_CONTEXT, VOICE_ROW } from "./secret-format";
 
 export type VoiceConnectionStatus = "connected" | "key_rejected";
 
@@ -40,9 +41,9 @@ export interface VoiceStatus {
   setup: { encryption: boolean };
 }
 
-const ROW = "elevenlabs";
-/** What the key is sealed for (lib/secret-box.ts). */
-const SEALED_FOR = "settings\nelevenlabs";
+const ROW = VOICE_ROW;
+/** What the key is sealed for (lib/secret-box.ts, lib/secret-format.ts). */
+const SEALED_FOR = VOICE_CONTEXT;
 
 async function load(): Promise<Stored | null> {
   const [row] = await qRaw<{ value: Stored }>(`SELECT value FROM settings WHERE key = $1`, [ROW]);
@@ -113,6 +114,7 @@ export async function voiceCredentials(): Promise<{
   status: VoiceConnectionStatus;
   geminiBackup: boolean;
 } | null> {
+  await loadSecretFormat();
   const s = await load();
   if (!s) return null;
   try {

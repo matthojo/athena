@@ -12,7 +12,8 @@
  * queries go through lib/db.ts's q(), which opens them.
  */
 import { addDays, DEFAULT_TZ, zonedParts, zonedToInstant, zonedToday } from "./dates";
-import { needsReseal, openJson, sealJson } from "./secret-box";
+import { needsReseal, openJson, sealJson, SecretFormatRetired } from "./secret-box";
+import { connectorContext, loadSecretFormat } from "./secret-format";
 import { AthenaInputError, database, getOwnerTimeZone, lookupIndexes, matchKey, q as openQ, sealer, type EntityType } from "./db";
 import { DataBoxError, openStrict, sealText } from "./data-box";
 import { hasRules, readRules, type MailRules } from "./mail-rules";
@@ -232,7 +233,17 @@ export function keptApart<T extends Pick<Connector, "provider" | "share_collecti
  * whose provider or address was changed in the database, don't open.
  */
 export function secretsContext(c: Pick<Connector, "id" | "provider" | "url">): string {
-  return `connector\n${c.id}\n${c.provider}\n${c.url}`;
+  return connectorContext(c);
+}
+
+/** An account's secrets, opened; none when they're in the retired v1 format (the account reads as signed out). */
+function openSecrets(row: Pick<ConnectorRow, "id" | "provider" | "url" | "credentials">): ConnectorSecrets {
+  try {
+    return openJson<ConnectorSecrets>(row.credentials, secretsContext(row)) ?? {};
+  } catch (error) {
+    if (error instanceof SecretFormatRetired) return {};
+    throw error;
+  }
 }
 
 /** Same scheme, host and port: an address that may keep its sign-in. */
@@ -331,22 +342,25 @@ export function sameOAuthSettings(a: ConnectorOAuthSettings, b: ConnectorOAuthSe
 }
 
 export async function listConnectors(): Promise<Connector[]> {
+  await loadSecretFormat();
   const rows = await q<ConnectorRow>(`SELECT ${CONNECTOR_COLUMNS} FROM connectors ORDER BY created_at ASC`);
   return rows.map(present);
 }
 
 export async function getConnector(id: string): Promise<Connector | null> {
+  await loadSecretFormat();
   const [row] = await q<ConnectorRow>(`SELECT ${CONNECTOR_COLUMNS} FROM connectors WHERE id = $1`, [id]);
   return row ? present(row) : null;
 }
 
 /** Server-side only: the connector plus its decrypted secrets. */
 export async function getConnectorWithSecrets(id: string): Promise<{ connector: Connector; secrets: ConnectorSecrets } | null> {
+  await loadSecretFormat();
   const [row] = await q<ConnectorRow>(`SELECT ${CONNECTOR_COLUMNS} FROM connectors WHERE id = $1`, [id]);
   if (!row) return null;
-  const secrets = openJson<ConnectorSecrets>(row.credentials, secretsContext(row)) ?? {};
+  const secrets = openSecrets(row);
   // Sealed in the older format or under a previous key: seal again now, unless it changed meanwhile.
-  if (needsReseal(row.credentials)) {
+  if (needsReseal(row.credentials) && Object.keys(secrets).length) {
     try {
       await q(`UPDATE connectors SET credentials = $2 WHERE id = $1 AND credentials = $3`, [id, sealJson(secrets, secretsContext(row)), row.credentials]);
     } catch {
@@ -435,6 +449,7 @@ export async function updateConnector(
   opts: { keepSignIn?: boolean } = {},
 ): Promise<Connector | null> {
   const url = patch.url ? validateServerUrl(patch.url) : null;
+  if (url) await loadSecretFormat();
   for (let attempt = 0; attempt < 3; attempt++) {
     // A new address re-seals the secrets for it; a new host, port or scheme
     // gets none of them, so the account has to be signed in to again.
@@ -445,7 +460,7 @@ export async function updateConnector(
       if (from.url !== url) {
         const cleared = !opts.keepSignIn && !sameOrigin(from.url, url);
         const to = secretsContext({ id, provider: from.provider, url });
-        const credentials = cleared || !from.credentials ? null : sealJson(openJson<ConnectorSecrets>(from.credentials, secretsContext(from)) ?? {}, to);
+        const credentials = cleared || !from.credentials ? null : sealJson(openSecrets(from), to);
         moved = { from, credentials, cleared };
       }
     }
