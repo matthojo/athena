@@ -23,8 +23,9 @@ const unscoped = async (_req: Request, context: Context) => {
     const token = Netlify.env.get("MCP_BEARER_TOKEN");
     if (!origin) throw new Error("No site URL to reach the background function");
     if (!token) throw new Error("MCP_BEARER_TOKEN isn't set");
-    const res = await fetch(new URL(RUN_PATH, origin), { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) throw new Error(`background function answered ${res.status}`);
+    // Not followed: a redirect is never the background function. It answers 202 once deployed; `netlify dev` answers 204.
+    const res = await fetch(new URL(RUN_PATH, origin), { method: "POST", headers: { Authorization: `Bearer ${token}` }, redirect: "manual" });
+    if (res.status !== 202 && res.status !== 204) throw new Error(`background function answered ${res.status}`);
   } catch (error) {
     console.error("Athena profile learner couldn't start:", error instanceof Error ? error.message : error);
   }

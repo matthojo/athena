@@ -2,7 +2,8 @@
  * /api/assistant and /api/assistant/* — Ask. The handling is still the REST
  * dispatcher in netlify/functions/api.ts (auth included: the capture key for
  * /api/assistant/capture, the token or a full key for the rest). 20 requests
- * a minute per IP: every request spends AI Gateway credits.
+ * a minute per credential (../shared.ts countRequest): every request spends
+ * AI Gateway credits. A capture key also has CAPTURES_PER_DAY.
  *
  * What the server adds:
  *  - Runs that outlive the app. A streamed reply sent with X-Ask-Run: <uuid>
@@ -23,7 +24,7 @@ import { runHost } from "../assistant/host";
 import { createRuns, RunUnchecked } from "../assistant/runs";
 import { blobRunStore, probeBlobs } from "../assistant/store";
 import { warmSources } from "../assistant/warm-sources";
-import { jsonResponse, rateLimit, requireAuth, warm } from "../shared";
+import { countRequest, dailyCap, isFull, jsonResponse, warm } from "../shared";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NDJSON = { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" };
@@ -102,23 +103,32 @@ async function warmUp(): Promise<{ accounts: number; ms: number }> {
   return { accounts: opened, ms: Date.now() - started };
 }
 
+/** Captures a day from one capture key (an iPhone Shortcut, Siri): far beyond what a person sends, and a ceiling on what a leaked key can spend. */
+export const CAPTURES_PER_DAY = 200;
+
+const unauthorized = () => jsonResponse({ error: "Unauthorized" }, 401);
+
 export async function handleAssistant(req: Request, context: Context): Promise<Response> {
-  const limited = rateLimit(`assistant:${context.ip}`, 20);
+  const url = new URL(req.url);
+  const { who, limited } = await countRequest(req, "assistant", 20, context.ip);
   if (limited) return limited;
+  const [, , third, fourth, ...rest] = url.pathname.split("/").filter(Boolean);
+  // A capture key opens only /api/assistant/capture (the dispatcher checks); each one has a daily count too.
+  if (who?.scope === "capture" && third === "capture" && !fourth && !dailyCap(`capture:${who.id}`, CAPTURES_PER_DAY)) {
+    const text = `That's ${CAPTURES_PER_DAY} captures from this key today. Try again tomorrow.`;
+    return url.searchParams.get("format") === "json" ? jsonResponse({ reply: text, changes: [] }, 429) : new Response(text, { status: 429, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
   await probe();
-  const [, , third, fourth, ...rest] = new URL(req.url).pathname.split("/").filter(Boolean);
   if (req.method !== "OPTIONS" && third === "warm" && !fourth) {
-    const denied = await requireAuth(req);
-    if (denied) return denied;
+    if (!isFull(who)) return unauthorized();
     if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     const warming = warmUp();
     context.waitUntil(warming.then((w) => console.log(`Athena ask warm: ${w.accounts} accounts in ${w.ms} ms`, accounts().stats)));
     // `wait` is for measuring; the app doesn't wait.
-    return jsonResponse({ ok: true, runs: true, ...(new URL(req.url).searchParams.has("wait") ? { ...(await warming), ...accounts().stats } : {}) });
+    return jsonResponse({ ok: true, runs: true, ...(url.searchParams.has("wait") ? { ...(await warming), ...accounts().stats } : {}) });
   }
   if (req.method !== "OPTIONS" && third === "runs") {
-    const denied = await requireAuth(req);
-    if (denied) return denied;
+    if (!isFull(who)) return unauthorized();
     if (!fourth || rest.length || !UUID_RE.test(fourth)) return jsonResponse({ error: "Not found" }, 404);
     const id = fourth.toLowerCase();
     if (req.method === "DELETE") return jsonResponse({ ok: true, stopped: runs().stop(id) });

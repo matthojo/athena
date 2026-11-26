@@ -340,7 +340,10 @@ export async function handOff(origin: string, day: string, fetchImpl: typeof fet
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ date: day }),
+    // A redirect is never the background function: followed, the login page's 200 would read as "handed off".
+    redirect: "manual",
   });
-  if (!res.ok) throw new Error(`background function answered ${res.status}`);
+  // A background function answers 202 once deployed; `netlify dev` answers 204.
+  if (res.status !== 202 && res.status !== 204) throw new Error(`background function answered ${res.status}`);
 }
 

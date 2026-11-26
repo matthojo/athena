@@ -15,11 +15,12 @@ import { cleanLinks, modelLinks, STEPS_RULE_SHORT, TodoDetailsError } from "../.
 import { startTeamEvent } from "../../lib/team-triggers";
 // Plugs flows into the owner's own events, so a tagged note or a save starts its flows at once (lib/flow-engine.ts).
 import "../../lib/flow-engine";
-import type { Config, Context } from "@netlify/functions";
+import type { Context } from "@netlify/functions";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
 import { authorized } from "../lib/mcp/bearer";
+import { metricNameProblem } from "../lib/mcp/metric-names";
 import { CONTENT_INSTRUCTIONS, fail, ok, safe, stored, type ToolResult } from "../lib/mcp/results";
 import { registerCustomFieldTools, withCustomFields, withCustomFieldsList } from "../lib/mcp/custom-fields";
 import { registerCustomKindTools } from "../lib/mcp/custom-kinds";
@@ -185,7 +186,8 @@ function buildServer(): McpServer {
     safe(async (args) => {
       const note = await createNote(args);
       // A note made with tags is a Team event; a matching assistant starts now (lib/team-triggers.ts). Never throws.
-      if (note.tags?.length) await startTeamEvent("note", note.id, "note", { title: note.title, tags: note.tags, kind: note.type });
+      // Made by an agent: an imported assistant or flow doesn't start on it (lib/team-triggers.ts fromAgent).
+      if (note.tags?.length) await startTeamEvent("note", note.id, "note", { title: note.title, tags: note.tags, kind: note.type, by: "agent" });
       return okNote(note, args);
     }),
   );
@@ -842,13 +844,15 @@ function buildServer(): McpServer {
       "Never put real finance or health figures here: Athena's own health, money and home paths " +
       "seal those; this tool's value/metadata are stored in plaintext.",
     {
-      metric: z.string().describe("Metric name, e.g. 'weight_kg' or 'focus_minutes'"),
+      metric: z.string().describe("Metric name, e.g. 'focus_minutes' or 'prs_reviewed'. A name that looks like a health or money figure is refused."),
       value: z.number().describe("Numeric value for this data point"),
       recordedAt: z.coerce.date().optional().describe("ISO 8601 timestamp; defaults to now"),
       metadata: z.record(z.unknown()).optional().describe("Arbitrary JSON metadata for this point"),
     },
     async (args) => {
       try {
+        const problem = metricNameProblem(args.metric);
+        if (problem) return fail(new AthenaInputError(problem));
         return ok(await upsertMetric(args));
       } catch (error) {
         return fail(error);
@@ -907,4 +911,15 @@ const unscoped = async (req: Request, _context: Context) => {
 // AI spend: every model call in this function counts as background work for "mcp" (lib/spend.ts).
 export default (...args: Parameters<typeof unscoped>) => withSpendScope({ area: "background", job: "mcp" }, () => unscoped(...args));
 
-export const config: Config = { path: "/mcp" };
+// 120 calls a minute per IP: an agent working through a task stays well under it; a leaked key, or a client stuck in
+// a loop, is held there. Netlify reads this config statically, so it stays a plain object literal, and it isn't
+// annotated as `Config`: @netlify/functions' RateLimitConfig type lacks `windowLimit`, which the platform requires
+// (as in voice.ts).
+export const config = {
+  path: "/mcp",
+  rateLimit: {
+    windowLimit: 120,
+    windowSize: 60,
+    aggregateBy: ["ip", "domain"],
+  },
+};

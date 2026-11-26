@@ -681,6 +681,8 @@ CREATE INDEX collected_items_run_idx ON collected_items (run_id) WHERE run_id IS
 -- reported; the server's "today", due dates, reminders, 07:30 briefing and
 -- "daily at" times use it. `reminder_timezone`: the zone pending repeating
 -- reminders are lined up with (lib/db.ts alignReminders; missing = Europe/London).
+-- `api_keys`: the API keys (lib/api-keys.ts), each an HMAC under a subkey of ATHENA_DATA_KEY; 0094 removed the
+-- older `capture_keys` row.
 CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value JSONB NOT NULL,

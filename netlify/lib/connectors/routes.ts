@@ -105,6 +105,7 @@ import { triggerRuns } from "./trigger";
 import { readRules } from "../../../lib/mail-rules";
 import { DataKeyMissing } from "../../../lib/data-box";
 import { zonedToday } from "../../../lib/dates";
+import { siteOrigin } from "../site-origin";
 
 /** Accounts whose email the owner's mail rules govern (lib/mail-rules.ts). */
 const READS_MAIL = new Set(["gmail", "outlook-mail", "fastmail"]);
@@ -541,7 +542,7 @@ export async function handleOAuthCallback(req: Request, url: URL): Promise<Respo
 async function loadHistory(id: string, origin: string, opts: { again?: boolean } = {}): Promise<void> {
   try {
     const had = await getBackfill(id);
-    await startBackfill(id, origin, { again: opts.again || had?.state === "failed" || had?.state === "blocked" });
+    await startBackfill(id, siteOrigin(origin), { again: opts.again || had?.state === "failed" || had?.state === "blocked" });
   } catch (error) {
     console.error("Athena connectors: starting the history load failed", error instanceof Error ? error.message : "unknown error");
   }
@@ -639,7 +640,7 @@ export async function handleConnectorRoutes(req: Request, url: URL, segments: st
       const takeout = c.provider === "youtube" ? await lastImport(c.id) : null;
       if (m === "GET") return json({ ...status, takeout });
       if (m === "POST") {
-        await startBackfill(c.id, origin, { again: true });
+        await startBackfill(c.id, siteOrigin(origin), { again: true });
         return json({ ...(await backfillStatus(c)), takeout }, 202);
       }
       return json({ error: "Method not allowed" }, 405);
@@ -736,7 +737,7 @@ export async function handleConnectorRoutes(req: Request, url: URL, segments: st
       if (!NO_MODEL_RECIPES.includes(c.recipe) && !aiConfigured()) throw new AthenaInputError("Collections need the Agent: Netlify AI Gateway isn't active on this site yet (see the README)");
       if (await hasOpenRun(second)) throw new AthenaInputError("This collection is already running");
       const run = await queueRun(second, "manual");
-      await triggerRuns(origin, [run.id]);
+      await triggerRuns(siteOrigin(origin), [run.id]);
       return json(run, 202);
     }
     return json({ error: "Not found" }, 404);

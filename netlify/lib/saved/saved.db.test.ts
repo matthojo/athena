@@ -104,14 +104,24 @@ test("Saved: capture key, readable copy, images, quotes, CORS, the app's routes 
   assert.equal(link.image_url, `/api/saved/${link.id}/image`);
   assert.ok(hits.includes("/images/sleep-hero.png"));
 
-  // Same client_id again: the same item, 200, nothing new. Same link without one: the same item too, the note added.
+  // Same client_id again: the same item, 200, nothing new, and to a capture key only its id. Same link without one,
+  // with the app's token: the same item too, the note added.
   r = await send("POST", "/saved", { token: capture, json: { url: `${site}/short`, source: "extension", client_id: clientId } });
   assert.equal(r.status, 200);
   assert.equal(r.body.id, link.id);
-  r = await send("POST", "/saved", { token: capture, json: { url: `${site}/short#top`, note: "and the offsite", source: "shortcut" } });
+  assert.equal(r.body.item, undefined, "a capture key gets nothing of what was already saved");
+  r = await send("POST", "/saved", { json: { url: `${site}/short#top`, note: "and the offsite", source: "shortcut" } });
   assert.equal(r.status, 200);
   assert.equal(r.body.id, link.id);
   assert.equal(r.body.item.note, "for the sleep talk\n\nand the offsite");
+  // A capture key's repeat of the link: answered with the id alone, and never adds to the item. With a note, it's kept as its own item.
+  r = await send("POST", "/saved", { token: capture, json: { url: `${site}/short`, source: "shortcut" } });
+  assert.deepEqual([r.status, r.body.id, r.body.item], [200, link.id, undefined]);
+  r = await send("POST", "/saved", { token: capture, json: { url: `${site}/short`, note: "from a capture key", source: "shortcut" } });
+  assert.equal(r.status, 201);
+  assert.notEqual(r.body.id, link.id);
+  assert.equal((await send("GET", `/saved/${link.id}`)).body.note, "for the sleep talk\n\nand the offsite", "the first item is as it was");
+  await send("DELETE", `/saved/${r.body.id}`);
 
   // Sealed at rest: the link, its words and the note. Kind and dates readable.
   const [raw] = await qRaw<Record<string, string | null>>(`SELECT url, title, site, author, readable, note, kind, url_bidx FROM saved_items WHERE id = $1`, [link.id]);
@@ -245,17 +255,21 @@ test("Saved: capture key, readable copy, images, quotes, CORS, the app's routes 
   assert.equal(images, 1);
 
   // ---- a repeat client_id with a note, title or tags updates the item (the note replaces) ----
+  // The link was saved before: a capture key's save of it with a note is its own item, which the client_id then names.
   const later = "0b9b7c1e-2f3a-4c5d-8e9f-a1b2c3d4e5f6";
   r = await send("POST", "/saved", { token: capture, origin: EXT, json: { url: `${site}/watch`, source: "extension", client_id: later, note: "first" } });
+  assert.equal(r.status, 201);
   const toolbar = r.body.item;
   r = await send("POST", "/saved", { token: capture, origin: EXT, json: { url: `${site}/watch`, source: "extension", client_id: later, note: "watch with Sam", tags: ["baking"] } });
   assert.equal(r.status, 200);
   assert.equal(r.body.id, toolbar.id);
-  assert.equal(r.body.item.note, "watch with Sam", "the note replaces");
-  assert.deepEqual(r.body.item.tags, ["baking"]);
+  let kept = (await send("GET", `/saved/${toolbar.id}`)).body;
+  assert.equal(kept.note, "watch with Sam", "the note replaces");
+  assert.deepEqual(kept.tags, ["baking"]);
   r = await send("POST", "/saved", { token: capture, json: { client_id: later, title: "Sourdough, slowly", source: "extension" } });
-  assert.equal(r.body.item.title, "Sourdough, slowly");
-  assert.equal(r.body.item.note, "watch with Sam", "leaving the note out keeps it");
+  kept = (await send("GET", `/saved/${toolbar.id}`)).body;
+  assert.equal(kept.title, "Sourdough, slowly");
+  assert.equal(kept.note, "watch with Sam", "leaving the note out keeps it");
 
   // ---- an image by address: fetched through the guarded fetch; one that can't be fetched is kept as a link ----
   r = await send("POST", "/saved", { token: capture, json: { image: `${site}/images/sleep-hero.png`, source_url: `${site}/science/sleep`, source: "extension" } });
