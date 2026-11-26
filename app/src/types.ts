@@ -373,9 +373,13 @@ export interface Suggestion extends Provenance {
   created_at: string;
   /** The email it came from: sender, subject and account (lib/suggestion-similar.ts). Absent for older finds. */
   email?: SuggestionEmail | null;
+  /** What accepting would update when it's already saved (lib/suggestion-target.ts): absent or null when accepting adds it. */
+  existing?: SuggestionTarget | null;
 }
 
 export type { SuggestionEmail } from "../../lib/suggestion-similar";
+export type { SuggestionTarget } from "../../lib/suggestion-target";
+import type { SuggestionTarget } from "../../lib/suggestion-target";
 import type { SuggestionEmail } from "../../lib/suggestion-similar";
 
 export type AssetKind = "passport" | "licence" | "insurance" | "vehicle" | "warranty" | "subscription" | "home" | "pet" | "health" | "other";

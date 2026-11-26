@@ -13,7 +13,7 @@ import { OfflineError } from "./records";
 import { samplePurchases, sampleTrips } from "./sample-trips";
 import { localToday } from "../lib/time";
 import type { ArchivedItem, Booking, BookingFields, ConnectionState, LogisticsKind, Purchase, PurchaseFields, PurchaseStatus, Trip } from "../types";
-import { purchaseName } from "../../../lib/trip-text";
+import { PURCHASE_STATUSES, normaliseReference, purchaseName } from "../../../lib/trip-text";
 import { zonedToInstant } from "../../../lib/dates";
 
 // ---------- change notifications ----------
@@ -274,6 +274,47 @@ export async function createPurchase(fields: PurchaseFields): Promise<Purchase> 
   const saved = await online(() => api.createPurchase(fields));
   emit("purchase");
   return saved;
+}
+
+/** Sample mode: the order an Inbox find is about, by its order or tracking number (lib/trips.ts purchaseFor). */
+export async function sampleOrderFor(payload: Record<string, unknown>): Promise<Purchase | null> {
+  const ref = (v: unknown) => (typeof v === "string" ? normaliseReference(v) : "");
+  const order = ref(payload.order_number);
+  const tracking = ref(payload.tracking_number);
+  if (!order && !tracking) return null;
+  const all = await sampleAllPurchases();
+  return all.find((p) => !p.archived_at && order && ref(p.order_number) === order) ?? all.find((p) => !p.archived_at && tracking && ref(p.tracking_number) === tracking) ?? null;
+}
+
+/** Sample mode: an order from the Inbox accepted. The one it's about moves on, with the email's line; otherwise it's a new order. */
+export async function sampleSaveFoundPurchase(payload: Record<string, unknown>): Promise<void> {
+  const text = (v: unknown) => (typeof v === "string" ? v : "");
+  const status = (PURCHASE_STATUSES as readonly string[]).includes(text(payload.status)) ? (payload.status as PurchaseStatus) : "ordered";
+  const existing = await sampleOrderFor(payload);
+  if (!existing) {
+    await createPurchase({
+      retailer: text(payload.retailer) || "Shop",
+      items: Array.isArray(payload.items) ? payload.items.filter((i): i is string => typeof i === "string") : [],
+      order_number: text(payload.order_number),
+      ordered_on: null,
+      expected_on: null,
+      status,
+      carrier: text(payload.carrier),
+      tracking_number: text(payload.tracking_number),
+      tracking_url: text(payload.tracking_url),
+    });
+    return;
+  }
+  const at = nowIso();
+  const moved = status !== existing.status;
+  const next: Purchase = {
+    ...existing,
+    updated_at: at,
+    ...(moved ? { status, status_at: at, delivered_at: status === "delivered" ? at : existing.delivered_at } : {}),
+    updates: [...existing.updates, { id: crypto.randomUUID(), status, at, detail: text(payload.detail), email_link: "" }],
+  };
+  await sampleWrite(`purchase:${existing.id}`, next);
+  emit("purchase");
 }
 
 /** Change any order, email ones too: its shop, items, dates or tracking. */

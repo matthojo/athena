@@ -39,6 +39,7 @@ import "../styles/week-review.css";
 import "../styles/week-moment.css";
 import { pageHead } from "../components/page-head";
 import { loadSuggestions, resolveSuggestion } from "../db/memory";
+import { acceptLabel } from "../lib/suggestion-effect";
 import { firstWeekReviewLine } from "../lib/first-week";
 import type { Suggestion } from "../types";
 import type { Day } from "../db/days-app";
@@ -150,7 +151,7 @@ const kept = (d: Day) => !!(d.mood || d.line || d.journal || d.photos.length || 
 /**
  * The first week's opening: "Your first week with Athena", the line ("Five
  * days kept, two people and three places. Here's what I picked up, if you
- * want to keep it."), then the learner's suggestions inline, each with Add it
+ * want to keep it."), then the learner's suggestions inline, each with its accept button
  * and Not right, as in the Review inbox.
  */
 async function firstWeekOpening(review: HTMLElement, m: WeekModel, days: Day[], gone: () => boolean): Promise<void> {
@@ -171,7 +172,7 @@ function picksBlock(items: Suggestion[]): HTMLElement {
   const block = h("section", { class: "fw-picks", "aria-labelledby": "fw-picks-title" }, h("h2", { class: "fw-picks__title", id: "fw-picks-title" }, "What I picked up"), list);
   let left = items.length;
   for (const s of items) {
-    const add = h("button", { class: "btn btn--primary btn--sm", type: "button" }, icons.check(), "Add it") as HTMLButtonElement;
+    const add = h("button", { class: "btn btn--primary btn--sm", type: "button" }, icons.check(), acceptLabel(s)) as HTMLButtonElement;
     const no = h("button", { class: "btn btn--ghost btn--sm", type: "button" }, "Not right") as HTMLButtonElement;
     const row = h(
       "div",

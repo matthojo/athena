@@ -261,6 +261,7 @@ import {
   type ReadingStatus,
   type SuggestionStatus,
 } from "../../lib/memory";
+import { withTargets } from "../../lib/suggestion-target-db";
 import { ignoreLike, readIgnoreRule } from "../../lib/suggestion-ignore";
 import { weekReviewExtras } from "../../lib/week-review";
 
@@ -1030,7 +1031,9 @@ async function handleSuggestions(req: Request, url: URL, id: string | undefined,
     if (req.method !== "GET") return errorResponse(req, 405, "Method not allowed");
     const status = (url.searchParams.get("status") ?? "pending") as SuggestionStatus;
     if (!SUGGESTION_STATUSES.includes(status)) return errorResponse(req, 400, "Invalid 'status'");
-    return json(req, { items: await listSuggestions({ status, limit: parseLimit(url) }) });
+    const items = await listSuggestions({ status, limit: parseLimit(url) });
+    // What each would update when accepted, so a card can say "Update status" rather than "Add to Purchases".
+    return json(req, { items: status === "pending" ? await withTargets(items) : items });
   }
   if (req.method !== "POST" || (action !== "accept" && action !== "reject" && action !== "done" && action !== "ignore")) return errorResponse(req, 404, "Not found");
   if (action === "reject") return json(req, { suggestion: await rejectSuggestion(id) });

@@ -28,6 +28,7 @@ import { markdownToText } from "../lib/markdown-text";
 import { addDays, daysBetween, upcomingOccurrences } from "../../../lib/dates";
 import { cleanLinks, cleanPriority, cleanSteps } from "../../../lib/todo-details";
 import { caughtBy, sameKey } from "../../../lib/suggestion-similar";
+import { sampleOrderFor, sampleSaveFoundPurchase } from "./trips";
 
 /** A mail rule from the Inbox: skip a sender (an address or a domain) or a subject phrase. */
 export type IgnoreRule = { kind: "sender" | "subject"; value: string };
@@ -626,9 +627,17 @@ export async function loadBrief(id: string): Promise<{ brief: PersonBrief | null
 
 export async function loadSuggestions(): Promise<{ items: Suggestion[]; state: ConnectionState }> {
   if (isSampleMode()) {
-    const items = (await sampleAll<Suggestion>("suggestion"))
+    const pending = (await sampleAll<Suggestion>("suggestion"))
       .filter((s) => s.status === "pending")
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    // An order already in Purchases: its card updates it (the API works this out for a real Inbox).
+    const items = await Promise.all(
+      pending.map(async (s) => {
+        if (s.op !== "purchase") return s;
+        const order = await sampleOrderFor(s.payload);
+        return { ...s, existing: order ? { id: order.id, status: order.status } : null };
+      })
+    );
     return { items, state: "sample" };
   }
   try {
@@ -656,6 +665,7 @@ export async function resolveSuggestion(s: Suggestion, action: "accept" | "rejec
       else if (s.op === "interaction") await logInteraction(p as unknown as InteractionInput);
       else if (s.op === "event") await saveRecord("event", p);
       else if (s.op === "person") await saveRecord("person", p, typeof p.id === "string" ? p.id : undefined);
+      else if (s.op === "purchase") await sampleSaveFoundPurchase(p);
     }
     await sampleWrite("suggestion", { ...s, status: action === "reject" ? "rejected" : "accepted", resolved_at: nowIso() } as Suggestion);
     emit("suggestion");
