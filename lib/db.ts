@@ -525,9 +525,9 @@ export async function createNote(input: {
  * one from the last 10 minutes (that version already holds where they started).
  *
  * Each version also says what wrote it (`written_by`, 0094): what made the
- * change before. Two allowances are kept per note: the newest 20 the owner
- * wrote ('owner' or 'restore', or not known) and the newest 30 anyone else
- * wrote (lib/note-versions.ts). A change the owner didn't make only drops
+ * change before ('' when that change didn't say; null when there was none).
+ * Two allowances are kept per note: the newest 20 the owner wrote ('owner' or
+ * 'restore', or null) and the newest 30 anyone else wrote (lib/note-versions.ts). A change the owner didn't make only drops
  * versions of the second kind, so no number of edits by an MCP client, a run
  * or a script pushes the owner's own words out of the history.
  */
@@ -546,7 +546,7 @@ export async function updateNote(
         `WITH kept AS (
            INSERT INTO note_versions (note_id, title, body, changed_by, written_by)
            SELECT id, title, body, $2::text,
-             (SELECT changed_by FROM note_versions WHERE note_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1)
+             (SELECT COALESCE(changed_by, '') FROM note_versions WHERE note_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1)
            FROM notes WHERE id = $1
              AND NOT ($2::text IS NOT DISTINCT FROM 'owner' AND COALESCE((
                SELECT changed_by = 'owner' AND created_at > now() - interval '10 minutes'

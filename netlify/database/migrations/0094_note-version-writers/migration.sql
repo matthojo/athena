@@ -2,8 +2,9 @@
 --
 -- note_versions.changed_by says what replaced a version. `written_by` says
 -- what wrote it: the changed_by of the version before it, copied when the
--- version is kept (updateNote, lib/db.ts). Null when nothing came before (a
--- note's first version, and every version kept before this migration).
+-- version is kept (updateNote, lib/db.ts), or '' when that change didn't say
+-- what made it. Null when nothing came before (a note's first version, and
+-- every version kept before this migration).
 --
 -- updateNote keeps two allowances per note: the newest 20 versions the owner
 -- wrote (written_by 'owner' or 'restore', or null), and the newest 30 anyone

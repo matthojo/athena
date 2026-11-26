@@ -76,6 +76,16 @@ test("the owner's own changes trim the owner's allowance, and someone else's all
   assert.deepEqual(counts, { owners: NOTE_VERSIONS_OWNERS, others: 1 });
 });
 
+test("a change that doesn't say what made it (a run, a collection) counts as someone else's", { skip }, async () => {
+  const { updateNote } = await import("./db");
+  const { listNoteVersions, NOTE_VERSIONS_OTHERS } = await import("./note-versions");
+  const id = await ownersNote(2);
+  for (let i = 1; i <= 45; i++) await updateNote(id, { body: `Run text ${i}` });
+  const bodies = (await listNoteVersions(id)).map((v) => v.body);
+  for (let i = 0; i <= 2; i++) assert.ok(bodies.includes(`Owner draft ${i}`), `Owner draft ${i} was pushed out`);
+  assert.equal(bodies.filter((b) => b.startsWith("Run text")).length, NOTE_VERSIONS_OTHERS);
+});
+
 test("versions kept before 0094 say nothing about who wrote them, and count as the owner's", { skip }, async () => {
   const { updateNote, qRaw } = await import("./db");
   const id = await ownersNote(3);
