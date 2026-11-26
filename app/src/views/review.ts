@@ -37,6 +37,7 @@ import { prepareCreate } from "../db/scheduling";
 import { localToday } from "../lib/time";
 import { clockOfDay } from "../lib/clock";
 import { groupSame } from "../../../lib/suggestion-similar";
+import { PURCHASE_LABEL, type PurchaseStatus } from "../../../lib/trip-text";
 import { openIgnoreSheet, senderName } from "../components/ignore-sheet";
 
 /** An email or event asking to meet, talk or move something: Check in offers "Suggest times". */
@@ -100,8 +101,11 @@ function consequence(s: Suggestion, names: Map<string, string>): string {
       const where = typeof p.start_city === "string" && p.start_city ? ` from ${p.start_city}` : "";
       return `Adds it to a trip${day ? ` · ${day}${time ? ` at ${clockOfDay(time)}` : ""}` : ""}${where}`;
     }
-    case "purchase":
-      return `Follows the order${typeof p.retailer === "string" ? ` from ${p.retailer}` : ""} in Purchases`;
+    case "purchase": {
+      // Saving creates the order, or moves on the one with the same order or tracking number: either way it ends up at this status.
+      const status = PURCHASE_LABEL[p.status as PurchaseStatus];
+      return `Saves the order in Purchases${status ? `, marked ${status.toLowerCase()}` : ""}`;
+    }
   }
 }
 
