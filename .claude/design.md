@@ -1,4 +1,4 @@
-# Athena — Design Context
+# Athena design context
 
 ## Users
 One person, the owner, using Athena as a personal second brain across an iPhone
@@ -6,15 +6,15 @@ One person, the owner, using Athena as a personal second brain across an iPhone
 wider screen, longer reading). The jobs: glance at what's new today, find a
 note fast, capture a thought in under three seconds, and ask "what did I
 decide about X?" Notes arrive from manual capture and from scheduled
-collection agents across a work and a personal account, tagged by `source`.
+collections, tagged by `source`.
 
-## Brand Personality
+## Brand personality
 Calm, tactile, quick. A well-made pocket notebook with a clean printed
 cover: friendly, precise, never loud. Emotional goal: opening it should feel
 like exhaling, not like opening a dashboard at work.
 
-## Aesthetic Direction
-- References (user-supplied): Evernote-style note app concepts on Dribbble —
+## Aesthetic direction
+- References (user-supplied): Evernote-style note app concepts on Dribbble:
   light grey canvas, near-white soft cards with hairline borders, a bold but
   medium-weight geometric headline, grey "sunken" inner panels, circular
   outlined icon buttons, pill chips, a floating pill tab bar with a blue orb
@@ -32,20 +32,20 @@ like exhaling, not like opening a dashboard at work.
 - Colour: neutrals tinted toward cobalt (hue 264). Ink near-black for primary
   buttons and text; cobalt accent used sparingly (focus, checked, links, the
   orb); mint only in the aurora haze and as chart series 2. Charts: cobalt
-  #3266e4 / mint #019d7e (light), #5686f2 / #23aa8a (dark) — validated with
-  the dataviz palette validator, all gates pass both modes.
+  #3266e4 / mint #019d7e (light), #5686f2 / #23aa8a (dark), validated with
+  the dataviz palette validator; all gates pass in both modes.
 - Anti-references: admin-template KPI rows, coloured side-stripe borders,
   gradient text, purple-blue AI gradients, glassmorphism everywhere, heavy
   drop shadows, everything-centred layouts.
 
-## Design Principles
-1. **Calm first.** Neutral surfaces carry 90% of the screen; colour appears
+## Design principles
+1. **Calm first:** neutral surfaces carry 90% of the screen; colour appears
    only where it means something (state, identity, the orb).
-2. **One thumb, one tap.** Capture and Ask are always one tap away on mobile;
+2. **One thumb, one tap:** capture and Ask are always one tap away on mobile;
    every target is at least 44px; sheets dismiss by dragging down.
-3. **Words over widgets.** Prefer a sentence ("Two new notes today, three
+3. **Words over widgets:** prefer a sentence ("Two new notes today, three
    people to catch up with") over a grid of numbers.
-4. **Honest intelligence.** Ask looks conversational but labels keyword
-   matches as keyword matches until semantic answers exist.
-5. **Motion explains.** Things slide from where they come from and settle
+4. **Honest intelligence:** Ask shows where each answer comes from, and says
+   when it's showing a keyword search instead of an answer.
+5. **Motion explains:** things slide from where they come from and settle
    with exponential ease-out; nothing bounces; reduced motion is respected.

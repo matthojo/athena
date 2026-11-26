@@ -365,7 +365,7 @@ native app, scaffolded under `app/`) provides:
   a sheet reachable from anywhere (the + button, the sidebar, or `C`). The
   visual system — Funnel Display + Geist, OKLCH tokens tinted toward cobalt,
   light-first with a dark mode that follows the system unless Settings →
-  Appearance says otherwise — is documented in `.impeccable.md` and
+  Appearance says otherwise — is documented in `.claude/design.md` and
   `app/src/styles/tokens.css`.
 
 ### Appearance and the theme surface

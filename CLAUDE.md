@@ -57,6 +57,12 @@ edit, rename or remove one that's on `main`; add a new one with the next
 number, and keep it backwards-compatible. CI fails a pull request that
 changes a released migration.
 
+## Design
+
+Before you change how the app looks, read `.claude/design.md`: who it's for,
+the type, colour and motion rules, and what to avoid. The tokens are in
+`app/src/styles/tokens.css`.
+
 ## Before you push
 
 ```sh
