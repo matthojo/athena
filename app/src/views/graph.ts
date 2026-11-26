@@ -449,7 +449,7 @@ export function renderGraph(ctx: {
     const shown = matched ? nodes.filter((n) => matched.has(n.id)) : nodes;
     if (!shown.length) {
       list.replaceChildren(
-        h("div", { class: "empty" }, h("span", { class: "tile" }, icons.search()), h("p", { class: "empty__title" }, needle ? "Nothing by that name" : "Nothing to show"), h("p", { class: "empty__sub" }, needle ? "Try another word, or turn on more kinds above." : "Turn on some kinds above."))
+        h("div", { class: "empty" }, h("span", { class: "tile" }, icons.search()), h("p", { class: "empty__title" }, needle ? "Nothing by that name" : "Nothing to show"), h("p", { class: "empty__sub" }, needle ? "Try another word, or turn on more of the buttons above." : "Turn on one of the buttons above."))
       );
       return;
     }
