@@ -21,7 +21,7 @@
  *  - caps on turns, wall-clock time and notes written per run.
  */
 import { eventTwin } from "../../../lib/event-twins";
-import { collectedKind, emitTeamEvent } from "../../../lib/team-events";
+import { collectedKind, emitTeamEvent, facetsOf } from "../../../lib/team-events";
 import { rejectedTool } from "../../../lib/ai";
 import { clientFor } from "../../../lib/llm";
 import { fallbackRef, resolveJobModel } from "../../../lib/models";
@@ -1083,8 +1083,10 @@ export class AthenaWriter {
       const kind = extra.kind ?? collectedKind(connector, stored === "note" || stored === "event" || stored === "todo" ? stored : "note", extra.type);
       const email = MAIL_PROVIDER.test(connector ?? "") || EMAIL_EVENT_KINDS.has(kind);
       if (extra.once) {
-        const [seen] = await q<{ n: number }>(`SELECT count(*)::int AS n FROM team_events WHERE ref_id = $1 AND facets->>'title' = $2`, [id, title.replace(/\s+/g, " ").trim().slice(0, 200)]);
-        if (seen?.n) return;
+        // Facets are sealed (lib/team-events.ts): compare the title once q has opened them. An item has few events.
+        const same = title.replace(/\s+/g, " ").trim().slice(0, 200);
+        const rows = await q<{ facets: unknown }>(`SELECT facets FROM team_events WHERE ref_id = $1`, [id]);
+        if (rows.some((r) => facetsOf(r.facets).title === same)) return;
       }
       await emitTeamEvent("collected", id, stored, { connector, kind, title, tags: extra.tags, account: this.collection.label, ...(email ? { email: true } : {}) });
     } catch (error) {

@@ -168,6 +168,18 @@ function loginPage(error?: string): string {
 </html>`;
 }
 
+/**
+ * The login page is drawn here, not served from app/dist, so it carries its own headers: no script at all, its
+ * inline styles, the ungated fonts and icons, a form that posts only here, and never framed or cached.
+ */
+const LOGIN_HEADERS = {
+  "Content-Type": "text/html; charset=utf-8",
+  "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "Cache-Control": "no-store",
+};
+
 interface EdgeContext {
   next: () => Promise<Response>;
 }
@@ -202,7 +214,7 @@ export default async (request: Request, context: EdgeContext): Promise<Response>
         headers: { Location: "/", "Set-Cookie": await makeSessionCookie(sessionSecret) },
       });
     }
-    return new Response(loginPage("Wrong password."), { status: 401, headers: { "Content-Type": "text/html" } });
+    return new Response(loginPage("Wrong password."), { status: 401, headers: LOGIN_HEADERS });
   }
 
   if (url.pathname === "/logout") {
@@ -217,7 +229,7 @@ export default async (request: Request, context: EdgeContext): Promise<Response>
   }
 
   if (url.pathname === "/login") {
-    return new Response(loginPage(), { status: 200, headers: { "Content-Type": "text/html" } });
+    return new Response(loginPage(), { status: 200, headers: LOGIN_HEADERS });
   }
 
   return new Response(null, { status: 303, headers: { Location: "/login" } });

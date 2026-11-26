@@ -157,14 +157,18 @@ export function plainlyAsked(asked: ReadonlySet<Asked>, tool: string): boolean {
   return (TOOL_ASKS[tool] ?? []).some((k) => asked.has(k));
 }
 
+/** Tools whose link Athena's server fetches: `track` once kept (a run opens it), `import_recipe` as it runs. */
+const FETCHES_LINK = new Set(["track", "import_recipe"]);
+
 /**
  * A change that always waits for the owner's Go, whatever the owner's message asked for and whatever an assistant's
- * allowlist says: `track` with a link the model chose (lib/run-links.ts). Once kept, a run may open that link, and
- * a page opened that way is fetched before Athena sees the request, so only the owner may approve it. A tracker on
- * a saved item with no link of its own takes the item's link, which is the owner's, and doesn't wait.
+ * allowlist says: a tool given a link the model chose that Athena's server will fetch (FETCHES_LINK; lib/run-links.ts).
+ * A page is fetched before Athena sees what comes back, and its address can carry the owner's data out in its query,
+ * so only the owner may approve it. A tracker on a saved item with no link of its own takes the item's link, which
+ * is the owner's, and doesn't wait.
  */
 export function needsOwnersGo(tool: string, input: unknown): boolean {
-  if (tool !== "track" || !input || typeof input !== "object") return false;
+  if (!FETCHES_LINK.has(tool) || !input || typeof input !== "object") return false;
   const url = (input as { url?: unknown }).url;
   return typeof url === "string" && url.trim() !== "";
 }

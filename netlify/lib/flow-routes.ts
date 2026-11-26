@@ -22,7 +22,7 @@
  * /api/flows/draft and /api/flows/suggestions are drafting's and suggestions' (null here, so their routes answer).
  * Behind the same bearer token as the rest of the API.
  */
-import { AthenaInputError, qRaw } from "../../lib/db";
+import { AthenaInputError, q } from "../../lib/db";
 import { FLOW_LIMITS, type Flow, type FlowListResponse, type FlowRun } from "../../lib/flow-types";
 import { flowCatalog } from "../../lib/flow-catalog";
 import { createFlow, deleteFlow, getFlow, getRun, insertRun, latestRuns, listFlows, listRuns, saveRun, setFlowAssistant, updateFlow } from "../../lib/flows";
@@ -52,9 +52,9 @@ const stepIdOf = (b: Record<string, unknown>): string => {
 /** The newest team_events row that matches a trigger's filter, for a try (team_events keeps seven days). */
 async function lastMatching(f: EventFilter): Promise<TeamEventRow | null> {
   const { matchesFilter, toEventRow } = await import("../../lib/team-triggers");
-  const rows = await qRaw<Parameters<typeof toEventRow>[0]>(`SELECT id, kind, ref_id, ref_kind, facets, created_at FROM team_events ORDER BY id DESC LIMIT 1000`);
-  const hit = rows.find((r) => matchesFilter(f, { kind: r.kind, facets: r.facets ?? {} }));
-  return hit ? toEventRow(hit) : null;
+  // q, not qRaw: facets are sealed (lib/team-events.ts); toEventRow parses them.
+  const rows = (await q<Parameters<typeof toEventRow>[0]>(`SELECT id, kind, ref_id, ref_kind, facets, created_at FROM team_events ORDER BY id DESC LIMIT 1000`)).map(toEventRow);
+  return rows.find((r) => matchesFilter(f, { kind: r.kind, facets: r.facets })) ?? null;
 }
 
 /** What a run starts from: Run now's words and values, or a try's on the last thing that matched, with the values a real run would get. */

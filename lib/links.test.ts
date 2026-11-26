@@ -21,6 +21,7 @@ import {
   parseAthenaLinks,
   parseLinkMode,
   parseWebLinks,
+  plainModelText,
   replaceAthenaLinks,
   WEB_LINK_START,
 } from "./links";
@@ -156,4 +157,21 @@ test("mentions of saved items, to-dos and Watch & read titles are edges under th
   assert.deepEqual(contentEdgeKeys(formatAthenaLink("todo", DENTIST, "@x"), { kind: "commitment", id: DENTIST }), []);
   // Unknown kinds and malformed ids stay text.
   assert.deepEqual(contentEdgeKeys(`[@x](athena://gift/${DRESS}) [@y](athena://todo/not-a-uuid)`), []);
+});
+
+test("plainModelText drops the mode of every web link in a model's notes and description, and nothing else", () => {
+  const input = {
+    title: 'Read [this](https://evil.example.com/t?d=1 "card")',
+    notes: 'See [the page](https://evil.example.com/t?d=1 "card") and [@Priya](athena://person/1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f "mention")',
+    description: "[x](https://evil.example.com/e 'embed')",
+  };
+  const out = plainModelText(input);
+  assert.equal(out.notes, "See [the page](https://evil.example.com/t?d=1) and [@Priya](athena://person/1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f \"mention\")");
+  assert.equal(out.description, "[x](https://evil.example.com/e)");
+  assert.equal(out.title, input.title, "other fields are left alone");
+  assert.notEqual(out, input, "the input isn't changed in place");
+  const plain = { notes: "[a](https://example.com)" };
+  assert.equal(plainModelText(plain), plain, "nothing to change: the same object");
+  assert.equal(plainModelText(null), null);
+  assert.deepEqual(plainModelText(["x"]), ["x"]);
 });

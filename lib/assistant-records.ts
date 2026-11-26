@@ -17,7 +17,7 @@
  * what was archived. Nothing is ever deleted: archiving is as far as Ask goes.
  */
 import { listContexts } from "./todo-contexts";
-import { askLinks, MAX_LINKS, MAX_STEPS, newItemId, PRIORITY_NAMES, priorityOfName, STEPS_RULE_SHORT, todoExtras, type TodoLink, type TodoPriority, type TodoStep } from "./todo-details";
+import { askLinks, modelLinks, MAX_LINKS, MAX_STEPS, newItemId, PRIORITY_NAMES, priorityOfName, STEPS_RULE_SHORT, todoExtras, type TodoLink, type TodoPriority, type TodoStep } from "./todo-details";
 import { contextByName, contextsOf } from "./todo-context";
 import { z } from "zod";
 import type { Anthropic } from "./ai";
@@ -1089,7 +1089,8 @@ async function changeTodo(raw: unknown, ctx: RecordContext): Promise<string> {
   let linksAdded = 0;
   if (clear.has("links") || input.add_links.length) {
     const base = clear.has("links") ? [] : c.links;
-    const fresh = askLinks(input.add_links).filter((l) => !base.some((b) => b.url === l.url));
+    // A model's links are held: no preview fetch until the owner adds one themselves (lib/todo-details.ts).
+    const fresh = modelLinks(askLinks(input.add_links)).filter((l) => !base.some((b) => b.url === l.url));
     if (base.length + fresh.length > MAX_LINKS) throw new Error(`A to-do can have at most ${MAX_LINKS} links.`);
     linksAdded = fresh.length;
     if (fresh.length || (clear.has("links") && c.links.length)) patch.links = [...base, ...fresh];

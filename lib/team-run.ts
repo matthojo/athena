@@ -38,7 +38,7 @@ import { scheduleWords } from "./routines";
 import { getAssistant, getTrigger } from "./team";
 import { postIdForRun, postRun } from "./team-posts";
 import type { TurnOptions, TurnResult } from "./team-chat";
-import type { TeamEventRow } from "./team-events";
+import { facetsOf, type TeamEventRow } from "./team-events";
 import type { StageTurn } from "./assignment-run";
 import type { EventFilter, Personality, Pronoun, TeamAssistant, TeamRun, TeamRunStatus, TeamTrigger, Tone } from "./team-types";
 
@@ -729,11 +729,12 @@ export function failCard(v: Voice, code: FailCode, opts: { events?: number; labe
 export async function loadEvents(run: Pick<TeamRun, "event_id" | "event_ids">): Promise<TeamTurnEvent[]> {
   const ids = run.event_ids?.length ? run.event_ids : run.event_id ? [run.event_id] : [];
   if (!ids.length) return [];
-  const rows = await qRaw<{ id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: TeamEventRow["facets"] | null; created_at: string | Date }>(
+  // q, not qRaw: facets are sealed (lib/team-events.ts).
+  const rows = await q<{ id: string | number; kind: TeamEventRow["kind"]; ref_id: string | null; ref_kind: string | null; facets: unknown; created_at: string | Date }>(
     `SELECT id, kind, ref_id, ref_kind, facets, created_at FROM team_events WHERE id = ANY($1::bigint[]) ORDER BY id`,
     [ids],
   );
-  return rows.map((r) => ({ id: String(r.id), kind: r.kind, ref_id: r.ref_id, ref_kind: r.ref_kind, facets: r.facets ?? {}, created_at: new Date(r.created_at).toISOString() }));
+  return rows.map((r) => ({ id: String(r.id), kind: r.kind, ref_id: r.ref_id, ref_kind: r.ref_kind, facets: facetsOf(r.facets), created_at: new Date(r.created_at).toISOString() }));
 }
 
 /**

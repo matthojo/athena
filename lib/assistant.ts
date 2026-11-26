@@ -49,12 +49,12 @@ import {
 } from "./db";
 import { addFact, findPeople, listCommitments, listFacts, listInteractions, logInteraction, upsertCommitment } from "./memory";
 import { listContexts } from "./todo-contexts";
-import { askLinks, nameOfPriority, PRIORITY_NAMES, priorityOfName, STEPS_RULE, todoExtras } from "./todo-details";
+import { askLinks, modelLinks, nameOfPriority, PRIORITY_NAMES, priorityOfName, STEPS_RULE, todoExtras } from "./todo-details";
 import { contextByName, contextsOf, filterByContext } from "./todo-context";
 import { getReadingItem, listReading, upsertReadingItem, type ReadingItem } from "./memory";
 import { KIND_WORDS, PROGRESS_UNITS, progressWords, READING_KINDS, READING_STATUSES, WATCH_READ, type ProgressUnit } from "./watch-read";
 import { isEncryptedPlaceholder } from "./encrypted";
-import { formatAthenaLink, linkKindOf, modelWroteInto } from "./links";
+import { formatAthenaLink, linkKindOf, modelWroteInto, plainModelText } from "./links";
 import { zonedParts, zonedToInstant, zonedToday } from "./dates";
 import { guardText } from "./jev";
 import { CHANNEL_LABEL, DRAFT_CHANNELS, draftMessage, draftProviderName, type DraftChannel, type EmailDraft, type GmailPort, type SlackPort } from "./drafts";
@@ -1324,7 +1324,9 @@ export class Session {
     return this.runTool(name, withoutStep(input));
   }
 
-  private async runTool(name: string, raw: unknown): Promise<string> {
+  private async runTool(name: string, input: unknown): Promise<string> {
+    // A model wrote this: its notes and descriptions can't ask Athena to fetch a page (lib/links.ts plainModelText).
+    const raw = plainModelText(input);
     const record = (change: Omit<Change, "label">) => this.record(change);
     if (RECORD_TOOL_NAMES.has(name)) return runRecordTool(name, raw, { record, now: this.now, tz: this.tz, capture: this.deps.capture });
     if (FIELD_TOOL_NAMES.has(name)) return runFieldTool(name, raw, record);
@@ -1595,7 +1597,8 @@ export class Session {
       case "add_todo": {
         const input = inputs.add_todo.parse(raw);
         const person = input.person_id ? await this.personOrThrow(input.person_id) : null;
-        const links = askLinks(input.links);
+        // A model's links are held: no preview fetch until the owner adds one themselves (lib/todo-details.ts).
+        const links = modelLinks(askLinks(input.links));
         const c = await upsertCommitment({
           title: input.title.trim(),
           kind: input.kind,

@@ -17,6 +17,7 @@ import {
   stepProgress,
   stepsText,
   TodoDetailsError,
+  modelLinks,
 } from "./todo-details";
 import { contentEdgeKeys } from "./links";
 
@@ -137,4 +138,22 @@ test("steps an agent files: tidied, and only a real list is kept", async () => {
   assert.deepEqual(filedSteps("Plan the offsite", Array.from({ length: MAX_FILED_STEPS + 1 }, (_, i) => `Step ${i}`)), []);
   assert.equal(filedSteps("Plan the offsite", Array.from({ length: MAX_FILED_STEPS }, (_, i) => `Step ${i}`)).length, MAX_FILED_STEPS);
   assert.deepEqual(filedSteps("x", undefined), []);
+});
+
+test("a model's web links are held; the owner's own passed back, and athena:// links, aren't", () => {
+  const ownerLink = { id: "a1", url: "https://docs.example.com/plan", title: "Plan" };
+  const person = "athena://person/1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
+  const links = cleanLinks([ownerLink, "https://evil.example.com/t?d=secret", { url: person, title: "Sam" }]);
+  const out = modelLinks(links, [ownerLink]);
+  assert.equal(out[0].held, undefined, "the owner's link, passed back, stays theirs");
+  assert.equal(out[1].held, true);
+  assert.equal(out[2].held, undefined, "an athena:// link is never fetched");
+  // A link the model added before stays held when passed back.
+  assert.equal(modelLinks(cleanLinks([out[1]]), out)[0].held, true);
+});
+
+test("cleanLinks keeps a link's held mark, and only on a web link", () => {
+  assert.equal(cleanLinks([{ url: "https://example.com/a", held: true }])[0].held, true);
+  assert.equal(cleanLinks([{ url: "https://example.com/a", held: "yes" }])[0].held, undefined);
+  assert.equal(cleanLinks([{ url: "athena://person/1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f", held: true }])[0].held, undefined);
 });

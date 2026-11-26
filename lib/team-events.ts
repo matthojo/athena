@@ -9,11 +9,13 @@
  * to triggers every 5 minutes (lib/team-triggers.ts), where batching matters.
  * Things the owner does (a save, a saved action, a tagged note) go through
  * startTeamEvent instead, which matches the row and hands its runs off at once. `facets` holds only what a filter matches
- * on: short strings and flags, never a secret or body text. Emitting never
+ * on: short strings and flags, never a secret or body text. Even so they're the owner's words (a note's title, an
+ * email's subject, a saved page's host), so the column is one sealed JSON string under the data key, like
+ * commitments.steps (lib/encryption.ts ENCRYPTED), and filters match in code, after facetsOf. Emitting never
  * throws into the caller: a failed insert is logged and dropped. Rows are kept
  * for EVENT_DAYS.
  */
-import { qRaw } from "./db";
+import { qRaw, sealer } from "./db";
 import type { EventSource } from "./team-types";
 
 export const EVENT_DAYS = 7;
@@ -50,6 +52,22 @@ export function cleanFacets(raw: TeamEventFacets): Record<string, string | boole
   return out;
 }
 
+/**
+ * A row's facets as q() hands them back: JSON text once sealed (q opens it), an object from before encryption, or
+ * nothing. Anything else, such as a value that wouldn't open, is no facets rather than an error. Pure.
+ */
+export function facetsOf(raw: unknown): Record<string, string | boolean | string[]> {
+  let v = raw;
+  if (typeof v === "string") {
+    try {
+      v = JSON.parse(v);
+    } catch {
+      return {};
+    }
+  }
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, string | boolean | string[]>) : {};
+}
+
 /** The host of a link, without "www.": "amazon.co.uk". Pure. */
 export function urlHost(url: string | null | undefined): string | undefined {
   if (!url) return undefined;
@@ -75,7 +93,8 @@ export function collectedKind(provider: string | undefined, stored: "note" | "ev
 /** Keep one event; its id, or null when it couldn't be kept. Never throws: a hook must not break what it's hooked into. */
 export async function emitTeamEvent(kind: EventSource, refId: string | null, refKind: string | null, facets: TeamEventFacets = {}): Promise<string | null> {
   try {
-    const [row] = await qRaw<{ id: string | number }>(`INSERT INTO team_events (kind, ref_id, ref_kind, facets) VALUES ($1, $2, $3, $4::jsonb) RETURNING id`, [kind, refId, refKind, JSON.stringify(cleanFacets(facets))]);
+    const s = await sealer();
+    const [row] = await qRaw<{ id: string | number }>(`INSERT INTO team_events (kind, ref_id, ref_kind, facets) VALUES ($1, $2, $3, $4::jsonb) RETURNING id`, [kind, refId, refKind, s.json(cleanFacets(facets))]);
     return row ? String(row.id) : null;
   } catch (error) {
     console.error("Athena team: couldn't keep an event", (error as Error)?.message?.slice(0, 120));

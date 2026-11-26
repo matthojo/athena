@@ -29,6 +29,11 @@ export interface TodoLink {
   url: string;
   /** What the link is called; for an Athena link, the item's name when it was linked. */
   title: string;
+  /**
+   * A web link a model or an agent added (modelLinks), not the owner: Athena doesn't fetch its page for a preview,
+   * since the address may carry the owner's data out in its query. The owner opening it is their choice.
+   */
+  held?: true;
 }
 
 /** 0 none, 1 low, 2 medium, 3 high. */
@@ -138,9 +143,18 @@ export function cleanLinks(raw: unknown): TodoLink[] {
     let id = typeof obj.id === "string" && ID_RE.test(obj.id) && !seenIds.has(obj.id) ? obj.id : newItemId();
     while (seenIds.has(id)) id = newItemId();
     seenIds.add(id);
-    out.push({ id, url, title });
+    out.push({ id, url, title, ...(obj.held === true && !parseAthenaUrl(url) ? { held: true as const } : {}) });
   }
   return out;
+}
+
+/**
+ * Links a model (Ask, an assistant, a flow) or an agent over MCP set on a to-do: every web link is held (TodoLink.held),
+ * except one the to-do already had and the owner added, passed back as it was. athena:// links are never fetched. Pure.
+ */
+export function modelLinks(links: readonly TodoLink[], before: readonly TodoLink[] = []): TodoLink[] {
+  const owners = new Set(before.filter((l) => !l.held).map((l) => l.url));
+  return links.map((l) => (parseAthenaUrl(l.url) || owners.has(l.url) ? l : { ...l, held: true as const }));
 }
 
 export function cleanPriority(raw: unknown): TodoPriority | undefined {

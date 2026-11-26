@@ -11,7 +11,7 @@
  * Function — the SDK's Web Standard Streamable HTTP transport, which speaks
  * Request/Response directly instead of needing Node's http module.
  */
-import { STEPS_RULE_SHORT } from "../../lib/todo-details";
+import { cleanLinks, modelLinks, STEPS_RULE_SHORT, TodoDetailsError } from "../../lib/todo-details";
 import { startTeamEvent } from "../../lib/team-triggers";
 // Plugs flows into the owner's own events, so a tagged note or a save starts its flows at once (lib/flow-engine.ts).
 import "../../lib/flow-engine";
@@ -52,6 +52,7 @@ import {
   saveReminder,
   listReminders,
   type RecordKind,
+  AthenaInputError,
 } from "../../lib/db";
 import { REMINDER_REPEATS } from "../../lib/reminders";
 import {
@@ -68,6 +69,7 @@ import {
   recall,
   resolvePerson,
   upsertAsset,
+  getCommitment,
   upsertCommitment,
   upsertGoal,
   upsertReadingItem,
@@ -552,9 +554,18 @@ function buildServer(): McpServer {
       priority: z.number().int().min(0).max(3).optional().describe("0 none (default), 1 low, 2 medium, 3 high. Only when the source says how urgent it is"),
       ...provenanceSchema,
     },
-    safe(async ({ area, where, ...args }) =>
-      ok(await upsertCommitment({ ...args, ...(area || where ? { context: { suggestion: { area, where, sure: (args.confidence ?? 1) >= 0.8 } } } : {}) })),
-    ),
+    safe(async ({ area, where, links: given, ...args }) => {
+      // An agent's web links are held, so Athena doesn't fetch their pages; the owner's own, passed back, stay theirs (lib/todo-details.ts modelLinks).
+      let links;
+      if (given !== undefined) {
+        try {
+          links = modelLinks(cleanLinks(given), args.id ? ((await getCommitment(args.id))?.links ?? []) : []);
+        } catch (error) {
+          throw error instanceof TodoDetailsError ? new AthenaInputError(error.message) : error;
+        }
+      }
+      return ok(await upsertCommitment({ ...args, ...(links ? { links } : {}), ...(area || where ? { context: { suggestion: { area, where, sure: (args.confidence ?? 1) >= 0.8 } } } : {}) }));
+    }),
   );
 
   server.tool(

@@ -19,6 +19,7 @@ import { ZodError } from "zod";
 import { AthenaInputError } from "../../../lib/db";
 import { FieldError } from "../../../lib/custom-field-rules";
 import { SavedActionError } from "../../../lib/saved-actions";
+import { plainModelText } from "../../../lib/links";
 
 export type ToolResult = {
   content: Array<{ type: "text"; text: string }>;
@@ -80,12 +81,14 @@ export function fail(error: unknown): ToolResult {
 /**
  * Wrap a handler so thrown errors become MCP error results. The two other
  * errors written for whoever's asking (a field value that doesn't fit, a
- * saved action that doesn't apply) are passed on as input errors.
+ * saved action that doesn't apply) are passed on as input errors. An agent is
+ * a model: the links it writes in notes and descriptions are plain, so they
+ * can't make Athena fetch a page (lib/links.ts plainModelText).
  */
 export function safe<A>(fn: (args: A) => Promise<ToolResult>): (args: A) => Promise<ToolResult> {
   return async (args: A) => {
     try {
-      return await fn(args);
+      return await fn(plainModelText(args));
     } catch (error) {
       if (error instanceof FieldError || error instanceof SavedActionError) return fail(new AthenaInputError(error.message));
       return fail(error);
