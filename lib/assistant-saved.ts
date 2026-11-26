@@ -51,7 +51,7 @@ export const SAVED_GUIDANCE = `- Saved items (links, pictures and notes the owne
 
 const inputs = {
   find_saved: z.object({ query: z.string().max(200) }),
-  file_saved_item: z.object({ saved_id: z.string().uuid(), action: z.string().min(1).max(40), params: z.record(z.unknown()).default({}) }),
+  file_saved_item: z.object({ saved_id: z.string().uuid(), action: z.string().min(1).max(40), params: z.record(z.string(), z.unknown()).default({}) }),
 };
 
 export interface SavedToolUndo {

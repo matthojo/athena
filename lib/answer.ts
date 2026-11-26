@@ -1124,7 +1124,7 @@ const AnswerInput = z.object({
   needs_picture: z.boolean().default(false),
   from_today: z.boolean().default(false),
   // A flow's think step's values (AnswerOptions.values): only the keys asked for are kept.
-  values: z.record(z.string().max(2000)).optional(),
+  values: z.record(z.string(), z.string().max(2000)).optional(),
   sources: z
     .array(z.object({ ref: z.string().max(2000), title: z.string().max(400).default(""), date: z.string().max(40).default("") }))
     .max(20)

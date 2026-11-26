@@ -41,7 +41,7 @@ export function registerSavedActionTools(server: McpServer, { ok, stored, safe }
     {
       saved_id: z.string().uuid(),
       action: z.string().min(1).max(40).describe("An action id from list_saved_actions"),
-      params: z.record(z.unknown()).optional().describe("What the action needs, e.g. { person_id } for gift_idea; {} or left out when nothing"),
+      params: z.record(z.string(), z.unknown()).optional().describe("What the action needs, e.g. { person_id } for gift_idea; {} or left out when nothing"),
     },
     safe(async ({ saved_id, action, params }: { saved_id: string; action: string; params?: Record<string, unknown> }) => {
       const { item, result } = await runSavedAction(saved_id, action, params ?? {});

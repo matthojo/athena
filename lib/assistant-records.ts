@@ -1453,7 +1453,7 @@ const ITEM_BEFORE = {
 
 const RECORD_UNDO = z.discriminatedUnion("op", [
   z.object({ op: z.literal("restore_people"), people: z.array(PersonBefore).min(1).max(MAX_AT_ONCE) }),
-  z.object({ op: z.literal("restore_item"), kind: z.enum(["place", "organisation", "event", "goal", "asset", "project", "trip"]), id: UUID, before: z.record(z.unknown()) }),
+  z.object({ op: z.literal("restore_item"), kind: z.enum(["place", "organisation", "event", "goal", "asset", "project", "trip"]), id: UUID, before: z.record(z.string(), z.unknown()) }),
   z.object({ op: z.literal("restore_purchase"), id: UUID, status: z.enum(PURCHASE_STATUSES as unknown as [PurchaseStatus, ...PurchaseStatus[]]) }),
   z.object({
     op: z.literal("restore_todo"),

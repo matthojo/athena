@@ -76,7 +76,7 @@ const condition = z
 const stepSchema: z.ZodType<FlowStep> = z.lazy(() =>
   z.union([
     // `go` left out: defaultGo's (only a reminder, a to-do and a list item run alone).
-    z.object({ id: stepId, title, kind: z.literal("tool"), tool: z.string().max(64), input: z.record(text), go: z.enum(["auto", "ask"]).optional(), gives: z.array(value).max(12) }).strict(),
+    z.object({ id: stepId, title, kind: z.literal("tool"), tool: z.string().max(64), input: z.record(z.string(), text), go: z.enum(["auto", "ask"]).optional(), gives: z.array(value).max(12) }).strict(),
     z.object({ id: stepId, title, kind: z.literal("check"), condition, yes: z.array(stepSchema), no: z.array(stepSchema) }).strict(),
     z
       .object({

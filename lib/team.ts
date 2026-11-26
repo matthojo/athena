@@ -129,7 +129,7 @@ const inputSchema = z
     accounts: z.array(z.string().regex(/^[0-9a-f-]{36}$/i, "an account id")).max(MAX_ITEM_ACCOUNTS).optional(),
     web: z.boolean().optional(),
     // Checked apart, with the owner's agreements (lib/models.ts checkAssistantModels).
-    models: z.record(z.unknown()).optional(),
+    models: z.record(z.string(), z.unknown()).optional(),
     paused: z.boolean().optional(),
     triggers: z.array(triggerSchema).max(MAX_TRIGGERS).optional(),
   })

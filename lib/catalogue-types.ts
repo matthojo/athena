@@ -214,7 +214,7 @@ const knownItems = z
   .max(CATALOGUE_LIMITS.items)
   .transform((list) => list.filter((raw) => !isUnknownKind(raw)));
 
-export const catalogueIndexSchema: z.ZodType<CatalogueIndex, z.ZodTypeDef, unknown> = z
+export const catalogueIndexSchema: z.ZodType<CatalogueIndex, unknown> = z
   .object({
     format: z.literal(CATALOGUE_FORMAT),
     generated_at: when,
@@ -277,7 +277,7 @@ export const listingSchema: z.ZodType<Listing> = z
 
 // ---------- reading them ----------
 
-function parse<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, text: string, maxBytes: number, file: string): T {
+function parse<T>(schema: z.ZodType<T, unknown>, text: string, maxBytes: number, file: string): T {
   if (text.length > maxBytes || byteLength(text) > maxBytes) throw new CatalogueError(`${file} is over ${maxBytes.toLocaleString("en-GB")} bytes.`);
   let raw: unknown;
   try {
@@ -288,7 +288,7 @@ function parse<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, text: string, max
   return check(schema, raw, file);
 }
 
-function check<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, raw: unknown, file: string): T {
+function check<T>(schema: z.ZodType<T, unknown>, raw: unknown, file: string): T {
   const r = schema.safeParse(raw);
   if (r.success) return r.data;
   const issue = r.error.issues[0];

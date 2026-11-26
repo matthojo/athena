@@ -119,6 +119,9 @@ const provenanceSchema = {
 };
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("YYYY-MM-DD, a local date in the owner's time zone");
+/** An ISO 8601 date and time, as text: a tool's schema is published as JSON Schema, which has no Date. Read with `at`. */
+const isoInstant = z.string().max(64).refine((s) => !Number.isNaN(Date.parse(s)), { message: "An ISO 8601 date and time" });
+const at = (s: string | undefined): Date | undefined => (s === undefined ? undefined : new Date(s));
 
 /**
  * Shared guidance on Athena's link syntax, appended to every tool that reads
@@ -229,10 +232,10 @@ function buildServer(): McpServer {
     {
       type: z.enum(NOTE_TYPES).optional(),
       source: z.string().optional().describe("e.g. 'manual', 'calendar-meetings', 'briefing'"),
-      since: z.coerce.date().optional().describe("Only notes updated at/after this ISO 8601 timestamp"),
+      since: isoInstant.optional().describe("Only notes updated at/after this ISO 8601 timestamp"),
       limit: z.number().int().positive().max(200).optional().describe("Max results; defaults to 50"),
     },
-    safe(async (args) => stored("notes", await listNotes(args))),
+    safe(async ({ since, ...args }) => stored("notes", await listNotes({ ...args, since: at(since) }))),
   );
 
   server.tool(
@@ -303,14 +306,14 @@ function buildServer(): McpServer {
         .describe(
           "true = remind the owner to catch up with this person (Coming up, briefing, reminders). Off by default; only turn it on when the owner asks",
         ),
-      last_contacted_at: z.coerce.date().nullable().optional().describe("When you last spoke; ISO 8601"),
+      last_contacted_at: isoInstant.nullable().optional().describe("When you last spoke; ISO 8601"),
       notes: z.string().optional().describe("Freeform notes about this person"),
     },
     safe(async ({ last_contacted_at, ...rest }) =>
       ok(
         await upsertPerson({
           ...rest,
-          last_contacted_at: last_contacted_at === undefined ? undefined : last_contacted_at?.toISOString() ?? null,
+          last_contacted_at: last_contacted_at === undefined ? undefined : last_contacted_at === null ? null : new Date(last_contacted_at).toISOString(),
         }),
       ),
     ),
@@ -660,7 +663,7 @@ function buildServer(): McpServer {
     {
       op: z.enum(["commitment", "fact", "interaction", "event", "person", "link"]),
       summary: z.string().describe("One plain sentence the owner will read: 'You owe Priya the intro deck by Friday'"),
-      payload: z.record(z.unknown()),
+      payload: z.record(z.string(), z.unknown()),
       ...provenanceSchema,
     },
     safe(async (args) => ok(await propose(args))),
@@ -846,14 +849,14 @@ function buildServer(): McpServer {
     {
       metric: z.string().describe("Metric name, e.g. 'focus_minutes' or 'prs_reviewed'. A name that looks like a health or money figure is refused."),
       value: z.number().describe("Numeric value for this data point"),
-      recordedAt: z.coerce.date().optional().describe("ISO 8601 timestamp; defaults to now"),
-      metadata: z.record(z.unknown()).optional().describe("Arbitrary JSON metadata for this point"),
+      recordedAt: isoInstant.optional().describe("ISO 8601 timestamp; defaults to now"),
+      metadata: z.record(z.string(), z.unknown()).optional().describe("Arbitrary JSON metadata for this point"),
     },
     async (args) => {
       try {
         const problem = metricNameProblem(args.metric);
         if (problem) return fail(new AthenaInputError(problem));
-        return ok(await upsertMetric(args));
+        return ok(await upsertMetric({ ...args, recordedAt: at(args.recordedAt) }));
       } catch (error) {
         return fail(error);
       }
@@ -865,10 +868,10 @@ function buildServer(): McpServer {
     "Query time-series points for a metric, optionally since a given timestamp.",
     {
       metric: z.string().describe("Metric name to query"),
-      since: z.coerce.date().optional().describe("Only return points recorded at/after this ISO 8601 timestamp"),
+      since: isoInstant.optional().describe("Only return points recorded at/after this ISO 8601 timestamp"),
       limit: z.number().int().positive().max(1000).optional().describe("Max results; defaults to 200"),
     },
-    safe(async ({ metric, since, limit }) => stored("metrics", await queryMetrics(metric, since, limit))),
+    safe(async ({ metric, since, limit }) => stored("metrics", await queryMetrics(metric, at(since), limit))),
   );
 
   // ---------- the owner's own fields (netlify/lib/mcp/custom-fields.ts) ----------

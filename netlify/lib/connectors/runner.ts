@@ -832,7 +832,7 @@ const inputs = {
     tags: z.array(z.string().max(80)).max(20).optional(),
     date: DATE.optional(),
   }),
-  athena_day_entry: z.object({ date: DATE, entries: z.array(z.record(z.unknown())).min(1) }),
+  athena_day_entry: z.object({ date: DATE, entries: z.array(z.record(z.string(), z.unknown())).min(1) }),
   athena_day_line: z.object({ date: DATE, line: z.string().min(1).max(400) }),
   athena_day_read: z.object({ date: DATE }),
   athena_save_event: z
