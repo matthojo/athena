@@ -2,11 +2,14 @@
  * The guided setup (lib/setup-guide.ts): what a new owner sees after
  * deploying their own copy and typing the site password, until Athena is
  * ready to use. One card on the aurora, like the Connect screen it replaces
- * for a new owner, that moves through five steps:
+ * for a new owner, that moves through five steps after a welcome:
  *
- *   welcome  connect this device (the access token), or carry on
+ *   welcome  what's ahead, or carry on
  *   site     the environment variables Athena runs on, and the data key,
- *            made here and added in Netlify by the owner
+ *            made here and added in Netlify by the owner. Read with the site
+ *            session alone (GET /api/setup), before this device has a key
+ *   connect  connect this device (the access token). After the site: a
+ *            device's key is kept under the data key (lib/api-keys.ts)
  *   about    their name, and the time zone from this device
  *   sources  the first accounts, by what they'd get (Sources' starters)
  *   phone    the Home Screen and notifications
@@ -67,7 +70,7 @@ export function renderGuide(opts: GuideOptions): HTMLElement {
   const sample = isSampleMode();
   let status = opts.status;
   const fix = status?.guide.reason === "fix";
-  const flow: GuideStep[] = fix ? ["site"] : ["welcome", "site", "about", "sources", "phone", "done"];
+  const flow: GuideStep[] = fix ? ["site"] : ["welcome", "site", "connect", "about", "sources", "phone", "done"];
   const saved = status?.guide.step;
   let step: GuideStep = opts.start ?? (fix ? "site" : saved && flow.includes(saved) && (hasToken() || sample) ? saved : "welcome");
   if (!flow.includes(step)) step = flow[0];
@@ -159,13 +162,14 @@ export function renderGuide(opts: GuideOptions): HTMLElement {
   function paintStep() {
     if (step === "welcome") return welcomeStep();
     if (step === "site") return siteStep();
+    if (step === "connect") return connectStep();
     if (step === "about") return aboutStep();
     if (step === "sources") return sourcesStep();
     if (step === "phone") return phoneStep();
     return doneStep();
   }
 
-  // ---------- Welcome: connect this device ----------
+  // ---------- Welcome: what's ahead ----------
 
   function welcomeStep() {
     const plan = h(
@@ -173,10 +177,19 @@ export function renderGuide(opts: GuideOptions): HTMLElement {
       { class: "guide__plan" },
       ...WORDS.welcome.plan.map(([name, line], i) => h("li", { class: "guide__plan-item" }, h("span", { class: "guide__plan-n", "aria-hidden": "true" }, String(i + 1)), h("span", {}, h("span", { class: "guide__plan-name" }, name), h("span", { class: "guide__plan-line" }, line))))
     );
+    const resume = hasToken() && !sample && saved && saved !== "welcome" ? saved : null;
+    body.replaceChildren(title(WORDS.welcome.title), lede(resume ? WORDS.welcome.resumeLede : WORDS.welcome.lede), plan);
+    setActions(primary(resume ? WORDS.welcome.resume : WORDS.welcome.start, () => go(resume ?? "site")), null, false);
+  }
+
+  // ---------- Connect: this device's key ----------
+
+  function connectStep() {
+    const onward = () => go(nextOf("connect")!);
     const tokenPreview = sample && new URLSearchParams(location.hash.split("?")[1] ?? "").get("token") === "1";
     if ((hasToken() || sample) && !tokenPreview) {
-      body.replaceChildren(title(WORDS.welcome.title), lede(hasToken() && !sample ? WORDS.welcome.resumeLede : WORDS.welcome.lede), plan);
-      setActions(primary(hasToken() && !sample && saved && saved !== "welcome" ? WORDS.welcome.resume : WORDS.next, () => go(saved && saved !== "welcome" && !sample ? saved : "site")), null, false);
+      body.replaceChildren(title(WORDS.connect.title), lede(WORDS.connect.connectedLede));
+      setActions(primary(WORDS.next, onward));
       return;
     }
     const input = h("input", {
@@ -187,47 +200,41 @@ export function renderGuide(opts: GuideOptions): HTMLElement {
       autocomplete: "off",
       autocapitalize: "off",
       spellcheck: "false",
-      placeholder: WORDS.welcome.tokenPlaceholder,
+      placeholder: WORDS.connect.tokenPlaceholder,
       "aria-describedby": "guide-token-help",
     }) as HTMLInputElement;
     const error = h("p", { class: "connect__error", role: "alert" });
-    const help = h("p", { class: "connect__help", id: "guide-token-help" }, WORDS.welcome.tokenHelpLead, h("code", {}, "MCP_BEARER_TOKEN"), WORDS.welcome.tokenHelpTail);
-    const submit = h("button", { class: "btn btn--primary btn--block", type: "submit" }, WORDS.welcome.start) as HTMLButtonElement;
-    const form = h("form", { class: "connect__form guide__token" }, h("label", { class: "field-label", for: "guide-token" }, WORDS.welcome.tokenLabel), input, help, error, submit);
+    const help = h("p", { class: "connect__help", id: "guide-token-help" }, WORDS.connect.tokenHelpLead, h("code", {}, "MCP_BEARER_TOKEN"), WORDS.connect.tokenHelpTail);
+    const submit = h("button", { class: "btn btn--primary btn--block", type: "submit" }, WORDS.connect.submit) as HTMLButtonElement;
+    const form = h("form", { class: "connect__form guide__token" }, h("label", { class: "field-label", for: "guide-token" }, WORDS.connect.tokenLabel), input, help, error, submit);
+    const again = (message: string) => {
+      error.textContent = message;
+      submit.disabled = false;
+      submit.textContent = WORDS.connect.submit;
+      input.focus();
+    };
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const token = input.value.trim();
-      if (tokenPreview) return go("site");
-      if (!token) {
-        error.textContent = WORDS.welcome.empty;
-        input.focus();
-        return;
-      }
+      if (tokenPreview) return onward();
+      if (!token) return again(WORDS.connect.empty);
       submit.disabled = true;
-      submit.textContent = WORDS.welcome.connecting;
+      submit.textContent = WORDS.connect.connecting;
       error.textContent = "";
+      // A device's key is kept under the data key, so the server says so here if it isn't set yet (lib/api-keys.ts).
       const result = await signIn(token);
-      if (!result.ok) {
-        error.textContent = result.reason === "refused" ? WORDS.welcome.refused : result.reason === "unreachable" ? WORDS.welcome.unreachable : result.message || WORDS.welcome.unreachable;
-        submit.disabled = false;
-        submit.textContent = WORDS.welcome.start;
-        input.focus();
-        return;
-      }
+      if (!result.ok) return again(result.reason === "refused" ? WORDS.connect.refused : result.reason === "unreachable" ? WORDS.connect.unreachable : result.message || WORDS.connect.unreachable);
       input.value = "";
-      if (isApiKey(token) && !(await checkHealth())) {
-        error.textContent = WORDS.welcome.unreachable;
-        submit.disabled = false;
-        submit.textContent = WORDS.welcome.start;
-        return;
-      }
-      // Signed in: the full status now, with the key id, and on to where the owner left off.
+      if (isApiKey(token) && !(await checkHealth())) return again(WORDS.connect.unreachable);
+      // Connected: the full status, and on to where the owner left off (from another device), else the next step.
       status = (await fetchSetup()) ?? status;
       const at = status?.guide.step;
-      go(at && at !== "welcome" && flow.includes(at) ? at : "site");
+      const later = at && flow.indexOf(at) > flow.indexOf("connect") ? at : null;
+      if (later) go(later);
+      else onward();
     });
-    body.replaceChildren(title(WORDS.welcome.title), lede(WORDS.welcome.lede), plan, form, h("p", { class: "connect__foot" }, WORDS.welcome.foot));
-    setActions(null, null, false);
+    body.replaceChildren(title(WORDS.connect.title), lede(WORDS.connect.lede), form, h("p", { class: "connect__foot" }, WORDS.connect.foot));
+    setActions(null);
   }
 
   // ---------- Site: the environment variables ----------

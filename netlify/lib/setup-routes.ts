@@ -2,7 +2,7 @@
  * The guided setup's status and progress (lib/setup-guide.ts), mounted by
  * netlify/functions/api.ts before its bearer gate:
  *
- *   GET  /api/setup   → SetupStatus: which settings the site has (booleans only),
+ *   GET  /api/setup   → SetupStatus: which settings the site has (booleans, and the data key's id, never a value),
  *                       where the guide is, and whether it should show. Open to
  *                       the bearer token, a full key, or a browser past the site
  *                       password (lib/site-session.ts), so the first screen can
@@ -64,7 +64,7 @@ async function used(): Promise<boolean> {
   return inUse({ notes: row?.notes ?? 0, connectors: row?.connectors ?? 0, started_at: row?.started_at ?? null });
 }
 
-async function status(signedIn: boolean): Promise<SetupStatus> {
+async function status(): Promise<SetupStatus> {
   let database = true;
   let progress: GuideProgress = { step: null, completed_at: null };
   let inUseAlready = false;
@@ -92,13 +92,15 @@ async function status(signedIn: boolean): Promise<SetupStatus> {
     guide: { ...progress, reason: guideReason(progress, checks, inUseAlready) },
     site_name: env("SITE_NAME")?.trim() || null,
   };
-  if (signedIn) out.data_key_id = currentKeyId();
+  // The key's id (four bytes from HKDF, never the key): the site step tells the owner whether the key they added is the one
+  // it showed, before this device can connect.
+  out.data_key_id = currentKeyId();
   return out;
 }
 
 /** /api/setup. `signedIn`: the bearer token or a full key; otherwise only a site session reaches here, for GET. */
 export async function handleSetupRoutes(req: Request, signedIn: boolean, reply: Reply): Promise<Response> {
-  if (req.method === "GET") return reply(await status(signedIn));
+  if (req.method === "GET") return reply(await status());
   if (req.method !== "POST") return reply({ error: "Method not allowed" }, 405);
   if (!signedIn) return reply({ error: "Unauthorized" }, 401);
   let change;
@@ -113,5 +115,5 @@ export async function handleSetupRoutes(req: Request, signedIn: boolean, reply: 
   } catch {
     return reply({ error: "Athena couldn't reach its database, so that wasn't saved. Try again in a minute." }, 503);
   }
-  return reply(await status(true));
+  return reply(await status());
 }
