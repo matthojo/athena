@@ -14,7 +14,15 @@
  */
 import { fileURLToPath } from "node:url";
 
-export const PRODUCTION_ONLY = ["ATHENA_DATA_KEY", "MCP_BEARER_TOKEN", "CONNECTOR_ENCRYPTION_KEY", "SESSION_SECRET", "SITE_PASSWORD"] as const;
+export const PRODUCTION_ONLY = [
+  "ATHENA_DATA_KEY",
+  "ATHENA_DATA_KEY_PREVIOUS",
+  "MCP_BEARER_TOKEN",
+  "CONNECTOR_ENCRYPTION_KEY",
+  "CONNECTOR_ENCRYPTION_KEY_PREVIOUS",
+  "SESSION_SECRET",
+  "SITE_PASSWORD",
+] as const;
 
 const PREVIEW_CONTEXTS = new Set(["deploy-preview", "branch-deploy"]);
 
