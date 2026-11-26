@@ -26,24 +26,8 @@ export interface Mic {
   stop: () => void;
 }
 
-const WORKLET = `
-class AthenaTap extends AudioWorkletProcessor {
-  constructor() { super(); this.buf = new Float32Array(2048); this.n = 0; }
-  process(inputs) {
-    const ch = inputs[0] && inputs[0][0];
-    if (ch) {
-      for (let i = 0; i < ch.length; i++) {
-        this.buf[this.n++] = ch[i];
-        if (this.n === this.buf.length) { this.port.postMessage(this.buf.slice(0)); this.n = 0; }
-      }
-    }
-    return true;
-  }
-}
-registerProcessor("athena-tap", AthenaTap);
-`;
-
-let workletUrl: string | null = null;
+/** The tap that hands samples over off the main thread: app/public/talk-worklet.js, a file of Athena's own (no blob: script). */
+const WORKLET_URL = "/talk-worklet.js";
 const loaded = new WeakSet<AudioContext>();
 
 /** Box-filter downsampling: each output sample is the mean of the input samples it covers. */
@@ -146,8 +130,7 @@ async function wire(ctx: AudioContext, stream: MediaStream): Promise<Mic> {
   try {
     if (!ctx.audioWorklet) throw new Error("no worklet");
     if (!loaded.has(ctx)) {
-      workletUrl ??= URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
-      await ctx.audioWorklet.addModule(workletUrl);
+      await ctx.audioWorklet.addModule(WORKLET_URL);
       loaded.add(ctx);
     }
     const node = new AudioWorkletNode(ctx, "athena-tap", { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1 });

@@ -21,24 +21,25 @@
   framework = "#custom"
 
 # The app's headers. Each device's key sits in the browser, so the policy
-# keeps script to Athena's own files: a page that ever showed text as markup
-# still couldn't run it.
-#  - script-src: the app's own files; the appearance script index.html inlines
-#    before first paint, by its hash (app/src/lib/appearance-boot.ts: change
-#    it and app/src/lib/headers.test.ts gives the new hash); blob: for Talk's
-#    audio worklet (app/src/talk/mic.ts).
+# keeps everything the app loads to Athena itself, with these exceptions:
+#  - script-src: the app's own files, and the appearance script index.html
+#    inlines before first paint, by its hash (app/src/lib/appearance-boot.ts:
+#    change it and app/src/lib/headers.test.ts gives the new hash). Talk's
+#    audio worklet is a file too (app/public/talk-worklet.js).
+#  - style-src 'unsafe-inline': the style attributes the app sets as it
+#    draws. Styles can't run script.
+#  - img-src / media-src https:: link previews' pictures and voice previews.
+#    data: and blob: are pictures and files the app holds on this device.
+#  - connect-src: Athena's own API, the device's own files (blob:), and
+#    Talk's speech-to-text socket.
 #  - frame-src: rich-link players load only from these hosts (lib/embeds.ts
 #    EMBED_FRAME_HOSTS), after a tap. 'self' and blob: keep the attachment
 #    viewer's PDF frame working.
 #  - frame-ancestors / X-Frame-Options: only Athena may frame Athena.
-# Content-Security-Policy-Report-Only is the fuller policy (images, media,
-# connections, styles) being tried before it's enforced: what it would block
-# shows in the browser's console.
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "script-src 'self' 'sha256-fLCF74TGArJWzJ6ZQV4rn0WtNLQ0FKjDCV4knFZ7aus=' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; frame-src 'self' blob: https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://open.spotify.com https://embed.music.apple.com https://embed.figma.com https://*.framer.website https://*.framer.app"
-    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' 'sha256-fLCF74TGArJWzJ6ZQV4rn0WtNLQ0FKjDCV4knFZ7aus=' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self'; connect-src 'self' wss://api.elevenlabs.io; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; frame-src 'self' blob: https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://open.spotify.com https://embed.music.apple.com https://embed.figma.com https://*.framer.website https://*.framer.app"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'sha256-fLCF74TGArJWzJ6ZQV4rn0WtNLQ0FKjDCV4knFZ7aus='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self'; connect-src 'self' blob: wss://api.elevenlabs.io; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; frame-src 'self' blob: https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://open.spotify.com https://embed.music.apple.com https://embed.figma.com https://*.framer.website https://*.framer.app"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "SAMEORIGIN"
     Referrer-Policy = "same-origin"
