@@ -389,7 +389,10 @@ export async function beginSignIn(id: string, origin: string): Promise<{ authori
   const { connector, secrets } = await load(id);
   if (connector.auth_type !== "oauth") throw new AthenaInputError("This account signs in with a token, not OAuth");
   const direct = directFor(connector);
-  if (direct) return beginDirectSignIn(connector, secrets, origin, direct);
+  if (direct) {
+    const begun = await beginDirectSignIn(connector, secrets, origin, direct);
+    return { authorizationUrl: await signInAddress(id, begun.authorizationUrl) };
+  }
   const cc = usesClientCredentials(connector);
   if (cc && !hasClientSecret(secrets)) throw new AthenaInputError("Client credentials need your client ID and client secret. Add them under Edit.");
   // The owner asked to sign in: start fresh rather than silently refreshing,
@@ -418,8 +421,32 @@ export async function beginSignIn(id: string, origin: string): Promise<{ authori
     return { authorized: true };
   }
   if (!provider.authorizationUrl) throw new Error("The server didn't return a sign-in address");
+  const authorizationUrl = await signInAddress(id, provider.authorizationUrl.toString());
   await setConnectorStatus(id, "needs_auth", "Waiting for you to finish signing in");
-  return { authorizationUrl: provider.authorizationUrl.toString() };
+  return { authorizationUrl };
+}
+
+/** Is this an address the browser may be sent to for signing in: https (or a local server under `netlify dev`)? */
+export function isSignInAddress(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    if (url.protocol === "https:") return true;
+    const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    return url.protocol === "http:" && local && process.env.NETLIFY_DEV === "true";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The sign-in address the app will open. A server's OAuth metadata chooses
+ * it, so anything but https (a javascript: or data: URL, say) is refused.
+ */
+async function signInAddress(id: string, raw: string): Promise<string> {
+  if (isSignInAddress(raw)) return raw;
+  const detail = "The server's sign-in address isn't https, so Athena won't open it";
+  await setConnectorStatus(id, "error", detail);
+  throw new AthenaInputError(detail);
 }
 
 /**

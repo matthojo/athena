@@ -12,7 +12,7 @@
  * docs: security/outside-services.
  */
 import { qRaw } from "./db";
-import { open, seal, secretBoxConfigured } from "./secret-box";
+import { needsReseal, open, seal, secretBoxConfigured } from "./secret-box";
 
 export type TileProvider = "maptiler" | "stadia";
 export const TILE_PROVIDERS: readonly TileProvider[] = ["maptiler", "stadia"];
@@ -39,6 +39,8 @@ export interface MapsArtStatus {
 }
 
 const ROW = "maps-art";
+/** What each key is sealed for (lib/secret-box.ts). */
+const sealedFor = (which: "tiles" | "tmdb") => `settings\nmaps-art\n${which}`;
 
 async function load(): Promise<Stored> {
   const [row] = await qRaw<{ value: Stored }>(`SELECT value FROM settings WHERE key = $1`, [ROW]);
@@ -70,14 +72,14 @@ export async function mapsArtStatus(): Promise<MapsArtStatus> {
 export async function saveTileKey(provider: TileProvider, key: string): Promise<void> {
   const s = await load();
   const now = new Date().toISOString();
-  await store({ ...s, tiles: { provider, key: seal(key), status: "working", added_at: now, checked_at: now } });
+  await store({ ...s, tiles: { provider, key: seal(key, sealedFor("tiles")), status: "working", added_at: now, checked_at: now } });
 }
 
 /** Keep a TMDB key TMDB has just accepted. */
 export async function saveTmdbKey(key: string): Promise<void> {
   const s = await load();
   const now = new Date().toISOString();
-  await store({ ...s, tmdb: { key: seal(key), status: "working", added_at: now, checked_at: now } });
+  await store({ ...s, tmdb: { key: seal(key, sealedFor("tmdb")), status: "working", added_at: now, checked_at: now } });
 }
 
 export async function removeKey(which: "tiles" | "tmdb"): Promise<void> {
@@ -96,10 +98,18 @@ export async function setKeyStatus(which: "tiles" | "tmdb", status: KeyStatus): 
   await store(s);
 }
 
-function opened(k: StoredKey | undefined): string | null {
+async function opened(which: "tiles" | "tmdb", k: StoredKey | undefined): Promise<string | null> {
   if (!k) return null;
   try {
-    return open(k.key);
+    const key = open(k.key, sealedFor(which));
+    // Sealed in the older format or under a previous key: seal again, unless it was replaced meanwhile.
+    if (needsReseal(k.key) && secretBoxConfigured()) {
+      await qRaw(
+        `UPDATE settings SET value = jsonb_set(value, ARRAY[$2, 'key'], to_jsonb($3::text)) WHERE key = $1 AND value->$2->>'key' = $4`,
+        [ROW, which, seal(key, sealedFor(which)), k.key],
+      ).catch(() => undefined);
+    }
+    return key;
   } catch {
     console.error("Athena maps and artwork: a kept key can't be opened with the current CONNECTOR_ENCRYPTION_KEY");
     return null;
@@ -109,17 +119,17 @@ function opened(k: StoredKey | undefined): string | null {
 /** The tile key, opened for one render. Null without one. */
 export async function tileCredentials(): Promise<{ provider: TileProvider; key: string; status: KeyStatus } | null> {
   const s = await load();
-  const key = opened(s.tiles);
+  const key = await opened("tiles", s.tiles);
   return key && s.tiles ? { provider: s.tiles.provider, key, status: s.tiles.status } : null;
 }
 
 /** The TMDB key, opened for one lookup. Null without one, or once TMDB has refused it. */
 export async function tmdbKey(): Promise<string | null> {
   const s = await load();
-  return s.tmdb?.status === "working" ? opened(s.tmdb) : null;
+  return s.tmdb?.status === "working" ? opened("tmdb", s.tmdb) : null;
 }
 
 /** The TMDB key whatever its status, for Settings' test button. */
 export async function tmdbKeyForTest(): Promise<string | null> {
-  return opened((await load()).tmdb);
+  return opened("tmdb", (await load()).tmdb);
 }

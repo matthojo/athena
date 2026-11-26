@@ -7,6 +7,7 @@
 import { RSVP_SCOPE } from "../../../lib/connector-presets";
 import { fetchConnectors, signInConnector, updateConnector } from "../db/api";
 import type { Connector } from "../types";
+import { goToSignIn } from "./sign-in-redirect";
 
 /** Save the permission change. Turning it on needs a sign-in afterwards for Google and Outlook, for the calendar to grant it; iCloud has none. */
 export async function setAnswering(c: Pick<Connector, "id" | "provider" | "scope">, on: boolean): Promise<void> {
@@ -27,7 +28,7 @@ export async function turnOnAnswering(accountId: string): Promise<"redirect" | "
   if (c.provider === "icloud-calendar") return "done";
   const r = await signInConnector(c.id);
   if (r.authorization_url) {
-    location.assign(r.authorization_url);
+    goToSignIn(r.authorization_url);
     return "redirect";
   }
   return "done";

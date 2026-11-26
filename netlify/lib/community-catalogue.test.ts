@@ -500,3 +500,57 @@ test("check route: only POST", async () => {
   const res = await handleCommunityRoutes(new Request("https://athena.example.com/api/community/check"), ["api", "community", "check"], async () => null, (d, s) => Response.json(d, { status: s ?? 200 }), memoryStore().store);
   assert.equal(res!.status, 405);
 });
+
+// ---------- the index's signature ----------
+import { generateKeyPairSync } from "node:crypto";
+import { listedPublicKey, signIndex } from "../../lib/catalogue-signature";
+import { CATALOGUE_SIGNING_KEYS } from "../../lib/catalogue-types";
+
+/** A throwaway key pair, made for this test run only. */
+const signer = generateKeyPairSync("ed25519");
+const stranger = generateKeyPairSync("ed25519");
+
+test("Athena ships with no catalogue key listed, so the index is read unsigned", async () => {
+  assert.deepEqual([...CATALOGUE_SIGNING_KEYS], []);
+  const cat = use({ "index.json": index([]) });
+  await getIndex();
+  assert.deepEqual(cat.seen.map((s) => s.url), [`${ROOT}/index.json`]);
+});
+
+test("with a key listed, an index signed by it is read, over the exact bytes sent", async () => {
+  const b = await skillBundle(ID_A);
+  const body = JSON.stringify(index([item(ID_A, b.hash)]), null, 2);
+  catalogueDeps.signingKeys = () => [listedPublicKey(stranger.publicKey), listedPublicKey(signer.publicKey)];
+  const cat = use({ "index.json": body, "index.json.sig": `${signIndex(new TextEncoder().encode(body), signer.privateKey)}\n` });
+  const read = await getIndex();
+  assert.equal(read.index.items.length, 1);
+  assert.equal(kept?.signed, true);
+  assert.deepEqual(cat.seen.map((s) => s.url), [`${ROOT}/index.json`, `${ROOT}/index.json.sig`]);
+});
+
+test("with a key listed, a missing, altered or stranger's signature means the list isn't read", async () => {
+  const b = await skillBundle(ID_A);
+  const body = JSON.stringify(index([item(ID_A, b.hash)]));
+  const bytes = new TextEncoder().encode(body);
+  catalogueDeps.signingKeys = () => [listedPublicKey(signer.publicKey)];
+  use({ "index.json": body });
+  await assert.rejects(getIndex(), (e: Error) => e instanceof CatalogueError && /wasn't signed/.test(e.message));
+  // The same signature over a list with one more item.
+  const more = JSON.stringify(index([item(ID_A, b.hash), item(ID_B, b.hash)]));
+  use({ "index.json": more, "index.json.sig": signIndex(bytes, signer.privateKey) });
+  await assert.rejects(getIndex(), (e: Error) => e instanceof CatalogueError && /didn't match its signature/.test(e.message));
+  use({ "index.json": body, "index.json.sig": signIndex(bytes, stranger.privateKey) });
+  await assert.rejects(getIndex(), /didn't match its signature/);
+  use({ "index.json": body, "index.json.sig": "not a signature" });
+  await assert.rejects(getIndex(), /didn't match its signature/);
+  assert.equal(kept, null);
+});
+
+test("once a key is listed, a copy kept unsigned is neither used nor fallen back on", async () => {
+  const b = await skillBundle(ID_A);
+  kept = { root: ROOT, fetched_at: T0.toISOString(), index: index([item(ID_A, b.hash)]), kinds: [...SHARE_KINDS] };
+  catalogueDeps.signingKeys = () => [listedPublicKey(signer.publicKey)];
+  use({ "index.json": JSON.stringify(index([])) });
+  await assert.rejects(getIndex(), /wasn't signed/);
+  await assert.rejects(checkIndex(), /wasn't signed/);
+});

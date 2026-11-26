@@ -118,3 +118,23 @@ test("only the provider's own host is ever fetched", async () => {
   await renderMap([DAY[0]], { provider: "stadia", key: "k", theme: "light", size: "card" });
   assert.ok(urls.every((u) => u.protocol === "https:" && u.host === PROVIDERS.stadia.host));
 });
+
+test("an oversized tile is cut off as it streams, and drawn as plain ground", async () => {
+  let pulled = 0;
+  let n = 0;
+  const grey = await tile([230, 232, 236]);
+  provider(async () => {
+    if (n++ > 0) return new Response(new Uint8Array(grey));
+    // No length given, and it never ends: a tile server answering without limit.
+    const endless = new ReadableStream<Uint8Array>({
+      pull(c) {
+        pulled++;
+        c.enqueue(new Uint8Array(64 * 1024));
+      },
+    });
+    return new Response(endless);
+  });
+  const out = await renderMap(DAY, { provider: "maptiler", key: "k", theme: "light", size: "card" });
+  assert.equal(out.missing, 1);
+  assert.ok(pulled < 40, `read ${pulled} chunks before stopping`);
+});

@@ -12,7 +12,7 @@
  *                                               google_route ("direct" or "mcp": how Gmail or Calendar reaches Google);
  *                                               custom servers: approve_tools: [names] (a changed tool, at its new text),
  *                                               use_in_ask and share_collections (booleans, both off by default)
- *   DELETE /api/connectors/:id                  remove it and its stored credentials
+ *   DELETE /api/connectors/:id                  remove it and its stored credentials, and revoke the sign-in where the provider can (revoke.ts)
  *   POST   /api/connectors/:id/sign-in          → { authorization_url } to open
  *   POST   /api/connectors/:id/check            list its tools now
  *   GET    /api/connectors/oauth/callback       (no bearer) provider redirect target
@@ -43,7 +43,6 @@ import {
   approveTools,
   createConnector,
   deleteCollection,
-  deleteConnector,
   getCollection,
   getConnector,
   getConnectorWithSecrets,
@@ -55,6 +54,7 @@ import {
   ownClientFrom,
   ownClientsSummary,
   queueRun,
+  sameOrigin,
   setAllowedTools,
   setConnectorStatus,
   updateConnector,
@@ -88,6 +88,7 @@ import {
 } from "../../../lib/connector-presets";
 import { isMicrosoftProvider } from "../../../lib/presets/microsoft";
 import { directFor } from "./direct";
+import { disconnectConnector } from "./revoke";
 import { LifeApiError } from "./lifelog-b-http";
 import { forgetBackfill } from "./money-sync";
 import { withoutAccount } from "../../../lib/presets/octopus-meters";
@@ -377,6 +378,10 @@ async function patchConnector(id: string, b: Record<string, unknown>) {
   // A new client, new endpoints or a new grant make the stored sign-in
   // meaningless (tokens and registrations are bound to the old server).
   const signOut = connector.auth_type === "oauth" && (!!clientId || oauthChanged);
+  // A new host gets none of the old sign-in (lib/connectors.ts clears it), so the
+  // address moves first and a key pasted with it is sealed for the new one.
+  const hostMoved = urlChanged && !sameOrigin(connector.url, newUrl!);
+  if (hostMoved) await updateConnector(id, { url: newUrl });
   // iCloud: the accounts that shared the old password get the new one too.
   const siblings = (token || username) && presetFor(connector.provider).username ? await sharingKey(id, (await getConnectorWithSecrets(id))?.secrets ?? {}) : [];
   if (token || username || signOut || scopeChanged || secretOnly) {
@@ -436,14 +441,16 @@ async function patchConnector(id: string, b: Record<string, unknown>) {
     if (connector.provider !== "octopus" || withoutAccount(connector.url) !== withoutAccount(newUrl)) {
       await forgetBackfill(id);
       await forgetHistory(id);
-      if (!token) await setConnectorStatus(id, "pending", "New address saved. Check tools to confirm it works");
+      // A moved account that needs a key or sign-in already says so.
+      if (!token && !(hostMoved && connector.auth_type !== "none")) await setConnectorStatus(id, "pending", "New address saved. Check tools to confirm it works");
     }
   }
   // Custom servers only: whether Ask's answers may use it, and whether it may share a collection with other accounts.
   const custom = isCustomServer(connector.provider);
   const use_in_ask = custom && typeof b.use_in_ask === "boolean" ? b.use_in_ask : undefined;
   const share_collections = custom && typeof b.share_collections === "boolean" ? b.share_collections : undefined;
-  const updated = await updateConnector(id, { name: str(b, "name"), account_label: str(b, "account_label"), scope, calendars, use_in_ask, share_collections, ...save });
+  // Google's API and MCP addresses are both Google's, so a route switch keeps the sign-in.
+  const updated = await updateConnector(id, { name: str(b, "name"), account_label: str(b, "account_label"), scope, calendars, use_in_ask, share_collections, ...save }, { keepSignIn: !!route });
   if (!updated) throw new AthenaInputError("Account not found", 404);
   // iCloud has no sign-in to finish: answers given while its invites switch was off go out now.
   if (connector.provider === "icloud-calendar" && canRsvp(updated) && !canRsvp(connector)) await sendPendingAnswers(id, { calendar: calendarPort }).catch(() => 0);
@@ -588,7 +595,7 @@ export async function handleConnectorRoutes(req: Request, url: URL, segments: st
         if ((await getBackfill(second))?.state === "blocked") await loadHistory(second, origin, { again: true });
         return json(patched);
       }
-      if (m === "DELETE") return (await deleteConnector(second)) ? json({ deleted: true }) : json({ error: "Not found" }, 404);
+      if (m === "DELETE") return (await disconnectConnector(second)) ? json({ deleted: true }) : json({ error: "Not found" }, 404);
       return json({ error: "Method not allowed" }, 405);
     }
     // Every calendar on the account, for choosing which ones Athena reads (iCloud saves the choice as `scope`, Google and Outlook as `calendars`).
