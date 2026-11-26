@@ -7,13 +7,13 @@
  * - Tier 2: anything that uses a model (every skill and assistant; a flow's thinking, drafting or assignment steps)
  *   or looks something up outside Athena (the weather, a train, a flight: each named in `lookups`).
  *
- * A set of check-in questions is always tier 1 (owner, 25 Nov 2026). Questions only ask, and answers stay in the
+ * A set of check-in questions is always tier 1. Questions only ask, and answers stay in the
  * owner's Athena (their check-ins, and the day's journal for written answers). "Go deeper" on a written answer sends
  * the question and what the owner wrote to their model for one follow-up, but only when they tap it, as it does for
  * their own questions; the Add screen and the share sheet say so.
  * A note template is always tier 1 too. It's words with {{fields}}, filled only from the owner's own records in their
  * own Athena, and its body is made plain as it's read (lib/template-share.ts), so nothing in it fetches anything.
- * A theme is always tier 1 as well (owner, 25 Nov 2026). It's colours, numbers and a name, read by readTheme(), which
+ * A theme is always tier 1 as well. It's colours, numbers and a name, read by readTheme(), which
  * keeps nothing that names a typeface or loads anything (lib/theme-share.ts).
  * - Tier 3: it asks to search the web.
  *

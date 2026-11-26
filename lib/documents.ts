@@ -195,7 +195,7 @@ export async function sendNote(noteId: string, to: DocumentProvider, opts: { con
 /**
  * Undo a send: trash the Google Doc, or move the Notion page under a
  * "Removed by Athena" page beside it (Notion's server has no way to archive
- * a page; the owner's choice, 9 Nov). Only for a row in document_exports,
+ * a page). Only for a row in document_exports,
  * so only for something Athena made.
  */
 export async function undoExport(id: string, opts: { ports?: DocumentPorts } = {}): Promise<DocumentExport> {

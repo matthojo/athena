@@ -3,7 +3,7 @@
 //  1. Gemini makes a picture: offered, its step carries the file id, kept sealed in the conversation, in the
 //     reply, logged in What Ask did with Undo; a follow-up changes it (the picture goes to Gemini).
 //  2. OpenAI makes one; asked to change one, it says plainly it can't, and nothing is sent.
-//  3. Undo archives the picture (owner, 17 Nov 2026): restored it's back in the conversation; deleted for good it
+//  3. Undo archives the picture: restored it's back in the conversation; deleted for good it
 //     goes, unless a note has it; an archived one can't be changed.
 //  4. Pictures off: no tool, and asking for one says where to turn them on.
 //  5. Only in chats: an assistant's chat has it; a check, a routine and a careful retry don't.

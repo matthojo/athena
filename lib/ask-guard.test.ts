@@ -111,7 +111,7 @@ test("a collected note is other people's words; the owner's own notes aren't (ow
   assert.equal(asked.mustWait("add_todo"), null, "the owner's own words asked for it");
 });
 
-// A Team assistant's unattended run: no message from the owner, and its allowlist is their standing request (owner, 13 Nov 2026).
+// A Team assistant's unattended run: no message from the owner, and its allowlist is their standing request.
 test("a run: an allowlisted change runs alone after a collected note was read", () => {
   const g = new TurnGuard("", () => false, ["add_todo"]);
   g.sawOthers("collected");

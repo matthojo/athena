@@ -1,5 +1,5 @@
 /**
- * Life-log services reached through their own APIs (second Stage 3 slice: Reddit, Spotify, Last.fm, Steam).
+ * Life-log services reached through their own APIs (Reddit, Spotify, Last.fm, Steam).
  * Joined into CONNECTOR_PRESETS by lib/connector-presets.ts; see there for the fields.
  *
  * None has an official hosted MCP server that any client can use, so Athena

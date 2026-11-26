@@ -52,7 +52,7 @@ function youVerb(w: string): string {
 }
 
 /**
- * Memory is said to you (owner, 15 Nov: "You prefer independent shops"), never about "the owner": older memories
+ * Memory is said to you ("You prefer independent shops"), never about "the owner": older memories
  * are reworded at their next refresh. "Owner prefers Etsy" → "You prefer Etsy", "The owner's budget" → "Your
  * budget", "reminded the owner" → "reminded you". Pure.
  */

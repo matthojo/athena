@@ -1,14 +1,13 @@
 /**
- * What Ask's assistant may not do on its own (security review M7, owner's
- * decision 9 Nov 2026): answer an invite, save a draft to Gmail or Outlook,
- * or send a note to Google Docs or Notion. Each of those tools now only
- * prepares a card; the app shows it and acts when the owner taps, through
- * the same routes the rest of the app uses (POST /api/events/:id/rsvp,
- * POST /api/drafts, POST /api/documents). Nothing leaves Athena from a
- * model turn alone, the way move_event and create_event already work
- * (lib/assistant-scheduling.ts).
+ * What Ask's assistant may not do on its own (security review M7): answer
+ * an invite, save a draft to Gmail or Outlook, or send a note to Google
+ * Docs or Notion. Each of those tools now only prepares a card; the app
+ * shows it and acts when the owner taps, through the same routes the rest
+ * of the app uses (POST /api/events/:id/rsvp, POST /api/drafts, POST
+ * /api/documents). Nothing leaves Athena from a model turn alone, the way
+ * move_event and create_event already work (lib/assistant-scheduling.ts).
  *
- * Logging from a sentence (owner's decision 14 Nov 2026) waits the same way:
+ * Logging from a sentence waits the same way:
  * spending, health figures, a day's entry or a meter reading is saved only
  * when the owner taps Add or Save (lib/ask-logging.ts LogCard).
  */

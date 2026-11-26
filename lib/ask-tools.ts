@@ -1029,7 +1029,7 @@ export async function runTrackerTool(name: string, raw: unknown, record: (change
       const { tracker, existed } = await store.createTracker({ ...input, target: target as never }, by);
       const facts = { tracker_id: tracker.id, name: tracker.name, label: tracker.label };
       if (existed) return JSON.stringify({ done: `Already tracking ${tracker.preset === "price" ? "the price" : tracker.label}: no change`, ...facts });
-      // Who checks it (owner, 16 Nov 2026): an assistant's own track is its own; Ask's goes to the one assistant that
+      // Who checks it: an assistant's own track is its own; Ask's goes to the one assistant that
       // fits, when exactly one does, and otherwise nobody checks it yet.
       let checker: { id: string; name: string } | null = null;
       if (tracker.assistant_id) checker = { id: tracker.assistant_id, name: (await (await import("./team")).getAssistant(tracker.assistant_id).catch(() => null))?.name ?? "An assistant" };
@@ -1048,8 +1048,8 @@ export async function runTrackerTool(name: string, raw: unknown, record: (change
     if (name === "record_value") {
       const input = RECORD_INPUT.parse(raw ?? {});
       let t = await whichTracker(input);
-      // An assistant reading a saved thing with nothing tracked for it starts tracking it (owner, 16 Nov 2026: "Yes,
-      // start one"): created as hers, so she checks it. A preset only (price by default); Ask keeps asking for track.
+      // An assistant reading a saved thing with nothing tracked for it starts tracking it:
+      // created as hers, so she checks it. A preset only (price by default); Ask keeps asking for track.
       let started = false;
       if (!t && who.by === "assistant" && input.saved_id && !input.tracker_id && (input.preset || !input.label)) {
         const preset = input.preset ?? "price";

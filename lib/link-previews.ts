@@ -177,11 +177,10 @@ export const previewDeps = {
 /**
  * A richer way to read some addresses than fetching the page: one of the
  * owner's connected accounts that can open it (a private Notion page, which a
- * plain fetch only sees as a sign-in page). The owner chose (stage 1
- * questions): use a connector when there is one, else read it like any page.
- * Sources are registered by the server (netlify/lib/rich-links/connector-previews.ts);
- * `read` returns null when it has no account or can't open this one, and the
- * page is then read as usual.
+ * plain fetch only sees as a sign-in page). A connector is used when there is
+ * one, else it's read like any page. Sources are registered by the server
+ * (netlify/lib/rich-links/connector-previews.ts); `read` returns null when it
+ * has no account or can't open this one, and the page is then read as usual.
  */
 export interface PreviewSource {
   id: string;

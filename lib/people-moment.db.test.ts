@@ -1,4 +1,4 @@
-// Night F5 ("thinking of them"), against Postgres with every migration applied: the person brief route
+// "Thinking of them", against Postgres with every migration applied: the person brief route
 // adds gift ideas (open lines on their gift lists) and accepted facts (the owner's own, or accepted from
 // the Review inbox, never a collection's that skipped it), and listStalePeople reads "last seen" the way
 // Home's Your people does: the latest of last_contacted_at, a catch-up logged with them and a calendar

@@ -8,7 +8,7 @@
  * Picture prices are per picture made, at the provider's standard size and quality.
  *
  * A model with no price here counts at the dearest known price from the same company and is marked "estimated
- * high" wherever spend shows (owner, 17 Nov 2026): better to stop early than to run past the budget.
+ * high" wherever spend shows: better to stop early than to run past the budget.
  *
  * Pure: imported by the server and its tests. Keep it free of the database and the environment.
  */

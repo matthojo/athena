@@ -223,7 +223,7 @@ export async function flowEffects(opts: { now?: () => Date; ports?: FlowPorts } 
 // ---------- Go from Ask's plan card ----------
 
 /**
- * Go on a plan a flow's run waits on, from Ask's plan card (POST /api/assistant/plan; owner, 21 Nov 2026): the same
+ * Go on a plan a flow's run waits on, from Ask's plan card (POST /api/assistant/plan): the same
  * Go as the run page's (lib/flow-run.ts settleRun), so a draft is written with Ask's draft code and kept as that
  * run's change, the run carries on at once, and What Ask did shows it as the run's. Null when no run waits on it:
  * Ask's own Go runs it then.

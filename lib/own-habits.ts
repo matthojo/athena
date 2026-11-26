@@ -9,7 +9,7 @@
  * read Habitify's. Setting a day back to 0 removes the entry (undo).
  *
  * An N-a-week habit's whole week that ended short counts its undone days as
- * missed (owner, 8 Nov): on the Habits page, in Ask and in Patterns.
+ * missed: on the Habits page, in Ask and in Patterns.
  *
  * Sealed (SECURITY.md §11): a habit's name and unit, and the entries' titles
  * and notes. Names are matched and kept unique here, never in SQL.

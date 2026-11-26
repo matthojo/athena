@@ -82,7 +82,7 @@ export const FLOW_TOOLS: Record<string, ToolPick> = {
 export const DRAFT_TOOLS: ReadonlySet<string> = new Set(["draft_email", "draft_message"]);
 export const isDraftTool = (name: string): boolean => DRAFT_TOOLS.has(name);
 
-/** The changes that run alone unless the owner says otherwise (the owner's call, 21 Nov): the only three, everywhere (the
+/** The changes that run alone unless the owner says otherwise: the only three, everywhere (the
  * editor, drafting and suggestions read this). Every other change, file_saved_item included, waits for Go. */
 export const AUTO_BY_DEFAULT: ReadonlySet<string> = new Set(["add_reminder", "add_todo", "add_to_list"]);
 

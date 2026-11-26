@@ -830,7 +830,7 @@ export function exportFlow(flow: Pick<Flow, "name" | "trigger" | "steps" | "mone
   for (const a of asks) note("asks", a.question);
 
   const name = scrub(oneLine(edits.name ?? flow.name).slice(0, FLOW_LIMITS.name));
-  // Left alone, the summary is drafted from the trigger and steps (the owner's decision, 24 Nov 2026).
+  // Left alone, the summary is drafted from the trigger and steps.
   const summary = scrub(oneLine(edits.summary ?? draftSummary(flow)).slice(0, MAX_SUMMARY));
   note("name", name);
   note("summary", summary);
@@ -941,7 +941,7 @@ export function stillUnfilled(steps: readonly FlowStep[], unfilled: readonly Imp
 
 /**
  * Why a flow added from a file can't run yet, or null: questions nobody answered. Its switch, Run now and a try all
- * refuse until each is set in its step (the owner's decision, 24 Nov 2026). Pure.
+ * refuse until each is set in its step. Pure.
  */
 export function unansweredWords(unfilled: readonly Pick<FlowUnfilled, "question">[] | undefined): string | null {
   if (!unfilled?.length) return null;
@@ -1023,7 +1023,7 @@ export function importSharedFlow(shared: SharedFlow, answers: FlowAnswers): Impo
           if (v.length || !RECORD_FIELD.test(k)) input[k] = v;
         }
         // Whatever the file asked, every step that changes something waits for Go here until the owner says
-        // otherwise. A step that only looks runs, as it does in any flow (the owner's decision, 24 Nov 2026).
+        // otherwise. A step that only looks runs, as it does in any flow.
         return { ...base, kind: "tool", tool: s.tool, input, go: FLOW_LOOK_TOOLS.includes(s.tool) ? "auto" : "ask", gives: s.gives.map((g) => ({ ...g })) };
       }
       case "check": {

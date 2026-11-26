@@ -815,10 +815,9 @@ export async function adoptHealthDay(source: string, externalId: string): Promis
 }
 
 /**
- * Days replace the Life log's day notes (owner decision, 7 Nov 2026): a
- * day's health is opened from its sealed rows whenever the day is read
- * (lib/days.ts), so nothing is written into a note. The day is marked
- * changed so devices pick it up.
+ * Days replace the Life log's day notes: a day's health is opened from its
+ * sealed rows whenever the day is read (lib/days.ts), so nothing is written
+ * into a note. The day is marked changed so devices pick it up.
  */
 async function refreshLifeLog(date: string, _healthSource: HealthSource, ctx: { now: Date; tz: string; source?: string; prefs?: HealthPrefs }): Promise<SaveResult["life_log"]> {
   const { line, complete } = await lineFor(date, ctx.prefs);

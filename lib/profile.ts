@@ -387,9 +387,9 @@ export async function saveProfileSetup(change: SetupChange, now: Date = new Date
 // ---------- Ask: "Let Ask search the web" ----------
 
 /**
- * The owner's switch for Ask's web search (owner, 12 Nov 2026): on by
- * default. While it's off the web search tool isn't offered to the model at
- * all (lib/answer.ts), so nothing of a question reaches a search.
+ * The owner's switch for Ask's web search: on by default. While it's off the
+ * web search tool isn't offered to the model at all (lib/answer.ts), so
+ * nothing of a question reaches a search.
  */
 const ASK_WEB_KEY = "ask_web";
 

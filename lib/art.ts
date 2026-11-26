@@ -264,7 +264,7 @@ const hex = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16
 
 /** Images above this many pixels are refused from their header, before any decode (security review M20). */
 export const MAX_DECODE_PIXELS = 25_000_000;
-/** A JPEG is decoded at a reduced size, so a large one costs little: a full-size phone photo is kept (owner's decision, 10 Nov 2026). */
+/** A JPEG is decoded at a reduced size, so a large one costs little: a full-size phone photo is kept. */
 export const MAX_JPEG_PIXELS = 60_000_000;
 
 export interface DecodedImage {

@@ -1,5 +1,5 @@
 /**
- * Life-log services reached through their own APIs (first Stage 3 slice: Trakt, YouTube, Letterboxd, Goodreads).
+ * Life-log services reached through their own APIs (Trakt, YouTube, Letterboxd, Goodreads).
  * Joined into CONNECTOR_PRESETS by lib/connector-presets.ts; see there for the fields.
  *
  * None goes through MCP: none of the four publishes an MCP server anyone can

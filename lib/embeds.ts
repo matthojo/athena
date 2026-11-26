@@ -18,8 +18,8 @@
  *    track, a Figma node).
  *  - Hosts match exactly or as a subdomain at a dot: "youtube.com.example"
  *    isn't YouTube.
- *  - Maps never get a player. Apple Maps has none, and the owner chose the
- *    same for Google Maps, so nothing loads from Google in a note: both have
+ *  - Maps never get a player. Apple Maps has none, and Google Maps gets
+ *    none either, so nothing loads from Google in a note: both have
  *    a null embedUrl. The app shows Athena's own still of the spot (GET
  *    /api/link-map), and "Open map" opens the maps app the owner picked for
  *    this device in Settings (mapAppUrl).
@@ -63,7 +63,7 @@ export const PROVIDER_NAMES: Record<EmbedProvider, string> = {
   framer: "Framer",
 };
 
-/** Every host a player loads from: the CSP `frame-src` allowlist stage 2 adds to netlify.toml. */
+/** Every host a player loads from: the CSP `frame-src` allowlist in netlify.toml. */
 export const EMBED_FRAME_HOSTS = [
   "https://www.youtube-nocookie.com",
   "https://player.vimeo.com",
@@ -272,7 +272,7 @@ function googleMaps(u: URL, host: string): Embed | null {
   }
   const spot = googleSpot(u);
   if (!spot.at && !spot.q) return null;
-  // Like Apple Maps (the owner's answer): no player, so nothing loads from Google in a note.
+  // Like Apple Maps: no player, so nothing loads from Google in a note.
   return {
     provider: "google-maps",
     kind: "map",

@@ -382,8 +382,8 @@ export const placeDeps = { geocode: (address: string) => geocodeAddress(address)
 
 /**
  * A Place's spot: its sealed coordinates from visits (place_geo) first, else
- * where its typed address is (looked up once and cached; the owner chose this
- * so every place with an address gets a map). Null when there's neither. The
+ * where its typed address is (looked up once and cached, so every place with
+ * an address gets a map). Null when there's neither. The
  * looked-up spot isn't written to place_geo, so it never changes which visits
  * match the place.
  */

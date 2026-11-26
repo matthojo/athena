@@ -7,8 +7,8 @@
  *    migration seeded every goal's value once, so there's always a baseline.
  *  - seen: calendar events in the period with a named person at a place
  *    (edges from the event to a person and to a place, or the event's own
- *    person). The owner counts these as seeing someone, beside logged
- *    in-person catch-ups (decision 2026-11-08).
+ *    person). These count as seeing someone, beside logged in-person
+ *    catch-ups.
  *  - known_places: the names of places visited in the eight weeks before
  *    the period, so the app can mark a first visit.
  */

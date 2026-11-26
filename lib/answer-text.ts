@@ -144,7 +144,7 @@ export interface AnswerReply {
  * LIVE_ONLY_KEPT (the app and lib/ask-threads.ts both follow the answer's `live_only`, which is set only while this
  * is on). False, such answers are kept like any other.
  */
-// Off (owner, 12 Nov): an answer about a teammate stays in the chat like any other, and can be deleted.
+// Off: an answer about a teammate stays in the chat like any other, and can be deleted.
 export const LIVE_ANSWERS_NOT_KEPT = false;
 
 /** What a chat keeps of an answer read live from the work accounts, in place of its text and sources. */

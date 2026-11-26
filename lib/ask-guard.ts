@@ -18,7 +18,7 @@
  *    already queued waits for Go too.
  *  - A Team assistant's unattended run has no message from the owner. Its
  *    allowlist (what the owner ticked it may do alone) is their standing
- *    request (owner, 13 Nov 2026): a change on it runs alone, whatever
+ *    request: a change on it runs alone, whatever
  *    started the run or was read in it. A change not on it waits for Go. A
  *    flag still takes every write tool away, allowlisted or not. The guard
  *    is given the allowlist when the turn starts; nothing reads it from a
@@ -36,7 +36,7 @@ export type ReadFrom = "account" | "web" | "file" | "collected";
 /**
  * Was this note collected (from email, a meeting, another account) rather than written by the owner? Its
  * `source` says: the owner's own notes are `manual` (typed) or `app` (made in the app, or by Ask for them).
- * Anything else, and a note with no source at all, counts as other people's words (owner, 12 Nov 2026).
+ * Anything else, and a note with no source at all, counts as other people's words.
  */
 export const isCollected = (source: string | null | undefined): boolean => source !== "manual" && source !== "app";
 
