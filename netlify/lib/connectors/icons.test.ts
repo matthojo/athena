@@ -116,3 +116,71 @@ test("publicFetch never connects to an internal address, even when one is listen
 test("publicFetch is https only", async () => {
   await assert.rejects(publicFetch("http://example.com/"), /https only/);
 });
+
+// ---------- IP literals, which connect without a lookup ----------
+import { isInternalLiteral, redirectedInit } from "./icons";
+
+test("publicFetch refuses internal IP literals, which never reach the socket's lookup", async (t) => {
+  let connected = false;
+  const server = createServer((s) => {
+    connected = true;
+    s.destroy();
+  });
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  t.after(() => server.close());
+  const port = (server.address() as { port: number }).port;
+  for (const u of [`https://127.0.0.1:${port}/`, `https://[::1]:${port}/`, "https://10.1.2.3/", "https://[::ffff:127.0.0.1]/", "https://[fe80::1]/", "https://2130706433/"]) {
+    await assert.rejects(publicFetch(u), /private network/, u);
+  }
+  assert.equal(connected, false);
+});
+
+test("isInternalLiteral judges literals only, brackets and all", () => {
+  assert.equal(isInternalLiteral(new URL("https://[::1]/")), true);
+  assert.equal(isInternalLiteral(new URL("https://192.168.0.1/")), true);
+  assert.equal(isInternalLiteral(new URL("https://[2606:4700::1111]/")), false);
+  assert.equal(isInternalLiteral(new URL("https://8.8.8.8/")), false);
+  assert.equal(isInternalLiteral(new URL("https://example.com/")), false);
+});
+
+test("publicFetch keeps its checks when globalThis.fetch is replaced outside the test runner", async (t) => {
+  const real = globalThis.fetch;
+  const context = process.env.NODE_TEST_CONTEXT;
+  let stubbed = false;
+  globalThis.fetch = (async () => {
+    stubbed = true;
+    return new Response("ok");
+  }) as typeof fetch;
+  delete process.env.NODE_TEST_CONTEXT;
+  t.after(() => {
+    globalThis.fetch = real;
+    if (context !== undefined) process.env.NODE_TEST_CONTEXT = context;
+  });
+  await assert.rejects(publicFetch("https://127.0.0.1/"), /private network/);
+  assert.equal(stubbed, false);
+});
+
+test("a redirect to another origin drops credentials; a 303 becomes a GET", () => {
+  const init: RequestInit = {
+    method: "POST",
+    body: "x",
+    headers: { Authorization: "Bearer t", Cookie: "a=b", "Proxy-Authorization": "p", "Content-Type": "text/plain", Accept: "application/json" },
+  };
+  assert.equal(redirectedInit(init, 307, new URL("https://a.example.com/x"), new URL("https://a.example.com/y")), init);
+  const cross = redirectedInit(init, 307, new URL("https://a.example.com/x"), new URL("https://b.example.com/y"));
+  const h = new Headers(cross.headers);
+  assert.equal(h.get("authorization"), null);
+  assert.equal(h.get("cookie"), null);
+  assert.equal(h.get("proxy-authorization"), null);
+  assert.equal(h.get("accept"), "application/json");
+  assert.equal(cross.method, "POST");
+  assert.equal(cross.body, "x");
+  const seeOther = redirectedInit(init, 303, new URL("https://a.example.com/x"), new URL("https://a.example.com/y"));
+  assert.equal(seeOther.method, "GET");
+  assert.equal(seeOther.body, undefined);
+  assert.equal(new Headers(seeOther.headers).get("authorization"), "Bearer t");
+  assert.equal(new Headers(seeOther.headers).get("content-type"), null);
+  // Another port is another origin.
+  const port = redirectedInit(init, 302, new URL("https://a.example.com/"), new URL("https://a.example.com:8443/"));
+  assert.equal(new Headers(port.headers).get("authorization"), null);
+});
