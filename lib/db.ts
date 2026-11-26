@@ -518,11 +518,18 @@ export async function createNote(input: {
  * Change a note. A change to the title or body first keeps what was there in
  * note_versions (lib/note-versions.ts; 0061), whoever is making it, so any
  * overwrite can be put back. The stored values are copied as they are (still
- * sealed) and the newest 20 per note stay. `by` says what is making the
- * change: 'mcp', 'api', 'restore', …, or 'owner' for the app's own editor.
+ * sealed). `by` says what is making the change: 'mcp', 'api', 'restore', …,
+ * or 'owner' for the app's own editor.
  * The owner's typing saves every few seconds, so it is grouped: an 'owner'
  * change keeps nothing while the note's newest version is itself an 'owner'
  * one from the last 10 minutes (that version already holds where they started).
+ *
+ * Each version also says what wrote it (`written_by`, 0094): what made the
+ * change before. Two allowances are kept per note: the newest 20 the owner
+ * wrote ('owner' or 'restore', or not known) and the newest 30 anyone else
+ * wrote (lib/note-versions.ts). A change the owner didn't make only drops
+ * versions of the second kind, so no number of edits by an MCP client, a run
+ * or a script pushes the owner's own words out of the history.
  */
 export async function updateNote(
   id: string,
@@ -533,19 +540,27 @@ export async function updateNote(
   if (patch.title !== undefined || patch.body !== undefined) {
     const [was] = await q<{ title: string; body: string }>(`SELECT title, body FROM notes WHERE id = $1`, [id]);
     if (was && ((patch.body !== undefined && patch.body !== was.body) || (patch.title !== undefined && patch.title !== was.title))) {
-      // One statement: the copy, and dropping all but the newest 19 older ones (20 with this one).
+      // One statement: the copy, then each allowance trimmed (the new version, unseen by `ranked`, takes one place in
+      // its own). The owner's versions are trimmed only by a change the owner made.
       await q(
         `WITH kept AS (
-           INSERT INTO note_versions (note_id, title, body, changed_by)
-           SELECT id, title, body, $2::text FROM notes WHERE id = $1
+           INSERT INTO note_versions (note_id, title, body, changed_by, written_by)
+           SELECT id, title, body, $2::text,
+             (SELECT changed_by FROM note_versions WHERE note_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1)
+           FROM notes WHERE id = $1
              AND NOT ($2::text IS NOT DISTINCT FROM 'owner' AND COALESCE((
                SELECT changed_by = 'owner' AND created_at > now() - interval '10 minutes'
                FROM note_versions WHERE note_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1), false))
-           RETURNING note_id
+           RETURNING note_id, COALESCE(written_by IN ('owner', 'restore'), true) AS owners
+         ),
+         ranked AS (
+           SELECT id, owners, row_number() OVER (PARTITION BY owners ORDER BY created_at DESC, id DESC) AS n
+           FROM (SELECT id, created_at, COALESCE(written_by IN ('owner', 'restore'), true) AS owners FROM note_versions WHERE note_id = $1) v
          )
-         DELETE FROM note_versions v USING kept
-         WHERE v.note_id = kept.note_id
-           AND v.id IN (SELECT id FROM note_versions WHERE note_id = $1 ORDER BY created_at DESC, id DESC OFFSET 19)`,
+         DELETE FROM note_versions v USING kept, ranked
+         WHERE v.note_id = kept.note_id AND v.id = ranked.id
+           AND ranked.n > (CASE WHEN ranked.owners THEN 20 ELSE 30 END) - (CASE WHEN ranked.owners = kept.owners THEN 1 ELSE 0 END)
+           AND (NOT ranked.owners OR COALESCE($2::text IN ('owner', 'restore'), false))`,
         [id, opts.by?.slice(0, 40) ?? null],
       );
     }
