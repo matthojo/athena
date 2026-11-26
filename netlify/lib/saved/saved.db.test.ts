@@ -199,7 +199,7 @@ test("Saved: capture key, readable copy, images, quotes, CORS, the app's routes 
 
   // ---- the app: list, filter, search, the day ----
   r = await send("GET", "/saved");
-  assert.equal(r.body.counts.all, 7);
+  assert.equal(r.body.counts.all, 9);
   assert.equal(r.body.counts.image, 2);
   assert.equal(r.body.items[0].kind, "snippet", "newest first");
   r = await send("GET", "/saved?kind=quote");
@@ -210,7 +210,7 @@ test("Saved: capture key, readable copy, images, quotes, CORS, the app's routes 
   r = await send("GET", `/saved?q=${encodeURIComponent("offsite")}`);
   assert.equal(r.body.items[0].id, link.id, "found by its note");
   r = await send("GET", `/saved?day=${link.saved_on}`);
-  assert.equal(r.body.items.length, 7);
+  assert.equal(r.body.items.length, 9);
 
   // Edit, archive, bring back, delete (its image goes too).
   r = await send("PATCH", `/saved/${link.id}`, { json: { title: "Sleep and learning", tags: ["#sleep", "talk"] } });
@@ -218,7 +218,7 @@ test("Saved: capture key, readable copy, images, quotes, CORS, the app's routes 
   assert.deepEqual(r.body.tags, ["sleep", "talk"]);
   r = await send("PATCH", `/saved/${link.id}`, { json: { archived: true } });
   assert.equal(r.body.archived, true);
-  assert.equal((await send("GET", "/saved")).body.counts.all, 6);
+  assert.equal((await send("GET", "/saved")).body.counts.all, 8);
   await send("PATCH", `/saved/${link.id}`, { json: { archived: false } });
   r = await send("POST", `/saved/${link.id}/refetch`);
   assert.equal(r.body.fetch_status, "ok");
