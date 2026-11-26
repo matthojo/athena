@@ -68,11 +68,17 @@ export function dueTriggerSlot(t: TeamTrigger, a: Pick<TeamAssistant, "paused">,
   return dueSlot({ days: t.days, time: t.time, paused: t.paused || a.paused, last_slot: t.last_slot, created_at: t.created_at }, now, tz);
 }
 
+/**
+ * An event an agent made (`facets.by` "agent": a tagged note made over MCP). Imported assistants and flows, written
+ * by someone else, don't start on one, so an agent can't set off someone else's instructions; the owner's own do. Pure.
+ */
+export const fromAgent = (ev: Pick<TeamEventRow, "facets">): boolean => ev.facets?.by === "agent";
+
 /** Which assistants' event triggers an event fires, each assistant once (its first matching trigger). Pure. */
 export function eventMatches(ev: Pick<TeamEventRow, "kind" | "facets" | "created_at">, assistants: TeamAssistant[]): Array<{ assistant: TeamAssistant; trigger: TeamTrigger }> {
   const out: Array<{ assistant: TeamAssistant; trigger: TeamTrigger }> = [];
   for (const a of assistants) {
-    if (a.paused) continue;
+    if (a.paused || (a.imported && fromAgent(ev))) continue;
     const t = a.triggers.find((t) => firesHere(t) && t.kind === "event" && !t.paused && t.event && Date.parse(t.created_at) <= Date.parse(ev.created_at) && matchesFilter(t.event, ev));
     if (t) out.push({ assistant: a, trigger: t });
   }

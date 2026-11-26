@@ -48,6 +48,17 @@ test("eventMatches: each assistant once, not when paused, not for events before 
   assert.deepEqual(got.map((m) => [m.assistant.id, m.trigger.id]), [["one", "t1"]]);
 });
 
+test("eventMatches: an event an agent made starts the owner's assistants, not imported ones", () => {
+  const trig = (id: string): TeamTrigger => ({ id, assistant_id: "a", kind: "event", days: [], time: null, event: { source: "note", tag: "trip" }, paused: false, last_slot: null, last_fired_at: null, created_at: "2026-11-01T00:00:00.000Z" });
+  const own = { id: "own", paused: false, triggers: [trig("t1")] } as unknown as TeamAssistant;
+  const imported = { id: "imported", paused: false, imported: true, triggers: [trig("t2")] } as unknown as TeamAssistant;
+  const byAgent = ev("note", { tags: ["trip"], title: "Kyoto", by: "agent" });
+  assert.deepEqual(eventMatches(byAgent, [own, imported]).map((m) => m.assistant.id), ["own"]);
+  const byOwner = ev("note", { tags: ["trip"], title: "Kyoto" });
+  assert.deepEqual(eventMatches(byOwner, [own, imported]).map((m) => m.assistant.id), ["own", "imported"]);
+  assert.equal(cleanFacets({ by: "agent" }).by, "agent", "the mark survives being kept");
+});
+
 test("a schedule trigger's slot uses routines' maths and stops while paused", () => {
   const t = { id: "t", assistant_id: "a", kind: "schedule", days: [3], time: "10:00", event: null, paused: false, last_slot: null, last_fired_at: null, created_at: "2026-01-01T00:00:00.000Z" } as TeamTrigger;
   const now = new Date("2026-11-11T10:05:00Z"); // a Wednesday; London is on UTC in November
