@@ -1338,7 +1338,7 @@ CREATE TABLE IF NOT EXISTS ask_skills (
 -- What a note held before each change to its title or body, whoever made it
 -- (the owner's typing grouped to one per 10 minutes): lib/note-versions.ts.
 -- `title` and `body` are sealed like the note's. `changed_by` is what replaced
--- a version, `written_by` what wrote it (0094; null when unknown). The newest
+-- a version, `written_by` what wrote it (0095; null when unknown). The newest
 -- 20 the owner wrote and the newest 30 anyone else wrote are kept per note.
 CREATE TABLE IF NOT EXISTS note_versions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -1,4 +1,4 @@
-// A note's earlier versions on real Postgres (lib/note-versions.ts, updateNote in lib/db.ts; 0061, 0094): each
+// A note's earlier versions on real Postgres (lib/note-versions.ts, updateNote in lib/db.ts; 0061, 0095): each
 // version says what wrote it, and edits the owner didn't make, however many, only push out versions someone else
 // wrote. The owner's own allowance is trimmed only by the owner's own changes.
 // Run: ATHENA_TEST_DB_URL=postgres://… npx tsx --test lib/note-versions.db.test.ts
@@ -86,7 +86,7 @@ test("a change that doesn't say what made it (a run, a collection) counts as som
   assert.equal(bodies.filter((b) => b.startsWith("Run text")).length, NOTE_VERSIONS_OTHERS);
 });
 
-test("versions kept before 0094 say nothing about who wrote them, and count as the owner's", { skip }, async () => {
+test("versions kept before 0095 say nothing about who wrote them, and count as the owner's", { skip }, async () => {
   const { updateNote, qRaw } = await import("./db");
   const id = await ownersNote(3);
   await qRaw(`UPDATE note_versions SET written_by = NULL WHERE note_id = $1`, [id]);

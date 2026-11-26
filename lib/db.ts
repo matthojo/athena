@@ -524,7 +524,7 @@ export async function createNote(input: {
  * change keeps nothing while the note's newest version is itself an 'owner'
  * one from the last 10 minutes (that version already holds where they started).
  *
- * Each version also says what wrote it (`written_by`, 0094): what made the
+ * Each version also says what wrote it (`written_by`, 0095): what made the
  * change before ('' when that change didn't say; null when there was none).
  * Two allowances are kept per note: the newest 20 the owner wrote ('owner' or
  * 'restore', or null) and the newest 30 anyone else wrote (lib/note-versions.ts). A change the owner didn't make only drops

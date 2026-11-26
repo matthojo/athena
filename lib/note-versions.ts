@@ -8,7 +8,7 @@
  * grouped: at most one version per 10 minutes. Here: listing them, and
  * putting one back.
  *
- * Two allowances per note (0094): the newest NOTE_VERSIONS_OWNERS versions
+ * Two allowances per note (0095): the newest NOTE_VERSIONS_OWNERS versions
  * the owner wrote, and the newest NOTE_VERSIONS_OTHERS anyone else wrote. A
  * change the owner didn't make only drops versions of the second kind, so
  * another program's edits, however many, can't push the owner's own words out.

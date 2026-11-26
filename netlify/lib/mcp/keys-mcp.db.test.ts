@@ -227,7 +227,7 @@ test("MCP reads are labelled as content, and an overwrite keeps the earlier vers
   // An MCP-only key can't reach the versions over REST.
   assert.equal((await rest("GET", `/notes/${note.id}/versions`, mcpKey)).status, 401);
 
-  // Changes that don't say who made them keep the newest 30 of their own; the owner's words stay (0094).
+  // Changes that don't say who made them keep the newest 30 of their own; the owner's words stay (0095).
   const { updateNote } = await import("../../../lib/db");
   for (let i = 1; i <= 35; i++) await updateNote(note.id, { body: `Draft ${i}` });
   kept = await versions();
