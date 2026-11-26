@@ -1429,8 +1429,7 @@ Merge a duplicate.
 The reminders function adds: to-dos due, renewals, quiet waiting-ons (5+
 days) and the Inbox to the morning briefing; who a meeting is with,
 when you last spoke and what's open between you to the 30-minute push; and a
-Sunday 18:00 weekly-review push. The collection-agent specs say how to
-extract all of this (see `.claude/agents/`).
+Sunday 18:00 weekly-review push.
 
 ### Trips and purchases, from email
 
@@ -2665,12 +2664,9 @@ Two different problems get two different mechanisms, deliberately not one:
   infrastructure, no stored copy, no staleness to manage — because nothing is
   stored.
 - **"What happened over time" (needs history / durability / trend data)** is
-  answered by scheduled collection agents, specified in `.claude/agents/` —
-  `calendar-meetings`, `work-activity`, `email-digest`, `finance`. These are
-  the only four domains that justify durable storage, because they're the
-  ones where the interesting signal is a trend or a historical record (meeting
-  load over weeks, issue throughput, "did I see that email"), not just current
-  state.
+  answered by scheduled collections ("Connectors" below), which keep what has
+  a trend or a history worth having (meeting load over weeks, issue
+  throughput, "did I see that email"), not just current state.
 
 Running every domain as a scheduled snapshot would mean storing — and keeping
 in sync — a shadow copy of data that's already available live and cheaply via
@@ -2679,13 +2675,6 @@ MCP, for no benefit. Running none of them as scheduled snapshots would mean no
 idea would have nothing to draw on. Splitting by domain, based on whether
 history actually matters for that domain, is the point of the hybrid: it
 stores only what needs remembering and queries live for everything else.
-
-As documented in `README.md`, `calendar-meetings`, `work-activity`, and
-`email-digest` are now registered as live scheduled Claude cloud routines
-(2026-11-05) — the first real OAuth pulls against Gmail, Calendar, Linear, and
-Slack. `finance` remains a spec only; registering it (the first real pull
-against Stripe/financial data) is a deliberate, separate decision the user
-makes later.
 
 ## Manual entry: every log takes one
 
@@ -2720,12 +2709,8 @@ come from a Timeline file and Swarm, and now one visit at a time by hand
 
 ## Connectors: Athena as an MCP client
 
-The routines above run as Claude cloud sessions, and that model has limits
-that matter here: a claude.ai account has one connector per service, so a
-work and a personal Gmail can't both feed one routine without a second
-account; the read-only rules live only in a prompt; and the data path runs
-outside Athena. So collection now also runs **inside Athena**, which is an
-MCP *client* as well as a server:
+Collection runs **inside Athena**, which is an MCP *client* as well as a
+server:
 
 - **`connectors`** — one row per signed-in account: the MCP server URL, how
   it signs in (OAuth 2.1 with PKCE and dynamic client registration, your own
@@ -2785,10 +2770,9 @@ delete tool for it, and its one archive tool reaches only records that
 collection wrote itself (`SECURITY.md` §9). Claude is reached via Netlify AI Gateway (`new Anthropic()`
 with injected credentials); the model defaults to Claude Sonnet 5.5
 (`ATHENA_COLLECTOR_MODEL` overrides), and a 429 from the gateway's
-per-minute spend cap makes the run wait for the next minute, not fail. The recipes in
-`netlify/lib/connectors/recipes.ts` are the `.claude/agents/*.md` specs,
-with the rules that could only be requested of a routine now enforced in
-code. The REST surface is in `netlify/lib/connectors/routes.ts` and the
+per-minute spend cap makes the run wait for the next minute, not fail. The recipes are in
+`netlify/lib/connectors/recipes.ts`, and the rules they ask for are enforced
+in code. The REST surface is in `netlify/lib/connectors/routes.ts` and the
 PWA's Connectors live in Settings, a page each for Accounts, Collections,
 Voice and From your iPhone (`app/src/components/connector-settings.ts`);
 old `#/connectors` links redirect there.
@@ -3226,16 +3210,8 @@ athena/
 │   ├── vite.config.ts
 │   └── src/
 │       └── styles/
-├── scripts/
-│   └── export-obsidian.ts
-└── .claude/
-    └── agents/
-        ├── calendar-meetings.md
-        ├── calendar-ahead.md   # spec: the week's meetings as events, linked to people
-        ├── inbox-triage.md     # spec: captures -> to-dos, facts, events
-        ├── work-activity.md
-        ├── email-digest.md
-        └── finance.md
+└── scripts/
+    └── export-obsidian.ts
 ```
 
 ## Other ideas noted for later
@@ -3249,9 +3225,8 @@ lost.
 
 ## Current status
 
-The schema, data-access layer, MCP server scaffold, REST API, PWA scaffold,
-export script, and collection-agent specs described above are the system as
-built. Still outstanding, each a deliberate separate decision rather than an
+The schema, data-access layer, MCP server scaffold, REST API, PWA scaffold
+and export script described above are the system as built. Still outstanding, each a deliberate separate decision rather than an
 oversight:
 
 - Provisioning the live Netlify DB (`netlify database init`) and applying
@@ -3260,19 +3235,10 @@ oversight:
   Netlify's runtime (nice-to-know; the architecture doesn't depend on the
   answer either way).
 - Deploying the Function API, MCP server, and PWA to production; setting the
-  MCP shared secret; attaching the Athena MCP server as a connector at
-  `claude.ai/customize/connectors` (needed before the three live routines
-  below can actually write data — see `PROGRESS.md`); installing the PWA on a
-  phone.
+  MCP shared secret; installing the PWA on a phone.
 - Setting `SITE_PASSWORD` and `SESSION_SECRET` (see `SECURITY.md` section 6 —
   the browser-pages login gate, `netlify/edge-functions/site-auth.ts`, with
   `login-limit.ts` beside it carrying the rate limit on `POST /login`) —
   without these the edge function fails closed with a 503 rather than serving
   the site unauthenticated or unlocked.
-- `calendar-meetings`, `work-activity`, and `email-digest` are registered as
-  live Claude cloud routines (see `PROGRESS.md`) but can't write to Athena
-  until the connector step above is done; `finance` remains unregistered.
-  The owner decided on 9 Nov 2026 to turn these routines off on claude.ai
-  and rotate the master token (`docs/security-review/README.md`, H2);
-  collection inside Athena ("Connectors" above) is the path that stays.
 - Wiring the Siri Shortcut.

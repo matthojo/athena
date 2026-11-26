@@ -1,9 +1,6 @@
 /**
- * What each collection recipe asks the model to do. These are the
- * `.claude/agents/*.md` specs (and the routine prompts in
- * .claude/skills/register-collection-agent) moved into Athena itself — but
- * the rules those prompts could only *ask* for are now enforced in code by
- * runner.ts: source tools are filtered to the account's read-only allowlist,
+ * What each collection recipe asks the model to do. The rules a prompt can
+ * only *ask* for are enforced in code by runner.ts: source tools are filtered to the account's read-only allowlist,
  * the `source` tag and metric suffix are applied by Athena, dedup is by
  * external id, and there is no delete or archive tool at all.
  *

@@ -9,10 +9,10 @@
  * This deliberately replaces Netlify's built-in site-wide password
  * protection rather than layering on top of it: that feature gates every
  * request at the edge, including /api/* and /mcp, with interactive Basic
- * Auth. Claude's cloud routines and the Athena MCP connector only ever send
+ * Auth. MCP clients, the browser extension and Shortcuts only ever send
  * `Authorization: Bearer <token>` — they can't complete a Basic Auth
- * challenge — so turning it on would lock out collection agents along with
- * everyone else. /api/* and /mcp are passed straight through here, untouched,
+ * challenge — so turning it on would lock them out along with everyone
+ * else. /api/* and /mcp are passed straight through here, untouched,
  * and keep using the bearer-token check in netlify/lib/mcp/bearer.ts.
  *
  * Session model: one shared password (env var SITE_PASSWORD) — this is a
@@ -24,8 +24,8 @@
  * MCP_BEARER_TOKEN already makes for the API.
  *
  * SESSION_SECRET is a separate secret from MCP_BEARER_TOKEN on purpose: the
- * bearer token is handed to every MCP connector and collection-agent
- * routine's config, while the session secret never leaves this function — a
+ * bearer token is handed to the clients that call /api and /mcp, while the
+ * session secret never leaves this function — a
  * leaked connector token can't be used to forge a browser session cookie.
  */
 

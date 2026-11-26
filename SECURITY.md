@@ -68,9 +68,7 @@ one unsealed.
 name, value and metadata are stored as they arrive (§11). Nothing in code
 keeps a health or money figure out of them. The guard is a prompt rule
 only: `upsert_metric`'s description and the collection recipes tell the
-model not to record one, and `createNote` is covered the same way. See
-`.claude/agents/finance.md` for how the finance spec draws this line: it
-writes no figures at all, only that a snapshot was taken.
+model not to record one, and `createNote` is covered the same way.
 
 The owner's own fields (custom fields, §11) aren't a way around it either:
 a field named for a bank, card, password or medical detail ("Card number",

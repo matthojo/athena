@@ -10,7 +10,6 @@ and who can read it, see [SECURITY.md](SECURITY.md).
 - [Connectors: Athena collects from your accounts itself](#connectors-athena-collects-from-your-accounts-itself)
 - [Encryption at rest](#encryption-at-rest)
 - [Your own keys: AI providers and notifications](#your-own-keys-ai-providers-and-notifications)
-- [Collection agents as Claude routines (optional)](#collection-agents-as-claude-routines-optional)
 
 ## Ask: questions and instructions
 
@@ -187,7 +186,7 @@ or calls fail with `403 mismatched_client_ip`.
 
 Athena signs in to remote MCP servers itself (Gmail, Google Calendar,
 Granola, Linear, Slack, GitHub, Notion, or any Streamable HTTP MCP server)
-and collects from them on a schedule, without a Claude routine in between.
+and collects from them on a schedule.
 Each **connector** is one signed-in account, so the same service can be
 added as often as you like: *Work Gmail* and *Personal Gmail* are two rows,
 each with its own label, and everything they produce stays apart
@@ -456,23 +455,3 @@ Keeping the pair yourself means push doesn't depend on the data key, and
 the pair stays the same if you rebuild the database. A private key you lose
 can be replaced: make a new pair, and open Settings → Notifications on each
 device.
-
-## Collection agents as Claude routines (optional)
-
-Before connectors, collection ran as scheduled Claude cloud routines, and
-that still works if you'd rather. `.claude/agents/` holds the specs for
-`calendar-meetings`, `work-activity`, `email-digest` and `finance`: what each
-reads, through read-only MCP connectors on your claude.ai account, and what
-it writes back through the Athena MCP server's tools. The `finance` spec
-writes no figures, only that a snapshot was taken (`SECURITY.md` §1).
-
-`.claude/skills/register-collection-agent/SKILL.md` registers one as a
-routine on whichever claude.ai account your Claude Code session is signed in
-to, with a source label so work and personal data stay apart. Open this repo
-in Claude Code and run the skill; it checks the connectors, builds the
-prompt and sets the schedule.
-
-Connectors (above) do the same job inside Athena, with any number of
-accounts per service and the read-only rule enforced in code. If a
-connector-based collection covers a domain, turn the matching routine off
-at claude.ai/code/routines so the two don't both write.
