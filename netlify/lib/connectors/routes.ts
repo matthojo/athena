@@ -12,7 +12,7 @@
  *                                               google_route ("direct" or "mcp": how Gmail or Calendar reaches Google);
  *                                               custom servers: approve_tools: [names] (a changed tool, at its new text),
  *                                               use_in_ask and share_collections (booleans, both off by default)
- *   DELETE /api/connectors/:id                  remove it and its stored credentials
+ *   DELETE /api/connectors/:id                  remove it and its stored credentials, and revoke the sign-in where the provider can (revoke.ts)
  *   POST   /api/connectors/:id/sign-in          → { authorization_url } to open
  *   POST   /api/connectors/:id/check            list its tools now
  *   GET    /api/connectors/oauth/callback       (no bearer) provider redirect target
@@ -43,7 +43,6 @@ import {
   approveTools,
   createConnector,
   deleteCollection,
-  deleteConnector,
   getCollection,
   getConnector,
   getConnectorWithSecrets,
@@ -55,6 +54,7 @@ import {
   ownClientFrom,
   ownClientsSummary,
   queueRun,
+  sameOrigin,
   setAllowedTools,
   setConnectorStatus,
   updateConnector,
@@ -88,6 +88,7 @@ import {
 } from "../../../lib/connector-presets";
 import { isMicrosoftProvider } from "../../../lib/presets/microsoft";
 import { directFor } from "./direct";
+import { disconnectConnector } from "./revoke";
 import { LifeApiError } from "./lifelog-b-http";
 import { forgetBackfill } from "./money-sync";
 import { withoutAccount } from "../../../lib/presets/octopus-meters";
@@ -105,6 +106,7 @@ import { triggerRuns } from "./trigger";
 import { readRules } from "../../../lib/mail-rules";
 import { DataKeyMissing } from "../../../lib/data-box";
 import { zonedToday } from "../../../lib/dates";
+import { siteOrigin } from "../site-origin";
 
 /** Accounts whose email the owner's mail rules govern (lib/mail-rules.ts). */
 const READS_MAIL = new Set(["gmail", "outlook-mail", "fastmail"]);
@@ -376,6 +378,10 @@ async function patchConnector(id: string, b: Record<string, unknown>) {
   // A new client, new endpoints or a new grant make the stored sign-in
   // meaningless (tokens and registrations are bound to the old server).
   const signOut = connector.auth_type === "oauth" && (!!clientId || oauthChanged);
+  // A new host gets none of the old sign-in (lib/connectors.ts clears it), so the
+  // address moves first and a key pasted with it is sealed for the new one.
+  const hostMoved = urlChanged && !sameOrigin(connector.url, newUrl!);
+  if (hostMoved) await updateConnector(id, { url: newUrl });
   // iCloud: the accounts that shared the old password get the new one too.
   const siblings = (token || username) && presetFor(connector.provider).username ? await sharingKey(id, (await getConnectorWithSecrets(id))?.secrets ?? {}) : [];
   if (token || username || signOut || scopeChanged || secretOnly) {
@@ -435,14 +441,16 @@ async function patchConnector(id: string, b: Record<string, unknown>) {
     if (connector.provider !== "octopus" || withoutAccount(connector.url) !== withoutAccount(newUrl)) {
       await forgetBackfill(id);
       await forgetHistory(id);
-      if (!token) await setConnectorStatus(id, "pending", "New address saved. Check tools to confirm it works");
+      // A moved account that needs a key or sign-in already says so.
+      if (!token && !(hostMoved && connector.auth_type !== "none")) await setConnectorStatus(id, "pending", "New address saved. Check tools to confirm it works");
     }
   }
   // Custom servers only: whether Ask's answers may use it, and whether it may share a collection with other accounts.
   const custom = isCustomServer(connector.provider);
   const use_in_ask = custom && typeof b.use_in_ask === "boolean" ? b.use_in_ask : undefined;
   const share_collections = custom && typeof b.share_collections === "boolean" ? b.share_collections : undefined;
-  const updated = await updateConnector(id, { name: str(b, "name"), account_label: str(b, "account_label"), scope, calendars, use_in_ask, share_collections, ...save });
+  // Google's API and MCP addresses are both Google's, so a route switch keeps the sign-in.
+  const updated = await updateConnector(id, { name: str(b, "name"), account_label: str(b, "account_label"), scope, calendars, use_in_ask, share_collections, ...save }, { keepSignIn: !!route });
   if (!updated) throw new AthenaInputError("Account not found", 404);
   // iCloud has no sign-in to finish: answers given while its invites switch was off go out now.
   if (connector.provider === "icloud-calendar" && canRsvp(updated) && !canRsvp(connector)) await sendPendingAnswers(id, { calendar: calendarPort }).catch(() => 0);
@@ -541,7 +549,7 @@ export async function handleOAuthCallback(req: Request, url: URL): Promise<Respo
 async function loadHistory(id: string, origin: string, opts: { again?: boolean } = {}): Promise<void> {
   try {
     const had = await getBackfill(id);
-    await startBackfill(id, origin, { again: opts.again || had?.state === "failed" || had?.state === "blocked" });
+    await startBackfill(id, siteOrigin(origin), { again: opts.again || had?.state === "failed" || had?.state === "blocked" });
   } catch (error) {
     console.error("Athena connectors: starting the history load failed", error instanceof Error ? error.message : "unknown error");
   }
@@ -587,7 +595,7 @@ export async function handleConnectorRoutes(req: Request, url: URL, segments: st
         if ((await getBackfill(second))?.state === "blocked") await loadHistory(second, origin, { again: true });
         return json(patched);
       }
-      if (m === "DELETE") return (await deleteConnector(second)) ? json({ deleted: true }) : json({ error: "Not found" }, 404);
+      if (m === "DELETE") return (await disconnectConnector(second)) ? json({ deleted: true }) : json({ error: "Not found" }, 404);
       return json({ error: "Method not allowed" }, 405);
     }
     // Every calendar on the account, for choosing which ones Athena reads (iCloud saves the choice as `scope`, Google and Outlook as `calendars`).
@@ -639,7 +647,7 @@ export async function handleConnectorRoutes(req: Request, url: URL, segments: st
       const takeout = c.provider === "youtube" ? await lastImport(c.id) : null;
       if (m === "GET") return json({ ...status, takeout });
       if (m === "POST") {
-        await startBackfill(c.id, origin, { again: true });
+        await startBackfill(c.id, siteOrigin(origin), { again: true });
         return json({ ...(await backfillStatus(c)), takeout }, 202);
       }
       return json({ error: "Method not allowed" }, 405);
@@ -736,7 +744,7 @@ export async function handleConnectorRoutes(req: Request, url: URL, segments: st
       if (!NO_MODEL_RECIPES.includes(c.recipe) && !aiConfigured()) throw new AthenaInputError("Collections need the Agent: Netlify AI Gateway isn't active on this site yet (see the README)");
       if (await hasOpenRun(second)) throw new AthenaInputError("This collection is already running");
       const run = await queueRun(second, "manual");
-      await triggerRuns(origin, [run.id]);
+      await triggerRuns(siteOrigin(origin), [run.id]);
       return json(run, 202);
     }
     return json({ error: "Not found" }, 404);

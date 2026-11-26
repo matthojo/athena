@@ -1,8 +1,9 @@
 /**
  * Community: the catalogue's files. The catalogue is a separate repository of reviewed items, served as static
- * files. Athena's own server reads two kinds of file from it, and the browser never contacts it:
+ * files. Athena's own server reads three kinds of file from it, and the browser never contacts it:
  *
  *   index.json                 CatalogueIndex: every listed item, and the ids taken down
+ *   index.json.sig             index.json's Ed25519 signature, base64, checked once CATALOGUE_SIGNING_KEYS lists a key
  *   <item.bundle>              CatalogueBundle: one item's files, as text, with their hash
  *
  * In the catalogue repository, each item's folder also holds listing.json (a Listing): the id minted for it when
@@ -36,6 +37,13 @@ export { COMMUNITY_SITE, submitPageUrl } from "./community-site";
 
 export const CATALOGUE_FORMAT = 1;
 export const INDEX_FILE = "index.json";
+export const INDEX_SIGNATURE_FILE = "index.json.sig";
+/**
+ * The public keys index.json may be signed with: Ed25519, each its raw 32 bytes in base64 (scripts/sign-catalogue.ts
+ * prints a key's). While the list is empty, the index is read without a signature. Once a key is listed, an index
+ * whose signature is missing or isn't from a listed key isn't read at all. Two keys at a time during a rotation.
+ */
+export const CATALOGUE_SIGNING_KEYS: readonly string[] = [];
 export const LISTING_FILE = "listing.json";
 
 export const CATALOGUE_LIMITS = {
@@ -206,7 +214,7 @@ const knownItems = z
   .max(CATALOGUE_LIMITS.items)
   .transform((list) => list.filter((raw) => !isUnknownKind(raw)));
 
-export const catalogueIndexSchema: z.ZodType<CatalogueIndex, z.ZodTypeDef, unknown> = z
+export const catalogueIndexSchema: z.ZodType<CatalogueIndex, unknown> = z
   .object({
     format: z.literal(CATALOGUE_FORMAT),
     generated_at: when,
@@ -269,7 +277,7 @@ export const listingSchema: z.ZodType<Listing> = z
 
 // ---------- reading them ----------
 
-function parse<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, text: string, maxBytes: number, file: string): T {
+function parse<T>(schema: z.ZodType<T, unknown>, text: string, maxBytes: number, file: string): T {
   if (text.length > maxBytes || byteLength(text) > maxBytes) throw new CatalogueError(`${file} is over ${maxBytes.toLocaleString("en-GB")} bytes.`);
   let raw: unknown;
   try {
@@ -280,7 +288,7 @@ function parse<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, text: string, max
   return check(schema, raw, file);
 }
 
-function check<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, raw: unknown, file: string): T {
+function check<T>(schema: z.ZodType<T, unknown>, raw: unknown, file: string): T {
   const r = schema.safeParse(raw);
   if (r.success) return r.data;
   const issue = r.error.issues[0];

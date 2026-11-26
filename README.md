@@ -153,12 +153,12 @@ one of these stops and says which.
 Open your site and type your `SITE_PASSWORD`. A guided setup takes it from
 there, in about ten minutes:
 
-- **Connect this device** with your `MCP_BEARER_TOKEN`. Each device gets a key
-  of its own.
 - **Check your site:** Athena checks its environment variables and makes your
   `ATHENA_DATA_KEY` in the browser. You add it in Netlify for the production
   context alone, keep a copy in your password manager, and redeploy; the
   guide waits for the deploy. If you lose this key, you lose your data.
+- **Connect this device** with your `MCP_BEARER_TOKEN`. Each device gets a key
+  of its own, kept under your data key, which is why this comes second.
 - **Your name, your first sources and your phone:** connect a calendar, email
   or work account, add Athena to your Home Screen and turn on notifications.
 

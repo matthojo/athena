@@ -18,12 +18,12 @@ const BOXES = [
   { id: "mb-receipts", name: "Receipts", role: null },
 ];
 const EMAILS = [
-  { id: "M1", threadId: "T1", mailboxIds: { "mb-in": true }, keywords: {}, from: [{ name: "Priya Shah", email: "priya@example.com" }], to: [{ email: "me@fastmail.com" }], subject: "Pricing memo", receivedAt: "2026-11-11T09:00:00Z", preview: "Here's the memo",
-    textBody: [{ partId: "1", type: "text/plain" }], bodyValues: { "1": { value: "Here's the memo.\n\nOn Tue, 10 Nov 2026 at 09:00, Me <me@fastmail.com> wrote:\n> Can you send the memo?" } }, attachments: [{ name: "memo.pdf", disposition: "attachment" }, { name: "logo.png", disposition: "inline" }] },
-  { id: "M2", threadId: "T1", mailboxIds: { "mb-sent": true }, keywords: { $seen: true }, from: [{ email: "me@fastmail.com" }], to: [{ name: "Priya Shah", email: "priya@example.com" }], subject: "Re: Pricing memo", receivedAt: "2026-11-11T10:00:00Z", preview: "Thanks",
+  { id: "M1", threadId: "T1", mailboxIds: { "mb-in": true }, keywords: {}, from: [{ name: "Priya Shah", email: "priya@example.com" }], to: [{ email: "me@fastmail.example" }], subject: "Pricing memo", receivedAt: "2026-11-11T09:00:00Z", preview: "Here's the memo",
+    textBody: [{ partId: "1", type: "text/plain" }], bodyValues: { "1": { value: "Here's the memo.\n\nOn Tue, 10 Nov 2026 at 09:00, Me <me@fastmail.example> wrote:\n> Can you send the memo?" } }, attachments: [{ name: "memo.pdf", disposition: "attachment" }, { name: "logo.png", disposition: "inline" }] },
+  { id: "M2", threadId: "T1", mailboxIds: { "mb-sent": true }, keywords: { $seen: true }, from: [{ email: "me@fastmail.example" }], to: [{ name: "Priya Shah", email: "priya@example.com" }], subject: "Re: Pricing memo", receivedAt: "2026-11-11T10:00:00Z", preview: "Thanks",
     textBody: [{ partId: "1", type: "text/html" }], bodyValues: { "1": { value: "<p>Thanks, <b>reading</b> it now.</p>" } } },
-  { id: "M3", threadId: "T2", mailboxIds: { "mb-receipts": true }, keywords: { $seen: true, $flagged: true }, from: [{ name: "Shop", email: "orders@shop.example" }], to: [{ email: "me@fastmail.com" }], subject: "Your receipt", receivedAt: "2026-11-10T08:00:00Z", preview: "Order 123" },
-  { id: "M4", threadId: "T1", mailboxIds: { "mb-drafts": true }, keywords: { $draft: true }, from: [{ email: "me@fastmail.com" }], subject: "Re: Pricing memo", receivedAt: "2026-11-11T11:00:00Z", preview: "draft" },
+  { id: "M3", threadId: "T2", mailboxIds: { "mb-receipts": true }, keywords: { $seen: true, $flagged: true }, from: [{ name: "Shop", email: "orders@shop.example" }], to: [{ email: "me@fastmail.example" }], subject: "Your receipt", receivedAt: "2026-11-10T08:00:00Z", preview: "Order 123" },
+  { id: "M4", threadId: "T1", mailboxIds: { "mb-drafts": true }, keywords: { $draft: true }, from: [{ email: "me@fastmail.example" }], subject: "Re: Pricing memo", receivedAt: "2026-11-11T11:00:00Z", preview: "draft" },
 ];
 
 type Call = [string, Record<string, any>, string];
@@ -36,7 +36,7 @@ function fastmail(opts: { query?: string[]; status?: number; session?: Record<st
     if (opts.status) return new Response("{}", { status: opts.status });
     if (init.method === "GET") {
       sent.push({ url, auth, calls: [] });
-      return new Response(JSON.stringify(opts.session ?? { apiUrl: "https://api.fastmail.com/jmap/api/", username: "me@fastmail.com", primaryAccounts: { "urn:ietf:params:jmap:mail": "acc1" } }));
+      return new Response(JSON.stringify(opts.session ?? { apiUrl: "https://api.fastmail.com/jmap/api/", username: "me@fastmail.example", primaryAccounts: { "urn:ietf:params:jmap:mail": "acc1" } }));
     }
     const body = JSON.parse(String(init.body)) as { methodCalls: Call[] };
     sent.push({ url, auth, calls: body.methodCalls });
@@ -101,7 +101,7 @@ test("a token Fastmail refuses, or one that can't read mail, is the owner's to f
   await assert.rejects(open(fastmail({ session: { apiUrl: "https://api.notfastmail.com/jmap/", primaryAccounts: { "urn:ietf:params:jmap:mail": "acc1" } } })), /isn't Fastmail's/);
   await assert.rejects(open(fastmail({ session: { apiUrl: "http://api.fastmail.com/jmap/", primaryAccounts: { "urn:ietf:params:jmap:mail": "acc1" } } })), /isn't Fastmail's/);
   // Another Fastmail host is fine: the first version refused it and no account could connect.
-  const other = fastmail({ session: { apiUrl: "https://jmap.fastmail.com/api/", username: "me@fastmail.com", primaryAccounts: { "urn:ietf:params:jmap:mail": "acc1" } } });
+  const other = fastmail({ session: { apiUrl: "https://jmap.fastmail.com/api/", username: "me@fastmail.example", primaryAccounts: { "urn:ietf:params:jmap:mail": "acc1" } } });
   assert.equal((await open(other)).tools.length, 4);
   assert.equal(new URL(other.sent.at(-1)!.url).hostname, "jmap.fastmail.com");
 });
@@ -139,7 +139,7 @@ test("search gives Gmail-shaped threads: latest messages, labels by role, a draf
   assert.equal(t.id, "T1");
   assert.equal(t.messageCount, 2);
   assert.equal(t.viewUrl, "https://app.fastmail.com/mail/Inbox/T1.M2");
-  assert.deepEqual(t.messages.map((m: { sender: string }) => m.sender), ["Priya Shah <priya@example.com>", "me@fastmail.com"]);
+  assert.deepEqual(t.messages.map((m: { sender: string }) => m.sender), ["Priya Shah <priya@example.com>", "me@fastmail.example"]);
   assert.deepEqual(t.messages[0].labelIds, ["INBOX", "UNREAD"]);
   assert.deepEqual(t.messages[1].labelIds, ["SENT"]);
   assert.equal(t.messages[0].date, "2026-11-11T09:00:00.000Z");
@@ -206,7 +206,7 @@ test("drafts: off unless switched on; on, one new email in Drafts and nothing el
   assert.deepEqual(args.create.draft, {
     mailboxIds: { "mb-drafts": true },
     keywords: { $draft: true, $seen: true },
-    from: [{ email: "me@fastmail.com" }],
+    from: [{ email: "me@fastmail.example" }],
     to: [{ email: "priya@example.com" }],
     subject: "Re: Pricing memo",
     bodyValues: { body: { value: "Thanks, will do." } },

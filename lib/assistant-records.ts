@@ -1,6 +1,6 @@
 /**
  * Ask's assistant and the rest of Athena: "Priya's new number is 07700
- * 900123", "set everyone with an @brightwater.co email to work at Brightwater",
+ * 900123", "set everyone with an @brightwater.example email to work at Brightwater",
  * "move the dentist to Thursday at 3", "rename the Lisbon trip", "the
  * Kindle arrived", "link this note to Priya", "archive the old Q3 goal".
  * Kept beside lib/assistant.ts, which lists these tools with its own, runs
@@ -194,13 +194,13 @@ export const RECORD_TOOLS: Anthropic.Tool[] = [
   {
     name: "update_people",
     description:
-      'Change people already in Athena: one person, or many at once ("everyone with an @brightwater.co email works at Brightwater", "keep in touch with all my cousins"). ' +
+      'Change people already in Athena: one person, or many at once ("everyone with an @brightwater.example email works at Brightwater", "keep in touch with all my cousins"). ' +
       "Give ids from find_people, or match: the words you gave find_people, which changes everyone it finds. Look with find_people first, so you know who it will change. " +
       'For each field, "" leaves it as it is, a value replaces it, and listing it in clear empties it. name, email, phone and birthday are for one person at a time. ' +
       "Their own fields (like Shoe size) are set_field; a lasting detail no field covers is remember; someone new is add_person.",
     input_schema: object({
       ids: { type: "array", items: { type: "string" }, description: "The people to change, from find_people. [] when you give match." },
-      match: str('Instead of ids: change everyone find_people finds for these words, like "@brightwater.co". "" when you give ids.'),
+      match: str('Instead of ids: change everyone find_people finds for these words, like "@brightwater.example". "" when you give ids.'),
       name: str('Their name. "" to leave it.'),
       relationship: str('Who they are to the owner: colleague, sister, friend. "" to leave it.'),
       email: str('"" to leave it.'),
@@ -318,7 +318,7 @@ export const RECORD_TOOL_NAMES: ReadonlySet<string> = new Set(RECORD_TOOLS.map((
 
 /** The system prompt's lines about changing what's already there (lib/assistant.ts puts them in "How to work"). */
 export const RECORD_GUIDANCE = `- You can add, find, change, archive and restore almost anything. People: update_people for any of their details. Places, organisations, events, goals, life admin (asset) and projects: find_items, then save_item. Trips and purchases: find_items, then save_item (rename a trip, change its notes; "the Kindle arrived" is a purchase's status). To-dos: change_todo (its steps too: find_todos gives their ids). Reminders: find_items with kind reminder, then change_reminder. Links between two things: link_records.
-- Many at once ("set everyone with an @brightwater.co email to work at Brightwater"): find_people with a limit to see who matches, then one update_people call with match (the same words) or their ids. Say how many changed. Don't ask first unless it's unclear who they mean.
+- Many at once ("set everyone with an @brightwater.example email to work at Brightwater"): find_people with a limit to see who matches, then one update_people call with match (the same words) or their ids. Say how many changed. Don't ask first unless it's unclear who they mean.
 - Archiving: archive_or_restore, only when the owner asks to archive, remove, hide or cancel something; it also restores. You can never delete anything. When they ask you to delete something, archive it and say they can delete it for good from the Archived page.`;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -1453,7 +1453,7 @@ const ITEM_BEFORE = {
 
 const RECORD_UNDO = z.discriminatedUnion("op", [
   z.object({ op: z.literal("restore_people"), people: z.array(PersonBefore).min(1).max(MAX_AT_ONCE) }),
-  z.object({ op: z.literal("restore_item"), kind: z.enum(["place", "organisation", "event", "goal", "asset", "project", "trip"]), id: UUID, before: z.record(z.unknown()) }),
+  z.object({ op: z.literal("restore_item"), kind: z.enum(["place", "organisation", "event", "goal", "asset", "project", "trip"]), id: UUID, before: z.record(z.string(), z.unknown()) }),
   z.object({ op: z.literal("restore_purchase"), id: UUID, status: z.enum(PURCHASE_STATUSES as unknown as [PurchaseStatus, ...PurchaseStatus[]]) }),
   z.object({
     op: z.literal("restore_todo"),

@@ -64,6 +64,15 @@ test("an event Team claimed before a job flow was made stays Team's; one claimed
   assert.deepEqual(flowsForEvent(ev(3, {}, null), [job, plain]).map((f) => f.id), ["job", "plain"]);
 });
 
+test("an event an agent made starts the owner's flows, not imported ones or an imported assistant's jobs", () => {
+  const mine = active("mine", {});
+  const shared = active("shared", { origin: "shared" });
+  const importedJob = active("imported-job", { assistant_id: "fern", origin: "shared" });
+  const flows = [mine, shared, importedJob];
+  assert.deepEqual(flowsForEvent(ev(1, { by: "agent" }), flows).map((f) => f.id), ["mine"]);
+  assert.deepEqual(flowsForEvent(ev(2, {}), flows).map((f) => f.id), ["mine", "shared", "imported-job"]);
+});
+
 const flowOf = (over: Partial<Flow>): Flow => ({
   id: "f",
   name: "Every Friday at 17:00",

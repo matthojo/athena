@@ -4,6 +4,9 @@
  * through `publicFetch` (https only, every address checked as it connects): no site address, account, key or
  * cookie goes with it, and a redirect is followed only while it stays under the catalogue's root.
  *
+ * - Once CATALOGUE_SIGNING_KEYS lists a key, index.json is read only with a valid signature from one of them
+ *   (index.json.sig, lib/catalogue-signature.ts), checked over the exact bytes sent; a copy kept before a key was
+ *   listed isn't used. While the list is empty, the index is read unsigned.
  * - The index (index.json) is kept for a day in the `community` blob store, with the root it came from and the kinds
  *   the Athena that read it knew (`kinds`, from lib/share-kinds.ts). Items of a kind an Athena doesn't know are left
  *   out as it reads, so a copy made before this Athena learnt a kind is missing that kind's items: such a copy, or one
@@ -27,8 +30,10 @@ import { catalogueFileUrl, catalogueUrl, loadCommunityCheck } from "../../lib/co
 import {
   CATALOGUE_ID,
   CATALOGUE_LIMITS,
+  CATALOGUE_SIGNING_KEYS,
   CatalogueError,
   INDEX_FILE,
+  INDEX_SIGNATURE_FILE,
   formatReadable,
   parseCatalogueBundle,
   parseCatalogueIndex,
@@ -43,6 +48,7 @@ import { isShareKind, SHARE_KINDS, type ShareKind } from "../../lib/share-kinds"
 import type { UpdateCheck } from "../../lib/community-api";
 import type { FlowStep } from "../../lib/flow-types";
 import { readSharedTheme, themeSwatches, THEME_FILE, type ThemeSwatches } from "../../lib/theme-share";
+import { verifyIndexSignature } from "../../lib/catalogue-signature";
 
 /** How long a copy of the index is used before it's read again. */
 export const INDEX_TTL_MS = 24 * 60 * 60 * 1000;
@@ -55,6 +61,8 @@ export const RECHECK_MS = 10 * 60 * 1000;
 export const RETRY_MS = 60 * 1000;
 const TIMEOUT_MS = 10_000;
 const MAX_HOPS = 3;
+/** index.json.sig is 88 characters of base64, give or take a line ending. */
+const MAX_SIGNATURE_BYTES = 1024;
 
 /** The words the owner reads. */
 export const CATALOGUE_WORDS = {
@@ -62,6 +70,8 @@ export const CATALOGUE_WORDS = {
   slow: "The Community catalogue took too long to answer.",
   refused: "The Community catalogue didn't send its list.",
   unreadable: "The Community catalogue sent a list Athena couldn't read.",
+  unsigned: "The Community catalogue's list wasn't signed, so Athena didn't read it.",
+  badSignature: "The Community catalogue's list didn't match its signature, so Athena didn't read it.",
   off: "Checking the Community catalogue is switched off.",
   notSetUp: "Community isn't set up on this Athena.",
   notListed: "That isn't in the Community catalogue.",
@@ -80,6 +90,8 @@ export interface CachedIndex {
    * count as stale.
    */
   kinds?: string[];
+  /** Its signature was checked against a listed key. A copy without it isn't used once a key is listed. */
+  signed?: boolean;
   /** When a read the owner asked for last failed, and why, so the next one waits RETRY_MS. */
   failed_at?: string;
   failed?: string;
@@ -154,6 +166,7 @@ export const catalogueDeps = {
   cache: blobIndexCache as IndexCache,
   swatches: blobSwatchCache as SwatchCache,
   now: (): Date => new Date(),
+  signingKeys: (): readonly string[] => CATALOGUE_SIGNING_KEYS,
 };
 
 /** Thrown with words for the owner: the catalogue couldn't be read. */
@@ -165,7 +178,7 @@ export class CatalogueUnreachable extends CatalogueError {
 }
 
 /** One GET under the root: no credentials, same-root redirects only, a deadline and a byte cap. */
-async function getText(root: string, path: string, maxBytes: number): Promise<{ status: number; text: string }> {
+async function getText(root: string, path: string, maxBytes: number): Promise<{ status: number; text: string; bytes: Uint8Array }> {
   const first = catalogueFileUrl(root, path);
   if (!first) throw new CatalogueError(CATALOGUE_WORDS.notListed);
   let url: string = first;
@@ -188,7 +201,7 @@ async function getText(root: string, path: string, maxBytes: number): Promise<{ 
     }
     if (!res.ok || !res.body) {
       await res.body?.cancel().catch(() => undefined);
-      return { status: res.status, text: "" };
+      return { status: res.status, text: "", bytes: new Uint8Array(0) };
     }
     if (Number(res.headers.get("content-length") ?? 0) > maxBytes) {
       await res.body.cancel().catch(() => undefined);
@@ -218,16 +231,25 @@ async function getText(root: string, path: string, maxBytes: number): Promise<{ 
       bytes.set(c, at);
       at += c.byteLength;
     }
-    return { status: res.status, text: new TextDecoder().decode(bytes) };
+    return { status: res.status, text: new TextDecoder().decode(bytes), bytes };
   }
   throw new CatalogueUnreachable(CATALOGUE_WORDS.refused);
 }
 
-async function fetchIndex(root: string): Promise<CatalogueIndex> {
+async function fetchIndex(root: string): Promise<{ index: CatalogueIndex; signed: boolean }> {
   const got = await getText(root, INDEX_FILE, CATALOGUE_LIMITS.indexBytes);
   if (got.status !== 200) throw new CatalogueUnreachable(CATALOGUE_WORDS.refused);
+  const keys = catalogueDeps.signingKeys();
+  if (keys.length) {
+    const sig = await getText(root, INDEX_SIGNATURE_FILE, MAX_SIGNATURE_BYTES);
+    if (sig.status !== 200) throw new CatalogueUnreachable(CATALOGUE_WORDS.unsigned);
+    if (!verifyIndexSignature(got.bytes, sig.text, keys)) {
+      console.error("Athena community: index signature refused");
+      throw new CatalogueUnreachable(CATALOGUE_WORDS.badSignature);
+    }
+  }
   try {
-    return parseCatalogueIndex(got.text);
+    return { index: parseCatalogueIndex(got.text), signed: keys.length > 0 };
   } catch (e) {
     console.error("Athena community: index refused", e instanceof Error ? e.message : e);
     throw new CatalogueUnreachable(CATALOGUE_WORDS.unreadable);
@@ -243,16 +265,17 @@ export interface IndexRead {
   error: string | null;
 }
 
-/** The copy kept for this root, or null. */
+/** The copy kept for this root, or null. Once a key is listed, only a copy whose signature was checked. */
 async function keptFor(root: string): Promise<CachedIndex | null> {
   const kept = await catalogueDeps.cache.get();
-  return kept && kept.root === root ? kept : null;
+  if (!kept || kept.root !== root) return null;
+  return catalogueDeps.signingKeys().length && kept.signed !== true ? null : kept;
 }
 
 async function readAndKeep(root: string, now: Date): Promise<IndexRead> {
-  const index = await fetchIndex(root);
+  const { index, signed } = await fetchIndex(root);
   const fetched_at = now.toISOString();
-  await catalogueDeps.cache.set({ root, fetched_at, index, kinds: [...SHARE_KINDS] });
+  await catalogueDeps.cache.set({ root, fetched_at, index, kinds: [...SHARE_KINDS], ...(signed ? { signed } : {}) });
   return { index, fetched_at, cached: false, error: null };
 }
 

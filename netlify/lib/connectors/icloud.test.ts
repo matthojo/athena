@@ -41,7 +41,7 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
-const SECRETS: ConnectorSecrets = { username: "jordan@icloud.com", token: "abcd-efgh-ijkl-mnop" };
+const SECRETS: ConnectorSecrets = { username: "jordan@ic.example", token: "abcd-efgh-ijkl-mnop" };
 const NOW = new Date("2026-11-04T12:00:00Z");
 const connector = (provider: string): Connector =>
   ({ id: "00000000-0000-4000-8000-000000000001", name: "iCloud", provider, auth_type: "token", url: "", oauth: {}, scope: "", status: "connected", status_detail: "", tools: [], allowed_tools: [] }) as unknown as Connector;
@@ -120,7 +120,7 @@ test("discovery: principal, then the calendar home on the account's own server, 
     calls.map((c) => `${c.method} ${c.url} ${c.depth}`),
     ["PROPFIND https://caldav.icloud.com/ 0", "PROPFIND https://caldav.icloud.com/123456789/principal/ 0"],
   );
-  assert.equal(calls[0].auth, `Basic ${Buffer.from("jordan@icloud.com:abcd-efgh-ijkl-mnop").toString("base64")}`);
+  assert.equal(calls[0].auth, `Basic ${Buffer.from("jordan@ic.example:abcd-efgh-ijkl-mnop").toString("base64")}`);
   assert.match(calls[0].body, /current-user-principal/);
   assert.match(calls[1].body, /calendar-home-set/);
 });
@@ -242,7 +242,7 @@ test("list_events: a series iCloud left unexpanded becomes its occurrences, acro
   assert.equal(first.end, "2026-10-19T09:45:00+01:00");
   assert.equal(first.organizer, "Priya Shah <priya@acme.example>");
   assert.equal(first.myResponse, "accepted");
-  assert.deepEqual(first.attendees, ["Priya Shah <priya@acme.example> (organiser): accepted", "Jordan <jordan@icloud.com> (you): accepted", "Sam Lee <sam@acme.example> (optional): maybe"]);
+  assert.deepEqual(first.attendees, ["Priya Shah <priya@acme.example> (organiser): accepted", "Jordan <jordan@ic.example> (you): accepted", "Sam Lee <sam@acme.example> (optional): maybe"]);
   assert.equal(first.meetLink, "https://acme.zoom.us/j/123456789");
   assert.equal(first.description, undefined, "descriptions only in get_event");
   assert.equal(moved.myResponse, "no reply yet");

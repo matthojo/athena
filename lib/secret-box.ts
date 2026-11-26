@@ -8,31 +8,46 @@
  * 64 hex characters (`openssl rand -hex 32`). A database dump alone reveals
  * nothing; the key never reaches the PWA. See docs: security/connectors.
  *
- * Format: "v1.<iv>.<tag>.<ciphertext>", each part base64url. Server-only.
+ * Format: "v2.<key id>.<iv>.<tag>.<ciphertext>", each part base64url except
+ * the key id (8 hex characters, derived from the key with HKDF-SHA256). A
+ * value is sealed for a context, such as the connector it belongs to and
+ * that connector's address, which is authenticated with it (GCM's additional
+ * data): the value opens only for that same context, so a ciphertext moved
+ * to another row, or left in a row whose address was changed, doesn't open.
+ * "v1.<iv>.<tag>.<ciphertext>" values, which carry no key id or context,
+ * still open, and are sealed again as v2 the next time they're written.
+ *
+ * Rotation: the old key goes in CONNECTOR_ENCRYPTION_KEY_PREVIOUS (space- or
+ * comma-separated if there are several). Values sealed under it still open,
+ * and are sealed under the new key when they're next written; needsReseal
+ * says which values those are.
  *
  * gcmEncrypt / gcmDecrypt are the one AES-256-GCM implementation in Athena:
  * lib/data-box.ts seals personal content with them too, under its own key.
  */
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
 
-const VERSION = "v1";
 const TAG_BYTES = 16;
+const HEX_KEY = /^[0-9a-f]{64}$/i;
 
-/** AES-256-GCM with a fresh random 96-bit IV per value. */
-export function gcmEncrypt(key: Buffer, plaintext: string): { iv: Buffer; ct: Buffer; tag: Buffer } {
+/** AES-256-GCM with a fresh random 96-bit IV per value, authenticating `aad` with it when given. */
+export function gcmEncrypt(key: Buffer, plaintext: string, aad?: Buffer): { iv: Buffer; ct: Buffer; tag: Buffer } {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv, { authTagLength: TAG_BYTES });
+  if (aad) cipher.setAAD(aad);
   const ct = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   return { iv, ct, tag: cipher.getAuthTag() };
 }
 
 /**
- * Throws if the tag doesn't verify: the wrong key, or the ciphertext was
- * changed. The tag length is pinned so a shortened tag can't be accepted.
+ * Throws if the tag doesn't verify: the wrong key, the wrong additional
+ * data, or the ciphertext was changed. The tag length is pinned so a
+ * shortened tag can't be accepted.
  */
-export function gcmDecrypt(key: Buffer, iv: Buffer, ct: Buffer, tag: Buffer): string {
+export function gcmDecrypt(key: Buffer, iv: Buffer, ct: Buffer, tag: Buffer, aad?: Buffer): string {
   if (iv.length !== 12 || tag.length !== TAG_BYTES) throw new Error("Malformed ciphertext");
   const decipher = createDecipheriv("aes-256-gcm", key, iv, { authTagLength: TAG_BYTES });
+  if (aad) decipher.setAAD(aad);
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
 }
@@ -42,12 +57,50 @@ function env(name: string): string | undefined {
   return fromNetlify ?? process.env[name];
 }
 
-function key(): Buffer {
-  const raw = env("CONNECTOR_ENCRYPTION_KEY")?.trim();
-  if (!raw || !/^[0-9a-f]{64}$/i.test(raw)) {
-    throw new SecretBoxUnavailable();
+// ---------- keys ----------
+
+interface BoxKey {
+  kid: string;
+  key: Buffer;
+}
+
+interface Ring {
+  current: BoxKey | null;
+  /** Current first, then previous keys. */
+  keys: BoxKey[];
+}
+
+function boxKey(hex: string): BoxKey {
+  const key = Buffer.from(hex, "hex");
+  return { kid: Buffer.from(hkdfSync("sha256", key, "athena", "athena/connector/key-id/v1", 4)).toString("hex"), key };
+}
+
+let cached: { raw: string; ring: Ring } | null = null;
+
+/** Read once per set of env values (tests change them between cases). */
+function ring(): Ring {
+  const current = env("CONNECTOR_ENCRYPTION_KEY")?.trim() ?? "";
+  const previous = env("CONNECTOR_ENCRYPTION_KEY_PREVIOUS")?.trim() ?? "";
+  const raw = `${current}|${previous}`;
+  if (cached?.raw === raw) return cached.ring;
+  const currentKey = HEX_KEY.test(current) ? boxKey(current) : null;
+  const keys = currentKey ? [currentKey] : [];
+  for (const hex of previous.split(/[\s,]+/).filter(Boolean)) {
+    if (!HEX_KEY.test(hex)) {
+      console.error("Athena: ignoring a malformed key in CONNECTOR_ENCRYPTION_KEY_PREVIOUS (not 64 hex characters)");
+      continue;
+    }
+    const k = boxKey(hex);
+    if (!keys.some((have) => have.kid === k.kid)) keys.push(k);
   }
-  return Buffer.from(raw, "hex");
+  cached = { raw, ring: { current: currentKey, keys } };
+  return cached.ring;
+}
+
+function currentKey(): BoxKey {
+  const k = ring().current;
+  if (!k) throw new SecretBoxUnavailable();
+  return k;
 }
 
 export class SecretBoxUnavailable extends Error {
@@ -58,29 +111,66 @@ export class SecretBoxUnavailable extends Error {
 }
 
 export function secretBoxConfigured(): boolean {
-  try {
-    key();
-    return true;
-  } catch {
-    return false;
+  return ring().current !== null;
+}
+
+// ---------- sealing ----------
+
+/** The additional data a v2 value is sealed with: a fixed label, then its context. */
+function aadFor(context: string): Buffer {
+  return Buffer.from(`athena/secret-box/v2\n${context}`, "utf8");
+}
+
+/** Seal `plaintext` under the current key for `context` (empty: no particular place). */
+export function seal(plaintext: string, context = ""): string {
+  const { kid, key } = currentKey();
+  const { iv, ct, tag } = gcmEncrypt(key, plaintext, aadFor(context));
+  return ["v2", kid, iv.toString("base64url"), tag.toString("base64url"), ct.toString("base64url")].join(".");
+}
+
+/** Open a value sealed for `context` (v1 values have none, and open for any). */
+export function open(sealed: string, context = ""): string {
+  const parts = sealed.split(".");
+  if (parts[0] === "v2" && parts.length === 5) {
+    const [, kid, iv, tag, ct] = parts;
+    const k = ring().keys.find((have) => have.kid === kid);
+    if (!k) {
+      if (!ring().current) throw new SecretBoxUnavailable();
+      throw new Error(`Sealed under a key this copy of Athena doesn't have (key id ${kid})`);
+    }
+    return gcmDecrypt(k.key, Buffer.from(iv, "base64url"), Buffer.from(ct, "base64url"), Buffer.from(tag, "base64url"), aadFor(context));
   }
+  if (parts[0] === "v1" && parts.length === 4) {
+    const [, iv, tag, ct] = parts;
+    const { keys } = ring();
+    if (!keys.length) throw new SecretBoxUnavailable();
+    let last: unknown;
+    for (const k of keys) {
+      try {
+        return gcmDecrypt(k.key, Buffer.from(iv, "base64url"), Buffer.from(ct, "base64url"), Buffer.from(tag, "base64url"));
+      } catch (error) {
+        last = error;
+      }
+    }
+    throw last;
+  }
+  throw new Error("Unrecognised credential format");
 }
 
-export function seal(plaintext: string): string {
-  const { iv, ct, tag } = gcmEncrypt(key(), plaintext);
-  return [VERSION, iv.toString("base64url"), tag.toString("base64url"), ct.toString("base64url")].join(".");
+/**
+ * A value that opens but should be sealed again: v1 (no context bound to
+ * it), or sealed under a previous key.
+ */
+export function needsReseal(sealed: string | null): boolean {
+  if (!sealed) return false;
+  const parts = sealed.split(".");
+  return !(parts[0] === "v2" && parts[1] === ring().current?.kid);
 }
 
-export function open(sealed: string): string {
-  const [version, iv, tag, ct] = sealed.split(".");
-  if (version !== VERSION || !iv || !tag || ct === undefined) throw new Error("Unrecognised credential format");
-  return gcmDecrypt(key(), Buffer.from(iv, "base64url"), Buffer.from(ct, "base64url"), Buffer.from(tag, "base64url"));
+export function sealJson(value: unknown, context = ""): string {
+  return seal(JSON.stringify(value), context);
 }
 
-export function sealJson(value: unknown): string {
-  return seal(JSON.stringify(value));
-}
-
-export function openJson<T>(sealed: string | null): T | null {
-  return sealed ? (JSON.parse(open(sealed)) as T) : null;
+export function openJson<T>(sealed: string | null, context = ""): T | null {
+  return sealed ? (JSON.parse(open(sealed, context)) as T) : null;
 }

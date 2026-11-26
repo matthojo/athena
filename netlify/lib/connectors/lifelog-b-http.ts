@@ -14,6 +14,7 @@ import { DEFAULT_TZ, isValidTimeZone, zonedParts, zonedToInstant } from "../../.
 import { ToolInputError, clean, type StoredTokens } from "./google-api";
 import type { DirectAccount, DirectToolInfo } from "./direct";
 import { publicFetch } from "./icons";
+import { bodyUpTo } from "../body-limit";
 
 export type LifeService = "reddit" | "spotify" | "lastfm" | "steam" | "strava" | "oura" | "withings" | "whoop" | "polar" | "readwise" | "bluesky" | "mastodon"
   // Media, chess and travel (plex-direct.ts, jellyfin-direct.ts, lichess-direct.ts, chesscom-direct.ts, tripit-direct.ts).
@@ -28,6 +29,20 @@ export type LifeService = "reddit" | "spotify" | "lastfm" | "steam" | "strava" |
   | "fastmail";
 
 const REQUEST_TIMEOUT_MS = 30_000;
+/** The most of one answer Athena reads: a page of history is far smaller; anything bigger is cut off. */
+export const MAX_JSON_BYTES = 16 * 1024 * 1024;
+/** A token endpoint's answer is a few hundred bytes. */
+const MAX_TOKEN_BYTES = 64 * 1024;
+
+/** Parse a JSON body read through bodyUpTo; null when it isn't JSON. */
+function parsed(bytes: Buffer | null): unknown {
+  if (!bytes) return null;
+  try {
+    return JSON.parse(bytes.toString("utf8"));
+  } catch {
+    return null;
+  }
+}
 /** Waits before each retry of a 429, a 5xx or a dropped connection. Tests shorten them. */
 export const lifeRetryWaits = { ms: [600, 1800], maxRetryAfterMs: 5_000 };
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -107,7 +122,9 @@ export async function getJson<T>(url: string, opts: GetOptions): Promise<T> {
       }
       throw new LifeApiError(opts.service, 503, opts.unreachable);
     }
-    const body: unknown = res.status === 204 ? {} : await res.json().catch(() => null);
+    const bytes = res.status === 204 ? null : await bodyUpTo(res, MAX_JSON_BYTES).catch(() => Buffer.alloc(0));
+    if (res.status !== 204 && !bytes) throw new LifeApiError(opts.service, 413, `The answer from ${host} was too large to read`);
+    const body: unknown = res.status === 204 ? {} : parsed(bytes);
     const error = res.ok ? (opts.bodyError?.(body) ?? null) : opts.refused(res.status, body);
     if (!error) return body as T;
     if (error.retryable && attempt < lifeRetryWaits.ms.length) {
@@ -160,7 +177,7 @@ export async function tokenRequest(endpoint: TokenEndpoint, client: { client_id:
       }
       throw new LifeApiError(endpoint.service, 503, `Couldn't reach ${endpoint.label} to renew the sign-in`);
     }
-    const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    const body = parsed(await bodyUpTo(res, MAX_TOKEN_BYTES).catch(() => null)) as Record<string, unknown> | null;
     if (res.ok && typeof body?.access_token === "string") {
       return {
         access_token: body.access_token,

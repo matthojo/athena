@@ -59,15 +59,18 @@ test("links into Netlify use the site's name only when it looks like one", () =>
   assert.equal(netlifyPage("../evil", "env"), "https://app.netlify.com/");
 });
 
-test("a site session is the edge function's cookie, unexpired and signed with SESSION_SECRET", () => {
+test("a site session is the edge function's cookie, unexpired and signed with SESSION_SECRET for the password", () => {
   const secret = "a".repeat(64);
+  const password = "correct horse battery staple";
   const now = new Date("2026-11-26T12:00:00Z");
   const exp = String(Math.floor(now.getTime() / 1000) + 3600);
-  const cookie = `other=1; athena_session=${exp}.${sessionSignature(secret, exp)}`;
-  assert.equal(validSiteSession(cookie, secret, now), true);
-  assert.equal(validSiteSession(cookie, "b".repeat(64), now), false);
-  assert.equal(validSiteSession(cookie, secret, new Date(now.getTime() + 7200_000)), false);
-  assert.equal(validSiteSession(`athena_session=${exp}.forged`, secret, now), false);
-  assert.equal(validSiteSession(cookie, undefined, now), false);
-  assert.equal(validSiteSession(null, secret, now), false);
+  const cookie = `other=1; athena_session=${exp}.${sessionSignature(secret, password, exp)}`;
+  assert.equal(validSiteSession(cookie, secret, password, now), true);
+  assert.equal(validSiteSession(cookie, "b".repeat(64), password, now), false);
+  assert.equal(validSiteSession(cookie, secret, "a new password", now), false, "a changed password ends the session");
+  assert.equal(validSiteSession(cookie, secret, password, new Date(now.getTime() + 7200_000)), false);
+  assert.equal(validSiteSession(`athena_session=${exp}.forged`, secret, password, now), false);
+  assert.equal(validSiteSession(cookie, undefined, password, now), false);
+  assert.equal(validSiteSession(cookie, secret, undefined, now), false);
+  assert.equal(validSiteSession(null, secret, password, now), false);
 });

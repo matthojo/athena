@@ -12,11 +12,11 @@
  * queries go through lib/db.ts's q(), which opens them.
  */
 import { addDays, DEFAULT_TZ, zonedParts, zonedToInstant, zonedToday } from "./dates";
-import { openJson, sealJson } from "./secret-box";
+import { needsReseal, openJson, sealJson } from "./secret-box";
 import { AthenaInputError, database, getOwnerTimeZone, lookupIndexes, matchKey, q as openQ, sealer, type EntityType } from "./db";
 import { DataBoxError, openStrict, sealText } from "./data-box";
 import { hasRules, readRules, type MailRules } from "./mail-rules";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { isCustomServer, OAUTH_GRANTS, OAUTH_TOKEN_AUTH, presetFor, type ConnectorAuthType, type ConnectorOAuthSettings, type RecipeId, type ToolAccess } from "./connector-presets";
 
 async function q<T>(text: string, params: unknown[] = []): Promise<T[]> {
@@ -226,11 +226,29 @@ export function keptApart<T extends Pick<Connector, "provider" | "share_collecti
   return accounts.length > 1 ? accounts.filter((c) => isCustomServer(c.provider) && c.share_collections !== true) : [];
 }
 
+/**
+ * What an account's secrets are sealed for (lib/secret-box.ts): the account,
+ * its kind and its address. Secrets copied to another row, or left in a row
+ * whose provider or address was changed in the database, don't open.
+ */
+export function secretsContext(c: Pick<Connector, "id" | "provider" | "url">): string {
+  return `connector\n${c.id}\n${c.provider}\n${c.url}`;
+}
+
+/** Same scheme, host and port: an address that may keep its sign-in. */
+export function sameOrigin(a: string, b: string): boolean {
+  try {
+    return new URL(a).origin === new URL(b).origin;
+  } catch {
+    return false;
+  }
+}
+
 function present(row: ConnectorRow): Connector {
   const { credentials, mail_rules, ...rest } = row;
   let secrets: ConnectorSecrets | null = null;
   try {
-    secrets = openJson<ConnectorSecrets>(credentials);
+    secrets = openJson<ConnectorSecrets>(credentials, secretsContext(row));
   } catch {
     // Key missing or rotated: report nothing stored rather than fail the list.
   }
@@ -326,7 +344,33 @@ export async function getConnector(id: string): Promise<Connector | null> {
 export async function getConnectorWithSecrets(id: string): Promise<{ connector: Connector; secrets: ConnectorSecrets } | null> {
   const [row] = await q<ConnectorRow>(`SELECT ${CONNECTOR_COLUMNS} FROM connectors WHERE id = $1`, [id]);
   if (!row) return null;
-  return { connector: present(row), secrets: openJson<ConnectorSecrets>(row.credentials) ?? {} };
+  const secrets = openJson<ConnectorSecrets>(row.credentials, secretsContext(row)) ?? {};
+  // Sealed in the older format or under a previous key: seal again now, unless it changed meanwhile.
+  if (needsReseal(row.credentials)) {
+    try {
+      await q(`UPDATE connectors SET credentials = $2 WHERE id = $1 AND credentials = $3`, [id, sealJson(secrets, secretsContext(row)), row.credentials]);
+    } catch {
+      // No current key to seal with, or the write failed: it's sealed again next time.
+    }
+  }
+  return { connector: present(row), secrets };
+}
+
+/** The account's provider and address, which its secrets are sealed for. */
+async function sealedFor(id: string): Promise<Pick<Connector, "id" | "provider" | "url"> | null> {
+  const [row] = await q<Pick<Connector, "id" | "provider" | "url">>(`SELECT id, provider, url FROM connectors WHERE id = $1`, [id]);
+  return row ?? null;
+}
+
+/** Write sealed secrets, only while the account's address is still the one they're sealed for. */
+async function writeSecrets(c: Pick<Connector, "id" | "provider" | "url">, secrets: ConnectorSecrets): Promise<void> {
+  const rows = await q<{ id: string }>(`UPDATE connectors SET credentials = $2, updated_at = now() WHERE id = $1 AND url = $3 AND provider = $4 RETURNING id`, [
+    c.id,
+    sealJson(secrets, secretsContext(c)),
+    c.url,
+    c.provider,
+  ]);
+  if (!rows.length && (await sealedFor(c.id))) throw new AthenaInputError("This account's address changed meanwhile. Try again");
 }
 
 export async function createConnector(input: {
@@ -347,19 +391,23 @@ export async function createConnector(input: {
     throw new AthenaInputError("Client credentials need your client ID and client secret");
   }
   const status: ConnectorStatus = input.auth_type === "oauth" ? "needs_auth" : "pending";
+  // The id is chosen here so the secrets can be sealed for it.
+  const id = randomUUID();
+  const url = validateServerUrl(input.url);
   const [row] = await q<ConnectorRow>(
-    `INSERT INTO connectors (name, provider, account_label, url, auth_type, scope, status, credentials, oauth)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+    `INSERT INTO connectors (id, name, provider, account_label, url, auth_type, scope, status, credentials, oauth)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
      RETURNING ${CONNECTOR_COLUMNS}`,
     [
+      id,
       name,
       input.provider,
       (input.account_label ?? "").trim(),
-      validateServerUrl(input.url),
+      url,
       input.auth_type,
       (input.scope ?? "").trim(),
       status,
-      sealJson(input.secrets),
+      sealJson(input.secrets, secretsContext({ id, provider: input.provider, url })),
       JSON.stringify(oauth),
     ],
   );
@@ -380,37 +428,71 @@ export async function updateConnector(
     use_in_ask?: boolean;
     share_collections?: boolean;
   },
+  /**
+   * keepSignIn: the new address is one Athena chose for the same provider
+   * (Google's APIs and its MCP server), so the sign-in moves with it.
+   */
+  opts: { keepSignIn?: boolean } = {},
 ): Promise<Connector | null> {
-  const [row] = await q<ConnectorRow>(
-    `UPDATE connectors SET
-       name = COALESCE(NULLIF($2, ''), name),
-       account_label = COALESCE($3, account_label),
-       scope = COALESCE($4, scope),
-       allowed_tools = COALESCE($5, allowed_tools),
-       oauth = COALESCE($6::jsonb, oauth),
-       url = COALESCE($7, url),
-       calendars = COALESCE($8, calendars),
-       tool_pins = COALESCE($9::jsonb, tool_pins),
-       use_in_ask = COALESCE($10, use_in_ask),
-       share_collections = COALESCE($11, share_collections),
-       updated_at = now()
-     WHERE id = $1
-     RETURNING ${CONNECTOR_COLUMNS}`,
-    [
-      id,
-      patch.name?.trim() ?? null,
-      patch.account_label?.trim() ?? null,
-      patch.scope?.trim() ?? null,
-      patch.allowed_tools ?? null,
-      patch.oauth ? JSON.stringify(patch.oauth) : null,
-      patch.url ? validateServerUrl(patch.url) : null,
-      patch.calendars ?? null,
-      patch.tool_pins ? JSON.stringify(patch.tool_pins) : null,
-      patch.use_in_ask ?? null,
-      patch.share_collections ?? null,
-    ],
-  );
-  return row ? present(row) : null;
+  const url = patch.url ? validateServerUrl(patch.url) : null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    // A new address re-seals the secrets for it; a new host, port or scheme
+    // gets none of them, so the account has to be signed in to again.
+    let moved: { from: ConnectorRow; credentials: string | null; cleared: boolean } | null = null;
+    if (url) {
+      const [from] = await q<ConnectorRow>(`SELECT ${CONNECTOR_COLUMNS} FROM connectors WHERE id = $1`, [id]);
+      if (!from) return null;
+      if (from.url !== url) {
+        const cleared = !opts.keepSignIn && !sameOrigin(from.url, url);
+        const to = secretsContext({ id, provider: from.provider, url });
+        const credentials = cleared || !from.credentials ? null : sealJson(openJson<ConnectorSecrets>(from.credentials, secretsContext(from)) ?? {}, to);
+        moved = { from, credentials, cleared };
+      }
+    }
+    const [row] = await q<ConnectorRow>(
+      `UPDATE connectors SET
+         name = COALESCE(NULLIF($2, ''), name),
+         account_label = COALESCE($3, account_label),
+         scope = COALESCE($4, scope),
+         allowed_tools = COALESCE($5, allowed_tools),
+         oauth = COALESCE($6::jsonb, oauth),
+         url = COALESCE($7, url),
+         calendars = COALESCE($8, calendars),
+         tool_pins = COALESCE($9::jsonb, tool_pins),
+         use_in_ask = COALESCE($10, use_in_ask),
+         share_collections = COALESCE($11, share_collections),
+         credentials = CASE WHEN $12::boolean THEN $13 ELSE credentials END,
+         status = CASE WHEN $14::boolean AND auth_type <> 'none' THEN 'needs_auth' ELSE status END,
+         status_detail = CASE WHEN $14::boolean AND auth_type <> 'none'
+           THEN CASE auth_type WHEN 'token' THEN 'New address. Add the key for it' ELSE 'New address. Sign in again' END
+           ELSE status_detail END,
+         updated_at = now()
+       WHERE id = $1 AND (NOT $12::boolean OR (url = $15 AND credentials IS NOT DISTINCT FROM $16))
+       RETURNING ${CONNECTOR_COLUMNS}`,
+      [
+        id,
+        patch.name?.trim() ?? null,
+        patch.account_label?.trim() ?? null,
+        patch.scope?.trim() ?? null,
+        patch.allowed_tools ?? null,
+        patch.oauth ? JSON.stringify(patch.oauth) : null,
+        url,
+        patch.calendars ?? null,
+        patch.tool_pins ? JSON.stringify(patch.tool_pins) : null,
+        patch.use_in_ask ?? null,
+        patch.share_collections ?? null,
+        !!moved,
+        moved?.credentials ?? null,
+        !!moved?.cleared,
+        moved?.from.url ?? null,
+        moved?.from.credentials ?? null,
+      ],
+    );
+    if (row) return present(row);
+    // Not found, or (with a new address) changed since it was read: read it again.
+    if (!moved) return null;
+  }
+  throw new AthenaInputError("This account changed while it was being saved. Try again");
 }
 
 /** Save an account's mail rules, sealed; no rules at all clears the column. Throws DataKeyMissing without the data key. */
@@ -443,12 +525,13 @@ export async function updateConnectorSecrets(id: string, mutate: (s: ConnectorSe
   // Mutate a copy, and keep that copy when the mutator returns nothing.
   const copy = { ...current.secrets };
   const next = mutate(copy) ?? copy;
-  await q(`UPDATE connectors SET credentials = $2, updated_at = now() WHERE id = $1`, [id, sealJson(next)]);
+  await writeSecrets(current.connector, next);
 }
 
 /** Replace the sealed secrets wholesale (the OAuth provider holds the latest copy). */
 export async function saveConnectorSecrets(id: string, secrets: ConnectorSecrets): Promise<void> {
-  await q(`UPDATE connectors SET credentials = $2, updated_at = now() WHERE id = $1`, [id, sealJson(secrets)]);
+  const c = await sealedFor(id);
+  if (c) await writeSecrets(c, secrets);
 }
 
 export async function setConnectorStatus(id: string, status: ConnectorStatus, detail = ""): Promise<void> {

@@ -16,7 +16,8 @@
 
 export const GUIDE_KEY = "setup_guide";
 
-export const GUIDE_STEPS = ["welcome", "site", "about", "sources", "phone", "done"] as const;
+// The site comes before connect: a device's key is kept under ATHENA_DATA_KEY (lib/api-keys.ts), so it can only be made once the key is set.
+export const GUIDE_STEPS = ["welcome", "site", "connect", "about", "sources", "phone", "done"] as const;
 export type GuideStep = (typeof GUIDE_STEPS)[number];
 
 export const isGuideStep = (v: unknown): v is GuideStep => typeof v === "string" && (GUIDE_STEPS as readonly string[]).includes(v);

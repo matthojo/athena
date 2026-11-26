@@ -323,7 +323,7 @@ test("Microsoft: create_event posts exactly the allowed fields to /me/events; un
 // ---------- iCloud ----------
 
 const NOW = new Date("2026-11-09T12:00:00Z");
-const ics = (a = readCreateArgs(ARGS, "Europe/London")) => newEventIcs(a, { uid: "A1B2C3D4-0000-4000-8000-000000000001", organizer: "me@icloud.com", now: NOW });
+const ics = (a = readCreateArgs(ARGS, "Europe/London")) => newEventIcs(a, { uid: "A1B2C3D4-0000-4000-8000-000000000001", organizer: "me@icloud.example", now: NOW });
 
 test("iCloud: the new event's file is exactly the allowed properties, and anything more is refused", () => {
   const good = ics();
@@ -331,8 +331,8 @@ test("iCloud: the new event's file is exactly the allowed properties, and anythi
   assert.match(good, /^BEGIN:VCALENDAR\r\nVERSION:2\.0\r\nPRODID:-\/\/Athena\/\/Calendar\/\/EN\r\nBEGIN:VEVENT\r\n/);
   assert.match(good, /\r\nDTSTART:20261112T130000Z\r\nDTEND:20261112T140000Z\r\nSUMMARY:Lunch with Priya\r\nLOCATION:Dishoom\\, King's Cross\r\n/);
   assert.ok(good.split("\r\n").every((l) => Buffer.byteLength(l) <= 75), "long lines are folded");
-  assert.match(good.replace(/\r\n /g, ""), /\r\nORGANIZER:mailto:me@icloud\.com\r\nATTENDEE;CN="Priya Shah";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:priya@example\.com\r\n/);
-  const alone = newEventIcs(readCreateArgs({ summary: "Dentist", start: ARGS.start, end: ARGS.end }, "UTC"), { uid: "U1", organizer: "me@icloud.com", now: NOW });
+  assert.match(good.replace(/\r\n /g, ""), /\r\nORGANIZER:mailto:me@icloud\.example\r\nATTENDEE;CN="Priya Shah";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:priya@example\.com\r\n/);
+  const alone = newEventIcs(readCreateArgs({ summary: "Dentist", start: ARGS.start, end: ARGS.end }, "UTC"), { uid: "U1", organizer: "me@icloud.example", now: NOW });
   assert.equal(isNewEventIcs(alone), true);
   assert.doesNotMatch(alone, /ORGANIZER|ATTENDEE/, "no guests, no organiser: nobody is sent anything");
   const swap = (from: RegExp | string, to: string) => good.replace(from, to);
@@ -357,9 +357,9 @@ test("iCloud: the new event's file is exactly the allowed properties, and anythi
 
 const HOME = "https://p42-caldav.icloud.com/123/calendars/";
 const davCtx = (on: boolean): IcloudCalendarContext => ({
-  session: new DavSession("caldav", { username: "me@icloud.com", token: "abcd-efgh-ijkl-mnop" }),
+  session: new DavSession("caldav", { username: "me@icloud.example", token: "abcd-efgh-ijkl-mnop" }),
   home: HOME,
-  emails: ["me@icloud.com"],
+  emails: ["me@icloud.example"],
   timeZone: "Europe/London",
   now: () => NOW,
   calendars: async () => [{ id: "home", href: `${HOME}home/`, name: "Home", primary: true, accessRole: "owner" } as never, { id: "shared", href: `${HOME}shared/`, name: "Family", primary: false, accessRole: "reader" } as never],
@@ -387,11 +387,11 @@ test("iCloud: create_event PUTs one new file with If-None-Match: *, and only to 
 });
 
 test("iCloud: the session refuses to PUT anything but a new event, or to PUT over a file", async () => {
-  const s = new DavSession("caldav", { username: "me@icloud.com", token: "abcd-efgh-ijkl-mnop" });
+  const s = new DavSession("caldav", { username: "me@icloud.example", token: "abcd-efgh-ijkl-mnop" });
   await assert.rejects(s.putIfNoneMatch(`${HOME}home/x.ics`, ics().replace("END:VEVENT", "RRULE:FREQ=DAILY\r\nEND:VEVENT")), /only adds calendar events/);
   await assert.rejects(s.putIfNoneMatch(`${HOME}home/`, ics()), /only adds calendar events/);
   await assert.rejects(s.deleteIfMatch(`${HOME}home/x.ics`, ""), /only removes/);
-  await assert.rejects(new DavSession("carddav", { username: "me@icloud.com", token: "x" }).putIfNoneMatch("https://contacts.icloud.com/1/card/x.ics", ics()), /only adds/);
+  await assert.rejects(new DavSession("carddav", { username: "me@icloud.example", token: "x" }).putIfNoneMatch("https://contacts.icloud.com/1/card/x.ics", ics()), /only adds/);
   assert.equal(calls.length, 0);
 });
 

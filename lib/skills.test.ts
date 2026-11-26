@@ -340,7 +340,7 @@ test("use_skill gives the instructions and files; read_skill_file one file, thro
   assert.deepEqual(skillUseChange(skill()), { kind: "skill", id: skill().id, action: "completed", title: "Meeting prep", detail: "Skill used", label: "Meeting prep: skill used", open: { kind: "skill", id: skill().id }, undo: null });
 });
 
-test('"/" in the Ask box: matching names, the command, and a picked skill loaded straight away', () => {
+test('"/" in the Ask box: matching names, the command, and a picked skill loaded straight away', async () => {
   const list = [skill(), skill({ name: "weekly-review", description: "Use for a look back at the week." }), skill({ name: "plan-meals", description: "Dinners for the week." })];
   assert.deepEqual(matchSkills(list, "/").map((s) => s.name), ["meeting-prep", "weekly-review", "plan-meals"]);
   assert.deepEqual(matchSkills(list, "/we").map((s) => s.name), ["weekly-review"]);
@@ -348,7 +348,7 @@ test('"/" in the Ask box: matching names, the command, and a picked skill loaded
   assert.deepEqual(slashCommand("/meeting-prep my 3pm with Priya"), { name: "meeting-prep", rest: "my 3pm with Priya" });
   assert.equal(slashCommand("what about /this"), null);
   const tools = new SkillTools([skill({ enabled: false })]);
-  const block = tools.preloadBlock(skill({ enabled: false }));
+  const block = await tools.preloadBlock(skill({ enabled: false }));
   assert.match(block, /^The owner picked the meeting-prep skill/);
   assert.match(block, /<skill name="meeting-prep">\n1\. Read person_details\./);
   assert.match(block, /references\/agenda\.md/);

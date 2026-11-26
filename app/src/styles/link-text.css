@@ -8,6 +8,12 @@
   cursor: pointer;
 }
 
+/* The site a web link goes to, after its label: quieter than the link, kept on one line. */
+.text-link__host {
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
 .mention--web {
   text-decoration: none;
   background: var(--sunken);

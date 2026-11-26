@@ -916,8 +916,8 @@ function hasWords(text: string, words: string[]): boolean {
 
 /**
  * Everyone in Athena who fits some words, for Ask: a name, nickname or whole
- * email or phone (resolvePerson), an email domain ("@brightwater.co" or
- * "netlify.com", their own email or one of their identities), the
+ * email or phone (resolvePerson), an email domain ("@brightwater.example" or
+ * "northfield.example", their own email or one of their identities), the
  * organisation they work at, their relationship ("colleague"), or a value in
  * one of the owner's own fields. Strongest match first, then by name. All of
  * that is encrypted, so people are read and compared here, not in SQL.

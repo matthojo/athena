@@ -182,18 +182,48 @@ test("a run: the allowlist runs alone, the rest waits for Go, the run is kept an
 test("a run started by something that arrived: other people's words, and an allowed change still runs alone; the rest waits for Go", { skip }, async () => {
   const { createAssistant } = await import("./team");
   const { runAssistantTurn } = await import("./team-chat");
+  const { useJevClient } = await import("./jev");
   const moss = await createAssistant(MOSS);
   const { client, calls } = fakeClient((p, n) => {
     if (p.tool_choice?.name === "memory") return [use("memory", { summary: "", facts: [] })];
     if (n === 1) return [use("add_todo", { title: "Buy Rowan's scarf from Etsy", kind: "todo", step: "Add a to-do to buy the scarf" }), use("save_note", { title: "Scarf price", body: "Etsy £32", step: "Save the price" })];
     return [text("Added a to-do; the note waits for Go.")];
   });
-  const r = await runAssistantTurn(moss.id, "Check the price of the scarf", { mode: "run", event: { kind: "saved", ref_kind: "saved", facets: { title: "Green scarf", savedAction: "gift-idea" } }, client });
-  assert.match(JSON.stringify(calls[0].messages[0].content), /Green scarf/);
-  // The allowlist is the owner's standing request.
-  assert.deepEqual((r.reply.changes ?? []).map((c) => c.kind), ["commitment"], "add_todo is allowed: it ran");
-  assert.equal(r.reply.plan?.steps.length, 1, "save_note isn't: it waits");
-  assert.equal(r.reply.plan?.why, "read");
+  // Jev checked what arrived and found nothing aimed at an AI.
+  useJevClient({ systemOne: async () => ({ answers: { instructs: { noul: 0.02 } } }) } as never);
+  try {
+    const r = await runAssistantTurn(moss.id, "Check the price of the scarf", { mode: "run", event: { kind: "saved", ref_kind: "saved", facets: { title: "Green scarf", savedAction: "gift-idea" } }, client });
+    assert.match(JSON.stringify(calls[0].messages[0].content), /Green scarf/);
+    // The allowlist is the owner's standing request.
+    assert.deepEqual((r.reply.changes ?? []).map((c) => c.kind), ["commitment"], "add_todo is allowed: it ran");
+    assert.equal(r.reply.plan?.steps.length, 1, "save_note isn't: it waits");
+    assert.equal(r.reply.plan?.why, "read");
+  } finally {
+    useJevClient(undefined);
+  }
+});
+
+test("a run started by other people's words Jev couldn't check: even the allowed change waits for Go", { skip }, async () => {
+  const { createAssistant } = await import("./team");
+  const { runAssistantTurn } = await import("./team-chat");
+  const { useJevClient } = await import("./jev");
+  const moss = await createAssistant(MOSS);
+  const { client, calls } = fakeClient((p, n) => {
+    if (p.tool_choice?.name === "memory") return [use("memory", { summary: "", facts: [] })];
+    if (n === 1) return [use("add_todo", { title: "Buy Rowan's scarf from Etsy", kind: "todo", step: "Add a to-do to buy the scarf" }), use("save_note", { title: "Scarf price", body: "Etsy £32", step: "Save the price" })];
+    return [text("Both wait for your Go.")];
+  });
+  // Jev isn't there to ask: what arrived goes to the model as it is, unchecked.
+  useJevClient(null);
+  try {
+    const r = await runAssistantTurn(moss.id, "Check the price of the scarf", { mode: "run", event: { kind: "saved", ref_kind: "saved", facets: { title: "Green scarf", savedAction: "gift-idea" } }, client });
+    assert.ok(calls[0].tools!.some((t) => t.name === "add_todo"), "nothing is known to be wrong: the write tools stay");
+    assert.deepEqual(r.reply.changes ?? [], [], "nothing ran alone");
+    assert.deepEqual(r.reply.plan?.steps.map((s) => s.tool), ["add_todo", "save_note"], "both wait for Go");
+    assert.equal(r.reply.plan?.why, "unchecked");
+  } finally {
+    useJevClient(undefined);
+  }
 });
 
 test("a run whose start Jev flagged: no write tool is offered and one called anyway is refused, allowed or not", { skip }, async () => {

@@ -88,7 +88,7 @@ import { AthenaInputError, getConnectionsDetailed, getNote, getOwnerTimeZone, q,
 import { personBrief, recall, type RecallHit } from "./memory";
 import { findKind, listCustomRecords, listKinds, withRecordFields } from "./custom-kinds";
 import { KIND_WORD } from "./custom-kind-words";
-import { guardText } from "./jev";
+import { guardSkill, guardText } from "./jev";
 import { zonedParts } from "./dates";
 import { askContext, contextPrompt } from "./ask-context";
 import { bringsNewTopic, pastThreads, pastThreadsPrompt } from "./ask-threads";
@@ -369,8 +369,8 @@ export interface AnswerOptions {
   webTurn?: WebTurn | null;
   /** Each tool result as it comes back, by tool name: a Team run watches its price tools' results (lib/team-chat.ts). */
   onToolResult?: (name: string, text: string) => void;
-  /** What started the turn, when it wasn't the owner typing (a Team run's event): other people's words, and whether Jev flagged them. The guard starts from there (lib/ask-guard.ts). */
-  startedBy?: { read?: ReadFrom; flagged?: boolean };
+  /** What started the turn, when it wasn't the owner typing (a Team run's event): other people's words, and whether Jev flagged them or couldn't check them. The guard starts from there (lib/ask-guard.ts). */
+  startedBy?: { read?: ReadFrom; flagged?: boolean; unchecked?: boolean };
   /** Values to give back with the answer, as structured fields of the answer tool (a flow's think step): AskReply.values. */
   values?: AskedValue[];
 }
@@ -475,6 +475,14 @@ class Evidence {
   /** The model searched or read notes and people itself, beyond the first search. */
   notes = false;
   flagged = false;
+  /** Something read went to the model without Jev's check (lib/jev.ts guardText): an unattended run's allowlisted changes wait for Go. */
+  unchecked = false;
+
+  /** What Jev made of a piece of text this turn read. */
+  checked(g: { flagged: boolean; unchecked?: boolean }): void {
+    if (g.flagged) this.flagged = true;
+    if (g.unchecked) this.unchecked = true;
+  }
 
   ref(kind: AthenaKind, id: string, title: string, date: string | null = null): string {
     const key = `${kind}:${id.toLowerCase()}`;
@@ -893,9 +901,16 @@ class AthenaTools {
     return this.guarded(text);
   }
 
+  /** Jev's check for an imported skill's instructions (lib/skills-ask.ts). */
+  async guardedSkill(text: string): Promise<string> {
+    const g = await guardSkill(text);
+    this.ev.checked(g);
+    return g.text;
+  }
+
   private async guarded(text: string): Promise<string> {
     const g = await guardText(text);
-    if (g.flagged) this.ev.flagged = true;
+    this.ev.checked(g);
     return g.text;
   }
 }
@@ -1015,15 +1030,18 @@ const webSearchTool = (left: number, region: Region | null = null, tz?: string):
  * loop sees (a step for the owner, a leak check, Jev). It may open only a link already in the conversation: the
  * turn's own message (the saved item's link), a page web_search returned, or what find_saved gave. A link in an
  * email, a note or another tool's result never counts, so nothing from those can be sent anywhere by opening it.
+ * In a chat a link on a page it opened counts too. In an unattended run (`unattended`) it doesn't: a page's author
+ * could otherwise steer which link it opens next, and say something about the owner by the choice, with nobody
+ * watching. "Every web result but web_fetch's" is web_search's alone, and names a tool that's always in the request.
  */
-const webFetchTool = (left: number, clientTools: readonly string[]): Anthropic.WebFetchTool20250910 => ({
+const webFetchTool = (left: number, clientTools: readonly string[], unattended = false): Anthropic.WebFetchTool20250910 => ({
   type: "web_fetch_20250910",
   name: "web_fetch",
   max_uses: Math.max(1, left),
   max_content_tokens: PAGE_TOKENS,
   url_sources: {
     user_input: { type: "all" },
-    server_tool_results: { type: "all" },
+    server_tool_results: unattended ? { type: "except", tools: [{ type: "tool_reference", name: FETCH_TOOL_NAME }] } : { type: "all" },
     client_tool_results: clientTools.includes("find_saved") ? { type: "only", tools: [{ type: "tool_reference", name: "find_saved" }] } : { type: "none" },
   },
 });
@@ -1106,7 +1124,7 @@ const AnswerInput = z.object({
   needs_picture: z.boolean().default(false),
   from_today: z.boolean().default(false),
   // A flow's think step's values (AnswerOptions.values): only the keys asked for are kept.
-  values: z.record(z.string().max(2000)).optional(),
+  values: z.record(z.string(), z.string().max(2000)).optional(),
   sources: z
     .array(z.object({ ref: z.string().max(2000), title: z.string().max(400).default(""), date: z.string().max(40).default("") }))
     .max(20)
@@ -1302,9 +1320,10 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
   // A Team run has no message from the owner (a trigger wrote it), so its words ask for nothing.
   const unattended = !!opts.persona && opts.plan === "propose";
   // Its allowlist is the owner's standing request: the guard gets it here, for a run only. A chat goes by the owner's message.
-  const guard = new TurnGuard(unattended ? "" : plain, () => ev.flagged, unattended && !opts.persona!.readOnly ? opts.persona!.allow : []);
+  // What Jev couldn't check holds those changes for Go too; a chat has none to hold (lib/ask-guard.ts).
+  const guard = new TurnGuard(unattended ? "" : plain, () => ev.flagged, unattended && !opts.persona!.readOnly ? opts.persona!.allow : [], () => ev.unchecked);
   if (opts.startedBy?.read) guard.sawOthers(opts.startedBy.read);
-  if (opts.startedBy?.flagged) ev.flagged = true;
+  ev.checked({ flagged: !!opts.startedBy?.flagged, unchecked: !!opts.startedBy?.unchecked });
   // The owner's own words in this conversation: a person's name in them may be searched on the web.
   const typed = [plain, ...(opts.history ?? []).filter((t) => t.role === "user").map((t) => mentionsToText(t.text))];
   // Money search off: the money tools aren't offered and are refused in code (lib/ask-tools.ts). The model says when a message asked for them (needs_money).
@@ -1342,12 +1361,12 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       () => ({ found: [], block: null }),
     ),
   ]);
-  if (mentioned.block?.flagged) ev.flagged = true;
+  if (mentioned.block) ev.checked(mentioned.block);
   for (const m of mentioned.found) {
     const [kind] = (m.ref ?? "").split(":");
     if (m.ref) ev.ref(kind as AthenaKind, m.id, m.title);
   }
-  if (first.text?.flagged) ev.flagged = true;
+  if (first.text) ev.checked(first.text);
   if (firstQuery) step?.({ id: "first", text: first.results.length ? `Found ${first.results.length === 1 ? "1 match" : `${first.results.length} matches`} in your notes` : "No matches in your notes", done: true });
 
   try {
@@ -1387,8 +1406,17 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
       profilePromptBlock(),
       askContext({ now, tz }),
       remember ? pastThreads(plain, { now, people, exclude: opts.thread_id, earlier: earlierAsked }) : Promise.resolve([]),
-      // An imported skill limits the accounts from the moment it's in use (lib/shared-scope.ts).
-      loadSkillTools({ picked: opts.skill, guard: (t) => athena.guardedText(t), onUse: (s) => limitForSkill(scope, s) }),
+      // An imported skill limits the accounts from the moment it's in use (lib/shared-scope.ts), and its words are
+      // someone else's: from then a change the owner's message didn't plainly ask for waits for Go (lib/ask-guard.ts).
+      loadSkillTools({
+        picked: opts.skill,
+        guard: (t) => athena.guardedText(t),
+        guardSkill: (t) => athena.guardedSkill(t),
+        onUse: (s) => {
+          limitForSkill(scope, s);
+          if (s.imported) guard.sawOthers("file");
+        },
+      }),
       // main Ask's Team (check_with_assistant); none while an assistant answers, so it can't check with another.
       loadTeamDesk({ persona, client }),
     ]);
@@ -1412,7 +1440,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     const session = new Session(now, tz, { client, ...ports, capture: false, files: shared, money, sawCollected: () => guard.sawOthers("collected") });
     const draft = (session.draft = new PlanDraft(planMode));
     // A Team assistant's allowlist (lib/team-chat.ts): those changes run without waiting for Go, where the guard lets them.
-    // In a run it does unless something read was flagged. In a chat, after reading other people's words, only what the
+    // In a run it does unless something read was flagged or Jev couldn't check it. In a chat, after reading other people's words, only what the
     // owner's message asked for; a careful chat queues them like the rest.
     const alone = new Set(persona && !persona.readOnly ? persona.allow : []);
     if (alone.size) session.allow = { has: (name) => alone.has(name) && !opts.careful && guard.mustWait(name) === null };
@@ -1452,7 +1480,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
     const asked = [
         `<question>${question.trim() || "(No message: just the files above.)"}</question>`,
         historySourcesBlock(history),
-        picked ? skills.preloadBlock(picked) : "",
+        picked ? await skills.preloadBlock(picked) : "",
         mentioned.block ? mentioned.block.text : "",
         firstQuery
           ? first.text
@@ -1548,13 +1576,15 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
           if (read.startsWith("https://")) ev.web.set(read, title || ev.web.get(read) || "");
           step?.({ id: `web:${b.tool_use_id}`, text: title ? `Read “${title}” on ${hostOf(page.url || url)}` : `Read ${hostOf(page.url || url)}`, done: true });
           const text = page.content.source.type === "text" ? page.content.source.data : "";
-          if (text)
+          // A page that isn't text (a PDF) reached the model without Jev's check.
+          if (!text) ev.unchecked = true;
+          else
             reading.push(
               guardText(text.slice(0, 40_000)).then(
-                (g) => {
-                  if (g.flagged) ev.flagged = true;
+                (g) => ev.checked(g),
+                () => {
+                  ev.unchecked = true;
                 },
-                () => undefined,
               ),
             );
         }
@@ -1663,7 +1693,8 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
 
     const lookup = async (call: Anthropic.ToolUseBlock): Promise<Anthropic.ToolResultBlockParam> => {
       if (call.name === MAKE_IMAGE_TOOL_NAME) return picture(call);
-      // A skill's instructions aren't a lookup: they don't count, and they're read even while wrapping up.
+      // A skill's instructions aren't a lookup: they don't count toward the lookups, and they're read even while wrapping
+      // up. An imported skill's do count as other people's words (onUse above), and go through Jev's check.
       if (skills.handles(call.name)) {
         try {
           return { type: "tool_result", tool_use_id: call.id, content: await skills.run(call.name, call.input) };
@@ -1722,7 +1753,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
         if (!r.isError) ev.answered.add(account.key);
         // Someone else wrote this: Jev checks it isn't trying to instruct Claude, and flags it if so.
         const guarded = await guardText(text);
-        if (guarded.flagged) ev.flagged = true;
+        ev.checked(guarded);
         return { type: "tool_result", tool_use_id: call.id, content: guarded.text, ...(r.isError ? { is_error: true as const } : {}) };
       } catch (error) {
         ev.failed.add(account.key);
@@ -1769,7 +1800,7 @@ export async function runAsk(question: string, deps: AnswerDeps, opts: AnswerOpt
             const acc = byTool.get(t.name);
             return !acc || scope.has(acc.account.connector?.id);
           });
-          return [...offered, ...(web ? [webSearchTool(searchBudget - searches, region, tz)] : []), ...(fetchOn ? [webFetchTool(webTurn!.pages - pages, offered.map((t) => t.name))] : [])];
+          return [...offered, ...(web ? [webSearchTool(searchBudget - searches, region, tz)] : []), ...(fetchOn ? [webFetchTool(webTurn!.pages - pages, offered.map((t) => t.name), unattended)] : [])];
         };
         const params = (): Anthropic.MessageCreateParamsNonStreaming => ({ model, max_tokens: MAX_TOKENS, system, tools: sent(), messages, output_config: { effort: lim.effort }, cache_control: { type: "ephemeral" } });
         // The gateway refused and lib/ai.ts is waiting to ask again (up to a minute): the owner sees why nothing is moving.

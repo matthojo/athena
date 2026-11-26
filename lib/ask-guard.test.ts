@@ -149,6 +149,41 @@ test("a run: a flagged read stops both, and what was queued waits for Go", () =>
   assert.equal(g.allows("search_athena"), true, "reading carries on");
 });
 
+test("a run: text Jev couldn't check holds an allowlisted change for Go, and leaves the tools", () => {
+  let unchecked = false;
+  const g = new TurnGuard("", () => false, ["add_todo"], () => unchecked);
+  g.sawOthers("collected");
+  assert.equal(g.mustWait("add_todo"), null, "checked and clean: runs alone");
+  unchecked = true;
+  assert.equal(g.unchecked, true);
+  assert.equal(g.mustWait("add_todo"), "unchecked");
+  assert.equal(g.mustWait("save_note"), "read", "not allowlisted: held for the read, as before");
+  assert.equal(g.allows("add_todo"), true, "nothing is known to be wrong: the tools stay");
+  // Once raised it stays raised.
+  unchecked = false;
+  assert.equal(g.mustWait("add_todo"), "unchecked");
+  g.hold("a", "unchecked");
+  g.hold("b", "read");
+  assert.equal(g.why(["a", "b"]), "unchecked", "the owner expected the allowlisted one to run alone: that's the reason given");
+  assert.equal(g.why(["b"]), "read");
+  // A flag still outranks it.
+  g.flag();
+  assert.equal(g.mustWait("add_todo"), "flagged");
+  assert.equal(g.why(["a"]), "flagged");
+  // Raised by hand, as for a run's start.
+  const started = new TurnGuard("", () => false, ["add_todo"]);
+  started.uncheck();
+  assert.equal(started.mustWait("add_todo"), "unchecked");
+});
+
+test("a chat: text Jev couldn't check changes nothing the owner's message decides", () => {
+  const g = new TurnGuard("Add a to-do to pay the venue deposit", () => false, [], () => true);
+  g.sawOthers("collected");
+  assert.equal(g.mustWait("add_todo"), null, "the owner asked for it, and is there");
+  assert.equal(g.mustWait("archive_or_restore"), "read", "held for the read, as before");
+  assert.equal(g.allows("add_todo"), true);
+});
+
 test("a follow-up on the reply before it is plainly asked", () => {
   assert.equal(asked("Turn this into a recipe"), "add");
   assert.equal(asked("turn that into a to-do"), "add");

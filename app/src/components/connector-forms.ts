@@ -28,6 +28,7 @@ import { CONNECTOR_CATEGORIES, CONNECTOR_PRESETS, RECIPES, directApi, ownClientN
 import { clientGuide, keyGuide, keyShape, serverPages, setupBlock } from "./setup-steps";
 import { closeThen, openConnected, type ConnectedContext } from "./account-connected";
 import type { Connector, ConnectorAuthType, ConnectorOAuthSettings, ConnectorsState, RecipeId } from "../types";
+import { goToSignIn } from "../lib/sign-in-redirect";
 
 let seq = 0;
 
@@ -175,7 +176,7 @@ function customOAuthFields(redirect: string, existing: Connector | null, onChang
 export async function startSignIn(c: Connector): Promise<"redirect" | "done"> {
   const r = await signInConnector(c.id);
   if (r.authorization_url) {
-    location.assign(r.authorization_url);
+    goToSignIn(r.authorization_url);
     return "redirect";
   }
   await checkTools(c);
@@ -956,7 +957,7 @@ function showConnect(sheet: SheetHandle, body: HTMLElement, state: ConnectorsSta
         try {
           const r = await signInConnector(created.id);
           if (r.authorization_url) {
-            location.assign(r.authorization_url);
+            goToSignIn(r.authorization_url);
             return;
           }
           finished(await checkConnector(created.id));

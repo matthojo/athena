@@ -156,27 +156,62 @@ export const pinnedLookup: LookupFunction = (hostname, options, callback) => {
 
 const nativeFetch = globalThis.fetch;
 
+/** Headers that carry a credential, so never follow a redirect to another origin. */
+const CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization"];
+
 /**
  * fetch for addresses the owner typed (Plex, Jellyfin, Mastodon, icons, art,
  * maps): https only, every connection's address checked as it's made, every
- * redirect hop too. Tests that replace globalThis.fetch get their stub.
+ * redirect hop too, and credentials dropped when a redirect leaves the
+ * origin. Under the test runner a replaced globalThis.fetch gets the call;
+ * anywhere else a replacement is ignored, so the checks always apply.
  */
 export async function publicFetch(input: string | URL, init: RequestInit = {}): Promise<Response> {
-  if (globalThis.fetch !== nativeFetch) return globalThis.fetch(input, init);
+  if (globalThis.fetch !== nativeFetch && process.env.NODE_TEST_CONTEXT) return globalThis.fetch(input, init);
   let url = new URL(input);
+  let current = init;
   for (let hop = 0; hop < 6; hop++) {
     if (url.protocol !== "https:") throw new TypeError("https only");
-    const res = await pinnedRequest(url, init);
+    const res = await pinnedRequest(url, current);
     const location = res.headers.get("location");
     if (res.status < 300 || res.status >= 400 || !location || init.redirect === "manual") return res;
     if (init.redirect === "error") throw new TypeError("redirect refused");
     await res.body?.cancel();
-    url = new URL(location, url);
+    const next = new URL(location, url);
+    current = redirectedInit(current, res.status, url, next);
+    url = next;
   }
   throw new TypeError("too many redirects");
 }
 
+/**
+ * The request to send on to a redirect's target, as fetch would: a 303 (or a
+ * POST answered 301 or 302) becomes a GET without a body, and a different
+ * origin gets no credentials.
+ */
+export function redirectedInit(init: RequestInit, status: number, from: URL, to: URL): RequestInit {
+  const method = (init.method ?? "GET").toUpperCase();
+  const toGet = status === 303 ? method !== "GET" && method !== "HEAD" : (status === 301 || status === 302) && method === "POST";
+  const crossOrigin = from.origin !== to.origin;
+  if (!toGet && !crossOrigin) return init;
+  const headers = new Headers(init.headers);
+  if (crossOrigin) for (const h of CREDENTIAL_HEADERS) headers.delete(h);
+  if (toGet) for (const h of ["content-type", "content-length", "content-encoding", "content-language", "content-location"]) headers.delete(h);
+  return toGet ? { ...init, headers, method: "GET", body: undefined } : { ...init, headers };
+}
+
+/**
+ * A host written as an IP literal (https://10.0.0.1, https://[::1]) is
+ * connected to without a lookup, so pinnedLookup never sees it: judge it
+ * here instead, on every hop.
+ */
+export function isInternalLiteral(url: URL): boolean {
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  return isIP(host) !== 0 && isInternalAddress(host);
+}
+
 function pinnedRequest(url: URL, init: RequestInit): Promise<Response> {
+  if (isInternalLiteral(url)) return Promise.reject(Object.assign(new Error(PRIVATE_ADDRESS), { code: "EINTERNAL" }));
   return new Promise((resolve, reject) => {
     const headers: Record<string, string> = { "accept-encoding": "identity" };
     new Headers(init.headers).forEach((v, k) => (headers[k] = v));

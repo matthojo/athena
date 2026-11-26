@@ -15,7 +15,7 @@ export const CALDAV_PRINCIPAL = ms(
 );
 
 export const CALDAV_HOME = ms(
-  `<response xmlns="DAV:"><href>/123456789/principal/</href><propstat><prop><calendar-home-set xmlns="urn:ietf:params:xml:ns:caldav"><href xmlns="DAV:">https://p42-caldav.icloud.com:443/123456789/calendars/</href></calendar-home-set><calendar-user-address-set xmlns="urn:ietf:params:xml:ns:caldav"><href xmlns="DAV:">mailto:jordan@icloud.com</href><href xmlns="DAV:">mailto:Jordan@jr.example</href><href xmlns="DAV:">/123456789/principal/</href></calendar-user-address-set></prop><status>HTTP/1.1 200 OK</status></propstat></response>`,
+  `<response xmlns="DAV:"><href>/123456789/principal/</href><propstat><prop><calendar-home-set xmlns="urn:ietf:params:xml:ns:caldav"><href xmlns="DAV:">https://p42-caldav.icloud.com:443/123456789/calendars/</href></calendar-home-set><calendar-user-address-set xmlns="urn:ietf:params:xml:ns:caldav"><href xmlns="DAV:">mailto:jordan@ic.example</href><href xmlns="DAV:">mailto:Jordan@jr.example</href><href xmlns="DAV:">/123456789/principal/</href></calendar-user-address-set></prop><status>HTTP/1.1 200 OK</status></propstat></response>`,
 );
 
 export const CARDDAV_PRINCIPAL = ms(
@@ -56,7 +56,7 @@ const cal = (href: string, name: string, opts: { comps?: string[]; shared?: bool
   }</resourcetype><supported-calendar-component-set xmlns="urn:ietf:params:xml:ns:caldav">${(opts.comps ?? ["VEVENT"]).map((c) => `<comp name="${c}"/>`).join("")}</supported-calendar-component-set><current-user-privilege-set><privilege><read/></privilege>${
     opts.write === false ? "" : `<privilege><write/></privilege>`
   }</current-user-privilege-set>${
-    opts.shared ? `<invite xmlns="http://calendarserver.org/ns/"><user><href xmlns="DAV:">mailto:jordan@icloud.com</href><invite-accepted/><access><read/></access></user><organizer><href xmlns="DAV:">mailto:rowan@example.com</href><organizer-first>Rowan</organizer-first><organizer-last>Thorne</organizer-last></organizer></invite>` : ""
+    opts.shared ? `<invite xmlns="http://calendarserver.org/ns/"><user><href xmlns="DAV:">mailto:jordan@ic.example</href><invite-accepted/><access><read/></access></user><organizer><href xmlns="DAV:">mailto:rowan@example.com</href><organizer-first>Rowan</organizer-first><organizer-last>Thorne</organizer-last></organizer></invite>` : ""
   }${opts.color ? `<calendar-color xmlns="http://apple.com/ns/ical/">${opts.color}</calendar-color>` : ""}${
     opts.tz ? `<calendar-timezone xmlns="urn:ietf:params:xml:ns:caldav"><![CDATA[${opts.tz}]]></calendar-timezone>` : ""
   }</prop><status>HTTP/1.1 200 OK</status></propstat><propstat><prop><calendar-description xmlns="urn:ietf:params:xml:ns:caldav"/></prop><status>HTTP/1.1 404 Not Found</status></propstat></response>`;
@@ -99,7 +99,7 @@ LOCATION:Zoom
 DESCRIPTION:Join: https://acme.zoom.us/j/123456789\\nAgenda in the doc.
 ORGANIZER;CN=Priya Shah:mailto:priya@acme.example
 ATTENDEE;CN=Priya Shah;PARTSTAT=ACCEPTED;ROLE=CHAIR:mailto:priya@acme.example
-ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@icloud.com
+ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@ic.example
 ATTENDEE;CN=Sam Lee;PARTSTAT=TENTATIVE;ROLE=OPT-PARTICIPANT:mailto:sam@acme.example
 ATTENDEE;CN=Board Room;CUTYPE=ROOM;PARTSTAT=ACCEPTED:mailto:room@acme.example
 END:VEVENT`,
@@ -111,7 +111,7 @@ DTSTART;TZID=Europe/London:20261102T100000
 DTEND;TZID=Europe/London:20261102T101500
 SUMMARY:Team stand-up (moved)
 ORGANIZER;CN=Priya Shah:mailto:priya@acme.example
-ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION:mailto:jordan@icloud.com
+ATTENDEE;CN=Jordan;PARTSTAT=NEEDS-ACTION:mailto:jordan@ic.example
 END:VEVENT`,
 );
 
@@ -128,7 +128,7 @@ RECURRENCE-ID:${rid}
 DTSTART:${s}
 DTEND:${e}
 SUMMARY:${t}
-ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@icloud.com
+ATTENDEE;CN=Jordan;PARTSTAT=ACCEPTED:mailto:jordan@ic.example
 END:VEVENT`,
   ),
 );

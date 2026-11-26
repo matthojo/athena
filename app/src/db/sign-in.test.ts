@@ -30,7 +30,7 @@ let respond: (c: Call) => Response = () => new Response("{}", { status: 200 });
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-const { signIn, swapMasterForKey, requestWithMaster, removeOwnKey, deviceName, getToken, request, updateNote, createNote, saveTimeZone, makeApiKey } = await import("./api");
+const { signIn, swapMasterForKey, holdsMasterToken, requestWithMaster, removeOwnKey, deviceName, getToken, request, updateNote, createNote, saveTimeZone, makeApiKey } = await import("./api");
 
 const MASTER = "master-token-0123456789";
 const KEY = "athk_" + "a".repeat(43);
@@ -98,31 +98,48 @@ test("a reply that isn't a full key is not stored", async () => {
 
 test("an install still holding the master token swaps it for a key on launch", async () => {
   store.set("athena.token", MASTER);
-  assert.equal(await swapMasterForKey(), true);
+  assert.equal(holdsMasterToken(), true);
+  assert.equal(await swapMasterForKey(true), true);
   assert.equal(calls[0].auth, `Bearer ${MASTER}`);
   assert.equal(getToken(), KEY);
+  assert.equal(holdsMasterToken(), false);
   assert.ok(!everythingStored().includes(MASTER));
   // Already a key: nothing more to do.
   calls = [];
-  assert.equal(await swapMasterForKey(), false);
+  assert.equal(await swapMasterForKey(true), false);
   assert.equal(calls.length, 0);
+  assert.equal(getToken(), KEY);
 });
 
-test("the swap waits for a connection, and leaves sample mode and signed-out installs alone", async () => {
-  store.set("athena.token", MASTER);
-  respond = () => {
-    throw new TypeError("Failed to fetch");
-  };
-  assert.equal(await swapMasterForKey(), false);
-  assert.equal(getToken(), MASTER, "kept, to try again next launch");
+test("a swap that fails drops the master token, so Connect asks again", async () => {
+  for (const fail of [() => json({ error: "Unauthorized" }, 401), () => json({ error: "down" }, 503), () => { throw new TypeError("Failed to fetch"); }]) {
+    store.clear();
+    store.set("athena.token", MASTER);
+    calls = [];
+    respond = fail;
+    assert.equal(await swapMasterForKey(true), false);
+    assert.equal(calls.length, 1, "tried once");
+    assert.equal(getToken(), null);
+    assert.ok(!everythingStored().includes(MASTER));
+  }
+});
 
-  store.clear();
-  assert.equal(await swapMasterForKey(), false);
+test("offline, the master token is dropped without a request", async () => {
+  store.set("athena.token", MASTER);
+  assert.equal(await swapMasterForKey(false), false);
+  assert.equal(calls.length, 0);
+  assert.equal(getToken(), null);
+});
+
+test("sample mode drops a held master token without a request; signed-out installs are left alone", async () => {
+  assert.equal(await swapMasterForKey(true), false);
+  assert.equal(calls.length, 0);
   store.set("athena.mode", "sample");
   store.set("athena.token", MASTER);
-  calls = [];
-  assert.equal(await swapMasterForKey(), false);
+  assert.equal(await swapMasterForKey(true), false);
   assert.equal(calls.length, 0);
+  assert.equal(getToken(), null);
+  assert.equal(store.get("athena.mode"), "sample");
 });
 
 test("requestWithMaster sends one call with the typed token and stores nothing", async () => {

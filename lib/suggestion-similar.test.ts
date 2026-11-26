@@ -63,7 +63,7 @@ test("ignore choices: the address, its organisation, and a lasting subject phras
     domain: "northfield.example",
     subject: "Your class this",
   });
-  assert.equal(ignoreChoices({ from: "sam.lee@gmail.com", subject: "Hello" }).domain, null);
+  assert.equal(ignoreChoices({ from: "x@gmail.com", subject: "Hello" }).domain, null);
   assert.equal(senderDomain("news@offers.shop.co.uk"), "shop.co.uk");
   assert.deepEqual(ignoreChoices(null), { sender: null, domain: null, subject: null });
 });

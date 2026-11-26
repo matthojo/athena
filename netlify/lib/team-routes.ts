@@ -36,6 +36,7 @@ import { ShareFormatError } from "../../lib/team-share";
 import { AthenaInputError } from "../../lib/db";
 import { SKILL_LIMITS } from "../../lib/skills";
 import { textUpTo } from "./body-limit";
+import { siteOrigin } from "./site-origin";
 
 type Json = (data: unknown, status?: number) => Response;
 
@@ -146,7 +147,7 @@ async function teamRoutes(req: Request, url: URL, segments: string[], body: () =
     if (method !== "POST") return nope();
     const queued = await enqueueTeamRun(second);
     try {
-      await handOffTeamRun(url.origin, queued.id);
+      await handOffTeamRun(siteOrigin(url.origin), queued.id);
     } catch (error) {
       console.error("Athena team: couldn't start a run", (error as Error).message?.slice(0, 120));
       await finishTeamRun(queued.id, { status: "failed", error: "It couldn't start. Try again in a minute." });

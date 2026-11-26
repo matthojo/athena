@@ -132,10 +132,19 @@ const CACHE = "athena-saved-v1";
 const urls = new Map<string, string>();
 const loading = new Map<string, Promise<string | null>>();
 
+/**
+ * Whether an image address is Athena's own API, the only place this device's key is sent: a path on this site under
+ * /api/. A full address, even one naming this site, a protocol-relative one or a backslash doesn't count.
+ */
+export const isOwnApiPath = (url: string): boolean => url.startsWith("/api/") && !url.includes("\\");
+
 /** An object URL for an item's image (or the sample's own file). Null when it can't be had now. */
 export function savedImageUrl(item: Pick<SavedItem, "id" | "image_url">, size: "sm" | "lg"): Promise<string | null> {
-  if (!item.image_url) return Promise.resolve(null);
-  if (!item.image_url.startsWith("/api/")) return Promise.resolve(item.image_url);
+  const src = item.image_url;
+  if (!src) return Promise.resolve(null);
+  // Not the API's: a sample's own file, or a picture made on this device. Shown as it is, with no key.
+  if (!src.startsWith("/api/")) return Promise.resolve(src);
+  if (!isOwnApiPath(src)) return Promise.resolve(null);
   const key = `/saved-cache/${item.id}/${size}`;
   const ready = urls.get(key);
   if (ready) return Promise.resolve(ready);
@@ -151,7 +160,7 @@ export function savedImageUrl(item: Pick<SavedItem, "id" | "image_url">, size: "
       }
       if (!blob) {
         const token = getToken();
-        const res = await fetch(`${item.image_url}?size=${size}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).catch(() => null);
+        const res = await fetch(`${src}?size=${size}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).catch(() => null);
         if (!res?.ok) return null;
         blob = await res.blob();
         void caches.open(CACHE).then((c) => c.put(key, new Response(blob, { headers: { "Content-Type": "image/webp" } }))).catch(() => undefined);

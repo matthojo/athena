@@ -14,7 +14,7 @@ if (url) {
   process.env.ANTHROPIC_API_KEY ??= "test";
 }
 
-const APPLE_ID = "jordan@icloud.com";
+const APPLE_ID = "jordan@ic.example";
 const PASSWORD = "abcd-efgh-ijkl-mnop";
 const CAL_HOME = "https://p42-caldav.icloud.com/123456789/calendars/";
 const BOOK = "https://p42-contacts.icloud.com/123456789/carddavhome/card/";
@@ -199,7 +199,7 @@ test("iCloud: connect with one password, check, Ask, precheck, People, and a rev
     assert.equal((await C.getConnector(contacts.id))!.status, "connected", "and its sign-in problem clears");
 
     // ---- an account with a different password isn't touched ----
-    const other = await api("POST", "/connectors", { provider: "icloud-contacts", name: "Work iCloud Contacts", account_label: "work", auth_type: "token", token: "aaaa-bbbb-cccc-dddd", username: "work@icloud.com" });
+    const other = await api("POST", "/connectors", { provider: "icloud-contacts", name: "Work iCloud Contacts", account_label: "work", auth_type: "token", token: "aaaa-bbbb-cccc-dddd", username: "work@icloud.example" });
     await api("PATCH", `/connectors/${cal.id}`, { token: "wxyz-wxyz-wxyz-wxyz" });
     assert.equal((await C.getConnectorWithSecrets(JSON.parse(other.text).id))!.secrets.token, "aaaa-bbbb-cccc-dddd");
   } finally {

@@ -22,7 +22,7 @@ g.localStorage ??= { getItem: () => null, setItem() {}, removeItem() {} };
 const { Editor } = await import("@tiptap/core");
 const { baseExtensions } = await import("./extensions");
 const model = await import("./link-model");
-const { renderLink, thingFor, loadPlayer, EMBED_SANDBOX } = await import("./link-render");
+const { renderLink, thingFor, loadPlayer, embedFrame, EMBED_SANDBOX } = await import("./link-render");
 const { embedFor, EMBED_FRAME_HOSTS } = await import("../../../lib/embeds");
 const { parseAthenaLinks, parseWebLinks } = await import("../../../lib/links");
 
@@ -165,6 +165,17 @@ test("an embed draws a still and our button, and no iframe until the tap", () =>
   assert.equal(frame.getAttribute("referrerpolicy"), "strict-origin");
   assert.equal(frame.getAttribute("loading"), "lazy");
   assert.ok(EMBED_FRAME_HOSTS.some((h) => new URL(e.embedUrl!).origin === h));
+});
+
+test("a Framer site, anyone's, plays without popups; the players keep theirs", () => {
+  const site = embedFrame(embedFor("https://studio-north.framer.website/")!, "Studio North")!;
+  const sandbox = (site.getAttribute("sandbox") ?? "").split(" ");
+  assert.ok(sandbox.includes("allow-scripts") && sandbox.includes("allow-same-origin"));
+  assert.ok(!sandbox.includes("allow-popups"), "no popups from a Framer site");
+  assert.ok(!sandbox.some((flag) => flag.startsWith("allow-top-navigation")));
+  for (const url of ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://vimeo.com/76979871", "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC"]) {
+    assert.equal(embedFrame(embedFor(url)!, "Player")!.getAttribute("sandbox"), EMBED_SANDBOX, url);
+  }
 });
 
 test("Apple Maps never gets an iframe; every mode draws without one", () => {

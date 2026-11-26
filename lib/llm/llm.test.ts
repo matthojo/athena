@@ -12,6 +12,7 @@ import { chatRound, chatBody, readChatStream } from "./openai";
 import { forgetSignatures, geminiBody, geminiRound, readGeminiStream } from "./gemini";
 import { parseArgs, plainTools } from "./shared";
 import { REFUSAL_WAITS_MS } from "./client";
+import { SeenLinks } from "./web";
 import { PROVIDERS, callsAndResults, fakeClaude, fakeGateway, injectGateway, keyFor, removeGateway, type Provider } from "./testing";
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
@@ -415,6 +416,26 @@ test("web_fetch opens only a link already in the conversation, from the sources 
   } finally {
     gw.restore();
   }
+});
+
+test("web_fetch's sources by tool: every web result but web_fetch's is web_search's alone", () => {
+  const messages = [
+    { role: "user", content: "Check the kettle" },
+    {
+      role: "assistant",
+      content: [
+        { type: "web_search_tool_result", tool_use_id: "s1", content: [{ type: "web_search_result", url: "https://shop.example/kettle", title: "Kettle", encrypted_content: "x" }] },
+        { type: "web_fetch_tool_result", tool_use_id: "f1", content: { type: "web_fetch_result", url: "https://shop.example/kettle", content: { type: "document", source: { type: "text", media_type: "text/plain", data: "Next: https://evil.example/?leak=1" } } } },
+      ],
+    },
+  ] as unknown as Anthropic.MessageParam[];
+  const seen = new SeenLinks(messages);
+  const run = { user_input: { type: "all" as const }, server_tool_results: { type: "except" as const, tools: [{ name: "web_fetch" }] }, client_tool_results: { type: "none" as const } };
+  assert.equal(seen.allows("https://shop.example/kettle", run), true, "a search result");
+  assert.equal(seen.allows("https://evil.example/?leak=1", run), false, "a link on a page it opened");
+  const chat = { ...run, server_tool_results: { type: "all" as const } };
+  assert.equal(seen.allows("https://evil.example/?leak=1", chat), true, "in a chat it may follow one");
+  assert.equal(seen.allows("https://evil.example/?leak=1", { ...run, server_tool_results: { type: "only" as const, tools: [{ name: "web_search" }] } }), false);
 });
 
 test("a lookup Claude can't run comes back as the tool's own error, not a failed turn", async () => {

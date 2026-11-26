@@ -29,7 +29,7 @@
  */
 import { addDays, zonedParts, zonedToInstant, zonedToday } from "./dates";
 import { dueSlot, parseTime, RUN_WINDOW_MINUTES, scheduleWords } from "./routines";
-import { matchesFilter } from "./team-triggers";
+import { fromAgent, matchesFilter } from "./team-triggers";
 import { runLabel } from "./team-run";
 import type { TeamEventRow } from "./team-events";
 import type { FlowSource, FlowStarter, FlowTrigger } from "./flow-types";
@@ -237,6 +237,8 @@ export function flowsForEvent(ev: Pick<TeamEventRow, "kind" | "facets" | "create
   const jobs = new Set<string>();
   return flows.filter((f) => {
     if (f.trigger.kind !== "event" || !f.trigger.event || !createdBy(f, new Date(ev.created_at)) || !matchesFilter(f.trigger.event, ev)) return false;
+    // An imported flow, or an imported assistant's job, doesn't start on what an agent made (team-triggers.ts fromAgent).
+    if (f.origin === "shared" && fromAgent(ev)) return false;
     if (!isJobFlow(f)) return true;
     // Claimed by Team's pass before this job flow was made: the trigger it was moved from had it.
     if (ev.processed_at && f.handed_at && Date.parse(ev.processed_at) < Date.parse(f.handed_at)) return false;

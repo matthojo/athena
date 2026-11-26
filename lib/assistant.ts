@@ -1,7 +1,7 @@
 /**
  * Ask's write side: "add the Lego Ferrari to Rowan's Christmas gift ideas",
  * "remind me to call Mum on Sunday at 6", "Priya's moving to Lisbon", "set
- * everyone with an @brightwater.co email to work at Brightwater".
+ * everyone with an @brightwater.example email to work at Brightwater".
  *
  * A Session holds the tools that change things and the finds that give them
  * ids to change by: it finds Rowan (or asks which one, or whether to add
@@ -625,7 +625,7 @@ export const TOOLS: Anthropic.Tool[] = [
   {
     name: "find_people",
     description:
-      "Find people in Athena by name, nickname, email, email domain (\"@brightwater.co\"), phone, relationship (\"colleague\"), where they work (\"Brightwater\") or a value in one of the owner's own fields. " +
+      "Find people in Athena by name, nickname, email, email domain (\"@brightwater.example\"), phone, relationship (\"colleague\"), where they work (\"Brightwater\") or a value in one of the owner's own fields. " +
       "Returns each one's id and details, and matched_on: how they matched. Always use this before acting for a person; when you're working out who a name means, only people matched on their name count. " +
       `Shows ${PEOPLE_SHOWN} unless you give limit (up to 500): give one when you need everyone who matches, for a change to many people.`,
     input_schema: {

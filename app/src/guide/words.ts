@@ -6,16 +6,20 @@
 
 import type { GuideStep } from "../../../lib/setup-guide";
 
-/** The five steps the owner sees, in order, as the progress bar names them. Welcome is the first: it connects this device. */
+/**
+ * The five steps the owner sees, in order, as the progress bar names them. Welcome comes before them and isn't
+ * counted. The site comes first: this device's key can only be made once the data key is set.
+ */
 export const STEP_NAMES: Record<Exclude<GuideStep, "done">, string> = {
-  welcome: "Connect this device",
+  welcome: "Welcome",
   site: "Check your site",
+  connect: "Connect this device",
   about: "Your name",
   sources: "First sources",
   phone: "Your phone",
 };
 
-export const COUNTED: Exclude<GuideStep, "done">[] = ["welcome", "site", "about", "sources", "phone"];
+export const COUNTED: Exclude<GuideStep, "done" | "welcome">[] = ["site", "connect", "about", "sources", "phone"];
 
 /** "Step 2 of 5". */
 export const stepOf = (step: GuideStep): string => {
@@ -33,21 +37,28 @@ export const WORDS = {
     title: "Your Athena is live",
     lede: "It runs on your own Netlify site, and your data stays there. Five steps get it ready, and they take about ten minutes.",
     plan: [
+      ["Check your site", "Athena checks its settings and helps you add your data key."],
       ["Connect this device", "With the access token you chose when you deployed."],
-      ["Check your site", "Athena checks its settings and helps you add any that are missing."],
       ["Tell Athena your name", "For its greetings and your morning briefing."],
       ["Add your first sources", "Your calendar, email or work, so Home fills itself in."],
       ["Get it on your phone", "With notifications, if you want them."],
     ] as Array<[string, string]>,
+    start: "Start",
+    resume: "Carry on",
+    resumeLede: "This device is connected. Pick up where you left off.",
+  },
+
+  connect: {
+    title: "Connect this device",
+    lede: "Paste the access token you chose when you deployed. This device gets a key of its own.",
+    connectedLede: "This device is connected.",
     tokenLabel: "Access token",
     tokenPlaceholder: "Paste your access token",
     tokenHelpLead: "It's the ",
     tokenHelpTail: " you set when you deployed. If you marked it secret, Netlify won't show it again, so look where you saved it, such as your password manager.",
-    start: "Connect and start",
+    submit: "Connect",
     connecting: "Connecting…",
-    resume: "Carry on",
-    resumeLede: "This device is connected. Pick up where you left off.",
-    foot: "This device gets its own key, which you can remove in Settings. The token you paste isn't kept.",
+    foot: "This device's key can be removed in Settings. The token you paste isn't kept.",
     empty: "Paste your token to continue.",
     refused: "That token wasn't accepted. Check it and try again.",
     unreachable: "Couldn't reach Athena. Check you're online and try again.",

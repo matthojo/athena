@@ -48,7 +48,7 @@ test("fail() passes on only what was written for the client", () => {
   assert.equal(fail(new AthenaInputError("A person needs a name")).content[0].text, "A person needs a name");
   const zod = z.object({ id: z.string().uuid() }).safeParse({ id: "nope" });
   assert.ok(!zod.success);
-  assert.match(fail(zod.error).content[0].text, /Invalid uuid/);
+  assert.match(fail(zod.error).content[0].text, /Invalid uuid/i);
   assert.equal(fail(new AthenaInputError("x")).isError, true);
 });
 

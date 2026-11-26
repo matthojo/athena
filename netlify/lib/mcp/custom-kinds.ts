@@ -38,7 +38,7 @@ const ABOUT =
 const kindRef = z.string().min(1).describe(`The ${W.one}'s id, custom:<id>, or its name ("Wines")`);
 
 const valuesSchema = z
-  .record(z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]))
+  .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]))
   .describe(
     "Field values by field name: { \"Grape\": \"Syrah\", \"Rating\": 4, \"Price\": 18 }. A rating is 1 to 5; a choice must be one of its options; null clears. " +
       "Never bank, card, password or medical details.",

@@ -10,9 +10,10 @@
  * end-to-end encryption.
  *
  * Keys. ATHENA_DATA_KEY is 32 random bytes as 64 hex characters
- * (`openssl rand -hex 32`), set for the production context only. Three keys
+ * (`openssl rand -hex 32`), set for the production context only. Four keys
  * are derived from it with HKDF-SHA256: one encrypts, one computes blind
- * indexes, and a 4-byte key id that's stored with every value. During a
+ * indexes, one computes API keys' MACs (apiKeyMac), and a 4-byte key id
+ * that's stored with every value. During a
  * rotation the old key goes in ATHENA_DATA_KEY_PREVIOUS (space- or
  * comma-separated if there are several): values sealed under it still open,
  * and netlify/functions/encrypt-data.ts re-seals them under the new key.
@@ -84,6 +85,8 @@ interface DataKey {
   kid: string;
   enc: Buffer;
   idx: Buffer;
+  /** API keys' MACs (lib/api-keys.ts). */
+  api: Buffer;
 }
 
 interface Ring {
@@ -101,6 +104,7 @@ function derive(hex: string): DataKey {
     kid: part("athena/data/key-id/v1", 4).toString("hex"),
     enc: part("athena/data/encrypt/v1", 32),
     idx: part("athena/data/index/v1", 32),
+    api: part("athena/api-keys/v1", 32),
   };
 }
 
@@ -262,6 +266,21 @@ export function blindIndex(purpose: IndexPurpose, normalised: string): string | 
 export function blindIndexes(purpose: IndexPurpose, normalised: string): string[] {
   if (!normalised) return [];
   return [...ring().keys.values()].map((key) => hmac(key, purpose, normalised));
+}
+
+// ---------- API keys (lib/api-keys.ts) ----------
+
+/**
+ * HMAC-SHA256 of an API key's token (hex) under the api-keys subkey of the
+ * key `kid` (the current key when left out), with that key's id. Null when
+ * there's no current key, or no key with that id. The subkey never leaves
+ * this module.
+ */
+export function apiKeyMac(token: string, kid?: string): { kid: string; mac: string } | null {
+  const r = ring();
+  if (!r.current) return null;
+  const key = kid === undefined ? r.current : r.keys.get(kid);
+  return key ? { kid: key.kid, mac: createHmac("sha256", key.api).update(token).digest("hex") } : null;
 }
 
 // ---------- Files (lib/files.ts) ----------

@@ -31,7 +31,7 @@ function day(): RuleMessage[] {
   add(8, () => ({ from: "Namecheap <billing@namecheap.com>", subject: "Your domain renews soon", labels: ["INBOX", "CATEGORY_UPDATES"] }));
   add(6, (i) => ({ from: ["The Browser <editors@thebrowser.com>", "Stratechery <email@stratechery.com>"][i % 2], subject: "Weekly digest", labels: ["INBOX", "Label_4"] }));
   add(14, (i) => ({ from: "LinkedIn <messages-noreply@linkedin.com>", subject: i % 2 ? "You appeared in 9 searches" : "New message from Ana", labels: ["INBOX", "CATEGORY_SOCIAL"] }));
-  add(14, (i) => ({ from: ["Priya <priya@hey.com>", "Sam Okafor <sam@okafor.studio>", "Mum <mum@example.com>", "Tom <tom@brightwater.co>"][i % 4], subject: ["Lunch Friday?", "Draft for review", "Sunday", "1:1 notes"][i % 4], labels: ["INBOX"] }));
+  add(14, (i) => ({ from: ["Priya <priya@mail.example>", "Sam Okafor <sam@okafor.example>", "Mum <mum@example.com>", "Tom <tom@brightwater.example>"][i % 4], subject: ["Lunch Friday?", "Draft for review", "Sunday", "1:1 notes"][i % 4], labels: ["INBOX"] }));
   return out;
 }
 
@@ -59,7 +59,7 @@ export function sampleMailPort(): MailRulesPort {
     async preview(next): Promise<MailPreview> {
       await wait(350);
       const kept = mail.filter((m) => passes(m, next)).length;
-      return { hours: 24, total: mail.length, skipped: mail.length - kept, capped: false, suggestions: topSenders(mail, next, { own: "owner@gmail.com", min: 10 }) };
+      return { hours: 24, total: mail.length, skipped: mail.length - kept, capped: false, suggestions: topSenders(mail, next, { own: "alex@example.com", min: 10 }) };
     },
     async save(next) {
       await wait(150);

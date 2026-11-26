@@ -15,11 +15,12 @@ import { cleanLinks, modelLinks, STEPS_RULE_SHORT, TodoDetailsError } from "../.
 import { startTeamEvent } from "../../lib/team-triggers";
 // Plugs flows into the owner's own events, so a tagged note or a save starts its flows at once (lib/flow-engine.ts).
 import "../../lib/flow-engine";
-import type { Config, Context } from "@netlify/functions";
+import type { Context } from "@netlify/functions";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
 import { authorized } from "../lib/mcp/bearer";
+import { metricNameProblem } from "../lib/mcp/metric-names";
 import { CONTENT_INSTRUCTIONS, fail, ok, safe, stored, type ToolResult } from "../lib/mcp/results";
 import { registerCustomFieldTools, withCustomFields, withCustomFieldsList } from "../lib/mcp/custom-fields";
 import { registerCustomKindTools } from "../lib/mcp/custom-kinds";
@@ -118,6 +119,9 @@ const provenanceSchema = {
 };
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("YYYY-MM-DD, a local date in the owner's time zone");
+/** An ISO 8601 date and time, as text: a tool's schema is published as JSON Schema, which has no Date. Read with `at`. */
+const isoInstant = z.string().max(64).refine((s) => !Number.isNaN(Date.parse(s)), { message: "An ISO 8601 date and time" });
+const at = (s: string | undefined): Date | undefined => (s === undefined ? undefined : new Date(s));
 
 /**
  * Shared guidance on Athena's link syntax, appended to every tool that reads
@@ -185,7 +189,8 @@ function buildServer(): McpServer {
     safe(async (args) => {
       const note = await createNote(args);
       // A note made with tags is a Team event; a matching assistant starts now (lib/team-triggers.ts). Never throws.
-      if (note.tags?.length) await startTeamEvent("note", note.id, "note", { title: note.title, tags: note.tags, kind: note.type });
+      // Made by an agent: an imported assistant or flow doesn't start on it (lib/team-triggers.ts fromAgent).
+      if (note.tags?.length) await startTeamEvent("note", note.id, "note", { title: note.title, tags: note.tags, kind: note.type, by: "agent" });
       return okNote(note, args);
     }),
   );
@@ -227,10 +232,10 @@ function buildServer(): McpServer {
     {
       type: z.enum(NOTE_TYPES).optional(),
       source: z.string().optional().describe("e.g. 'manual', 'calendar-meetings', 'briefing'"),
-      since: z.coerce.date().optional().describe("Only notes updated at/after this ISO 8601 timestamp"),
+      since: isoInstant.optional().describe("Only notes updated at/after this ISO 8601 timestamp"),
       limit: z.number().int().positive().max(200).optional().describe("Max results; defaults to 50"),
     },
-    safe(async (args) => stored("notes", await listNotes(args))),
+    safe(async ({ since, ...args }) => stored("notes", await listNotes({ ...args, since: at(since) }))),
   );
 
   server.tool(
@@ -301,14 +306,14 @@ function buildServer(): McpServer {
         .describe(
           "true = remind the owner to catch up with this person (Coming up, briefing, reminders). Off by default; only turn it on when the owner asks",
         ),
-      last_contacted_at: z.coerce.date().nullable().optional().describe("When you last spoke; ISO 8601"),
+      last_contacted_at: isoInstant.nullable().optional().describe("When you last spoke; ISO 8601"),
       notes: z.string().optional().describe("Freeform notes about this person"),
     },
     safe(async ({ last_contacted_at, ...rest }) =>
       ok(
         await upsertPerson({
           ...rest,
-          last_contacted_at: last_contacted_at === undefined ? undefined : last_contacted_at?.toISOString() ?? null,
+          last_contacted_at: last_contacted_at === undefined ? undefined : last_contacted_at === null ? null : new Date(last_contacted_at).toISOString(),
         }),
       ),
     ),
@@ -658,7 +663,7 @@ function buildServer(): McpServer {
     {
       op: z.enum(["commitment", "fact", "interaction", "event", "person", "link"]),
       summary: z.string().describe("One plain sentence the owner will read: 'You owe Priya the intro deck by Friday'"),
-      payload: z.record(z.unknown()),
+      payload: z.record(z.string(), z.unknown()),
       ...provenanceSchema,
     },
     safe(async (args) => ok(await propose(args))),
@@ -842,14 +847,16 @@ function buildServer(): McpServer {
       "Never put real finance or health figures here: Athena's own health, money and home paths " +
       "seal those; this tool's value/metadata are stored in plaintext.",
     {
-      metric: z.string().describe("Metric name, e.g. 'weight_kg' or 'focus_minutes'"),
+      metric: z.string().describe("Metric name, e.g. 'focus_minutes' or 'prs_reviewed'. A name that looks like a health or money figure is refused."),
       value: z.number().describe("Numeric value for this data point"),
-      recordedAt: z.coerce.date().optional().describe("ISO 8601 timestamp; defaults to now"),
-      metadata: z.record(z.unknown()).optional().describe("Arbitrary JSON metadata for this point"),
+      recordedAt: isoInstant.optional().describe("ISO 8601 timestamp; defaults to now"),
+      metadata: z.record(z.string(), z.unknown()).optional().describe("Arbitrary JSON metadata for this point"),
     },
     async (args) => {
       try {
-        return ok(await upsertMetric(args));
+        const problem = metricNameProblem(args.metric);
+        if (problem) return fail(new AthenaInputError(problem));
+        return ok(await upsertMetric({ ...args, recordedAt: at(args.recordedAt) }));
       } catch (error) {
         return fail(error);
       }
@@ -861,10 +868,10 @@ function buildServer(): McpServer {
     "Query time-series points for a metric, optionally since a given timestamp.",
     {
       metric: z.string().describe("Metric name to query"),
-      since: z.coerce.date().optional().describe("Only return points recorded at/after this ISO 8601 timestamp"),
+      since: isoInstant.optional().describe("Only return points recorded at/after this ISO 8601 timestamp"),
       limit: z.number().int().positive().max(1000).optional().describe("Max results; defaults to 200"),
     },
-    safe(async ({ metric, since, limit }) => stored("metrics", await queryMetrics(metric, since, limit))),
+    safe(async ({ metric, since, limit }) => stored("metrics", await queryMetrics(metric, at(since), limit))),
   );
 
   // ---------- the owner's own fields (netlify/lib/mcp/custom-fields.ts) ----------
@@ -907,4 +914,15 @@ const unscoped = async (req: Request, _context: Context) => {
 // AI spend: every model call in this function counts as background work for "mcp" (lib/spend.ts).
 export default (...args: Parameters<typeof unscoped>) => withSpendScope({ area: "background", job: "mcp" }, () => unscoped(...args));
 
-export const config: Config = { path: "/mcp" };
+// 120 calls a minute per IP: an agent working through a task stays well under it; a leaked key, or a client stuck in
+// a loop, is held there. Netlify reads this config statically, so it stays a plain object literal, and it isn't
+// annotated as `Config`: @netlify/functions' RateLimitConfig type lacks `windowLimit`, which the platform requires
+// (as in voice.ts).
+export const config = {
+  path: "/mcp",
+  rateLimit: {
+    windowLimit: 120,
+    windowSize: 60,
+    aggregateBy: ["ip", "domain"],
+  },
+};

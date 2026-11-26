@@ -331,7 +331,7 @@ CREATE INDEX facts_archived_idx ON facts (archived_at DESC) WHERE archived_at IS
 
 -- ---------- Identities: how to recognise a person in other systems ----------
 -- Values are normalised on write (emails lowercased, phones digits only, names
--- trimmed + lowercased) so agents can resolve "priya@acme.com" or a Slack
+-- trimmed + lowercased) so agents can resolve "priya@acme.example" or a Slack
 -- handle to one person. people.email/phone are also checked when resolving.
 CREATE TABLE identities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -681,6 +681,8 @@ CREATE INDEX collected_items_run_idx ON collected_items (run_id) WHERE run_id IS
 -- reported; the server's "today", due dates, reminders, 07:30 briefing and
 -- "daily at" times use it. `reminder_timezone`: the zone pending repeating
 -- reminders are lined up with (lib/db.ts alignReminders; missing = Europe/London).
+-- `api_keys`: the API keys (lib/api-keys.ts), each an HMAC under a subkey of ATHENA_DATA_KEY; 0094 removed the
+-- older `capture_keys` row.
 CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value JSONB NOT NULL,
@@ -1335,14 +1337,17 @@ CREATE TABLE IF NOT EXISTS ask_skills (
 
 -- What a note held before each change to its title or body, whoever made it
 -- (the owner's typing grouped to one per 10 minutes): lib/note-versions.ts.
--- `title` and `body` are sealed like the note's; the newest 20 per note are kept.
+-- `title` and `body` are sealed like the note's. `changed_by` is what replaced
+-- a version, `written_by` what wrote it (0095; null when unknown). The newest
+-- 20 the owner wrote and the newest 30 anyone else wrote are kept per note.
 CREATE TABLE IF NOT EXISTS note_versions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   note_id UUID NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   body TEXT NOT NULL,
   changed_by TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  written_by TEXT
 );
 CREATE INDEX IF NOT EXISTS note_versions_note_idx ON note_versions (note_id, created_at DESC);
 

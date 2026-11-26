@@ -64,7 +64,9 @@ import { whatAthenaKnows } from "../../lib/knows";
 import { loadAskMoney, saveAskMoney } from "../../lib/money";
 import { getOwnerProfile, loadAskWeb, loadProfileSetup, parseProfileEdits, parseSetupChange, saveAskWeb, saveOwnerProfile, saveProfileSetup } from "../../lib/profile";
 import type { Config, Context } from "@netlify/functions";
-import { authorized, checkBearer } from "../lib/mcp/bearer";
+import { authorized, checkBearer, credentialOf } from "../lib/mcp/bearer";
+import { corsOrigin, siteOrigin, siteOrigins } from "../lib/site-origin";
+import { bytesUpTo } from "../lib/body-limit";
 import { DataBoxError } from "../../lib/data-box";
 import { encryptionStatus } from "../../lib/encryption";
 import { loadNotificationPrefs, pushConfigured, pushCredential, pushEndpoint, saveNotificationPrefs, sendToAll, vapidPublicKey } from "../../lib/push";
@@ -126,7 +128,7 @@ import { handleTrackerRoutes } from "../lib/trackers/routes";
 import { handleCheckinRoutes } from "../lib/checkins/routes";
 import { handleRichLinkRoutes } from "../lib/rich-links/routes";
 import { saveItem, type SaveRequest } from "../../lib/saved";
-import { captureIsLink, SaveTooBig } from "../../lib/saved-rules";
+import { captureIsLink, MAX_SAVED_REQUEST_BYTES, SaveTooBig } from "../../lib/saved-rules";
 import { getLinkChoices, setLinkChoice } from "../../lib/note-link-choices";
 import { handleDaysRoutes } from "../lib/days/routes";
 import { handleImportRoutes } from "../lib/days/import-routes";
@@ -295,7 +297,8 @@ function corsHeaders(req: Request): Record<string, string> {
     "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Athena-Editor, X-Ask-Run",
     Vary: "Origin",
   };
-  const origin = req.headers.get("origin");
+  // The site's own addresses and a browser extension only (netlify/lib/site-origin.ts).
+  const origin = corsOrigin(req.headers.get("origin"), { request: new URL(req.url).origin, site: siteOrigins() });
   if (origin) headers["Access-Control-Allow-Origin"] = origin;
   return headers;
 }
@@ -378,7 +381,7 @@ async function handleNotesCollection(req: Request, url: URL): Promise<Response> 
       ? await createNote({ title, body: body.body, type, source, tags })
       : await capture({ text: body.body, source });
     // A note made with tags is a Team event; a matching assistant starts now (lib/team-triggers.ts). Never throws.
-    if (note.tags?.length) await startTeamEvent("note", note.id, "note", { title: note.title, tags: note.tags, kind: note.type }, { origin: new URL(req.url).origin });
+    if (note.tags?.length) await startTeamEvent("note", note.id, "note", { title: note.title, tags: note.tags, kind: note.type }, { origin: siteOrigin(new URL(req.url).origin) });
     return json(req, note, 201);
   }
 
@@ -1518,7 +1521,7 @@ async function handleAssistant(req: Request, action: string | undefined): Promis
     // kept as that run's change, and the run carries on now.
     // The owner's answer to a plan that stopped for an account (lib/ask-plans.ts goPlan) carries on from that step.
     const answering = body?.account !== undefined;
-    const viaFlow = answering ? null : await goWaitingFlowPlan(body?.id, body?.ticked, { ports: { gmail: mailPort, slack: slackPort, ...ports }, handOff: (id) => handOffFlowRun(new URL(req.url).origin, id) });
+    const viaFlow = answering ? null : await goWaitingFlowPlan(body?.id, body?.ticked, { ports: { gmail: mailPort, slack: slackPort, ...ports }, handOff: (id) => handOffFlowRun(siteOrigin(new URL(req.url).origin), id) });
     const went = viaFlow ?? (await goPlan(body?.id, body?.ticked, { run, log: logChanges, undo: (c) => applyUndo(c.undo, ports) }, answering ? { account: body!.account } : {}));
     // A stage of an assignment that waited on this plan moves on now, not at the next reminders pass (lib/assignment-run.ts).
     await sweepAssignments().catch((error) => console.warn("Athena assignments: sweep after an approval failed", error instanceof Error ? error.message : error));
@@ -1674,23 +1677,26 @@ async function captureText(req: Request): Promise<string> {
  * or JSON with ?format=json. If Claude can't be reached, or files nothing,
  * it's still kept: saved as an inbox note to sort later.
  */
-async function handleCapture(req: Request, url: URL): Promise<Response> {
+async function handleCapture(req: Request, url: URL, captureOnly: boolean): Promise<Response> {
   if (req.method !== "POST") return errorResponse(req, 405, "Method not allowed");
   const asJson = url.searchParams.get("format") === "json";
   const reply = (status: number, text: string, changes: unknown[] = []) =>
     asJson
       ? json(req, { reply: text, changes }, status)
       : new Response(text, { status, headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders(req) } });
+  // Read once, up to Saved's limit (refused from Content-Length when it says so), then parsed from memory.
+  const raw = await bytesUpTo(req, MAX_SAVED_REQUEST_BYTES);
+  if (!raw) return reply(413, "That's too big to capture.");
+  const copy = () => new Request(req.url, { method: "POST", headers: req.headers, body: raw });
   // An image shared to the Shortcut, or text that is (or starts with) a link, goes to Saved instead of the assistant.
-  const copy = req.clone();
   if (/multipart\/form-data/i.test(req.headers.get("content-type") ?? "")) {
-    const body = await readSaveBody(copy).catch(() => null);
+    const body = await readSaveBody(copy()).catch(() => null);
     if (body instanceof Response) return reply(413, "That image is over 10 MB.");
-    if (body && !(body instanceof Response) && body.image?.byteLength) return await captureToSaved(body, reply);
+    if (body && !(body instanceof Response) && body.image?.byteLength) return await captureToSaved(body, reply, captureOnly);
   }
-  const text = (await captureText(req)).trim().slice(0, 4_000);
+  const text = (await captureText(copy())).trim().slice(0, 4_000);
   if (!text) return reply(400, "There was nothing to capture.");
-  if (captureIsLink(text)) return await captureToSaved({ text }, reply);
+  if (captureIsLink(text)) return await captureToSaved({ text }, reply, captureOnly);
   const keep = async (why: string) => {
     const title = text.split("\n")[0].slice(0, 120);
     await createNote({ title, body: text, type: "capture", tags: ["inbox"], source: "shortcut" });
@@ -1709,10 +1715,14 @@ async function handleCapture(req: Request, url: URL): Promise<Response> {
   }
 }
 
-/** File a capture in Saved: "Saved “Title”." for the Shortcut to show or speak. */
-async function captureToSaved(body: SaveRequest, reply: (status: number, text: string, changes?: unknown[]) => Response): Promise<Response> {
+/**
+ * File a capture in Saved: "Saved “Title”." for the Shortcut to show or speak. With a capture key (`captureOnly`),
+ * a link already in Saved is answered with a fixed line that names nothing from it.
+ */
+async function captureToSaved(body: SaveRequest, reply: (status: number, text: string, changes?: unknown[]) => Response, captureOnly: boolean): Promise<Response> {
   try {
-    const { item, created } = await saveItem({ ...body, source: "shortcut" });
+    const { item, created } = await saveItem({ ...body, source: "shortcut" }, { captureOnly });
+    if (!created && captureOnly) return reply(200, "That was already in Saved.", [{ kind: "saved", id: item.id }]);
     const name = item.title ? `“${item.title.length > 80 ? `${item.title.slice(0, 79)}…` : item.title}”` : item.kind === "image" ? "the image" : "it";
     return reply(200, created ? `Saved ${name}.` : `${name.charAt(0).toUpperCase()}${name.slice(1)} was already in Saved.`, [{ kind: "saved", id: item.id }]);
   } catch (error) {
@@ -1816,14 +1826,16 @@ export default async (req: Request, _context: Context) => {
 
   // An iPhone Shortcut sends captures with a capture-only API key (lib/api-keys.ts), which opens this path and the three below (Saved, health day, habit log).
   if (first === "assistant" && second === "capture" && segments.length === 3) {
-    if (!(await authorized(req, "capture"))) return errorResponse(req, 401, "Unauthorized");
-    return await withSpendScope({ area: "ask", job: "capture" }, () => handleCapture(req, url));
+    const who = await credentialOf(req, "capture");
+    if (!who) return errorResponse(req, 401, "Unauthorized");
+    return await withSpendScope({ area: "ask", job: "capture" }, () => handleCapture(req, url, who.scope === "capture"));
   }
 
   // Saving a link, image or quote (the extension, the Share sheet, the share target): the same capture key (netlify/lib/saved/routes.ts).
   if (first === "saved" && ((segments.length === 2 && req.method === "POST") || (second === "ping" && segments.length === 3))) {
-    if (!(await authorized(req, "capture"))) return errorResponse(req, 401, "Athena didn't recognise that key. Check it in Settings → API keys.");
-    const handled = await handleSavedCapture(req, url, segments, (d, s) => json(req, d, s));
+    const who = await credentialOf(req, "capture");
+    if (!who) return errorResponse(req, 401, "Athena didn't recognise that key. Check it in Settings → API keys.");
+    const handled = await handleSavedCapture(req, url, segments, (d, s) => json(req, d, s), { captureOnly: who.scope === "capture" });
     if (handled) return handled;
   }
 
@@ -2059,7 +2071,7 @@ export default async (req: Request, _context: Context) => {
     if (first === "flows") {
       const handled = await handleFlowRoutes(req, segments.slice(1), () => parseJsonBody(req), (d, s) => json(req, d, s), {
         effects: () => flowEffects({ ports: { gmail: mailPort, slack: slackPort, calendar: calendarPort, scheduling: schedulingPort } }),
-        handOff: (runId) => handOffFlowRun(url.origin, runId),
+        handOff: (runId) => handOffFlowRun(siteOrigin(url.origin), runId),
       });
       if (handled) return handled;
     }
@@ -2335,4 +2347,4 @@ export default async (req: Request, _context: Context) => {
 // /api/voice/* is routed through ./voice.ts (same handler, rate-limited). /api/talk/*, /api/assistant* and
 // /api/live/* belong to the server (netlify/server/index.ts), which calls this handler for the first two.
 // /api/team/chat is the server's too (Ask's rate limit on what's typed), and comes back here.
-export const config: Config = { path: "/api/*", excludedPath: ["/api/collect-run", "/api/backfill-run", "/api/team-run", "/api/voice/*", "/api/talk/*", "/api/assistant", "/api/assistant/*", "/api/live/*", "/api/team/chat"] };
+export const config: Config = { path: "/api/*", excludedPath: ["/api/collect-run", "/api/backfill-run", "/api/team-run", "/api/flow-run", "/api/voice/*", "/api/talk/*", "/api/assistant", "/api/assistant/*", "/api/live/*", "/api/team/chat"] };

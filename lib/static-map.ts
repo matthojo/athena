@@ -22,6 +22,7 @@
 import { getStore } from "@netlify/blobs";
 import sharp from "sharp";
 import { assertPublicHost, publicFetch } from "../netlify/lib/connectors/icons";
+import { bodyUpTo } from "../netlify/lib/body-limit";
 import { blindIndex, dataKeyConfigured, openBytes, openStrict, sealBytes } from "./data-box";
 import { isValidDate } from "./dates";
 import { q, qRaw } from "./db";
@@ -227,8 +228,9 @@ async function fetchTile(provider: Provider, url: string): Promise<Buffer | null
   const res = await mapDeps.fetch(u, { redirect: "error", signal: AbortSignal.timeout(TILE_TIMEOUT_MS), headers: { Accept: "image/png,image/*", "User-Agent": "Athena-personal-notes/1.0" } });
   if (res.status === 401 || res.status === 403) throw new TileKeyRejected();
   if (!res.ok || !res.body) return null;
-  const bytes = Buffer.from(await res.arrayBuffer());
-  if (bytes.length > MAX_TILE_BYTES) return null;
+  // Counted as it arrives: an oversized tile is cut off, not buffered whole.
+  const bytes = await bodyUpTo(res, MAX_TILE_BYTES);
+  if (!bytes) return null;
   const png = bytes[0] === 0x89 && bytes[1] === 0x50;
   const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
   const webp = bytes.subarray(8, 12).toString("ascii") === "WEBP";
