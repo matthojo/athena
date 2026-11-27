@@ -261,10 +261,15 @@ export function mergeIntoList(existing: ListedLine[], add: GroceryLine[], system
   return { update: [...update.values()], insert };
 }
 
-/** Lines grouped by aisle, aisles in shop order, lines by name; ticked lines last in each aisle. */
-export function groupByAisle<T extends { item: string; aisle: Aisle | string; ticked?: boolean }>(lines: T[]): Array<{ aisle: Aisle; label: string; lines: T[] }> {
+/**
+ * Lines grouped by aisle, aisles in shop order (the owner's own, when the list
+ * has learned it: lib/grocery-usuals.ts learnedOrder), lines by name; ticked
+ * lines last in each aisle.
+ */
+export function groupByAisle<T extends { item: string; aisle: Aisle | string; ticked?: boolean }>(lines: T[], order?: readonly Aisle[] | null): Array<{ aisle: Aisle; label: string; lines: T[] }> {
   const out: Array<{ aisle: Aisle; label: string; lines: T[] }> = [];
-  for (const aisle of AISLES) {
+  const aisles = order?.length ? [...order, ...AISLES.filter((a) => !order.includes(a))] : AISLES;
+  for (const aisle of aisles) {
     const here = lines.filter((l) => (AISLES.includes(l.aisle as Aisle) ? l.aisle : "other") === aisle);
     if (!here.length) continue;
     here.sort((a, b) => Number(!!a.ticked) - Number(!!b.ticked) || a.item.localeCompare(b.item, "en-GB", { sensitivity: "base" }));

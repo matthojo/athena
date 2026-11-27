@@ -44,6 +44,8 @@ export const SOURCES: readonly Source[] = [
   { kind: "habit", table: "day_entries", at: "updated_at", id: "to_char(date, 'YYYY-MM-DD')", where: "kind = 'habit' AND source = 'athena'" },
   ...rows("recipe", ["recipes", "grocery_items"]),
   { kind: "recipe", table: "recipe_cooked", at: "created_at", id: "recipe_id" },
+  // A shop filed or undone, and a usual skipped, change what the grocery list offers.
+  ...rows("recipe", ["grocery_trips", "grocery_skips"], "created_at"),
   { kind: "recipe", table: "meal_plan", at: "updated_at", id: "to_char(day, 'YYYY-MM-DD')" },
   // The recipe settings (units, what's always in the cupboard) are one settings row.
   { kind: "recipe", table: "settings", at: "updated_at", id: "key", where: "key = 'recipes'" },

@@ -197,6 +197,9 @@ export const ENCRYPTED: EncryptedTable[] = [
     indexes: { columns: ["url_bidx"], compute: (p, _row, s) => ({ url_bidx: p.url ? s.index("other", `recipe-url\u0000${recipeUrlKey(p.url)}`) : null }) },
   },
   { table: "grocery_items", key: ID, text: ["item"] },
+  // What the grocery list remembers (0096): what each shop bought, and what each skipped usual is.
+  { table: "grocery_bought", key: ID, text: ["item"] },
+  { table: "grocery_skips", key: ID, text: ["item"] },
   // Sealed day rows in every domain: health, location, money, home and finance (receipts, Amazon orders).
   { table: "sensitive_blobs", key: ID, text: ["ciphertext"], where: "day IS NOT NULL" },
   // Place coordinates (0031) and what each nudge says (0051).

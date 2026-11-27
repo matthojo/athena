@@ -27,6 +27,7 @@ import { registerCustomKindTools } from "../lib/mcp/custom-kinds";
 import { registerSavedActionTools } from "../lib/mcp/saved-actions";
 import { registerLoggingTools } from "../lib/mcp/logging";
 import { registerCheckinTools } from "../lib/mcp/checkins";
+import { registerGroceryTools } from "../lib/mcp/grocery";
 import {
   createNote,
   getNote,
@@ -893,6 +894,10 @@ function buildServer(): McpServer {
   // ---------- Check-ins, read only (netlify/lib/mcp/checkins.ts) ----------
 
   registerCheckinTools(server, { ok, stored, fail, safe });
+
+  // ---------- The grocery list (netlify/lib/mcp/grocery.ts) ----------
+
+  registerGroceryTools(server, { ok, stored, fail, safe });
 
   return server;
 }

@@ -130,7 +130,7 @@ const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 // ---------- The assistant (lib/assistant.ts) ----------
 
 /** The assistant's tools that only look. Everything else may change something. */
-const LOOKS = new Set(["find_people", "find_notes", "read_note", "find_todos", "find_watch_read", "train_status", "flight_status", "car_details", "find_items", "find_records", "list_fields", "list_kinds", "ask_owner"]);
+const LOOKS = new Set(["grocery_list", "find_people", "find_notes", "read_note", "find_todos", "find_watch_read", "train_status", "flight_status", "car_details", "find_items", "find_records", "list_fields", "list_kinds", "ask_owner"]);
 
 export const stepActs = (name: string): boolean => !LOOKS.has(name) && !READ_STEPS[name];
 
@@ -238,6 +238,12 @@ export function assistantStepStart(name: string, input: unknown): string | null 
       return str(input, "routine_id") ? "Changing a routine" : "Setting up a routine";
     case "save_recipe":
       return "Saving a recipe";
+    case "grocery_list":
+      return "Checking the grocery list";
+    case "add_to_grocery_list": {
+      const items = Array.isArray((input as { items?: unknown })?.items) ? ((input as { items: unknown[] }).items.filter((i) => typeof i === "string") as string[]) : [];
+      return items.length === 1 ? `Adding ${clip(items[0], 32)} to the grocery list` : "Adding to the grocery list";
+    }
     // Assignments and documents (lib/assignment-tools.ts, lib/assistant-documents.ts).
     case "start_assignment":
       return "Picking a lineup";
@@ -262,6 +268,7 @@ export function assistantStepDone(name: string, input: unknown, result: string, 
   if (!change && READ_STEPS[name]) return READ_STEPS[name][1];
   if (!change && noChange(result)) {
     if (name === "add_to_list") return `${clip(str(input, "item"), 32)} was already on the list`;
+    if (name === "add_to_grocery_list") return "Already on the grocery list";
     if (name === "add_to_watch_read") return `${clip(str(input, "title"), 32)} was already on Watch & read`;
     return "Nothing needed changing";
   }
@@ -282,6 +289,8 @@ export function assistantStepDone(name: string, input: unknown, result: string, 
     }
     case "save_recipe":
       return change ? `Saved ${clip(change.title, 40)} to Recipes` : "Saved a recipe";
+    case "grocery_list":
+      return "Checked the grocery list";
     case "read_note": {
       const v = parsed(result) as { title?: unknown } | null;
       return v?.title ? `Read ${clip(v.title)}` : "Read a note";
@@ -322,6 +331,8 @@ export function assistantStepDone(name: string, input: unknown, result: string, 
   switch (name) {
     case "add_person":
       return `Added ${title} to People`;
+    case "add_to_grocery_list":
+      return clip(change.detail.replace(/ · .*$/, ""), 48) + " to the grocery list";
     case "add_to_list": {
       const item = clip(str(input, "item"), 32);
       const list = clip(str(input, "list_title") ? capital(str(input, "list_title")) : change.title, 36);

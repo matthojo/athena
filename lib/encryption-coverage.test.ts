@@ -26,6 +26,7 @@ const NOT_LISTED: Record<string, string> = {
   day_files: "ids only",
   edges: "ids and relation names",
   goal_progress: "plain numbers (0041)",
+  grocery_trips: "a shop's date, line count and aisle ids (0096)",
   interaction_people: "ids only",
   location_todo: "dates only",
   mail_skips: "counts per day",

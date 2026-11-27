@@ -1,12 +1,15 @@
 /**
  * Recipes in sample mode (db/recipes.ts): eight recipes with their own
  * pictures (public/sample/recipes/), a week with two busy evenings and a
- * train, and a grocery list, all kept in memory on this device. The plan's
- * suggestions come from the same scoring the server uses (lib/meal-plan.ts).
+ * train, and a grocery list with eight weeks of past shops behind it, all
+ * kept in memory on this device. The plan's suggestions come from the same
+ * scoring the server uses (lib/meal-plan.ts), and the list's usuals and aisle
+ * order from the same reasoning (lib/grocery-usuals.ts).
  */
 
 import { parseIngredient } from "../../../lib/recipe-units";
 import { buildGroceryLines, cleanPantry, DEFAULT_PANTRY, mergeIntoList, aisleOf } from "../../../lib/grocery";
+import { dueUsuals, learnedOrder, learnUsuals, skipUntil, walkOrder, type BoughtEntry } from "../../../lib/grocery-usuals";
 import { suggestPlan, weekDates, type Evening } from "../../../lib/meal-plan";
 import { cleanRecipeTags, matchesTime, minutesOf, type GroceryItem, type GroceryList, type PlanDay, type Recipe, type RecipeCard, type RecipePrefs, type TimeFilter, type WeekPlan } from "../../../lib/recipe-rules";
 import { addDays, weekStart } from "../components/day-words";
@@ -182,18 +185,69 @@ function make(s: Seed): Recipe {
   } as Recipe;
 }
 
+/** A past shop: its day, what it bought (as the lines were, for Undo) and the walk round the shop. */
+interface Shop {
+  id: string;
+  day: string;
+  lines: GroceryItem[];
+  aisle_order: string[];
+}
+
 interface State {
   recipes: Recipe[];
   plans: Map<string, PlanDay[]>;
   grocery: GroceryItem[];
   prefs: RecipePrefs;
+  shops: Shop[];
+  skips: Array<{ item: string; until: string }>;
 }
 
 let state: State | null = null;
 function s(): State {
-  if (!state) state = { recipes: SEEDS.map(make), plans: new Map(), grocery: seedGrocery(), prefs: { pantry: [...DEFAULT_PANTRY], system: "metric" } };
+  if (!state) state = { recipes: SEEDS.map(make), plans: new Map(), grocery: seedGrocery(), prefs: { pantry: [...DEFAULT_PANTRY], system: "metric", usuals: true }, shops: seedShops(), skips: [] };
   return state;
 }
+
+/**
+ * Eight weeks of shops, counted back from today so the same usuals are always
+ * due: milk every four days, a loaf every five, yoghurt every six, bananas
+ * weekly. Eggs and lemons were bought lately, and coffee beans are on the list
+ * already, so none of those three is offered. The walks go bread first, which
+ * isn't the list's usual order.
+ */
+function seedShops(): Shop[] {
+  const today = localToday();
+  const buys: Array<{ text: string; every: number; last: number }> = [
+    { text: "2 pints milk", every: 4, last: 4 },
+    { text: "Sourdough loaf", every: 5, last: 6 },
+    { text: "500 g Greek yoghurt", every: 6, last: 6 },
+    { text: "6 bananas", every: 7, last: 7 },
+    { text: "12 eggs", every: 7, last: 3 },
+    { text: "4 lemons", every: 10, last: 4 },
+    { text: "Coffee beans", every: 12, last: 12 },
+    { text: "Spinach", every: 8, last: 5 },
+  ];
+  // Three shops a week; each thing goes on the shop on or just before the day it was needed.
+  const shopDays = Array.from({ length: 57 }, (_, ago) => ago).filter((ago) => [0, 3, 4].includes(ago % 7) && ago > 0);
+  const byDay = new Map<string, GroceryItem[]>();
+  for (const b of buys) {
+    const ing = parseIngredient(b.text);
+    for (let due = b.last; due <= 56; due += b.every) {
+      const ago = shopDays.find((d) => d >= due) ?? due;
+      const day = addDays(today, -ago);
+      if (byDay.get(day)?.some((l) => l.item === ing.item)) continue;
+      const lines = byDay.get(day) ?? [];
+      lines.push({ id: crypto.randomUUID(), item: ing.item, quantity: ing.quantity, unit: ing.unit, aisle: aisleOf(ing.item), recipes: [], own: true, ticked: true });
+      byDay.set(day, lines);
+    }
+  }
+  const walk = ["bakery", "produce", "dairy-eggs", "meat-fish", "chilled", "tins-jars", "dry", "baking", "spices", "drinks", "frozen", "other"];
+  return [...byDay.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([day, lines], i) => ({ id: `sample-shop-${i}`, day, lines, aisle_order: walk.filter((a) => lines.some((l) => l.aisle === a)) }));
+}
+
+const boughtEntries = (): BoughtEntry[] => s().shops.flatMap((shop) => shop.lines.map((l) => ({ item: l.item, quantity: l.quantity, unit: l.unit, aisle: l.aisle, day: shop.day })));
 
 function seedGrocery(): GroceryItem[] {
   return [
@@ -346,7 +400,48 @@ export const thisSampleWeek = () => weekStart(localToday());
 const titleOf = (rid: string) => s().recipes.find((r) => r.id === rid)?.title ?? "A recipe";
 
 export function sampleGrocery(): GroceryList {
-  return { items: clone(s().grocery) };
+  const today = localToday();
+  const usuals = s().prefs.usuals ? dueUsuals(boughtEntries(), { today, onList: s().grocery.map((g) => g.item), skipped: s().skips }) : [];
+  return { items: clone(s().grocery), usuals, order: learnedOrder(s().shops.map((shop) => shop.aisle_order)) };
+}
+
+/** "Done shopping": the ticked lines filed as today's shop. Sample ticks carry no times, so the walk is the order they sit in the list. */
+export function sampleDone(): GroceryList & { trip_id: string | null; count: number } {
+  const ticked = s().grocery.filter((g) => g.ticked);
+  if (!ticked.length) return { ...sampleGrocery(), trip_id: null, count: 0 };
+  const id = `sample-shop-${crypto.randomUUID()}`;
+  const at = Date.now();
+  const walk = walkOrder(ticked.map((g, i) => ({ aisle: g.aisle, at: at + i * 60_000 })));
+  s().shops.unshift({ id, day: localToday(), lines: clone(ticked), aisle_order: walk });
+  s().grocery = s().grocery.filter((g) => !g.ticked);
+  return { ...sampleGrocery(), trip_id: id, count: ticked.length };
+}
+
+export function sampleUndoShop(id: string): GroceryList | null {
+  const shop = s().shops.find((x) => x.id === id);
+  if (!shop) return null;
+  s().shops = s().shops.filter((x) => x.id !== id);
+  s().grocery.push(...shop.lines.map((l) => ({ ...l, ticked: true })));
+  return sampleGrocery();
+}
+
+export function sampleSkip(item: string): GroceryList {
+  const today = localToday();
+  const usual = learnUsuals(boughtEntries(), today).find((u) => u.item.toLowerCase() === item.toLowerCase());
+  s().skips.push({ item, until: skipUntil({ every: usual?.every ?? 7 }, today) });
+  return sampleGrocery();
+}
+
+export function sampleHistory(): { shops: number; since: string | null } {
+  const days = s().shops.map((x) => x.day).sort();
+  return { shops: days.length, since: days[0] ?? null };
+}
+
+export function sampleForget(): { shops: number } {
+  const shops = s().shops.length;
+  s().shops = [];
+  s().skips = [];
+  return { shops };
 }
 
 export function sampleAddToGrocery(body: { recipe_ids?: string[]; servings?: Record<string, number>; week?: string }): GroceryList & { added: number; pantry: string[] } {
@@ -376,7 +471,7 @@ export function sampleAddToGrocery(body: { recipe_ids?: string[]; servings?: Rec
     g.recipes = u.recipes.map((rid) => ({ id: rid, title: titleOf(rid) }));
   }
   for (const l of insert) list.push({ id: crypto.randomUUID(), item: l.item, quantity: l.quantity, unit: l.unit, aisle: l.aisle, recipes: l.recipes.map((rid) => ({ id: rid, title: titleOf(rid) })), own: false, ticked: false });
-  return { items: clone(list), added: update.length + insert.length, pantry };
+  return { ...sampleGrocery(), added: update.length + insert.length, pantry };
 }
 
 export function sampleAddOwn(text: string): GroceryList {
@@ -409,5 +504,6 @@ export function samplePrefs(): RecipePrefs {
 export function sampleSavePrefs(p: Partial<RecipePrefs>): RecipePrefs {
   if (p.pantry) s().prefs.pantry = cleanPantry(p.pantry);
   if (p.system === "metric" || p.system === "imperial") s().prefs.system = p.system;
+  if (typeof p.usuals === "boolean") s().prefs.usuals = p.usuals;
   return samplePrefs();
 }

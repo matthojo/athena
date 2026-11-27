@@ -95,6 +95,7 @@ export function askedFor(text: string): Set<Asked> {
 const TOOL_ASKS: Record<string, Asked[]> = {
   add_person: ["add"],
   add_to_list: ["add"],
+  add_to_grocery_list: ["add"],
   add_todo: ["add"],
   add_reminder: ["add"],
   add_to_watch_read: ["add", "change"],

@@ -3,6 +3,7 @@
  * by the server (lib/recipes.ts), the API, Ask's tools and the app.
  */
 import type { Ingredient, UnitSystem } from "./recipe-units";
+import type { Usual } from "./grocery-usuals";
 
 export type { Ingredient, UnitSystem };
 
@@ -109,6 +110,8 @@ export function matchesTime(minutes: number | null, f: TimeFilter | null): boole
 export interface RecipePrefs {
   pantry: string[];
   system: UnitSystem;
+  /** Offer the usuals that are due at the top of the grocery list (lib/grocery-memory.ts). On unless turned off. */
+  usuals: boolean;
 }
 
 /**
@@ -141,6 +144,10 @@ export interface GroceryItem {
 
 export interface GroceryList {
   items: GroceryItem[];
+  /** Usuals due now, from past shops (lib/grocery-usuals.ts). Absent on an older copy. */
+  usuals?: Usual[];
+  /** The aisles in the order the owner walks their shop, once learned; null until then. */
+  order?: string[] | null;
 }
 
 /** One evening of the week plan. */
