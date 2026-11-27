@@ -11,6 +11,7 @@
  * Function — the SDK's Web Standard Streamable HTTP transport, which speaks
  * Request/Response directly instead of needing Node's http module.
  */
+import { NOTE_BLOCKS_SYNTAX } from "../../lib/callouts";
 import { cleanLinks, modelLinks, STEPS_RULE_SHORT, TodoDetailsError } from "../../lib/todo-details";
 import { startTeamEvent } from "../../lib/team-triggers";
 // Plugs flows into the owner's own events, so a tagged note or a save starts its flows at once (lib/flow-engine.ts).
@@ -135,7 +136,8 @@ const LINK_SYNTAX =
   "[Q3 planning](athena://note/<uuid>), and a record in one of the owner's own kinds as [@Château Musar](athena://record/<uuid>). " +
   "Entity labels start with '@'; note labels don't. " +
   "Use search_entities to find ids (create the entity first with upsert_* if it doesn't exist). " +
-  "Saving a body re-derives that note's 'mentions' links automatically, which is what powers backlinks.";
+  "Saving a body re-derives that note's 'mentions' links automatically, which is what powers backlinks. " +
+  NOTE_BLOCKS_SYNTAX;
 
 /** Deliberately absent: any delete tool and any way to list archived items (docs: security/sign-in-and-keys). */
 const ARCHIVE_NOTE =

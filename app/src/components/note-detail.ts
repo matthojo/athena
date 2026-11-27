@@ -39,7 +39,7 @@ import { longDateTime, relativeTime, shortDate } from "../lib/format";
 import { describeSource } from "../lib/sources";
 import { markdownToText } from "../lib/markdown-text";
 import { noteParts, TYPE_ICON, TYPE_LABEL } from "./note-row";
-import { createNoteLocal, deleteNoteLocal, onNoteIdResolved, resolveId, setNoteArchivedLocal, updateNoteLocal } from "../db/sync";
+import { createNoteLocal, deleteNoteLocal, onNoteIdResolved, pullNotes, resolveId, setNoteArchivedLocal, updateNoteLocal } from "../db/sync";
 import { loadConnections, searchEntities } from "../db/data";
 import { isSampleMode, request, saveRecord } from "../db/api";
 import { isEncryptedPlaceholder } from "../../../lib/encrypted";
@@ -169,6 +169,35 @@ async function createEntity(kind: "person" | "place" | "organisation", name: str
     return { kind, id: rec.id, title: rec.name, subtitle: "", updated_at: rec.updated_at };
   } catch {
     showToast("Couldn't create that. Are you online?", { icon: "wifiOff" });
+    return null;
+  }
+}
+
+/** A to-do from a line in a note ("Add to To do"), linked back to the note when it has been saved. */
+async function addTodoFromNote(title: string, noteId: string | null, noteTitle: string): Promise<{ id: string; title: string } | null> {
+  const { saveCommitment } = await import("../db/memory");
+  const from = noteId && !noteId.startsWith("local-") ? [{ id: crypto.randomUUID(), url: `athena://note/${noteId}`, title: noteTitle }] : [];
+  try {
+    const todo = await saveCommitment({ title, kind: "todo", ...(from.length ? { links: from } : {}) });
+    showToast("Added to To do", { icon: "check" });
+    return { id: todo.id, title: todo.title };
+  } catch {
+    showToast("Couldn't add it to To do. Are you online?", { icon: "wifiOff" });
+    return null;
+  }
+}
+
+/** A new, empty note from the [[ menu, so it can be linked straight away (online only: a link needs its real id). */
+async function createLinkedNote(title: string): Promise<EntityRef | null> {
+  try {
+    const { createNote } = await import("../db/api");
+    const made = await createNote({ title, body: "", type: "note", source: "manual", tags: [] });
+    // So it's in the list, and in the next [[ search, straight away.
+    void pullNotes().catch(() => undefined);
+    showToast(`Made a note called “${title}”`, { icon: "check" });
+    return { kind: "note", id: made.id, title: made.title, subtitle: "", updated_at: made.updated_at };
+  } catch {
+    showToast("Couldn't make the note. Are you online?", { icon: "wifiOff" });
     return null;
   }
 }
@@ -647,6 +676,9 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
       mentions: async (q) => (await import("../db/mentions")).findMentions(q),
       thumb: (row) => (row.thumb ? import("../db/mentions").then((m) => m.mentionThumb(row)) : null),
       create: isSampleMode() ? null : createEntity,
+      // A line made a to-do links back to this note, so the to-do says where it came from.
+      addTodo: (title) => addTodoFromNote(title, note ? resolveId(note.id) : null, titleInput.value.trim() || deriveTitle(markdownToText(body)) || "Untitled"),
+      createNote: isSampleMode() ? null : createLinkedNote,
     });
     // Dictation: the mic sits at the end of the toolbar, and its recording bar
     // takes the toolbar's place (docked above the keyboard while writing).

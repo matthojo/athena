@@ -10,6 +10,7 @@
  * the real one, which checks every request against documents-rules.ts.
  * Tests pass their own.
  */
+import { calloutsAsQuotes } from "./callouts";
 import { AthenaInputError, getNote, q, sealer } from "./db";
 import { isEncryptedPlaceholder } from "./encrypted";
 import { listConnectors } from "./connectors";
@@ -133,9 +134,9 @@ async function pickAccount(to: DocumentProvider, connectorId?: string): Promise<
   return account;
 }
 
-/** athena:// links mean nothing outside Athena: their labels stay, the links go. */
+/** athena:// links mean nothing outside Athena: their labels stay, the links go. Callouts become quotes (lib/callouts.ts). */
 export function outsideMarkdown(md: string): string {
-  return md.replace(/\[@?((?:\\.|[^\]\\\n])*)\]\(athena:\/\/[a-z]+\/[0-9a-f-]{36}(?:\s+"[^"]*")?\)/gi, (_m, label: string) => label.replace(/\\(.)/g, "$1"));
+  return calloutsAsQuotes(md).replace(/\[@?((?:\\.|[^\]\\\n])*)\]\(athena:\/\/[a-z]+\/[0-9a-f-]{36}(?:\s+"[^"]*")?\)/gi, (_m, label: string) => label.replace(/\\(.)/g, "$1"));
 }
 
 export interface SendResult {

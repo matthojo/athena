@@ -26,6 +26,10 @@ export interface AtRow {
   thumb?: Promise<string | null> | null;
   /** A "New person “…”" row. */
   create?: boolean;
+  /** A heading drawn above this row when it starts a group (the / menu's "Write" and "From Athena"). */
+  section?: string;
+  /** The Markdown that does the same, shown on the right on a desk ("##", "---"). */
+  hint?: string;
 }
 
 export interface AtMenu {
@@ -57,6 +61,10 @@ export function atMenu(opts: {
   /** Esc in the address field when it was opened straight onto it. */
   onCancel: () => void;
   emptyText: string;
+  /** "Paste a link" at the foot. On unless false (the / menu has Card and Embed rows of its own). */
+  paste?: boolean;
+  /** The list's spoken name. */
+  label?: string;
 }): AtMenu {
   const id = `rl-at-${++menus}`;
   let rows: AtRow[] = [];
@@ -66,7 +74,7 @@ export function atMenu(opts: {
   let pasteOnly = false;
   let items: HTMLElement[] = [];
 
-  const list = h("div", { class: "rl-menu__list", role: "listbox", id: `${id}-list`, "aria-label": "Link to" });
+  const list = h("div", { class: "rl-menu__list", role: "listbox", id: `${id}-list`, "aria-label": opts.label ?? "Link to" });
   const pasteField = h("input", { class: "rl-menu__url", type: "url", inputmode: "url", placeholder: "https://", "aria-label": "Paste a link", autocomplete: "off", spellcheck: "false" }) as HTMLInputElement;
   const pasteErr = h("span", { class: "rl-menu__err", role: "status" });
   const pasteHead = h("span", {}, "Paste a link");
@@ -85,7 +93,9 @@ export function atMenu(opts: {
 
   function draw() {
     const q = query.trim();
+    const heads = new Map<number, HTMLElement>();
     items = rows.map((r, i) => {
+      if (r.section && !q && r.section !== rows[i - 1]?.section) heads.set(i, h("div", { class: "rl-menu__section", role: "presentation" }, r.section));
       const tile = h("span", { class: `rl-menu__thumb rl-menu__thumb--icon rl-k--${r.kind}` }, icon(r.icon));
       void r.thumb?.then((src) => {
         if (!src || !tile.isConnected) return;
@@ -96,7 +106,8 @@ export function atMenu(opts: {
         "div",
         { class: `rl-menu__item${r.create ? " rl-menu__item--create" : ""}`, role: "option", id: `${id}-${i}`, "aria-selected": "false" },
         tile,
-        h("span", { class: "rl-menu__text" }, h("span", { class: "rl-menu__title" }, ...highlight(r.title, q)), h("span", { class: "rl-menu__sub" }, h("span", {}, r.sub)))
+        h("span", { class: "rl-menu__text" }, h("span", { class: "rl-menu__title" }, ...highlight(r.title, q)), h("span", { class: "rl-menu__sub" }, h("span", {}, r.sub))),
+        r.hint ? h("kbd", { class: "rl-kbd", "aria-hidden": "true" }, r.hint) : null
       );
     });
     const paste = h(
@@ -105,7 +116,7 @@ export function atMenu(opts: {
       h("span", { class: "rl-menu__thumb rl-menu__thumb--icon rl-k--web" }, icon("link")),
       h("span", { class: "rl-menu__text" }, h("span", { class: "rl-menu__title" }, "Paste a link"), h("span", { class: "rl-menu__sub" }, "Any page, video, song, map or design"))
     );
-    items.push(paste);
+    if (opts.paste !== false) items.push(paste);
     items.forEach((it, i) => {
       it.addEventListener("click", () => {
         index = i;
@@ -118,8 +129,8 @@ export function atMenu(opts: {
       });
     });
     const empty = rows.length ? null : h("div", { class: "rl-menu__empty" }, q ? `Nothing in Athena called “${q}”` : opts.emptyText);
-    list.replaceChildren(...(empty ? [empty] : []), ...items);
-    index = Math.min(index, items.length - 1);
+    list.replaceChildren(...(empty ? [empty] : []), ...items.flatMap((it, i) => (heads.has(i) ? [heads.get(i)!, it] : [it])));
+    index = Math.max(0, Math.min(index, items.length - 1));
     mark();
   }
 
@@ -172,6 +183,8 @@ export function atMenu(opts: {
     },
     set(next, q) {
       rows = next;
+      // A new search starts on its best match.
+      if (q !== query) index = 0;
       query = q;
       if (!pasting) draw();
     },
@@ -181,7 +194,7 @@ export function atMenu(opts: {
       mark();
     },
     pick() {
-      if (index >= rows.length) return api.startPaste();
+      if (index >= rows.length) return opts.paste === false ? undefined : api.startPaste();
       opts.onPick(index);
     },
     startPaste(heading) {

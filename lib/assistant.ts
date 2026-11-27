@@ -20,6 +20,7 @@
  * Note and email content the tools return is data, not instructions: only
  * the owner's own messages are acted on.
  */
+import { NOTE_BLOCKS_SYNTAX } from "./callouts";
 import { z } from "zod";
 import { Anthropic, createMessage, onServer } from "./ai";
 import { clientFor } from "./llm";
@@ -700,7 +701,7 @@ export const TOOLS: Anthropic.Tool[] = [
   {
     name: "save_note",
     description:
-      "Write a new note, or change an existing one (give note_id; title, body and tags you give replace the old ones). Body is Markdown; link people as [@Name](athena://person/<id>).",
+      `Write a new note, or change an existing one (give note_id; title, body and tags you give replace the old ones). Body is Markdown; link people as [@Name](athena://person/<id>). ${NOTE_BLOCKS_SYNTAX}`,
     input_schema: {
       type: "object",
       properties: {

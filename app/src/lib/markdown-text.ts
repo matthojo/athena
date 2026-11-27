@@ -7,6 +7,7 @@
  */
 
 import { replaceAthenaLinks, unescapeLabel, webLinkRegex } from "../../../lib/links";
+import { calloutHeadText } from "../../../lib/callouts";
 
 /** What a link shows: "@" marks people only, so "@Dentist" reads "Dentist". */
 export function linkDisplayLabel(kind: string, label: string): string {
@@ -25,7 +26,11 @@ function hostOf(url: string): string {
 export function markdownToText(markdown: string): string {
   // Links in any mode (lib/links.ts) read as their label: "card" and "embed" never show.
   let s = replaceAthenaLinks(markdown, (l) => linkDisplayLabel(l.kind, l.label)).replace(webLinkRegex(), (_m, label: string, url: string) => unescapeLabel(label) || hostOf(url));
-  s = s
+  // A callout's or toggle's head reads as its title (lib/callouts.ts).
+  s = calloutHeadText(s)
+    // table rows read as their cells; the line under the header goes
+    .replace(/^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(?:\|[ \t]*:?-{3,}:?[ \t]*)*\|?[ \t]*(?:\n|$)/gm, "")
+    .replace(/^[ \t]*\|(.*)\|[ \t]*$/gm, (_m, cells: string) => cells.split("|").map((c) => c.trim()).filter(Boolean).join(" · "))
     // fenced code: keep the code, drop the fences
     .replace(/^```[^\n]*\n?/gm, "")
     // images, then links: keep the visible text

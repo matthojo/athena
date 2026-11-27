@@ -1,0 +1,468 @@
+/*
+ * Note blocks (editor/blocks.ts): callouts, toggles and tables. Calm by
+ * default: a callout is a shaded inner panel (never a coloured stripe), its
+ * tone carried by a soft wash and its icon; a toggle has no panel at all,
+ * only a chevron; a table is hairlines on the page.
+ */
+
+/* ---------- Callout ---------- */
+
+.editor__content .callout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--space-xs-sm);
+  align-items: start;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  --callout-ink: var(--ink-2);
+}
+
+.editor__content .callout[data-tone="tip"] {
+  /* The wash, quieter: a panel is far bigger than the chips it was made for. */
+  background: color-mix(in oklab, var(--mint-wash) 60%, var(--sunken));
+  --callout-ink: var(--good);
+}
+
+.editor__content .callout[data-tone="key"] {
+  /* The wash, quieter: a panel is far bigger than the chips it was made for. */
+  background: color-mix(in oklab, var(--accent-wash) 60%, var(--sunken));
+  --callout-ink: var(--accent-ink);
+}
+
+.editor__content .callout[data-tone="warning"] {
+  /* The wash, quieter: a panel is far bigger than the chips it was made for. */
+  background: color-mix(in oklab, var(--warn-wash) 60%, var(--sunken));
+  --callout-ink: var(--warn);
+}
+
+.callout__icon,
+.callout__fold {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  /* Sits on the first line of text: the body's line box is 1.65em. */
+  margin-top: calc((1.65em - 26px) / 2);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--callout-ink, var(--ink-2));
+  cursor: pointer;
+  transition: background-color var(--dur-instant) var(--ease-out), color var(--dur-instant) var(--ease-out);
+}
+
+/* A 44px target on touch, without growing the mark. */
+.callout__icon::after,
+.callout__fold::after {
+  content: "";
+  position: absolute;
+  inset: -9px; /* fixed: touch */
+}
+
+.callout__icon svg,
+.callout__fold svg {
+  width: 18px;
+  height: 18px;
+}
+
+.callout__icon:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--callout-ink) 12%, transparent);
+}
+
+.callout__icon:disabled {
+  cursor: default;
+}
+
+.callout__icon:focus-visible,
+.callout__fold:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.callout__body {
+  min-width: 0;
+}
+
+.callout__body > * + * {
+  margin-top: 0.6em;
+}
+
+.editor__content .callout__title {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+/* A title sits close to what it heads. */
+.callout__body > .callout__title + * {
+  margin-top: 0.15em;
+}
+
+/* ---------- Toggle: a callout with a fold, drawn as a line with a chevron ---------- */
+
+.editor__content .callout--toggle {
+  padding: 0;
+  margin-left: calc(-1 * var(--space-2xs));
+  background: none;
+  column-gap: var(--space-2xs-xs);
+  --callout-ink: var(--ink-3);
+}
+
+.callout--toggle .callout__fold svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--dur-fast) var(--ease-out-expo);
+}
+
+.callout--toggle .callout__fold:hover {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.callout--toggle.is-open > .callout__fold svg {
+  transform: rotate(90deg);
+}
+
+.callout--toggle:not(.is-open) > .callout__body > :not(.callout__title) {
+  display: none;
+}
+
+.editor__content .callout--toggle .callout__title {
+  font-weight: var(--weight-medium);
+}
+
+/* An empty toggle title says what it is. */
+.editor__content .callout__title.is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--ink-3);
+  font-weight: var(--weight-regular);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .callout--toggle .callout__fold svg {
+    transition: none;
+  }
+}
+
+/* ---------- Table ---------- */
+
+.editor__content .tableWrapper {
+  overflow-x: auto;
+  /* Room for the focus ring and the last column's hairline. */
+  padding-block: 1px;
+}
+
+.editor__content table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: var(--text-ui);
+  line-height: 1.5;
+}
+
+.editor__content th,
+.editor__content td {
+  min-width: 6em;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--line);
+  vertical-align: top;
+  text-align: left;
+  position: relative;
+}
+
+.editor__content th {
+  background: var(--sunken);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.editor__content th > p,
+.editor__content td > p {
+  margin: 0;
+}
+
+.editor__content th[data-align="center"],
+.editor__content td[data-align="center"] {
+  text-align: center;
+}
+
+.editor__content th[data-align="right"],
+.editor__content td[data-align="right"] {
+  text-align: right;
+}
+
+/* Cells picked by dragging across them. */
+.editor__content .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  pointer-events: none;
+}
+
+/* ---------- Divider ---------- */
+
+.editor__content hr {
+  margin-block: 1.4em;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.editor__content hr.ProseMirror-selectednode {
+  border-top-color: var(--accent);
+}
+
+/* ---------- The empty line you're on: "Type / for…" (a desk only, set in editor.ts) ---------- */
+
+.editor__content p.is-empty:not(.is-editor-empty)[data-placeholder]:not([data-placeholder=""])::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+/* ---------- The margin grip (editor/block-handle.ts) ---------- */
+
+.editor--handles {
+  position: relative;
+}
+
+.block-grip {
+  position: absolute;
+  left: calc(-1 * (22px + var(--space-xs)));
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--ink-3);
+  cursor: grab;
+  animation: fade-in var(--dur-fast) var(--ease-out);
+  transition: background-color var(--dur-instant) var(--ease-out), color var(--dur-instant) var(--ease-out);
+}
+
+.block-grip[hidden] {
+  display: none;
+}
+
+.block-grip svg {
+  width: 16px;
+  height: 16px;
+}
+
+.block-grip:hover,
+.block-grip.is-active {
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+
+.block-grip:active {
+  cursor: grabbing;
+}
+
+/* The block being dragged, and where it will land. */
+.editor--handles.is-dragging .ProseMirror-selectednode {
+  opacity: 0.4;
+}
+
+.editor__content .ProseMirror-selectednode:is(p, h1, h2, h3, ul, ol, li, pre, blockquote, .callout, .tableWrapper) {
+  border-radius: var(--radius-xs);
+  background: color-mix(in oklab, var(--accent) 9%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 9%, transparent);
+}
+
+.drop-cursor {
+  border-radius: var(--radius-pill);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .block-grip {
+    display: none;
+  }
+}
+
+/* A record's notes sit in a bordered card with no margin for it: the toolbar's menu and ⌥⇧↑↓ do the same there. */
+.record-notes .block-grip {
+  display: none;
+}
+
+/* ---------- Toolbar: + and the list buttons ---------- */
+
+.toolbar__btn--insert svg {
+  width: 18px;
+  height: 18px;
+}
+
+.toolbar__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Indent and outdent are for touch screens; a keyboard has Tab and Shift+Tab. */
+@media (hover: hover) and (pointer: fine) {
+  .toolbar__group--list {
+    display: none;
+  }
+}
+
+/* The block menu holds the styles and what you can do to the line: let it scroll on a short screen. */
+.toolbar__menu {
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ---------- The / menu (editor/slash.ts) ---------- */
+
+.rl-menu__section {
+  padding: var(--space-xs) var(--space-xs) var(--space-2xs);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  color: var(--ink-3);
+}
+
+.rl-menu__section:not(:first-child) {
+  margin-top: var(--space-2xs);
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-sm);
+}
+
+.rl-menu--slash .rl-menu__item {
+  min-height: 44px;
+}
+
+.rl-k--block {
+  --k: var(--ink-2);
+}
+
+/* A note in a sheet on a desk keeps a margin for the grip, as the reading pane does. */
+@media (min-width: 640px) and (hover: hover) and (pointer: fine) {
+  .sheet__panel:has(.note--edit) {
+    padding-inline: var(--space-xl);
+  }
+
+  .sheet__panel:has(.note--edit) .sheet__scroll {
+    margin-inline: calc(var(--space-xl) * -1);
+    padding-inline: var(--space-xl);
+  }
+}
+
+/* ---------- The block menu: rows on a desk, tiles on a phone ---------- */
+
+.toolbar__style-icon,
+.menu__short {
+  display: none;
+}
+
+.toolbar__style {
+  white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+  /* On a phone the line's icon stands in for its name, so the bar fits, docked beside the keyboard or not. */
+  .toolbar__style-label {
+    display: none;
+  }
+
+  .toolbar__style-icon {
+    display: inline-grid;
+  }
+
+  .toolbar__style svg {
+    flex: none;
+  }
+
+  .toolbar__style-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* In a list, Move in and Move out take underline's and strikethrough's places. */
+  .toolbar:has(.toolbar__group--list:not([hidden])) :is(.toolbar__btn--underline, .toolbar__btn--strike) {
+    display: none;
+  }
+
+  /* Above the docked bar, the sheet's width (fixed inside the sheet's panel). */
+  .note__toolbar--docked .toolbar__style-wrap .toolbar__menu {
+    position: fixed;
+    top: auto;
+    bottom: calc(var(--dock-h, 64px) + var(--space-2xs-xs));
+    left: var(--space-sm);
+    right: var(--space-sm);
+    width: auto;
+  }
+
+  .toolbar__styles {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-2xs-xs);
+    padding-bottom: var(--space-2xs);
+  }
+
+  .toolbar__styles .menu__item--style {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-2xs);
+    height: 64px;
+    padding: 0 var(--space-2xs);
+    border-radius: var(--radius-sm);
+    background: var(--sunken);
+    font-size: var(--text-meta);
+    text-align: center;
+  }
+
+  .toolbar__styles .menu__item--style[aria-checked="true"] {
+    background: var(--accent-wash);
+    color: var(--accent-ink);
+  }
+
+  .toolbar__styles .menu__item--style[aria-checked="true"] svg {
+    color: var(--accent-ink);
+  }
+
+  .toolbar__styles .menu__long,
+  .toolbar__styles .menu__check {
+    display: none;
+  }
+
+  .toolbar__styles .menu__short {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* The / menu on a phone: names only, so more fit above the keyboard. */
+.rl-menu--sheet.rl-menu--slash .rl-menu__sub {
+  display: none;
+}
+
+.rl-menu--sheet.rl-menu--slash .rl-menu__thumb {
+  width: 32px;
+  height: 32px;
+}
+
+/* On paper a toggle can't be opened: print what's inside, with the chevron pointing down. */
+.print-note .callout--toggle > .callout__body > :not(.callout__title) {
+  display: revert;
+}
+
+.print-note .callout--toggle > .callout__fold svg {
+  transform: rotate(90deg);
+}
+
+.print-note .block-grip {
+  display: none;
+}

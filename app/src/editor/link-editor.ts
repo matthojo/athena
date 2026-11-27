@@ -16,7 +16,7 @@
  *              action, Copy link, Show as, Remove.
  *   keys       on a focused link: Enter or ⌘↵ opens, ⌘C copies its link,
  *              Backspace removes it.
- *   /card, /embed   ask for an address and add it as that block.
+ *   /card, /embed   are rows in the / menu (slash.ts), which asks for the address.
  *
  * A read-only note's menu has no Show as or Remove.
  */
@@ -24,18 +24,16 @@
 import { Extension, getMarkRange, type Editor, type Range } from "@tiptap/core";
 import { NodeSelection, Plugin, PluginKey, TextSelection, type Transaction } from "@tiptap/pm/state";
 import { Fragment, type Node as PMNode } from "@tiptap/pm/model";
-import Suggestion, { type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
 import { showToast } from "../components/toast";
 import { attachContextMenu, contextMenuOpen, closeContextMenu } from "../components/context-menu";
-import { PROVIDER_NAMES, embedFor, isEmbeddable } from "../../../lib/embeds";
+import { PROVIDER_NAMES, embedFor } from "../../../lib/embeds";
 import { previewFor, previewKnown } from "./link-data";
-import { blockPlacement, isBlockMode, MODE_LABEL, NO_PLAYER, pasteMode, pastedUrl, shownMode, tapAction, type LinkMode, type LinkTarget } from "./link-model";
+import { blockPlacement, isBlockMode, pasteMode, pastedUrl, shownMode, tapAction, type LinkMode, type LinkTarget } from "./link-model";
 import { linkAt, ownerPicked, thingNow } from "./link-view";
 import { thingFor, type Thing } from "./link-render";
 import { closeSwitcher, openSwitcher, switcherOpen, type Switcher } from "./link-switcher";
 import { hidePeek, peekShowing, wirePeeks } from "./link-peek";
 import { linkMenu, copyLink, openInBrowser, KEYS } from "./link-context";
-import { atMenu, type AtMenu } from "./link-menu";
 import { morph } from "./link-motion";
 import type { EntityKind } from "../types";
 
@@ -466,100 +464,6 @@ export function afterInsert(editor: Editor, url: string, placed: { pos: number; 
   controllers.get(editor)?.openSwitcherAt(placed, "paste");
 }
 
-// ---------- /card and /embed ----------
-
-type SlashItem = { mode: "card" | "embed" | "paste"; title: string; sub: string };
-
-const SLASH: SlashItem[] = [
-  { mode: "card", title: "Card", sub: "A link as a card, with its picture" },
-  { mode: "embed", title: "Embed", sub: "A video, song, map or design to play here" },
-];
-
-function slashRenderer(editor: Editor) {
-  return () => {
-    let menu: AtMenu | null = null;
-    let props: SuggestionProps<SlashItem, SlashItem> | null = null;
-    let items: SlashItem[] = [];
-    let chosen: "card" | "embed" | null = null;
-
-    const submit = (url: string) => {
-      if (!props) return;
-      const mode = chosen ?? (pasteMode(url, "empty-line") as "card" | "embed");
-      if (mode === "embed" && !isEmbeddable(url)) {
-        menu?.el.querySelector(".rl-menu__err")?.replaceChildren(NO_PLAYER);
-        return;
-      }
-      const range = props.range;
-      menu?.remove();
-      menu = null;
-      editor.commands.focus();
-      afterInsert(editor, url, insertWebLink(editor, url, range, mode));
-    };
-
-    const rows = () => items.map((i) => ({ title: i.title, sub: i.sub, icon: i.mode === "card" ? ("image" as const) : ("play" as const), kind: "web" }));
-
-    return {
-      onStart(p: SuggestionProps<SlashItem, SlashItem>) {
-        props = p;
-        items = p.items;
-        menu = atMenu({
-          emptyText: "",
-          onPick: (i) => {
-            chosen = items[i]?.mode === "embed" ? "embed" : "card";
-            menu?.startPaste(`Paste a link to show as ${MODE_LABEL[chosen].toLowerCase() === "card" ? "a card" : "an embed"}`);
-          },
-          onPaste: submit,
-          onCancel: () => {
-            menu?.remove();
-            menu = null;
-            editor.commands.focus();
-          },
-        });
-        (document.querySelector("dialog[open]") ?? document.body).append(menu.el);
-        menu.set(rows(), p.query);
-        // Only "/c…" or "/e…" opens it: a slash in a date or a path doesn't.
-        menu.el.hidden = !items.length;
-        const r = p.clientRect?.();
-        if (r) menu.place(r);
-      },
-      onUpdate(p: SuggestionProps<SlashItem, SlashItem>) {
-        props = p;
-        items = p.items;
-        if (menu && !menu.pasting) {
-          menu.set(rows(), p.query);
-          menu.el.hidden = !items.length;
-        }
-        const r = p.clientRect?.();
-        if (r && menu) menu.place(r);
-      },
-      onKeyDown({ event }: SuggestionKeyDownProps) {
-        if (!menu || menu.pasting || !items.length) return false;
-        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-          menu.move(event.key === "ArrowDown" ? 1 : -1);
-          return true;
-        }
-        if (event.key === "Enter" || event.key === "Tab") {
-          menu.pick();
-          return true;
-        }
-        if (event.key === "Escape") {
-          menu.remove();
-          menu = null;
-          return true;
-        }
-        return false;
-      },
-      onExit() {
-        // Leaving for the address field isn't leaving.
-        if (menu?.pasting && menu.el.contains(document.activeElement)) return;
-        menu?.remove();
-        menu = null;
-        props = null;
-      },
-    };
-  };
-}
-
 // ---------- The extension ----------
 
 export const RichLinks = Extension.create<RichLinksOptions>({
@@ -586,16 +490,6 @@ export const RichLinks = Extension.create<RichLinksOptions>({
             return true;
           },
         },
-      }),
-      Suggestion<SlashItem, SlashItem>({
-        editor,
-        pluginKey: new PluginKey("richLinkSlash"),
-        char: "/",
-        decorationClass: "mention-query",
-        startOfLine: false,
-        items: ({ query }) => SLASH.filter((i) => i.mode.startsWith(query.trim().toLowerCase())),
-        command: () => undefined,
-        render: slashRenderer(editor),
       }),
     ];
   },
