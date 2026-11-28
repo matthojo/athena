@@ -15,6 +15,9 @@
  * Merging people (POST /api/people/:id/merge) and forgetting an identity are
  * app-only for the same reason.
  *
+ * Folders for notes: /api/folders[/:id] (netlify/lib/note-folder-routes.ts), and a note's
+ * folder_id on POST /api/notes and PATCH /api/notes/:id.
+ *
  * Layer 2 (lib/memory.ts): /api/{commitments|interactions|facts|assets|reading|goals}[/:id]
  * with the same archive/unarchive suffixes, /api/identities, /api/suggestions
  * (/:id/accept, /:id/reject, /:id/done for one dealt with elsewhere, /:id/ignore to add a
@@ -74,6 +77,8 @@ import { handleConnectorRoutes, handleOAuthCallback } from "../lib/connectors/ro
 import { handleCustomFieldRoutes } from "../lib/custom-fields-routes";
 import { handleCustomKindRoutes } from "../lib/custom-kinds-routes";
 import { handleTodoContextRoutes } from "../lib/todo-contexts-routes";
+import { handleNoteFolderRoutes } from "../lib/note-folder-routes";
+import { checkFolderId } from "../../lib/note-folders";
 import { handleTodoPeopleRoutes } from "../lib/todo-people-routes";
 import { handleDocumentRoutes } from "../lib/documents-routes";
 import { handleThemeRoutes } from "../lib/theme-routes";
@@ -377,10 +382,17 @@ async function handleNotesCollection(req: Request, url: URL): Promise<Response> 
     const type = typeof body.type === "string" && NOTE_TYPES.has(body.type as NoteType) ? (body.type as NoteType) : undefined;
     const source = str(body, "source");
     const tags = stringArray(body.tags);
+    const folder = nullableStr(body, "folder_id");
+    await checkFolderId(folder);
 
     const note = title
-      ? await createNote({ title, body: body.body, type, source, tags })
+      ? await createNote({ title, body: body.body, type, source, tags, folder_id: folder ?? null })
       : await capture({ text: body.body, source });
+    // A capture (no title) is filed after it's made: capture() takes no folder of its own.
+    if (!title && folder) {
+      const filed = await updateNote(note.id, { folder_id: folder }, { by: "api" });
+      if (filed) return json(req, filed, 201);
+    }
     // A note made with tags is a Team event; a matching assistant starts now (lib/team-triggers.ts). Never throws.
     if (note.tags?.length) await startTeamEvent("note", note.id, "note", { title: note.title, tags: note.tags, kind: note.type }, { origin: siteOrigin(new URL(req.url).origin) });
     return json(req, note, 201);
@@ -414,12 +426,19 @@ async function handleNoteItem(req: Request, url: URL, id: string): Promise<Respo
     const body = await parseJsonBody(req);
     if (!body) return errorResponse(req, 400, "Invalid JSON body");
 
-    const patch: Partial<Pick<Note, "title" | "body" | "type" | "tags" | "source">> = {};
+    const patch: Partial<Pick<Note, "title" | "body" | "type" | "tags" | "source" | "folder_id">> = {};
     if (typeof body.title === "string") patch.title = body.title;
     if (typeof body.body === "string") patch.body = body.body;
     if (typeof body.type === "string" && NOTE_TYPES.has(body.type as NoteType)) patch.type = body.type as NoteType;
     if (Array.isArray(body.tags)) patch.tags = stringArray(body.tags);
     if (typeof body.source === "string") patch.source = body.source;
+    // A folder's id, or null to take it out of any folder.
+    if ("folder_id" in body) {
+      const folder = nullableStr(body, "folder_id");
+      if (folder === undefined) return errorResponse(req, 400, "folder_id: a folder's id, or null");
+      await checkFolderId(folder);
+      patch.folder_id = folder;
+    }
 
     // Every edit keeps the earlier version (lib/note-versions.ts). The app's editor says who it is, so the owner's
     // typing is grouped (one version per 10 minutes); anything else on this route is a script with a full key.
@@ -2295,6 +2314,11 @@ export default async (req: Request, _context: Context) => {
     }
     if (first === "kinds" || first === "records") {
       const handled = await handleCustomKindRoutes(req, url, segments, (data, status) => json(req, data, status));
+      if (handled) return handled;
+    }
+    // Folders for notes (netlify/lib/note-folder-routes.ts).
+    if (first === "folders") {
+      const handled = await handleNoteFolderRoutes(req, segments, (data, status) => json(req, data, status));
       if (handled) return handled;
     }
     // To-do contexts (netlify/lib/todo-contexts-routes.ts).

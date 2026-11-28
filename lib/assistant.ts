@@ -21,6 +21,8 @@
  * the owner's own messages are acted on.
  */
 import { NOTE_BLOCKS_SYNTAX } from "./callouts";
+import { folderFromWords, folderPathOf, listFolders, notesInFolder } from "./note-folders";
+import { folderPath } from "./note-folder-rules";
 import { z } from "zod";
 import { Anthropic, createMessage, onServer } from "./ai";
 import { clientFor } from "./llm";
@@ -157,6 +159,8 @@ export type Undo =
       title: string;
       body: string;
       tags: string[];
+      /** The folder it was in, when the change moved it. */
+      folder_id?: string | null;
     }
   | { op: "reopen_todo"; id: string }
   | { op: "detach_file"; note_id: string; file_id: string }
@@ -660,10 +664,11 @@ export const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: "find_notes",
-    description: "Find notes by words in their title or text, or the notes linked to a person (give person_id). Returns ids, titles and a short excerpt.",
+    description:
+      "Find notes by words in their title or text, or the notes linked to a person (give person_id), or what's in one of the owner's folders (give folder: its name, or its path like Work/Clients; the folders inside it count too). Returns ids, titles, a short excerpt and the folder each is in.",
     input_schema: {
       type: "object",
-      properties: { query: { type: "string" }, person_id: { type: "string" } },
+      properties: { query: { type: "string" }, person_id: { type: "string" }, folder: { type: "string" } },
     },
   },
   {
@@ -701,7 +706,7 @@ export const TOOLS: Anthropic.Tool[] = [
   {
     name: "save_note",
     description:
-      `Write a new note, or change an existing one (give note_id; title, body and tags you give replace the old ones). Body is Markdown; link people as [@Name](athena://person/<id>). ${NOTE_BLOCKS_SYNTAX}`,
+      `Write a new note, or change an existing one (give note_id; title, body and tags you give replace the old ones). Body is Markdown; link people as [@Name](athena://person/<id>). folder files it in one of the owner's folders (its name, or its path like Work/Clients); "" takes it out of any. Only file a note when the owner asks. ${NOTE_BLOCKS_SYNTAX}`,
     input_schema: {
       type: "object",
       properties: {
@@ -709,6 +714,7 @@ export const TOOLS: Anthropic.Tool[] = [
         title: { type: "string" },
         body: { type: "string" },
         tags: { type: "array", items: { type: "string" } },
+        folder: { type: "string" },
       },
     },
   },
@@ -1037,6 +1043,7 @@ const inputs = {
   find_notes: z.object({
     query: z.string().max(200).optional(),
     person_id: UUID.optional(),
+    folder: z.string().max(200).optional(),
   }),
   read_note: z.object({ id: UUID }),
   draft_email: z.object({ person_id: UUID, about: z.string().min(1).max(1_000), todo_id: UUID.optional() }),
@@ -1055,6 +1062,7 @@ const inputs = {
     title: z.string().min(1).max(300).optional(),
     body: z.string().max(20_000).optional(),
     tags: z.array(z.string().max(60)).max(20).optional(),
+    folder: z.string().max(200).optional(),
   }),
   find_todos: z.object({
     query: z.string().max(200).optional(),
@@ -1411,13 +1419,24 @@ export class Session {
         });
       }
       case "find_notes": {
-        const { query, person_id } = inputs.find_notes.parse(raw);
+        const { query, person_id, folder } = inputs.find_notes.parse(raw);
         let notes: Array<{
           id: string;
           title: string;
           excerpt?: string;
           tags?: string[];
+          folder?: string;
         }>;
+        if (folder) {
+          // What's in a folder (and the folders inside it), newest first, narrowed by any words given.
+          const found = await notesInFolder((await folderFromWords(folder)).id);
+          const words = (query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+          const hits = found.filter((n) => words.every((w) => `${n.title} ${n.body}`.toLowerCase().includes(w)));
+          if (hits.some((n) => isCollected(n.source))) this.deps.sawCollected?.();
+          const all = await listFolders();
+          notes = hits.slice(0, 10).map((n) => ({ id: n.id, title: n.title, excerpt: withoutPlaces(withoutHealth(n.body)).slice(0, 200), tags: n.tags, folder: folderPath(all, n.folder_id) }));
+          return JSON.stringify(notes);
+        }
         if (person_id) {
           const words = (query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
           notes = (await this.personNotes(person_id)).filter((n) => words.every((w) => n.title.toLowerCase().includes(w)));
@@ -1521,6 +1540,7 @@ export class Session {
             body: note.body,
             tags: note.tags,
           };
+          const folderId = input.folder === undefined ? undefined : input.folder.trim() ? (await folderFromWords(input.folder)).id : null;
           // A note the owner wrote: the model's text links plainly, so nothing it adds makes Athena fetch a page for a card,
           // mention or embed (links the owner already chose a mode for keep it). lib/links.ts plainNewWebLinks.
           const written = input.body !== undefined ? modelWroteInto(note, input.body) : undefined;
@@ -1529,15 +1549,17 @@ export class Session {
             // A Life log day keeps its Health line and Places section: Ask never sees them, so can't write them back (lib/health.ts, lib/places-line.ts).
             body: written !== undefined && note.tags.includes("life-log") ? withPlacesSection(withHealthLine(written, lineIn(note.body)), placesSectionIn(note.body)) : written,
             tags: input.tags,
+            ...(folderId !== undefined ? { folder_id: folderId } : {}),
           }))!;
+          const moved = folderId !== undefined && folderId !== (note.folder_id ?? null);
           return this.record({
             kind: "note",
             id: updated.id,
             action: "updated",
             title: updated.title || "Untitled note",
-            detail: "Note updated",
+            detail: moved && input.title === undefined && input.body === undefined && input.tags === undefined ? (folderId ? `Moved to ${(await folderPathOf(folderId)) || "a folder"}` : "Moved out of its folder") : "Note updated",
             open: { kind: "note", id: updated.id },
-            undo: { op: "restore_note", id: updated.id, ...before },
+            undo: { op: "restore_note", id: updated.id, ...before, ...(moved ? { folder_id: note.folder_id ?? null } : {}) },
           });
         }
         if (!input.title && !input.body) throw new Error("A new note needs a title or a body");
@@ -1547,6 +1569,7 @@ export class Session {
           type: "note",
           source: "assistant",
           tags: input.tags ?? [],
+          folder_id: input.folder?.trim() ? (await folderFromWords(input.folder)).id : null,
         });
         return this.record({
           kind: "note",
@@ -2072,6 +2095,7 @@ const UNDO = z.discriminatedUnion("op", [
     title: z.string().max(300),
     body: z.string().max(100_000),
     tags: z.array(z.string().max(80)).max(40),
+    folder_id: UUID.nullable().optional(),
   }),
   z.object({ op: z.literal("reopen_todo"), id: UUID }),
   z.object({ op: z.literal("detach_file"), note_id: UUID, file_id: UUID }),
@@ -2116,6 +2140,7 @@ export async function applyUndo(raw: unknown, deps: { calendar?: CalendarPort; s
         title: undo.title,
         body: undo.body,
         tags: undo.tags,
+        ...(undo.folder_id !== undefined ? { folder_id: undo.folder_id } : {}),
       });
       return;
     case "reopen_todo":

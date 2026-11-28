@@ -22,6 +22,8 @@ export interface Route {
   source: string | null;
   /** A note id (#/notes/<id>), a record id (#/people/<id> …) or a Settings section. */
   noteId: string | null;
+  /** The folder open in Notes (#/notes?folder=<id>). */
+  folder?: string | null;
 }
 
 export const RECORD_VIEWS: Partial<Record<ViewId, RecordKind>> = {
@@ -49,7 +51,10 @@ export function parseRoute(hash: string, today = localToday()): Route {
   const [path, qs] = hash.replace(/^#\/?/, "").split("?");
   const [view, id] = path.split("/");
   const source = new URLSearchParams(qs ?? "").get("source");
-  if (view === "notes") return { view: "notes", source, noteId: id ? decodeURIComponent(id) : null };
+  if (view === "notes") {
+    const folder = new URLSearchParams(qs ?? "").get("folder");
+    return { view: "notes", source, noteId: id ? decodeURIComponent(id) : null, ...(folder ? { folder } : {}) };
+  }
   // #/checkin/…: Home underneath, with the check-in open over it (parseCheckin).
   if (view === "checkin") return { view: "home", source: null, noteId: null };
   // #/kind/<kind id>, or #/kind/<kind id>/<record id>: one of the owner's own kinds of record.
@@ -120,6 +125,9 @@ export function routeHash(r: Route): string {
   if (r.view === "health") return `#/health${r.noteId === "wellness" ? "/wellness" : ""}`;
   if (PLAIN_VIEWS.includes(r.view)) return `#/${r.view}`;
   if (RECORD_VIEWS[r.view] || r.view === "graph" || r.view === "saved" || r.view === "trips" || r.view === "purchases") return `#/${r.view}${r.noteId ? `/${encodeURIComponent(r.noteId)}` : ""}`;
-  const qs = r.source !== null ? `?source=${encodeURIComponent(r.source)}` : "";
-  return `#/notes${r.noteId ? `/${encodeURIComponent(r.noteId)}` : ""}${qs}`;
+  const params = new URLSearchParams();
+  if (r.source !== null) params.set("source", r.source);
+  if (r.folder) params.set("folder", r.folder);
+  const qs = params.toString();
+  return `#/notes${r.noteId ? `/${encodeURIComponent(r.noteId)}` : ""}${qs ? `?${qs}` : ""}`;
 }

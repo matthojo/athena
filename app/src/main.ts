@@ -20,6 +20,7 @@ import { isKindView, kindIdOf, kindView, parseCheckin, parseRoute, RECORD_VIEWS,
 import { noteSourcesAsk } from "./lib/sources-ask";
 import { findCustomRecord, onKindsChange, primeKinds } from "./db/custom-kinds";
 import { primeContexts } from "./db/todo-contexts";
+import { primeFolders } from "./db/folders";
 import { groupLoops, loadCommitments, loadSuggestions, onMemoryChange, openLoops } from "./db/memory";
 import { findRecord } from "./db/records";
 import { markSourcesStale, statusButton, type StatusActions } from "./components/status";
@@ -280,6 +281,7 @@ function mountShell() {
   // The owner's own kinds of record: their sections in the sidebar, kept current.
   void primeKinds();
   // To-do contexts, for To do's chips and the jump list.
+  void primeFolders();
   void primeContexts();
 
   let route = parseRoute(location.hash);
@@ -308,18 +310,20 @@ function mountShell() {
       });
     } else if (route.view === "notes") {
       const { source, noteId } = route;
+      const folder = route.folder ?? null;
       current = lazyView(chunks.notes, ({ renderNotes }) =>
         renderNotes({
           source,
           noteId,
+          folder,
           focusSearch: !!opts.focusSearch,
           isDesktop: () => desktop.matches,
           openNote,
           openLink,
           compose,
           go: (view) => go(view),
-          onSelectionChange(source, noteId) {
-            route = { view: "notes", source, noteId };
+          onSelectionChange(source, noteId, folder) {
+            route = { view: "notes", source, noteId, ...(folder ? { folder } : {}) };
             history.replaceState(history.state, "", routeHash(route));
             side.setActive("notes");
           },

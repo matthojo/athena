@@ -59,6 +59,8 @@ export const ENCRYPTED: EncryptedTable[] = [
   // A note's earlier versions (0061): copied from the note as stored, re-sealed with it.
   { table: "note_versions", key: ID, text: ["title", "body"] },
   { table: "note_chunks", key: ID, text: ["content"] },
+  // Folders for notes (0097): the name is the folder's only words.
+  { table: "note_folders", key: ID, text: ["name"] },
   {
     table: "people",
     key: ID,

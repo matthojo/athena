@@ -206,6 +206,7 @@ export const icons = {
   grip: () => svg(base(`<circle cx="9" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="17.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="17.5" r="1.1" fill="currentColor" stroke="none"/>`)),
   /** A to-do's description: lines of text. */
   lines: () => svg(base(`<path d="M5 7h14M5 12h14M5 17h9"/>`)),
+  folderPlus: () => svg(base(`<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h3.6l2 2.2h7.4a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/>`)),
   globe: () => svg(base(`<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.2 2.3 3.2 5 3.2 8s-1 5.7-3.2 8c-2.2-2.3-3.2-5-3.2-8s1-5.7 3.2-8z"/>`)),
   // Note blocks (editor/blocks.ts): a callout's panel, a toggle's fold, a table, a divider, and a callout's tones.
   callout: () => svg(base(`<rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M8 10h8M8 14h5"/>`)),

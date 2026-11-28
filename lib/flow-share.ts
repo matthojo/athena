@@ -61,7 +61,7 @@ export const FLOW_LOOK_TOOLS: readonly string[] = FLOW_SHARE_TOOLS.slice(0, FLOW
  */
 export const FLOW_TOOL_SHAPES: Readonly<Record<string, { fields: readonly string[]; gives: Readonly<Record<string, ValueKind>> }>> = {
   find_people: { fields: ["query", "limit"], gives: { person: "person", count: "number" } },
-  find_notes: { fields: ["query", "person_id"], gives: { note: "note", count: "number" } },
+  find_notes: { fields: ["query", "person_id", "folder"], gives: { note: "note", count: "number" } },
   find_todos: { fields: ["query", "person_id", "area", "where", "include_done"], gives: { todo: "todo", count: "number" } },
   find_items: { fields: ["kind", "query"], gives: { item: "text", count: "number" } },
   find_records: { fields: ["query", "kind"], gives: { record: "text", count: "number" } },
@@ -85,7 +85,7 @@ export const FLOW_TOOL_SHAPES: Readonly<Record<string, { fields: readonly string
   car_details: { fields: [], gives: { result: "text" } },
   add_todo: { fields: ["title", "kind", "person_id", "due_on", "area", "where", "notes", "steps", "links", "priority"], gives: { todo: "todo" } },
   add_reminder: { fields: ["text", "date", "time", "repeat", "about_kind", "about_id"], gives: { reminder: "text" } },
-  save_note: { fields: ["note_id", "title", "body", "tags"], gives: { note: "note" } },
+  save_note: { fields: ["note_id", "title", "body", "tags", "folder"], gives: { note: "note" } },
   add_to_list: { fields: ["item", "list_title", "person_id", "note_id", "tags"], gives: { note: "note" } },
   add_person: { fields: ["name", "relationship", "email", "phone", "birthday", "organisation", "notes", "keep_in_touch"], gives: { person: "person" } },
   remember: { fields: ["person_id", "key", "value"], gives: { done: "text" } },

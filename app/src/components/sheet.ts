@@ -58,6 +58,9 @@ function backThen(): void {
   history.back();
 }
 
+/** Resolves once a sheet that just closed has given its history entry back: navigate after this, or the back undoes it. */
+export const afterSheetClosed = (): Promise<void> => pendingBack ?? Promise.resolve();
+
 let sheetSeq = 0;
 // Unique across reloads: a sheet entry can outlive the page (iOS reloads a
 // backgrounded PWA), and a restarted counter would collide with it.

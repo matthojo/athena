@@ -14,7 +14,12 @@
  * external `pg` client. See docs: security/netlify-db for why this is
  * the one place in the codebase allowed to do that.
  *
- * Tables read: notes, people, projects, places, organisations, events, edges,
+ * Notes in folders (note_folders, 0097) are written into folders of the same
+ * names under notes/, three deep at most, so the vault keeps the owner's
+ * filing; wikilinks still resolve, since a note's file name is unique across
+ * the vault.
+ *
+ * Tables read: notes, note_folders, people, projects, places, organisations, events, edges,
  * and the owner's own kinds and their records (custom_kinds, custom_records:
  * one folder per kind, under types/) (see db/schema.sql). Archived items are skipped, like everywhere else
  * outside the app's Archived page. athena:// links in bodies are rewritten to
@@ -43,6 +48,7 @@ import { blindIndexes, dataKeyConfigured, isSealed, openDeep } from "../lib/data
 import { formatWebLink, parseLinkMode, replaceAthenaLinks, unescapeLabel, webLinkRegex } from "../lib/links";
 import { normalisePreviewUrl, previewKeyText } from "../lib/link-preview-url";
 import { KIND_WORD } from "../lib/custom-kind-words";
+import { isEncryptedPlaceholder } from "../lib/encrypted";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const VAULT_ROOT = path.join(__dirname, "..", "export", "obsidian-vault");
@@ -56,8 +62,39 @@ interface NoteRow {
   type: string;
   source: string | null;
   tags: string[];
+  folder_id?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface FolderRow {
+  id: string;
+  name: string;
+  parent_id: string | null;
+}
+
+/** A folder's name as a directory: no path marks or characters a file system refuses, and never empty or hidden. */
+function folderDirName(name: string): string {
+  const clean = name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").replace(/^\.+/, "").trim();
+  return clean.slice(0, 80) || "Folder";
+}
+
+/** Each folder's directory under notes/, by id: "Work/Clients". A folder whose name can't be read here is left out (its notes go at the top). */
+function folderDirs(folders: FolderRow[]): Map<string, string> {
+  const byId = new Map(folders.map((f) => [f.id, f]));
+  const dirs = new Map<string, string>();
+  for (const f of folders) {
+    const parts: string[] = [];
+    let at: FolderRow | undefined = f;
+    let ok = true;
+    while (at && parts.length <= 3) {
+      if (isSealed(at.name) || isEncryptedPlaceholder(at.name)) ok = false;
+      parts.unshift(folderDirName(at.name));
+      at = at.parent_id ? byId.get(at.parent_id) : undefined;
+    }
+    if (ok) dirs.set(f.id, parts.join(path.sep));
+  }
+  return dirs;
 }
 
 interface PersonRow {
@@ -283,6 +320,15 @@ async function main(): Promise<void> {
       );
     }
     for (const r of results) openDeep(r.rows as unknown[]);
+    // Folders for notes (0097); an older database has none.
+    let folders: FolderRow[] = [];
+    try {
+      folders = (await pool.query<FolderRow>("SELECT id, name, parent_id FROM note_folders")).rows;
+      openDeep(folders as unknown[]);
+    } catch {
+      folders = [];
+    }
+    const dirs = folderDirs(folders);
 
     const notes = notesResult.rows;
     // Names are encrypted, so people are sorted here rather than in SQL.
@@ -386,7 +432,9 @@ async function main(): Promise<void> {
       const links = wikilinksFor("note", note.id);
       const linksSection = links.length > 0 ? `\n\n## Links\n\n${links.map((l) => `- ${l}`).join("\n")}\n` : "";
       const content = `${fm}\n# ${note.title}\n\n${toWikilinks(note.body)}${linksSection}`;
-      await writeFile(path.join(VAULT_ROOT, "notes", `${slug}.md`), content, "utf8");
+      const dir = path.join(VAULT_ROOT, "notes", (note.folder_id && dirs.get(note.folder_id)) || "");
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, `${slug}.md`), content, "utf8");
     }
 
     for (const person of people) {

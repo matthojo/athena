@@ -21,6 +21,8 @@ export interface Note {
   type: NoteType;
   source: string | null;
   tags: string[];
+  /** The folder it's in (lib/note-folder-rules.ts), or null. */
+  folder_id?: string | null;
   archived_at?: string | null;
   created_at: string;
   updated_at: string;
@@ -174,7 +176,7 @@ export interface MetricPoint {
   metadata?: Record<string, unknown>;
 }
 
-export type NotePatch = Partial<Pick<Note, "title" | "body" | "type" | "source" | "tags">>;
+export type NotePatch = Partial<Pick<Note, "title" | "body" | "type" | "source" | "tags" | "folder_id">>;
 
 /**
  * A note write made while offline (or that failed to reach the server),

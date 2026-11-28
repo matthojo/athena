@@ -130,7 +130,18 @@ function snippetFor(text: string, terms: string[]): string {
   return `…${flat.slice(at - 40, at + 140)}`;
 }
 
-export function noteRow(note: Note, opts: { onOpen: (n: Note) => void; terms?: string[]; current?: boolean }): HTMLButtonElement {
+/** Your own notes need no source line; ones from a collection say which. A filed note says its folder where the list doesn't. */
+function rowMeta(note: Note, folder: string | undefined): HTMLElement | null {
+  const parts: Array<string | Node> = [];
+  if (note.source !== "manual") parts.push(sourceText(note.source));
+  if (folder) {
+    if (parts.length) parts.push(" · ");
+    parts.push(h("span", { class: "row__folder" }, icons.folder(), folder));
+  }
+  return parts.length ? h("span", { class: "row__meta" }, ...parts) : null;
+}
+
+export function noteRow(note: Note, opts: { onOpen: (n: Note) => void; terms?: string[]; current?: boolean; folder?: string }): HTMLButtonElement {
   const terms = opts.terms ?? [];
   const { title, rest: marked } = markedParts(note);
   const rest = unmark(marked);
@@ -158,8 +169,7 @@ export function noteRow(note: Note, opts: { onOpen: (n: Note) => void; terms?: s
         queued ? h("span", { class: "badge badge--queued" }, "Waiting to sync") : null
       ),
       snippet ? h("span", { class: "row__snippet" }, ...(terms.length ? highlight(snippet, terms) : mentionText(snippet))) : null,
-      // Your own notes need no source line; ones from a collection say which.
-      note.source === "manual" ? null : h("span", { class: "row__meta" }, sourceText(note.source))
+      rowMeta(note, opts.folder)
     ),
     h("span", { class: "row__time" }, compactTime(note.updated_at))
   );

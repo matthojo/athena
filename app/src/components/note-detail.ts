@@ -40,7 +40,9 @@ import { describeSource } from "../lib/sources";
 import { markdownToText } from "../lib/markdown-text";
 import { noteParts, TYPE_ICON, TYPE_LABEL } from "./note-row";
 import { createNoteLocal, deleteNoteLocal, onNoteIdResolved, pullNotes, resolveId, setNoteArchivedLocal, updateNoteLocal } from "../db/sync";
-import { loadConnections, searchEntities } from "../db/data";
+import { loadConnections, onNotes, searchEntities } from "../db/data";
+import { folderById, onFoldersChange, pathOf } from "../db/folders";
+import { moveNoteTo } from "./folders-ui";
 import { isSampleMode, request, saveRecord } from "../db/api";
 import { isEncryptedPlaceholder } from "../../../lib/encrypted";
 import { ownerWroteNote } from "../../../lib/links";
@@ -70,6 +72,8 @@ export interface NoteViewContext {
   /** A filled template: its title, and the seed is saved straight away (it's the note, not a hint). */
   seedTitle?: string;
   keepSeed?: boolean;
+  /** A new note started inside a folder (the Notes list's "Note" there): it's made in that folder. */
+  folder?: string | null;
 }
 
 export interface NoteView {
@@ -281,10 +285,22 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
   const bar = h("div", { class: "note__bar" }, typeWrap, metaChips, h("span", { class: "note__bar-spacer" }), moreBtn, menu);
 
   const chip = (icon: IconName, text: string) => h("span", { class: "meta-chip" }, icons[icon](), text);
+  /** The folder it's in, as a chip that opens Move to. None when it's in no folder: Move to is in the menu. */
+  function folderChip(): HTMLElement | null {
+    const id = note ? (note.folder_id ?? null) : (ctx.folder ?? null);
+    const path = id ? pathOf(id) : "";
+    if (!path) return null;
+    // Its own name on the chip, so the row fits a phone; the whole path when it's read out or hovered.
+    const b = h("button", { class: "meta-chip meta-chip--folder", type: "button", title: path, "aria-label": `In ${path}. Move it` }, icons.folder(), h("span", { class: "meta-chip__text" }, folderById(id)?.name ?? path));
+    b.addEventListener("click", () => note && moveNoteTo(resolveId(note.id), note.folder_id ?? null));
+    return b;
+  }
   function paintMeta() {
     // Notes the owner writes carry no source chip; only ones that came from somewhere else say where.
     const source = describeSource(note?.source ?? "manual");
     const items: HTMLElement[] = source.key === "manual" ? [] : [chip(source.icon, source.label ? `${source.name} · ${source.label}` : source.name)];
+    const inFolder = folderChip();
+    if (inFolder) items.unshift(inFolder);
     if (note) items.push(chip("clock", shortDate(note.created_at)));
     if (note?.id.startsWith("local-")) items.push(h("span", { class: "badge badge--queued" }, "Waiting to sync"));
     metaChips.replaceChildren(...items);
@@ -305,6 +321,8 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
     // Ask with this note attached (lib/open-ask.ts); collected emails are notes too.
     menuItem("chat", "Ask about this", () => note && openAsk({ context: { kind: "note", id: resolveId(note.id), label: titleInput.value.trim() || deriveTitle(markdownToText(body)) || "Untitled" } })),
     menuItem("link", "Copy link", copyLink),
+    // Into a folder, or out of one (components/folders-ui.ts). Not for a note this copy can't read.
+    locked ? "" : menuItem("folder", "Move to…", () => note && moveNoteTo(resolveId(note.id), note.folder_id ?? null)),
     // What it held before each change. Needs the server, so not in sample data or on a locked note.
     isSampleMode() || locked ? "" : menuItem("clock", "Earlier versions", versions),
     h("div", { class: "menu__sep" }),
@@ -575,7 +593,7 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
       const type: NoteType = typeTouched ? (typeSelect.value as NoteType) : typedTitle ? "note" : "capture";
       typeSelect.value = type;
       paintTypeIcon();
-      creating = createNoteLocal({ title, body, type, source: "manual", tags }).then((created) => {
+      creating = createNoteLocal({ title, body, type, source: "manual", tags, folder_id: ctx.folder ?? null }).then((created) => {
         note = created;
         paintMeta();
         void paintLinks();
@@ -609,6 +627,16 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
       void paintLinks();
     }
   });
+  // Moved into or out of a folder (its chip, Move to, a drag in the list, another device): the chip follows.
+  const unNotes = onNotes((snap) => {
+    if (!note || dead) return;
+    const now = snap.notes.find((n) => n.id === resolveId(note!.id));
+    if (now && (now.folder_id ?? null) !== (note.folder_id ?? null)) {
+      note = { ...note, folder_id: now.folder_id ?? null };
+      paintMeta();
+    }
+  });
+  const unFolders = onFoldersChange(() => !dead && paintMeta());
   const onHide = () => void saveNow();
   window.addEventListener("pagehide", onHide);
 
@@ -713,6 +741,8 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
       clearTimeout(linksTimer);
       unnameTab();
       unresolved();
+      unNotes();
+      unFolders();
       window.removeEventListener("pagehide", onHide);
       localGraph?.destroy();
       custom.destroy();
@@ -725,7 +755,7 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
 }
 
 /** Mobile (and desktop compose): the note in a sheet. `null` = a new note. */
-export function openNoteSheet(note: Note | null, opts: { openLink: (kind: EntityKind, id: string) => void; seed?: string; seedTitle?: string; keepSeed?: boolean }): void {
+export function openNoteSheet(note: Note | null, opts: { openLink: (kind: EntityKind, id: string) => void; seed?: string; seedTitle?: string; keepSeed?: boolean; folder?: string | null }): void {
   const desktop = window.matchMedia("(min-width: 1024px)").matches;
   let view: NoteView | null = null;
   const sheet = openSheet({
@@ -746,13 +776,14 @@ export function openNoteSheet(note: Note | null, opts: { openLink: (kind: Entity
     seed: opts.seed,
     seedTitle: opts.seedTitle,
     keepSeed: opts.keepSeed,
+    folder: opts.folder,
   });
   // A blank new note can start from a template instead (components/templates.ts).
   if (!note && !opts.seed) {
     const start = h("button", { class: "chip tpl-start", type: "button" }, icons.copy(), "Start from a template");
     start.addEventListener("click", () => {
       sheet.close();
-      setTimeout(() => openTemplatePicker({ openLink: opts.openLink, openFilled: (n) => openNoteSheet(null, { openLink: opts.openLink, seed: n.body, seedTitle: n.title, keepSeed: true }) }), 260);
+      setTimeout(() => openTemplatePicker({ openLink: opts.openLink, openFilled: (n) => openNoteSheet(null, { openLink: opts.openLink, seed: n.body, seedTitle: n.title, keepSeed: true, folder: opts.folder }) }), 260);
     });
     view.el.querySelector(".note__bar")?.after(start);
   }

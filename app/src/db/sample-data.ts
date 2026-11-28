@@ -11,6 +11,7 @@ import { addDays, zonedToInstant } from "../../../lib/dates";
 import { deviceZone, localToday } from "../lib/time";
 import { sampleTrainTime } from "./sample-trips";
 import type { AthenaEvent, MetricPoint, Note, Organisation, Person, Place } from "../types";
+import type { NoteFolder } from "../../../lib/note-folder-rules";
 
 const now = () => new Date();
 
@@ -36,7 +37,50 @@ export const SAMPLE_IDS = {
 const link = (kind: string, id: string, label: string) => `[${label}](athena://${kind}/${id})`;
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
 
+/** Sample mode's folders: Work (with Planning and Meetings, and Projects › Athena), Personal (Mentoring, Gifts) and Reading. */
+const folderId = (n: number) => `5a3e0000-0000-4000-8000-${String(1300 + n).padStart(12, "0")}`;
+export const SAMPLE_FOLDER_IDS = {
+  work: folderId(1),
+  planning: folderId(2),
+  meetings: folderId(3),
+  projects: folderId(4),
+  athena: folderId(5),
+  personal: folderId(6),
+  mentoring: folderId(7),
+  gifts: folderId(8),
+  reading: folderId(9),
+} as const;
+
+const FOLDER_AT = "2026-01-05T09:00:00.000Z";
+const sampleFolder = (id: string, name: string, parent_id: string | null = null): NoteFolder => ({ id, name, parent_id, created_at: FOLDER_AT, updated_at: FOLDER_AT });
+const F = SAMPLE_FOLDER_IDS;
+export const SAMPLE_FOLDERS: NoteFolder[] = [
+  sampleFolder(F.work, "Work"),
+  sampleFolder(F.planning, "Planning", F.work),
+  sampleFolder(F.meetings, "Meetings", F.work),
+  sampleFolder(F.projects, "Projects", F.work),
+  sampleFolder(F.athena, "Athena", F.projects),
+  sampleFolder(F.personal, "Personal"),
+  sampleFolder(F.mentoring, "Mentoring", F.personal),
+  sampleFolder(F.gifts, "Gifts", F.personal),
+  sampleFolder(F.reading, "Reading"),
+];
+
+/** Which sample note is in which folder; the briefing, the dailies and the digests are in none. */
+const SAMPLE_FILED: Record<string, string> = {
+  "5a3e0000-0000-4000-8000-000000000001": F.planning,
+  "5a3e0000-0000-4000-8000-000000000002": F.mentoring,
+  "5a3e0000-0000-4000-8000-000000000004": F.athena,
+  "5a3e0000-0000-4000-8000-000000000005": F.reading,
+  "5a3e0000-0000-4000-8000-000000000006": F.meetings,
+  "5a3e0000-0000-4000-8000-000000000011": F.gifts,
+};
+
 export function sampleNotes(): Note[] {
+  return sampleNoteList().map((n) => ({ ...n, folder_id: SAMPLE_FILED[n.id] ?? null }));
+}
+
+function sampleNoteList(): Note[] {
   const today = localToday();
   return [
     {
