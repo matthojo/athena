@@ -2951,13 +2951,25 @@ dialog.sheet.is-closing::backdrop {
 
 .note__bar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: var(--space-2xs-xs);
+}
+
+.note__bar-lead {
+  display: flex;
+  flex: 1;
   flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
   gap: var(--space-2xs-xs);
 }
 
 .note__bar .note__chips {
   display: contents;
+}
+
+.note__bar > .note__more {
+  flex: none;
 }
 
 .note__bar-spacer {

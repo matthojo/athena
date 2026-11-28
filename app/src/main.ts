@@ -316,14 +316,16 @@ function mountShell() {
           source,
           noteId,
           folder,
+          tag: route.tag ?? null,
+          untagged: !!route.untagged,
           focusSearch: !!opts.focusSearch,
           isDesktop: () => desktop.matches,
           openNote,
           openLink,
           compose,
           go: (view) => go(view),
-          onSelectionChange(source, noteId, folder) {
-            route = { view: "notes", source, noteId, ...(folder ? { folder } : {}) };
+          onSelectionChange(source, noteId, scope) {
+            route = { view: "notes", source, noteId, ...(scope ?? {}) };
             history.replaceState(history.state, "", routeHash(route));
             side.setActive("notes");
           },
@@ -639,7 +641,8 @@ function mountShell() {
     if (openCheckinLink()) return;
     const hash = location.hash;
     const next = parseRoute(hash);
-    if (next.view === route.view && next.source === route.source && next.noteId === route.noteId) return openTemplateLink(hash);
+    // The same page (a folder, tag or Untagged counts as a page of its own): only a template link to open.
+    if (routeHash(next) === routeHash(route)) return openTemplateLink(hash);
     route = next;
     withTransition(() => render());
     openDeepLink(route);

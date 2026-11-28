@@ -24,6 +24,10 @@ export interface Route {
   noteId: string | null;
   /** The folder open in Notes (#/notes?folder=<id>). */
   folder?: string | null;
+  /** A tag open in Notes (#/notes?tag=ai%2Fopenai). */
+  tag?: string | null;
+  /** Notes with no tag (#/notes?untagged=1). */
+  untagged?: boolean;
 }
 
 export const RECORD_VIEWS: Partial<Record<ViewId, RecordKind>> = {
@@ -52,8 +56,11 @@ export function parseRoute(hash: string, today = localToday()): Route {
   const [view, id] = path.split("/");
   const source = new URLSearchParams(qs ?? "").get("source");
   if (view === "notes") {
-    const folder = new URLSearchParams(qs ?? "").get("folder");
-    return { view: "notes", source, noteId: id ? decodeURIComponent(id) : null, ...(folder ? { folder } : {}) };
+    const p = new URLSearchParams(qs ?? "");
+    const folder = p.get("folder");
+    const tag = p.get("tag");
+    const scope = folder ? { folder } : tag ? { tag } : p.get("untagged") === "1" ? { untagged: true } : {};
+    return { view: "notes", source, noteId: id ? decodeURIComponent(id) : null, ...scope };
   }
   // #/checkin/…: Home underneath, with the check-in open over it (parseCheckin).
   if (view === "checkin") return { view: "home", source: null, noteId: null };
@@ -128,6 +135,8 @@ export function routeHash(r: Route): string {
   const params = new URLSearchParams();
   if (r.source !== null) params.set("source", r.source);
   if (r.folder) params.set("folder", r.folder);
+  else if (r.tag) params.set("tag", r.tag);
+  else if (r.untagged) params.set("untagged", "1");
   const qs = params.toString();
   return `#/notes${r.noteId ? `/${encodeURIComponent(r.noteId)}` : ""}${qs ? `?${qs}` : ""}`;
 }

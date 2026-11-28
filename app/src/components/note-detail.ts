@@ -282,7 +282,8 @@ export function noteView(initial: Note | null, ctx: NoteViewContext): NoteView {
     icons.more()
   ) as HTMLButtonElement;
   const menu = h("div", { class: "menu note-menu", id: menuId, popover: "auto" }) as HTMLElement & { hidePopover?: () => void };
-  const bar = h("div", { class: "note__bar" }, typeWrap, metaChips, h("span", { class: "note__bar-spacer" }), moreBtn, menu);
+  // The chips wrap among themselves, so ⋯ stays at the top right however many there are.
+  const bar = h("div", { class: "note__bar" }, h("div", { class: "note__bar-lead" }, typeWrap, metaChips), moreBtn, menu);
 
   const chip = (icon: IconName, text: string) => h("span", { class: "meta-chip" }, icons[icon](), text);
   /** The folder it's in, as a chip that opens Move to. None when it's in no folder: Move to is in the menu. */
