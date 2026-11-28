@@ -2,7 +2,7 @@
 // Run: npx tsx --test lib/grocery-usuals.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dueUsuals, isDue, learnedOrder, learnUsuals, skipUntil, walkOrder, type BoughtEntry } from "./grocery-usuals";
+import { compactBought, dueUsuals, isDue, KEEP_SHOP_DAYS, learnedOrder, learnUsuals, skipUntil, walkOrder, type BoughtEntry } from "./grocery-usuals";
 import { groupByAisle } from "./grocery";
 
 const on = (item: string, ...days: string[]): BoughtEntry[] => days.map((day) => ({ item, quantity: null, unit: null, aisle: "other", day }));
@@ -82,6 +82,21 @@ test("due usuals leave out what's on the list and what was skipped, most due fir
   assert.deepEqual(dueUsuals(bought, { today, onList: [], skipped: [{ item: "milk", until: "2026-11-18" }] }).map((u) => u.item), ["Bread"]);
   assert.deepEqual(dueUsuals(bought, { today, onList: [], skipped: [{ item: "milk", until: today }] }).map((u) => u.item), ["Bread", "Milk"], "a skip runs out on its day");
   assert.equal(dueUsuals(bought, { today, onList: [], skipped: [], max: 1 }).length, 1);
+});
+
+test("the kept summary is a few shop days per thing, and learns the same usuals as the whole history", () => {
+  const days = (start: string, every: number, n: number) => Array.from({ length: n }, (_, i) => new Date(Date.parse(`${start}T12:00:00Z`) + i * every * 86_400_000).toISOString().slice(0, 10));
+  const bought: BoughtEntry[] = [
+    ...days("2025-11-01", 4, 90).map((day, i) => ({ item: "milk", quantity: i % 3 ? 2 : 4, unit: "pint", aisle: "dairy-eggs", day })),
+    ...days("2026-03-01", 7, 30).map((day) => ({ item: "Bananas", quantity: 6, unit: null, aisle: "produce", day })),
+    ...on("eggs", "2026-11-01", "2026-11-01", "2026-11-08"),
+  ];
+  const kept = compactBought(bought);
+  assert.ok(kept.length <= KEEP_SHOP_DAYS * 2 + 3, `${kept.length} lines kept of ${bought.length}`);
+  const today = "2026-11-20";
+  const strip = (us: ReturnType<typeof learnUsuals>) => us.map(({ times: _t, ...u }) => u);
+  assert.deepEqual(strip(learnUsuals(kept, today)), strip(learnUsuals(bought, today)));
+  assert.equal(kept.filter((e) => e.item === "eggs").length, 3, "two lines on one day both stay");
 });
 
 test("a skip lasts one more gap, at least two days", () => {

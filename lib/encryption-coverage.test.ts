@@ -59,6 +59,7 @@ const PLAIN_COLUMNS: Record<string, string> = {
 const SETTINGS_WRITERS: Record<string, string> = {
   "lib/appliance-store.ts": "appliances",
   "lib/car-store.ts": "car",
+  "lib/grocery-memory.ts": "grocery_usuals",
   "lib/checkins.ts": "plain",
   "lib/team-flows.ts": "plain",
   "lib/playlist-store.ts": "music_playlists",

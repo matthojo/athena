@@ -59,6 +59,13 @@ test("grocery memory: shops are filed and sealed, usuals come due, the walk is l
   const milk = learned.body.usuals.find((u: { item: string }) => u.item === "milk");
   assert.deepEqual([milk.every, milk.since, milk.quantity, milk.unit], [4, 4, 2, "pint"]);
   assert.deepEqual(learned.body.order.slice(0, 3), ["bakery", "produce", "dairy-eggs"]);
+  // Shops filed outside Done shopping had no summary yet: the first read built it, sealed in one settings row.
+  const summary = async () => (await qRaw<{ sealed: string }>(`SELECT value->>'sealed' AS sealed FROM settings WHERE key = 'grocery_usuals'`))[0]?.sealed;
+  assert.match((await summary()) ?? "", /^enc:v1:/);
+  // Reads open the summary, not the history: a line bought now (not through a shop) changes nothing until the next shop.
+  await qRaw(`UPDATE grocery_bought SET bought_at = now() WHERE id = (SELECT id FROM grocery_bought LIMIT 1)`);
+  assert.deepEqual((await call("GET", "/recipes/grocery")).body.usuals.map((u: { item: string }) => u.item).sort(), ["bread", "lemons", "milk"]);
+  await qRaw(`UPDATE grocery_bought SET bought_at = date_trunc('day', bought_at) WHERE true`);
 
   // A usual on the list isn't offered; a skipped one isn't either, until it's due again.
   await call("POST", "/recipes/grocery/items", { item: "2 pints milk" });
@@ -139,6 +146,7 @@ test("grocery memory: shops are filed and sealed, usuals come due, the walk is l
   const history = (await call("GET", "/recipes/grocery/history")).body;
   assert.deepEqual(history, { shops: 3, since: addDays(today, -12) });
   assert.deepEqual((await call("DELETE", "/recipes/grocery/history")).body, { shops: 3 });
+  assert.equal(await summary(), undefined, "the summary goes with the shops");
   const forgot = await call("GET", "/recipes/grocery");
   assert.equal(forgot.body.order, null);
   assert.equal(forgot.body.items.length, 1, "the list itself stays");

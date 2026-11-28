@@ -32,7 +32,7 @@ export interface Usual {
   every: number;
   /** Days since it was last bought. */
   since: number;
-  /** How many shops it's been on, within the window looked at. */
+  /** How many shops it's been on, of the latest few kept (compactBought). */
   times: number;
 }
 
@@ -116,6 +116,29 @@ export function dueUsuals(bought: BoughtEntry[], opts: { today: string; onList: 
 export function skipUntil(u: Pick<Usual, "every">, today: string): string {
   const d = new Date(Date.parse(`${today}T12:00:00Z`) + Math.max(2, u.every) * DAY);
   return d.toISOString().slice(0, 10);
+}
+
+/** The shop days kept for each thing: all that learnUsuals reads (its latest gaps, and the amounts of its latest buys). */
+export const KEEP_SHOP_DAYS = RECENT_GAPS + 1;
+
+/**
+ * Past shops cut down to what usuals need: for each thing, its lines on its
+ * latest few shop days. A year of shops becomes a few lines per thing, so the
+ * summary kept between shops stays small whatever the history.
+ */
+export function compactBought(bought: BoughtEntry[], keep = KEEP_SHOP_DAYS): BoughtEntry[] {
+  const groups = new Map<string, BoughtEntry[]>();
+  for (const e of bought) {
+    if (!e.item.trim()) continue;
+    const key = itemKey(e.item);
+    groups.set(key, [...(groups.get(key) ?? []), e]);
+  }
+  const out: BoughtEntry[] = [];
+  for (const entries of groups.values()) {
+    const days = [...new Set(entries.map((e) => e.day))].sort().slice(-keep);
+    out.push(...entries.filter((e) => e.day >= days[0]).sort((a, b) => a.day.localeCompare(b.day)));
+  }
+  return out;
 }
 
 // ---------- the walk round the shop ----------

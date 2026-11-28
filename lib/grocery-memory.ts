@@ -11,19 +11,31 @@
  *  - A usual can be skipped until it's next due, and Settings → Recipes can
  *    forget every shop.
  *
- * Sealed (ENCRYPTED in lib/encryption.ts): what was bought, and what a skip
- * is for. Readable: dates, amounts, units, aisles and counts. Nothing here
- * calls a model.
+ * Reading the list never opens the history. When a shop is filed, undone or
+ * forgotten, the shops of the last LOOK_BACK_DAYS are cut down to what usuals
+ * need (a few shop days per thing: compactBought) and kept as one sealed
+ * settings row, 'grocery_usuals', like the car and music genres. Each read
+ * opens that one value. Nothing is kept in the Function's memory.
+ *
+ * Sealed (ENCRYPTED and SEALED_SETTINGS in lib/encryption.ts): what was
+ * bought, what a skip is for, and the summary. Readable: dates, amounts,
+ * units, aisles and counts. Nothing here calls a model.
  */
 import { AthenaInputError, getOwnerTimeZone, q, qRaw, sealer, tx } from "./db";
 import { zonedParts, zonedToday } from "./dates";
-import { dueUsuals, learnedOrder, learnUsuals, skipUntil, walkOrder, type BoughtEntry, type Usual } from "./grocery-usuals";
+import { compactBought, dueUsuals, learnedOrder, learnUsuals, skipUntil, walkOrder, type BoughtEntry, type Usual } from "./grocery-usuals";
 import { itemKey } from "./recipe-units";
 import type { Aisle } from "./grocery";
 
-/** How far back usuals look. A year and a bit: enough for a habit, not every shop ever. */
+/**
+ * How far back the summary looks when it's rebuilt, once per shop: seven buys
+ * of something bought every 60 days (the longest gap a usual has). Reading
+ * the list never looks this far.
+ */
 const LOOK_BACK_DAYS = 400;
-const MAX_ROWS = 4000;
+/** The settings row holding the summary, sealed. */
+export const USUALS_KEY = "grocery_usuals";
+const MAX_ROWS = 5000;
 /** A shop said to be done offline may arrive late; anything older than this is filed as now. */
 const LATE_MS = 3 * 86_400_000;
 
@@ -63,6 +75,9 @@ export async function finishShopping(raw: unknown = {}, now = Date.now()): Promi
     }
     await run(`DELETE FROM grocery_items WHERE id = ANY($1::uuid[])`, [rows.map((r) => r.id)]);
     return { trip_id: trip.id, count: rows.length };
+  }).then(async (done) => {
+    if (done.trip_id) await rebuildUsuals();
+    return done;
   });
 }
 
@@ -90,6 +105,9 @@ export async function undoShopping(tripId: string): Promise<boolean> {
       ]);
     }
     return true;
+  }).then(async (undone) => {
+    if (undone) await rebuildUsuals();
+    return undone;
   });
 }
 
@@ -106,37 +124,56 @@ async function skipsFrom(today: string): Promise<Array<{ item: string; until: st
   return q<{ item: string; until: string }>(`SELECT item, to_char(until, 'YYYY-MM-DD') AS until FROM grocery_skips WHERE until > $1::date`, [today]);
 }
 
-/**
- * Past shops as last read, kept while nothing about them changes: a tick or a
- * new line changes nothing here, so the list answers without opening every
- * past shop again. The mark is counts and times only; a shop filed, undone or
- * forgotten, or a usual skipped, moves it (from any device or function).
- */
-let memo: { mark: string; bought: BoughtEntry[]; skipped: Array<{ item: string; until: string }>; order: Aisle[] | null } | null = null;
+interface UsualsSummary {
+  /** The zone the shop days were counted in: a move rebuilds it. */
+  tz: string;
+  bought: BoughtEntry[];
+}
 
-async function pastShops(tz: string, today: string) {
-  const [{ mark }] = await q<{ mark: string }>(
-    `SELECT concat_ws('|', (SELECT count(*) || ':' || coalesce(max(created_at)::text, '') FROM grocery_trips), (SELECT count(*) || ':' || coalesce(max(created_at)::text, '') FROM grocery_skips)) AS mark`,
+/** Cut the history down and keep it, sealed, for reads until the next shop. Empty history: no row. */
+export async function rebuildUsuals(tz?: string): Promise<BoughtEntry[]> {
+  const zone = tz ?? (await getOwnerTimeZone());
+  const bought = compactBought(await boughtLately(zone));
+  if (!bought.length) {
+    await qRaw(`DELETE FROM settings WHERE key = $1`, [USUALS_KEY]);
+    return [];
+  }
+  const s = await sealer();
+  const summary: UsualsSummary = { tz: zone, bought };
+  await qRaw(
+    `INSERT INTO settings (key, value) VALUES ($1, $2::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+    [USUALS_KEY, JSON.stringify({ sealed: s.text(JSON.stringify(summary)) })],
   );
-  const key = `${today}|${tz}|${mark}`;
-  if (memo?.mark === key) return memo;
-  const [bought, skipped, walks] = await Promise.all([
-    boughtLately(tz),
-    skipsFrom(today),
-    q<{ aisle_order: string[] }>(`SELECT aisle_order FROM grocery_trips WHERE cardinality(aisle_order) > 0 ORDER BY done_at DESC LIMIT 6`),
-  ]);
-  memo = { mark: key, bought, skipped, order: learnedOrder(walks.map((w) => w.aisle_order)) };
-  return memo;
+  return bought;
+}
+
+/** The kept summary: one value opened. Rebuilt only when it's missing while shops exist, or was counted in another zone. */
+async function usualsSummary(tz: string): Promise<BoughtEntry[]> {
+  const [row] = await q<{ value: { sealed?: unknown } | null }>(`SELECT value FROM settings WHERE key = $1`, [USUALS_KEY]);
+  if (typeof row?.value?.sealed === "string") {
+    try {
+      const v = JSON.parse(row.value.sealed) as Partial<UsualsSummary>;
+      if (v.tz === tz && Array.isArray(v.bought)) return v.bought;
+    } catch {
+      // Unreadable: rebuilt below.
+    }
+  }
+  const [{ any }] = await q<{ any: boolean }>(`SELECT EXISTS (SELECT 1 FROM grocery_bought) AS any`);
+  return any ? rebuildUsuals(tz) : [];
 }
 
 /** What the list shows beside its lines: usuals due now and the owner's aisle order. */
 export async function groceryMemory(onList: string[], opts: { usuals?: boolean } = {}): Promise<{ usuals: Usual[]; order: Aisle[] | null }> {
   const tz = await getOwnerTimeZone();
   const today = zonedToday(new Date(), tz);
-  const past = await pastShops(tz, today);
+  const [bought, skipped, walks] = await Promise.all([
+    opts.usuals === false ? Promise.resolve([]) : usualsSummary(tz),
+    opts.usuals === false ? Promise.resolve([]) : skipsFrom(today),
+    q<{ aisle_order: string[] }>(`SELECT aisle_order FROM grocery_trips WHERE cardinality(aisle_order) > 0 ORDER BY done_at DESC LIMIT 6`),
+  ]);
   return {
-    usuals: opts.usuals === false ? [] : dueUsuals(past.bought, { today, onList, skipped: past.skipped }),
-    order: past.order,
+    usuals: opts.usuals === false ? [] : dueUsuals(bought, { today, onList, skipped }),
+    order: learnedOrder(walks.map((w) => w.aisle_order)),
   };
 }
 
@@ -146,7 +183,7 @@ export async function skipUsual(raw: unknown): Promise<{ until: string }> {
   if (!item || item.length > 200) throw new AthenaInputError("item: the usual to skip, up to 200 characters");
   const tz = await getOwnerTimeZone();
   const today = zonedToday(new Date(), tz);
-  const usual = learnUsuals(await boughtLately(tz), today).find((u) => u.key === itemKey(item));
+  const usual = learnUsuals(await usualsSummary(tz), today).find((u) => u.key === itemKey(item));
   const until = skipUntil({ every: usual?.every ?? 7 }, today);
   const s = await sealer();
   await qRaw(`DELETE FROM grocery_skips WHERE until <= $1::date`, [today]);
@@ -168,6 +205,7 @@ export async function forgetGroceryHistory(): Promise<{ shops: number }> {
     const gone = await run<{ id: string }>(`DELETE FROM grocery_trips RETURNING id`);
     await run(`DELETE FROM grocery_bought`);
     await run(`DELETE FROM grocery_skips`);
+    await run(`DELETE FROM settings WHERE key = $1`, [USUALS_KEY]);
     return { shops: gone.length };
   });
 }
