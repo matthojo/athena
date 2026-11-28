@@ -11,6 +11,7 @@
  * An athena:// link keeps its label and loses the link, as when a note is
  * sent to Google Docs (lib/documents.ts): it means nothing outside Athena.
  */
+import { calloutsAsQuotes } from "./callouts";
 import { lexer, type Token, type Tokens } from "marked";
 import type { DocumentFormat } from "./assignment-types";
 
@@ -282,7 +283,8 @@ const XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`;
 /** The XML that depends on the note (for tests, and docxBytes below). */
 export function docxParts(markdown: string): DocxParts {
   const b = new Builder();
-  b.blocks(lexer(markdown.replace(/\r\n?/g, "\n"), { gfm: true }));
+  // Word has no callouts: they come out as quotes with their title in bold.
+  b.blocks(lexer(calloutsAsQuotes(markdown.replace(/\r\n?/g, "\n")), { gfm: true }));
   return b.parts();
 }
 

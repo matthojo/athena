@@ -1,0 +1,301 @@
+/*
+ * The Notes navigator (components/notes-nav.ts): folders as a tree, then tags.
+ * Quiet rows like the sidebar's, a little denser, as a navigator's are; the
+ * one on show takes the sidebar's current look. Counts are plain numbers,
+ * the "all" part fainter. No colour of its own: folders and tags are places.
+ */
+
+.notes-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+}
+
+.notes-nav__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.notes-nav__bar .side-group__head {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The tree's own rows show what's in a folded section, so its head needs no dot. */
+.notes-nav__add {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-top: var(--space-2xs);
+  border-radius: var(--radius-xs);
+  color: var(--ink-3);
+  transition: background-color var(--dur-instant) var(--ease-out), color var(--dur-instant) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+
+.notes-nav__add[hidden] {
+  display: none;
+}
+
+.notes-nav__add svg {
+  width: 14px;
+  height: 14px;
+}
+
+.notes-nav__add:hover,
+.notes-nav__add:focus-visible {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+/* In the column, + shows with the pointer over Folders, as a row's own actions would. */
+@media (hover: hover) and (pointer: fine) {
+  .notes-nav--column .notes-nav__add {
+    opacity: 0;
+  }
+
+  .notes-nav--column .notes-nav__section:hover .notes-nav__add,
+  .notes-nav--column .notes-nav__add:focus-visible {
+    opacity: 1;
+  }
+}
+
+/* ---------- The column at the left of Notes on a wide desk ---------- */
+
+.notes__nav {
+  display: none;
+}
+
+.notes-nav__all-notes {
+  flex: none;
+  margin-bottom: var(--space-2xs);
+  padding-left: var(--space-xs);
+}
+
+@media (min-width: 1360px) {
+  .notes.has-nav {
+    grid-template-columns: 216px minmax(300px, 360px) minmax(0, 1fr);
+  }
+
+  .notes__nav {
+    display: block;
+    min-height: 0;
+    overflow-y: auto;
+    /* All notes lines up with the list's trail beside it. */
+    padding: calc(var(--space-xl) + var(--space-sm)) var(--space-xs) var(--space-xl) 0;
+    border-right: 1px solid var(--line);
+    scrollbar-width: thin;
+  }
+
+  .notes__nav .side-group__head {
+    padding-inline: var(--space-xs);
+  }
+}
+
+.notes-nav__inner {
+  gap: 1px;
+}
+
+.notes-nav__line {
+  display: flex;
+  align-items: center;
+  padding-left: calc(var(--depth, 0) * var(--space-sm-md));
+  border-radius: var(--radius-xs);
+}
+
+.notes-nav__twisty {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 32px;
+  color: var(--ink-3);
+}
+
+.notes-nav__twisty svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.notes-nav__twisty[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+.notes-nav__twisty:hover {
+  color: var(--ink);
+}
+
+.notes-nav__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 var(--space-xs) 0 var(--space-2xs);
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--ink-2);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.notes-nav__row > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+}
+
+@media (hover: hover) {
+  .notes-nav__row:hover {
+    background: color-mix(in oklab, var(--sunken) 70%, transparent);
+    color: var(--ink);
+  }
+}
+
+.notes-nav__row[aria-current="true"] {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 5%, transparent);
+}
+
+.notes-nav__row[aria-current="true"] > svg {
+  color: var(--ink-2);
+}
+
+.notes-nav__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notes-nav__count {
+  flex: none;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-regular);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.notes-nav__all {
+  opacity: 0.75;
+}
+
+.notes-nav__kids[hidden] {
+  display: none;
+}
+
+.notes-nav__item--untagged {
+  margin-top: var(--space-2xs);
+}
+
+.notes-nav__empty {
+  margin: 0;
+  padding: var(--space-2xs) var(--space-xs-sm) var(--space-xs);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+/* A note dragged over a folder: it lights up where it will land. */
+.notes-nav__line.is-drop-target {
+  background: var(--accent-wash);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+/* ---------- At the top of Notes on a phone: a card, with rows big enough for a thumb ---------- */
+
+.notes-nav--list {
+  padding: var(--space-2xs) var(--space-xs) var(--space-xs);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.notes-nav--list .side-group__head {
+  margin-top: 0;
+  height: 36px;
+}
+
+.notes-nav--list .notes-nav__row,
+.notes-nav--list .notes-nav__twisty {
+  height: 44px;
+}
+
+.notes-nav--list .notes-nav__row {
+  font-size: var(--text-ui);
+}
+
+.notes-nav--list .notes-nav__twisty {
+  width: 28px;
+}
+
+.notes-nav--list .notes-nav__add {
+  width: 36px;
+  height: 36px;
+  margin-top: 0;
+}
+
+/* A wide desk has the navigator in its own column, so the list doesn't repeat it. */
+@media (min-width: 1360px) {
+  .notes-nav--list {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notes-nav__twisty svg {
+    transition: none;
+  }
+}
+
+/* ---------- A day's heading in Notes folds its notes (views/notes.ts) ---------- */
+
+.notes__day {
+  padding-inline: 0;
+}
+
+.notes__fold {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 28px;
+  padding: 0 var(--space-2xs);
+  border-radius: var(--radius-xs);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  transition: color var(--dur-instant) var(--ease-out), background-color var(--dur-instant) var(--ease-out);
+}
+
+.notes__fold:hover {
+  color: var(--ink-2);
+  background: color-mix(in oklab, var(--sunken) 70%, transparent);
+}
+
+.notes__fold svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.group.is-folded .notes__fold svg {
+  transform: rotate(-90deg);
+}
+
+.notes__fold-count {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  opacity: 0.8;
+}

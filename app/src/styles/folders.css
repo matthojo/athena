@@ -1,0 +1,236 @@
+/*
+ * Folders for notes (components/folders-ui.ts, views/notes.ts): folder rows at
+ * the top of the Notes list, the trail above a folder's title, Move to, and
+ * the sheet that names a folder. Neutral like the rest of Notes: a folder is
+ * a place, so it gets no colour of its own.
+ */
+
+/* ---------- Folder rows ---------- */
+
+.folder-row__tile {
+  color: var(--ink-2);
+}
+
+.folder-row__end {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  flex: none;
+  align-self: center;
+}
+
+.folder-row__count {
+  flex: none;
+  padding: 1px calc(7 * var(--space-px));
+  border-radius: var(--radius-xs);
+  background: var(--sunken);
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.folder-row__chevron {
+  display: inline-grid;
+  flex: none;
+  color: var(--ink-3);
+}
+
+.folder-row__chevron svg {
+  width: 16px;
+  height: 16px;
+}
+
+.notes__folders .group__action svg {
+  width: 14px;
+  height: 14px;
+}
+
+.notes__folder-empty {
+  margin: 0;
+  padding: var(--space-xs) var(--space-2xs);
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+/* A note being dragged over a folder (or a step of the trail): it lights up where it will land. */
+.is-drop-target {
+  background: var(--accent-wash) !important;
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 55%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.notes.is-dragging-note .folder-row {
+  transition: background-color var(--dur-instant) var(--ease-out);
+}
+
+/* A filed note's folder, in its row's meta line. */
+.row__folder {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+}
+
+.row__folder svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ---------- The trail above a folder's title ---------- */
+
+.notes__top {
+  display: contents;
+}
+
+.folder-trail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3xs);
+  margin-bottom: calc(-1 * var(--space-2xs));
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.folder-trail[hidden] {
+  display: none;
+}
+
+.folder-trail__step {
+  padding: var(--space-3xs) var(--space-2xs);
+  border-radius: var(--radius-xs);
+  color: var(--ink-2);
+  transition: background-color var(--dur-instant) var(--ease-out), color var(--dur-instant) var(--ease-out);
+}
+
+.folder-trail__step:hover {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.folder-trail__sep {
+  display: inline-grid;
+  color: var(--ink-3);
+}
+
+.folder-trail__sep svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Inside a folder on a phone, the Library's segments give way to the trail and the back arrow. */
+@media (max-width: 1023px) {
+  .page-head.is-in-folder .lib-nav {
+    display: none;
+  }
+}
+
+/* ---------- A note's folder chip ---------- */
+
+.meta-chip--folder {
+  cursor: pointer;
+  transition: background-color var(--dur-instant) var(--ease-out), border-color var(--dur-instant) var(--ease-out);
+}
+
+.meta-chip--folder .meta-chip__text {
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-chip--folder:hover {
+  background: var(--sunken);
+  border-color: var(--line-strong);
+}
+
+/* ---------- Move to ---------- */
+
+.move-to {
+  padding-bottom: var(--space-sm);
+}
+
+.move-to__row {
+  padding-left: calc(var(--space-sm) + (var(--depth, 1) - 1) * var(--space-lg));
+}
+
+.move-to__row .row__title {
+  font-weight: var(--weight-medium);
+}
+
+.move-to__icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: var(--ink-2);
+}
+
+.move-to__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.move-to__row[aria-selected="true"] .row__title {
+  color: var(--accent-ink);
+}
+
+.move-to__check {
+  display: inline-grid;
+  margin-left: auto;
+  color: var(--accent);
+}
+
+.move-to__check svg {
+  width: 18px;
+  height: 18px;
+}
+
+.move-to__row.is-unavailable {
+  cursor: default;
+}
+
+.move-to__row.is-unavailable .row__title,
+.move-to__row.is-unavailable .move-to__icon {
+  color: var(--ink-3);
+}
+
+.move-to__new .row__title,
+.move-to__new .move-to__icon {
+  color: var(--accent-ink);
+}
+
+/* ---------- Naming a folder ---------- */
+
+.folder-name {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+}
+
+.folder-name__sub {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.folder-name__input {
+  width: 100%;
+}
+
+.folder-name__error {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--bad);
+}
+
+.folder-name__error[hidden] {
+  display: none;
+}
+
+.folder-name__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}

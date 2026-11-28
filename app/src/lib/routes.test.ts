@@ -31,6 +31,22 @@ test("notes with an id and a source", () => {
   assert.equal(routeHash(r("notes", "n 1", "work")), "#/notes/n%201?source=work");
 });
 
+test("notes in a folder keep it, with a source and a note too", () => {
+  const F = "5a3e0000-0000-4000-8000-000000001301";
+  assert.deepEqual(parseRoute(`#/notes?folder=${F}`), { ...r("notes"), folder: F });
+  assert.deepEqual(parseRoute(`#/notes/n1?folder=${F}`), { ...r("notes", "n1"), folder: F });
+  assert.equal(routeHash({ ...r("notes", "n1"), folder: F }), `#/notes/n1?folder=${F}`);
+  assert.equal(routeHash({ ...r("notes", null, "work"), folder: F }), `#/notes?source=work&folder=${F}`);
+  assert.deepEqual(parseRoute(routeHash({ ...r("notes", "n1"), folder: F })), { ...r("notes", "n1"), folder: F }, "round trip");
+});
+
+test("notes with a tag, or with none, keep it", () => {
+  assert.equal(routeHash({ ...r("notes"), tag: "ai/openai" }), "#/notes?tag=ai%2Fopenai");
+  assert.deepEqual(parseRoute("#/notes?tag=ai%2Fopenai"), { ...r("notes"), tag: "ai/openai" });
+  assert.equal(routeHash({ ...r("notes"), untagged: true }), "#/notes?untagged=1");
+  assert.deepEqual(parseRoute("#/notes?untagged=1"), { ...r("notes"), untagged: true });
+});
+
 test("records, trips, purchases and the graph keep their id", () => {
   for (const v of ["people", "places", "organisations", "events", "trips", "purchases", "graph"]) {
     assert.deepEqual(parseRoute(`#/${v}/abc`), r(v, "abc"));

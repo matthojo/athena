@@ -1753,3 +1753,16 @@ CREATE TABLE IF NOT EXISTS grocery_skips (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS grocery_skips_until_idx ON grocery_skips (until);
+
+-- Folders for notes (0097, lib/note-folders.ts, lib/note-folder-rules.ts): a note is in one folder or none; a
+-- folder can sit in another, three deep at most. The name is sealed. Deleting a folder moves what it held up a level.
+CREATE TABLE IF NOT EXISTS note_folders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  parent_id UUID REFERENCES note_folders(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS note_folders_parent_idx ON note_folders (parent_id);
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS folder_id UUID REFERENCES note_folders(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS notes_folder_idx ON notes (folder_id) WHERE folder_id IS NOT NULL;

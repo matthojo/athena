@@ -87,6 +87,8 @@ export interface Note {
   type: NoteType;
   source: string | null;
   tags: string[];
+  /** The folder it's in (0097, lib/note-folders.ts), or null. */
+  folder_id?: string | null;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
@@ -504,11 +506,13 @@ export async function createNote(input: {
   type?: NoteType;
   source?: string;
   tags?: string[];
+  /** Checked by the caller (lib/note-folders.ts checkFolderId). */
+  folder_id?: string | null;
 }): Promise<Note> {
   const s = await sealer();
   const [note] = await q<Note>(
-    `INSERT INTO notes (title, body, type, source, tags) VALUES ($1, $2, $3, $4, $5::text[]) RETURNING *`,
-    [s.text(input.title), s.text(input.body ?? ""), input.type ?? "note", input.source ?? null, s.list(input.tags ?? [])],
+    `INSERT INTO notes (title, body, type, source, tags, folder_id) VALUES ($1, $2, $3, $4, $5::text[], $6) RETURNING *`,
+    [s.text(input.title), s.text(input.body ?? ""), input.type ?? "note", input.source ?? null, s.list(input.tags ?? []), input.folder_id ?? null],
   );
   await syncContentLinks(note.id, note.body);
   return (await dropLinkedPeopleTags(note.id)) ?? note;
@@ -533,7 +537,7 @@ export async function createNote(input: {
  */
 export async function updateNote(
   id: string,
-  patch: Partial<Pick<Note, "title" | "body" | "type" | "tags" | "source">>,
+  patch: Partial<Pick<Note, "title" | "body" | "type" | "tags" | "source" | "folder_id">>,
   opts: { by?: string } = {},
 ): Promise<Note | null> {
   const s = await sealer();
@@ -572,10 +576,21 @@ export async function updateNote(
        type = COALESCE($4, type),
        tags = COALESCE($5::text[], tags),
        source = COALESCE($6, source),
+       folder_id = CASE WHEN $7::boolean THEN $8::uuid ELSE folder_id END,
        updated_at = now()
      WHERE id = $1
      RETURNING *`,
-    [id, s.maybe(patch.title ?? null), s.maybe(patch.body ?? null), patch.type ?? null, patch.tags ? s.list(patch.tags) : null, patch.source ?? null],
+    [
+      id,
+      s.maybe(patch.title ?? null),
+      s.maybe(patch.body ?? null),
+      patch.type ?? null,
+      patch.tags ? s.list(patch.tags) : null,
+      patch.source ?? null,
+      // A folder (checked by the caller) or null for none; absent leaves it. A move counts as a change, so other devices sync it.
+      patch.folder_id !== undefined,
+      patch.folder_id ?? null,
+    ],
   );
   if (!note) return null;
   if (patch.body !== undefined) await syncContentLinks(note.id, note.body);

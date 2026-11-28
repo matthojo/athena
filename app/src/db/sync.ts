@@ -105,6 +105,7 @@ export async function createNoteLocal(payload: NotePatch & { body: string }): Pr
     type: payload.type ?? "capture",
     source: payload.source ?? "manual",
     tags: payload.tags ?? [],
+    folder_id: payload.folder_id ?? null,
     archived_at: null,
     created_at: nowIso,
     updated_at: nowIso,

@@ -11,6 +11,9 @@
  * Function — the SDK's Web Standard Streamable HTTP transport, which speaks
  * Request/Response directly instead of needing Node's http module.
  */
+import { NOTE_BLOCKS_SYNTAX } from "../../lib/callouts";
+import { folderCounts, folderFromWords, listFolders, notesInFolder } from "../../lib/note-folders";
+import { folderPath } from "../../lib/note-folder-rules";
 import { cleanLinks, modelLinks, STEPS_RULE_SHORT, TodoDetailsError } from "../../lib/todo-details";
 import { startTeamEvent } from "../../lib/team-triggers";
 // Plugs flows into the owner's own events, so a tagged note or a save starts its flows at once (lib/flow-engine.ts).
@@ -135,7 +138,8 @@ const LINK_SYNTAX =
   "[Q3 planning](athena://note/<uuid>), and a record in one of the owner's own kinds as [@Château Musar](athena://record/<uuid>). " +
   "Entity labels start with '@'; note labels don't. " +
   "Use search_entities to find ids (create the entity first with upsert_* if it doesn't exist). " +
-  "Saving a body re-derives that note's 'mentions' links automatically, which is what powers backlinks.";
+  "Saving a body re-derives that note's 'mentions' links automatically, which is what powers backlinks. " +
+  NOTE_BLOCKS_SYNTAX;
 
 /** Deliberately absent: any delete tool and any way to list archived items (docs: security/sign-in-and-keys). */
 const ARCHIVE_NOTE =
@@ -186,9 +190,10 @@ function buildServer(): McpServer {
       type: z.enum(NOTE_TYPES).optional().describe("Note category; defaults to 'note'"),
       source: z.string().optional().describe("Where this came from, e.g. 'manual', 'calendar-meetings'"),
       tags: z.array(z.string()).optional().describe("Freeform tags for filtering/search"),
+      folder: z.string().optional().describe("One of the owner's folders: its name, its path (Work/Clients) or its id. Only file a note when the owner asks; list_folders lists them."),
     },
-    safe(async (args) => {
-      const note = await createNote(args);
+    safe(async ({ folder, ...args }) => {
+      const note = await createNote({ ...args, folder_id: folder?.trim() ? (await folderFromWords(folder)).id : null });
       // A note made with tags is a Team event; a matching assistant starts now (lib/team-triggers.ts). Never throws.
       // Made by an agent: an imported assistant or flow doesn't start on it (lib/team-triggers.ts fromAgent).
       if (note.tags?.length) await startTeamEvent("note", note.id, "note", { title: note.title, tags: note.tags, kind: note.type, by: "agent" });
@@ -216,8 +221,10 @@ function buildServer(): McpServer {
       type: z.enum(NOTE_TYPES).optional(),
       source: z.string().optional(),
       tags: z.array(z.string()).optional().describe("Replaces the note's full tag list"),
+      folder: z.string().nullable().optional().describe("Moves it into one of the owner's folders (its name, its path like Work/Clients, or its id); null or \"\" takes it out of any. Only when the owner asks."),
     },
-    safe(async ({ id, ...patch }) => {
+    safe(async ({ id, folder, ...fields }) => {
+      const patch = { ...fields, ...(folder === undefined ? {} : { folder_id: folder?.trim() ? (await folderFromWords(folder)).id : null }) };
       // An agent is a model: in a note the owner wrote, links it adds are plain (lib/links.ts modelWroteInto). On
       // purpose for every MCP key, a Claude only one included (docs: security/ai-and-ask).
       const was = patch.body !== undefined ? await getNote(id) : null;
@@ -229,14 +236,32 @@ function buildServer(): McpServer {
 
   server.tool(
     "list_notes",
-    "List notes, most recently updated first, optionally filtered by type, source or update time.",
+    "List notes, most recently updated first, optionally filtered by type, source, update time or folder (a folder's notes include those in the folders inside it).",
     {
+      folder: z.string().optional().describe("One of the owner's folders: its name, its path (Work/Clients) or its id"),
       type: z.enum(NOTE_TYPES).optional(),
       source: z.string().optional().describe("e.g. 'manual', 'calendar-meetings', 'briefing'"),
       since: isoInstant.optional().describe("Only notes updated at/after this ISO 8601 timestamp"),
       limit: z.number().int().positive().max(200).optional().describe("Max results; defaults to 50"),
     },
-    safe(async ({ since, ...args }) => stored("notes", await listNotes({ ...args, since: at(since) }))),
+    safe(async ({ since, folder, ...args }) => {
+      if (folder) {
+        const inside = await notesInFolder((await folderFromWords(folder)).id, args.limit ?? 50);
+        const after = at(since);
+        return stored("notes", inside.filter((n) => (!args.type || n.type === args.type) && (!args.source || n.source === args.source) && (!after || new Date(n.updated_at) >= after)));
+      }
+      return stored("notes", await listNotes({ ...args, since: at(since) }));
+    }),
+  );
+
+  server.tool(
+    "list_folders",
+    "The owner's folders for notes: each with its id, name, path (Work › Clients) and how many live notes are in it (not counting the folders inside it). A note is in one folder or none; folders go three deep.",
+    {},
+    safe(async () => {
+      const [folders, counts] = await Promise.all([listFolders(), folderCounts()]);
+      return ok(folders.map((f) => ({ id: f.id, name: f.name, parent_id: f.parent_id, path: folderPath(folders, f.id), notes: counts[f.id] ?? 0 })));
+    }),
   );
 
   server.tool(

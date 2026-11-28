@@ -30,6 +30,11 @@ import { TemplateBlanks } from "./template-blanks";
 import { atMenu, type AtMenu, type AtRow } from "./link-menu";
 import { RichLinks, afterInsert, insertWebLink } from "./link-editor";
 import "../styles/rich-links.css";
+import "../styles/note-blocks.css";
+import { SlashMenu } from "./slash";
+import { BlockHandle } from "./block-handle";
+import { BLOCK_STYLES, BlockKeys, canMove, deleteBlock, duplicateBlock, moveBlock } from "./block-actions";
+import { addLineToTodo, canAddTodo, TodoLines, type CreateTodo } from "./todo-line";
 import { Dictation, beginDictation, type DictationSlot } from "./dictation";
 import type { EntityKind, EntityRef } from "../types";
 import { allowChosen, holdPreviewsIn, type OnLinkChoice } from "./link-view";
@@ -54,6 +59,10 @@ export interface NoteEditorOptions {
    * load no preview (editor/link-view.ts). `onChoice` hears each link the owner turns into a Card, Mention or Embed.
    */
   athenaWrote?: boolean | { onChoice: OnLinkChoice };
+  /** Make a to-do from a line ("Add to To do" in the / and block menus). Absent where to-dos can't be made. */
+  addTodo?: CreateTodo | null;
+  /** Make a note from the [[ menu when none is called what you typed. Null offline or in sample data. */
+  createNote?: ((title: string) => Promise<EntityRef | null>) | null;
 }
 
 export interface NoteEditorHandle {
@@ -85,7 +94,7 @@ type LinkRef = Pick<MentionResult, "kind" | "id" | "title" | "subtitle" | "kind_
 
 type MenuItem =
   | { type: "ref"; ref: LinkRef }
-  | { type: "create"; kind: "person" | "place" | "organisation"; name: string };
+  | { type: "create"; kind: "person" | "place" | "organisation" | "note"; name: string };
 
 // ---------- Suggestion popover ----------
 
@@ -189,7 +198,7 @@ function mentionExtension(opts: NoteEditorOptions) {
       const editor = this.editor;
       const command = async ({ range, props }: { editor: Editor; range: Range; props: MenuItem }) => {
         if (props.type === "ref") return insertLink(editor, range, props.ref);
-        const created = await opts.create?.(props.kind, props.name);
+        const created = props.kind === "note" ? await opts.createNote?.(props.name) : await opts.create?.(props.kind, props.name);
         if (created) insertLink(editor, range, created);
       };
       return [
@@ -224,8 +233,15 @@ function mentionExtension(opts: NoteEditorOptions) {
           allowSpaces: true,
           allowedPrefixes: null,
           debounce: 120,
-          items: async ({ query }) =>
-            (await opts.search(query, ["note"]).catch(() => [])).map((ref) => ({ type: "ref" as const, ref })),
+          items: async ({ query }) => {
+            const out: MenuItem[] = (await opts.search(query, ["note"]).catch(() => [])).map((ref) => ({ type: "ref" as const, ref }));
+            // Nothing called that yet: make it, and link it, without leaving this note.
+            const name = query.trim().replace(/\]+$/, "");
+            if (opts.createNote && name.length >= 2 && !out.some((r) => r.type === "ref" && r.ref.title.trim().toLowerCase() === name.toLowerCase())) {
+              out.push({ type: "create", kind: "note", name });
+            }
+            return out;
+          },
           command,
           render: suggestionRenderer("Type to link another note", () => editor),
         }),
@@ -236,31 +252,67 @@ function mentionExtension(opts: NoteEditorOptions) {
 
 // ---------- Toolbar ----------
 
-type BlockStyle = { id: string; label: string; icon: IconName; isActive: (e: Editor) => boolean; run: (e: Editor) => void };
+/** What the block menu offers beyond its styles, in the toolbar and on the margin grip (block-handle.ts). */
+interface BlockAction {
+  id: string;
+  label: string;
+  icon: IconName;
+  run: (e: Editor) => void;
+  danger?: boolean;
+  /** Offered only when this says so. */
+  when?: (e: Editor) => boolean;
+}
 
-const BLOCKS: BlockStyle[] = [
-  { id: "p", label: "Text", icon: "text", isActive: (e) => e.isActive("paragraph") && !e.isActive("listItem") && !e.isActive("taskItem"), run: (e) => e.chain().focus().setParagraph().run() },
-  { id: "h1", label: "Heading 1", icon: "heading", isActive: (e) => e.isActive("heading", { level: 1 }), run: (e) => e.chain().focus().setHeading({ level: 1 }).run() },
-  { id: "h2", label: "Heading 2", icon: "heading", isActive: (e) => e.isActive("heading", { level: 2 }), run: (e) => e.chain().focus().setHeading({ level: 2 }).run() },
-  { id: "h3", label: "Heading 3", icon: "heading", isActive: (e) => e.isActive("heading", { level: 3 }), run: (e) => e.chain().focus().setHeading({ level: 3 }).run() },
-  { id: "ul", label: "Bulleted list", icon: "listBullet", isActive: (e) => e.isActive("bulletList"), run: (e) => e.chain().focus().toggleBulletList().run() },
-  { id: "ol", label: "Numbered list", icon: "listNumber", isActive: (e) => e.isActive("orderedList"), run: (e) => e.chain().focus().toggleOrderedList().run() },
-  { id: "todo", label: "Checklist", icon: "checklist", isActive: (e) => e.isActive("taskList"), run: (e) => e.chain().focus().toggleTaskList().run() },
-];
+function blockActions(addTodo: ((e: Editor) => void) | null): BlockAction[] {
+  return [
+    { id: "up", label: "Move up", icon: "arrowUp", run: (e) => moveBlock(e, -1), when: (e) => canMove(e, -1) },
+    { id: "down", label: "Move down", icon: "arrowDown", run: (e) => moveBlock(e, 1), when: (e) => canMove(e, 1) },
+    { id: "copy", label: "Duplicate", icon: "copy", run: (e) => duplicateBlock(e) },
+    ...(addTodo ? [{ id: "todo", label: "Add to To do", icon: "check" as const, run: addTodo, when: (e: Editor) => canAddTodo(e) }] : []),
+    { id: "delete", label: "Delete", icon: "trash", run: (e) => deleteBlock(e), danger: true },
+  ];
+}
 
-function buildToolbar(editor: Editor): { el: HTMLElement; update: () => void; destroy: () => void } {
-  const styleLabel = h("span", {}, "Text");
+function buildToolbar(editor: Editor, addTodo: ((e: Editor) => void) | null): { el: HTMLElement; update: () => void; destroy: () => void } {
+  const styleLabel = h("span", { class: "toolbar__style-label" }, "Text");
+  // A phone shows the block's icon in place of its name, so the bar fits beside the keyboard.
+  const styleIcon = h("span", { class: "toolbar__style-icon", "aria-hidden": "true" }, icons.text());
   const styleBtn = h(
     "button",
-    { class: "toolbar__style", type: "button", "aria-haspopup": "menu", "aria-expanded": "false", "aria-label": "Text style" },
+    { class: "toolbar__style", type: "button", "aria-haspopup": "menu", "aria-expanded": "false", "aria-label": "Style of this line, and more" },
+    styleIcon,
     styleLabel,
     icons.chevronDown()
   );
   const styleMenu = h("div", { class: "menu toolbar__menu", role: "menu", hidden: true });
+  const actions = blockActions(addTodo);
 
   const closeMenu = () => {
     styleMenu.hidden = true;
     styleBtn.setAttribute("aria-expanded", "false");
+  };
+  const item = (label: string, icon: IconName, run: () => void, extra: { checked?: boolean; danger?: boolean; short?: string } = {}) => {
+    const b = h(
+      "button",
+      {
+        class: `menu__item${extra.danger ? " menu__item--danger" : ""}${extra.short ? " menu__item--style" : ""}`,
+        type: "button",
+        role: extra.checked === undefined ? "menuitem" : "menuitemradio",
+        "aria-checked": extra.checked === undefined ? undefined : String(extra.checked),
+        "aria-label": extra.short ? label : undefined,
+      },
+      icons[icon](),
+      // A phone's tiles use the short name (Bullets); a desk's rows the full one.
+      extra.short ? h("span", { class: "menu__long" }, label) : label,
+      extra.short ? h("span", { class: "menu__short", "aria-hidden": "true" }, extra.short) : null,
+      extra.checked ? h("span", { class: "menu__check" }, icons.check()) : null
+    );
+    b.addEventListener("mousedown", (e) => e.preventDefault());
+    b.addEventListener("click", () => {
+      closeMenu();
+      run();
+    });
+    return b;
   };
   styleBtn.addEventListener("mousedown", (e) => e.preventDefault());
   styleBtn.addEventListener("click", () => {
@@ -268,24 +320,14 @@ function buildToolbar(editor: Editor): { el: HTMLElement; update: () => void; de
     styleMenu.hidden = !open;
     styleBtn.setAttribute("aria-expanded", String(open));
     if (open) {
+      const offered = actions.filter((a) => !a.when || a.when(editor));
       styleMenu.replaceChildren(
-        ...BLOCKS.map((b) => {
-          const item = h(
-            "button",
-            { class: "menu__item", type: "button", role: "menuitemradio", "aria-checked": String(b.isActive(editor)) },
-            icons[b.icon](),
-            b.label,
-            b.isActive(editor) ? h("span", { class: "menu__check" }, icons.check()) : null
-          );
-          item.addEventListener("mousedown", (e) => e.preventDefault());
-          item.addEventListener("click", () => {
-            b.run(editor);
-            closeMenu();
-          });
-          return item;
-        })
+        h("div", { class: "toolbar__styles", role: "group", "aria-label": "Turn into" }, ...BLOCK_STYLES.map((b) => item(b.label, b.icon, () => b.run(editor), { checked: b.isActive(editor), short: b.short }))),
+        h("div", { class: "menu__sep", role: "separator" }),
+        ...offered.map((a) => item(a.label, a.icon, () => a.run(editor), { danger: a.danger }))
       );
-      (styleMenu.querySelector('[aria-checked="true"]') as HTMLElement | null)?.focus({ preventScroll: true });
+      // A keyboard starts on the current style; a finger doesn't need a focus ring.
+      if (!window.matchMedia("(pointer: coarse)").matches) (styleMenu.querySelector('[aria-checked="true"]') as HTMLElement | null)?.focus({ preventScroll: true });
     }
   });
   const onDocDown = (e: Event) => {
@@ -297,8 +339,27 @@ function buildToolbar(editor: Editor): { el: HTMLElement; update: () => void; de
       e.stopPropagation();
       closeMenu();
       editor.commands.focus();
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const all = [...styleMenu.querySelectorAll<HTMLElement>(".menu__item")];
+      const i = all.indexOf(document.activeElement as HTMLElement);
+      all[(i + (e.key === "ArrowDown" ? 1 : -1) + all.length) % all.length]?.focus();
     }
   });
+
+  const tool = (label: string, icon: IconName, run: () => void, cls = "") => {
+    const b = h("button", { class: `toolbar__btn ${cls}`.trim(), type: "button", "aria-label": label }, icons[icon]());
+    b.addEventListener("mousedown", (e) => e.preventDefault());
+    b.addEventListener("click", run);
+    return b;
+  };
+
+  // + opens the / menu where the caret is: the one way in on a phone, and a visible one on a desk.
+  const insert = tool("Add a heading, list, callout or more", "plus", () => {
+    const { from } = editor.state.selection;
+    const before = from > 1 ? editor.state.doc.textBetween(from - 1, from, "\n", "\n") : "";
+    editor.chain().focus().insertContent(before && !/\s/.test(before) ? " /" : "/").run();
+  }, "toolbar__btn--insert");
 
   const mark = (name: string, label: string, glyph: string, cls: string, run: () => void) => {
     const b = h("button", { class: `toolbar__btn ${cls}`, type: "button", "aria-label": label, "aria-pressed": "false", "data-mark": name }, glyph);
@@ -313,6 +374,12 @@ function buildToolbar(editor: Editor): { el: HTMLElement; update: () => void; de
     mark("strike", "Strikethrough", "S", "toolbar__btn--strike", () => editor.chain().focus().toggleStrike().run()),
   ];
 
+  // In a list on a touch screen, where there's no Tab key: in and out.
+  const itemType = () => (editor.isActive("taskItem") ? "taskItem" : "listItem");
+  const outdent = tool("Move out a level", "outdent", () => editor.chain().focus().liftListItem(itemType()).run(), "toolbar__btn--list");
+  const indent = tool("Move in a level", "indent", () => editor.chain().focus().sinkListItem(itemType()).run(), "toolbar__btn--list");
+  const listGroup = h("div", { class: "toolbar__group toolbar__group--list", hidden: true }, h("span", { class: "toolbar__sep", "aria-hidden": "true" }), outdent, indent);
+
   const at = h("button", { class: "toolbar__btn", type: "button", "aria-label": "Mention a person, place, organisation or event" }, icons.at());
   at.addEventListener("mousedown", (e) => e.preventDefault());
   at.addEventListener("click", () => {
@@ -324,16 +391,24 @@ function buildToolbar(editor: Editor): { el: HTMLElement; update: () => void; de
   const el = h(
     "div",
     { class: "toolbar", role: "toolbar", "aria-label": "Formatting" },
+    insert,
     h("div", { class: "toolbar__group toolbar__style-wrap" }, styleBtn, styleMenu),
     h("span", { class: "toolbar__sep", "aria-hidden": "true" }),
     h("div", { class: "toolbar__group" }, ...marks),
+    listGroup,
     h("span", { class: "toolbar__sep", "aria-hidden": "true" }),
     at
   );
 
   const update = () => {
-    styleLabel.textContent = BLOCKS.find((b) => b.isActive(editor))?.label ?? "Text";
+    const style = BLOCK_STYLES.find((b) => b.isActive(editor)) ?? BLOCK_STYLES[0];
+    styleLabel.textContent = style.label;
+    styleIcon.replaceChildren(icons[style.icon]());
     for (const b of marks) b.setAttribute("aria-pressed", String(editor.isActive(b.dataset.mark!)));
+    const inList = editor.isActive("listItem") || editor.isActive("taskItem");
+    listGroup.hidden = !inList;
+    outdent.toggleAttribute("disabled", !editor.can().liftListItem(itemType()));
+    indent.toggleAttribute("disabled", !editor.can().sinkListItem(itemType()));
   };
 
   return { el, update, destroy: () => document.removeEventListener("pointerdown", onDocDown) };
@@ -347,6 +422,11 @@ export function createNoteEditor(opts: NoteEditorOptions): NoteEditorHandle {
   let lastMarkdown = opts.markdown;
   const readOnly = !!opts.readOnly;
 
+  const create = opts.addTodo;
+  const addTodo = create && !readOnly ? (e: Editor) => void addLineToTodo(e, create) : null;
+  const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const start = opts.placeholder ?? "Start writing… type @ to mention someone, [[ to link a note";
+
   const editor = new Editor({
     element: content,
     editable: !readOnly,
@@ -354,9 +434,25 @@ export function createNoteEditor(opts: NoteEditorOptions): NoteEditorHandle {
       ...baseExtensions(),
       RichLinks.configure({ onOpenLink: opts.onOpenLink }),
       TemplateBlanks,
+      TodoLines,
       ...(readOnly
         ? []
-        : [Placeholder.configure({ placeholder: opts.placeholder ?? "Start writing… type @ to mention someone, [[ to link a note" }), mentionExtension(opts), Dictation]),
+        : [
+            Placeholder.configure({
+              includeChildren: true,
+              // An empty note says how to start; the empty line you're on says / is there (on a desk: a phone has the +); a toggle's title asks for one.
+              placeholder: ({ editor: ed, node, pos }) => {
+                if (node.type.name === "calloutTitle") return ed.state.doc.resolve(pos).parent.attrs.fold ? "Toggle" : "Title";
+                if (ed.isEmpty) return start;
+                return fine && node.type.name === "paragraph" && ed.state.doc.resolve(pos).depth === 0 ? "Type / for headings, lists, callouts and more" : "";
+              },
+            }),
+            mentionExtension(opts),
+            Dictation,
+            SlashMenu.configure({ addTodo }),
+            BlockHandle.configure({ addTodo }),
+            BlockKeys,
+          ]),
     ],
     content: opts.markdown,
     contentType: "markdown",
@@ -367,7 +463,7 @@ export function createNoteEditor(opts: NoteEditorOptions): NoteEditorHandle {
     },
   });
 
-  const toolbar = buildToolbar(editor);
+  const toolbar = buildToolbar(editor, addTodo);
   editor.on("transaction", toolbar.update);
   editor.on("update", () => {
     const md = editor.getMarkdown();

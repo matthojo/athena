@@ -36,6 +36,10 @@ export const icons = {
   at: () => svg(base(`<circle cx="12" cy="12" r="3.5"/><path d="M15.5 8.5v4.8a2.2 2.2 0 0 0 4.4 0V12a7.9 7.9 0 1 0-3.1 6.3"/>`)),
   text: () => svg(base(`<path d="M5 6.5V5h14v1.5M12 5v14M9.5 19h5"/>`)),
   heading: () => svg(base(`<path d="M6 5v14M18 5v14M6 12h12"/>`)),
+  // The three heading sizes, as their size: a big H, a middle one, a small one.
+  heading1: () => svg(base(`<path d="M5 4.5v15M19 4.5v15M5 12h14"/>`)),
+  heading2: () => svg(base(`<path d="M7 7v10M17 7v10M7 12h10"/>`)),
+  heading3: () => svg(base(`<path d="M8.5 8v8M15.5 8v8M8.5 12h7"/>`)),
   listBullet: () =>
     svg(base(`<path d="M10 7h10M10 12h10M10 17h10"/><circle cx="5" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="5" cy="17" r="1" fill="currentColor" stroke="none"/>`)),
   listNumber: () => svg(base(`<path d="M10 7h10M10 12h10M10 17h10M4.5 5.5 6 5v4M4.5 14.5a1.2 1.2 0 1 1 1.9 1L4.5 18H7"/>`)),
@@ -202,7 +206,17 @@ export const icons = {
   grip: () => svg(base(`<circle cx="9" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="17.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="17.5" r="1.1" fill="currentColor" stroke="none"/>`)),
   /** A to-do's description: lines of text. */
   lines: () => svg(base(`<path d="M5 7h14M5 12h14M5 17h9"/>`)),
+  folderPlus: () => svg(base(`<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h3.6l2 2.2h7.4a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/>`)),
   globe: () => svg(base(`<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.2 2.3 3.2 5 3.2 8s-1 5.7-3.2 8c-2.2-2.3-3.2-5-3.2-8s1-5.7 3.2-8z"/>`)),
+  // Note blocks (editor/blocks.ts): a callout's panel, a toggle's fold, a table, a divider, and a callout's tones.
+  callout: () => svg(base(`<rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M8 10h8M8 14h5"/>`)),
+  fold: () => svg(base(`<path d="M6 9.5 12 15.5l6-6"/><path d="M6 4.5h12" opacity=".5"/>`)),
+  table: () => svg(base(`<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M3.5 10h17M3.5 14.5h17M10 10v9"/>`)),
+  divider: () => svg(base(`<path d="M4 12h16"/><path d="M8 7h8M8 17h8" opacity=".45"/>`)),
+  bulb: () => svg(base(`<path d="M9.5 17.5h5M10.3 20.5h3.4M12 3.5a5.8 5.8 0 0 0-3.4 10.5c.6.5.9 1.1.9 1.8v1.7h5v-1.7c0-.7.3-1.3.9-1.8A5.8 5.8 0 0 0 12 3.5z"/>`)),
+  alert: () => svg(base(`<path d="M10.4 4.8 3.6 17a1.8 1.8 0 0 0 1.6 2.7h13.6a1.8 1.8 0 0 0 1.6-2.7L13.6 4.8a1.8 1.8 0 0 0-3.2 0zM12 9.5v4"/><circle cx="12" cy="16.6" r=".9" fill="currentColor" stroke="none"/>`)),
+  indent: () => svg(base(`<path d="M10 6.5h10M10 12h10M10 17.5h10M4 9l3 3-3 3"/>`)),
+  outdent: () => svg(base(`<path d="M10 6.5h10M10 12h10M10 17.5h10M7 9l-3 3 3 3"/>`)),
 };
 
 export type IconName = keyof typeof icons;
