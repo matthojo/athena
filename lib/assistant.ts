@@ -994,7 +994,7 @@ const ATTACH_TOOL: Anthropic.Tool = {
  * Tools Ask's loop runs itself rather than through a Session (lib/answer.ts): the shared read tools, reading a
  * note (one tool for both, with a ref to cite) and the recipe search. They register what they return as evidence.
  */
-const LOOP_OWN = new Set<string>(["read_note", "find_recipes"]);
+const LOOP_OWN = new Set<string>(["read_note", "find_recipes", "grocery_list"]);
 
 /** The tools a Session runs for Ask's loop: everything here that changes something, and the finds that give ids to change by. */
 const SESSION_TOOLS: Anthropic.Tool[] = TOOLS.filter((t) => !READ_TOOL_NAMES.has(t.name) && !LOOP_OWN.has(t.name));
@@ -1872,7 +1872,7 @@ This message came from outside the app, through the owner's iPhone Shortcut (Sir
  * and nothing else. No tool here reads anything
  * back, and none reaches mail, Slack or a calendar.
  */
-export const CAPTURE_TOOLS: ReadonlySet<string> = new Set(["save_note", "add_todo", "add_reminder", "add_to_list", "add_to_watch_read"]);
+export const CAPTURE_TOOLS: ReadonlySet<string> = new Set(["save_note", "add_todo", "add_reminder", "add_to_list", "add_to_grocery_list", "add_to_watch_read"]);
 
 /** Tools that only prepare a confirm card (lib/assistant-confirm.ts): nothing happens until the owner taps it, so a plan doesn't queue them. */
 const WAITS_FOR_TAP: ReadonlySet<string> = new Set(["answer_invite", "send_note", "draft_message", "draft_email", ...LOG_TOOL_NAMES]);
@@ -1890,6 +1890,8 @@ const WHAT_FILED: Record<string, [one: string, many: string]> = {
   add_todo: ["a to-do", "to-dos"],
   add_reminder: ["a reminder", "reminders"],
   add_to_list: ["an item to a list", "items to a list"],
+  // One phrase however many times it ran: a run adds any number of lines, so a count of runs would mislead.
+  add_to_grocery_list: ["shopping to the grocery list", ""],
   add_to_watch_read: ["something to watch & read", "things to watch & read"],
 };
 
@@ -1902,7 +1904,7 @@ export function captureConfirmation(filed: readonly string[]): string {
   const parts = Object.keys(WHAT_FILED)
     .map((name) => [name, filed.filter((f) => f === name).length] as const)
     .filter(([, n]) => n > 0)
-    .map(([name, n]) => (n === 1 ? WHAT_FILED[name][0] : `${n} ${WHAT_FILED[name][1]}`));
+    .map(([name, n]) => (n === 1 || !WHAT_FILED[name][1] ? WHAT_FILED[name][0] : `${n} ${WHAT_FILED[name][1]}`));
   if (!parts.length) return "";
   const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
   return `Added ${list}.`;

@@ -11,7 +11,8 @@
  *
  * Sealed (docs: security/encryption, ENCRYPTED in lib/encryption.ts): a recipe's title,
  * address, body (ingredients, steps, notes as one JSON value) and tags, and
- * each grocery line's text. Readable: minutes, servings, dates, amounts and
+ * each grocery line's text (and, in lib/grocery-memory.ts, what past shops
+ * bought). Readable: minutes, servings, dates, amounts and
  * aisles. The address has a blind index of its canonical form, so importing
  * the same recipe twice gives the same one.
  */
@@ -28,6 +29,7 @@ import { parseRecipePage, plainText } from "./recipe-parse";
 import { itemKey, parseIngredient, type Ingredient } from "./recipe-units";
 import { ingredientIs } from "./recipe-steps";
 import { aisleOf, buildGroceryLines, cleanPantry, DEFAULT_PANTRY, mergeIntoList, type GroceryLine } from "./grocery";
+import { groceryMemory } from "./grocery-memory";
 import { classifyEvenings, suggestPlan, weekDates, type BusyTime, type PlanRecipe } from "./meal-plan";
 import { busyFromTravel, type CalendarEventLite } from "./availability";
 import { listConnectors } from "./connectors";
@@ -620,17 +622,22 @@ async function modelRecipe(text: string, url: string): Promise<RecipeDraft | nul
 const PREFS_KEY = "recipes";
 
 export async function getRecipePrefs(): Promise<RecipePrefs> {
-  const [row] = await q<{ value: { pantry?: unknown; system?: unknown } | null }>(`SELECT value FROM settings WHERE key = $1`, [PREFS_KEY]).catch(() => []);
+  const [row] = await q<{ value: { pantry?: unknown; system?: unknown; usuals?: unknown } | null }>(`SELECT value FROM settings WHERE key = $1`, [PREFS_KEY]).catch(() => []);
   const v = row?.value ?? {};
-  return { pantry: Array.isArray(v.pantry) ? cleanPantry(v.pantry) : [...DEFAULT_PANTRY], system: v.system === "imperial" ? "imperial" : "metric" };
+  return { pantry: Array.isArray(v.pantry) ? cleanPantry(v.pantry) : [...DEFAULT_PANTRY], system: v.system === "imperial" ? "imperial" : "metric", usuals: v.usuals !== false };
 }
 
 export async function setRecipePrefs(raw: unknown): Promise<RecipePrefs> {
-  if (!raw || typeof raw !== "object") throw new AthenaInputError("Send { pantry, system }");
-  const b = raw as { pantry?: unknown; system?: unknown };
+  if (!raw || typeof raw !== "object") throw new AthenaInputError("Send { pantry, system, usuals }");
+  const b = raw as { pantry?: unknown; system?: unknown; usuals?: unknown };
   const have = await getRecipePrefs();
   if (b.system !== undefined && b.system !== "metric" && b.system !== "imperial") throw new AthenaInputError("system: metric or imperial");
-  const prefs: RecipePrefs = { pantry: b.pantry !== undefined ? cleanPantry(b.pantry) : have.pantry, system: (b.system as RecipePrefs["system"]) ?? have.system };
+  if (b.usuals !== undefined && typeof b.usuals !== "boolean") throw new AthenaInputError("usuals: true or false");
+  const prefs: RecipePrefs = {
+    pantry: b.pantry !== undefined ? cleanPantry(b.pantry) : have.pantry,
+    system: (b.system as RecipePrefs["system"]) ?? have.system,
+    usuals: (b.usuals as boolean | undefined) ?? have.usuals,
+  };
   await q(`INSERT INTO settings (key, value) VALUES ($1, $2::jsonb) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`, [PREFS_KEY, JSON.stringify(prefs)]);
   return prefs;
 }
@@ -737,7 +744,8 @@ interface GroceryRow {
   ticked_at: Date | string | null;
 }
 
-export async function getGroceryList(): Promise<GroceryList> {
+/** The list's lines alone. */
+async function groceryItems(): Promise<GroceryItem[]> {
   const rows = await q<GroceryRow>(`SELECT id, item, quantity, unit, aisle, recipe_ids, own, ticked_at FROM grocery_items ORDER BY created_at, id`);
   const ids = [...new Set(rows.flatMap((r) => r.recipe_ids ?? []))];
   const titles = new Map<string, string>();
@@ -752,7 +760,19 @@ export async function getGroceryList(): Promise<GroceryList> {
     own: r.own,
     ticked: !!r.ticked_at,
   }));
-  return { items };
+  return items;
+}
+
+/** The list, with what past shops say about it: the usuals due and the owner's aisle order. */
+export async function getGroceryList(): Promise<GroceryList> {
+  const items = await groceryItems();
+  // What past shops say: never in the way of the list itself.
+  const prefs = await getRecipePrefs();
+  const memory = await groceryMemory(
+    items.map((i) => i.item),
+    { usuals: prefs.usuals },
+  ).catch(() => ({ usuals: [], order: null }));
+  return { items, ...memory };
 }
 
 /** Round to what a list needs: four decimal places at most. */
@@ -792,7 +812,7 @@ export async function addToGroceryList(raw: unknown): Promise<GroceryList & { ad
     prefs.pantry,
     prefs.system,
   );
-  const have = (await getGroceryList()).items;
+  const have = await groceryItems();
   const { update, insert } = mergeIntoList(
     have.map((i) => ({ id: i.id, item: i.item, quantity: i.quantity, unit: i.unit, recipes: i.recipes.map((r) => r.id), ticked: i.ticked })),
     lines,
@@ -803,15 +823,29 @@ export async function addToGroceryList(raw: unknown): Promise<GroceryList & { ad
   return { ...(await getGroceryList()), added: update.length + insert.length, pantry };
 }
 
-/** The owner's own line: "2 lemons", "kitchen roll". */
-export async function addOwnGroceryItem(raw: unknown): Promise<GroceryList> {
+/** The owner's own line onto the list, and the line as stored (with its id). */
+export async function insertOwnGroceryLine(raw: unknown): Promise<{ id: string; item: string; quantity: number | null; unit: string | null }> {
   const text = typeof raw === "string" ? raw.replace(/\s+/g, " ").trim() : "";
   if (!text || text.length > 200) throw new AthenaInputError("item: what to buy, up to 200 characters");
   const ing = parseIngredient(text);
-  const line: GroceryLine = { key: itemKey(ing.item), item: ing.item, quantity: ing.quantity, unit: ing.unit, aisle: aisleOf(ing.item), recipes: [] };
-  await insertLines([line], true);
+  const s = await sealer();
+  const [row] = await qRaw<{ id: string }>(`INSERT INTO grocery_items (item, quantity, unit, aisle, recipe_ids, own) VALUES ($1, $2, $3, $4, '{}'::uuid[], true) RETURNING id`, [
+    s.text(ing.item),
+    amount(ing.quantity),
+    ing.unit,
+    aisleOf(ing.item),
+  ]);
+  return { id: row.id, item: ing.item, quantity: amount(ing.quantity), unit: ing.unit };
+}
+
+/** The owner's own line: "2 lemons", "kitchen roll". */
+export async function addOwnGroceryItem(raw: unknown): Promise<GroceryList> {
+  await insertOwnGroceryLine(raw);
   return getGroceryList();
 }
+
+/** The list's lines without what past shops say: for Ask and MCP checking what's there. */
+export const listGroceryLines = (): Promise<GroceryItem[]> => groceryItems();
 
 export async function updateGroceryItem(id: string, patch: { ticked?: unknown; item?: unknown }): Promise<GroceryList | null> {
   if (!isRecipeId(id)) return null;
@@ -834,6 +868,13 @@ export async function deleteGroceryItem(id: string): Promise<GroceryList | null>
   if (!isRecipeId(id)) return null;
   const rows = await qRaw<{ id: string }>(`DELETE FROM grocery_items WHERE id = $1 RETURNING id`, [id]);
   return rows.length ? getGroceryList() : null;
+}
+
+/** Take lines off the list unless they've been ticked since (Ask's Undo: a line in the basket stays). */
+export async function removeOpenGroceryLines(ids: string[]): Promise<number> {
+  const ok = ids.filter(isRecipeId);
+  if (!ok.length) return 0;
+  return (await qRaw<{ id: string }>(`DELETE FROM grocery_items WHERE id = ANY($1::uuid[]) AND ticked_at IS NULL RETURNING id`, [ok])).length;
 }
 
 export async function clearTickedGroceries(): Promise<GroceryList> {

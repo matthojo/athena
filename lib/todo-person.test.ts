@@ -83,7 +83,7 @@ test("a capture reads nothing: the capture route and Ask's assistant never touch
     assert.doesNotMatch(read(`./${file}`), NEW_CODE, `lib/${file}`);
   }
   assert.doesNotMatch(read("../netlify/functions/mcp.ts"), NEW_CODE, "no MCP tool");
-  assert.deepEqual([...CAPTURE_TOOLS].sort(), ["add_reminder", "add_to_list", "add_to_watch_read", "add_todo", "save_note"], "the capture allow-list is unchanged");
+  assert.deepEqual([...CAPTURE_TOOLS].sort(), ["add_reminder", "add_to_grocery_list", "add_to_list", "add_to_watch_read", "add_todo", "save_note"], "the capture allow-list is unchanged");
 
   const api = read("../netlify/functions/api.ts");
   // The capture handler and what it calls: from its doc comment to the next section.

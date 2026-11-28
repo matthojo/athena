@@ -1048,13 +1048,209 @@ html.is-cooking .sidebar {
   flex: none;
 }
 
-.rc-clear {
+.rc-done {
   align-self: flex-start;
   margin: calc(var(--space-2xl) * -1 + var(--space-sm)) 0 var(--space-2xl);
 }
 
-.rc-clear[hidden] {
+.rc-done[hidden] {
   display: none;
+}
+
+.rc-done__n {
+  margin-left: var(--space-2xs);
+  font-weight: var(--weight-regular);
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The usuals that are due (lib/grocery-usuals.ts): a sunken panel above the
+   list, each row shaped like the line it would become, with a dashed circle
+   where the tick goes. */
+.rc-usuals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-2xs) var(--space-2xs);
+  border-radius: var(--radius-md);
+  background: var(--sunken);
+}
+
+.rc-usuals__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  min-height: 36px;
+  padding: 0 var(--space-xs) 0 var(--space-sm);
+}
+
+.rc-usuals__title {
+  margin: 0;
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+}
+
+.rc-usuals__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 900px) {
+  .rc-usuals__list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-xl);
+  }
+}
+
+.rc-usuals__more {
+  align-self: flex-start;
+  margin: 0 0 var(--space-2xs) var(--space-2xs);
+}
+
+.rc-usual {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 52px;
+  padding-right: var(--space-2xs);
+}
+
+.rc-usual > .rc-line__text {
+  flex: 1;
+}
+
+.rc-usual__add {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: var(--space-2xs);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.rc-usual__add svg {
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  padding: 5px; /* fixed: icon */
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.rc-usual__add:hover svg,
+.rc-usual__add:focus-visible svg {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.rc-usual__add:active svg {
+  background: var(--accent-wash);
+}
+
+.rc-usual__add:disabled {
+  cursor: default;
+}
+
+.rc-ordernote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs-xs);
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.rc-ordernote svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+/* ---------- shopping mode (#/recipes/list/shop) ---------- */
+
+.rc-shop {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.rc-shop__main {
+  overflow-y: auto;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-md) 0 var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.rc-shop__aisles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.rc-shop .rc-aisle {
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.rc-shop .rc-aisle.is-done {
+  opacity: 0.55;
+}
+
+.rc-shop .rc-aisle__label {
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.rc-shop .rc-line__label {
+  min-height: 64px;
+  gap: var(--space-md);
+  font-size: var(--text-title);
+  letter-spacing: -0.01em;
+}
+
+.rc-shop .rc-line__for {
+  font-size: var(--text-small);
+}
+
+.rc-shop .rc-check {
+  width: 28px;
+  height: 28px;
+  border-width: 2px;
+}
+
+.rc-shop .rc-check:checked::after {
+  width: 12px;
+  height: 7px;
+  margin-top: -3px; /* fixed: icon */
+  border-width: 0 0 2.5px 2.5px;
+}
+
+.rc-shop__foot {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding-top: var(--space-sm);
+}
+
+.rc-shop__done {
+  min-height: 56px;
 }
 
 .rc-list {
@@ -1150,6 +1346,14 @@ html.is-cooking .sidebar {
 }
 
 /* ---------- Settings → Recipes (components/recipe-settings.ts) ---------- */
+
+.rs-shops {
+  padding: 0 var(--space-md);
+}
+
+.rs-shops__forget {
+  cursor: default;
+}
 
 .rs-pantry__card {
   display: flex;

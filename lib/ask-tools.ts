@@ -224,6 +224,7 @@ export const READ_SEARCHED: Record<string, string> = {
   patterns: "patterns in your days",
   taste: "your films, shows and music",
   find_recipes: "your recipes",
+  grocery_list: "your grocery list",
   money: "your transactions",
   energy: "your energy use",
   appliances: "your appliances",

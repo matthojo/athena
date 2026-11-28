@@ -31,6 +31,7 @@ import { parseQuickTodo, type QuickTodo } from "../../../lib/todo-quick";
 import { PRIORITY_LABEL } from "../../../lib/todo-details";
 import { priorityMark } from "../components/todo-props";
 import { dueLabel } from "../components/loop-row";
+import { loadGrocery, onRecipesElsewhere, type GroceryList } from "../db/recipes";
 import "../styles/todo-detail.css";
 
 export interface LoopsContext {
@@ -79,6 +80,9 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
   let named: TodoPeople = {};
   let loaded = false;
   let filter: Filter = "all";
+  // The grocery list, shown at the top of Errands: loaded the first time Errands is picked.
+  let grocery: GroceryList | null = null;
+  let groceryAsked = false;
   const view = readView();
   const setView = (patch: Partial<ContextView>) => {
     Object.assign(view, patch);
@@ -256,23 +260,54 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
     }
 
     const g = groupLoops(openOnes, today);
+    const shops = where && contextById(where)?.key === "errands" ? groceryRow() : null;
     if (view.group !== "due" && openOnes.length) {
       // Grouped by area or where/how, each group soonest due first.
       const ordered = [...g.overdue, ...g.today, ...g.week, ...g.later, ...g.someday];
       const sections = groupByContext(ordered, view.group, contextsSnapshot()).map(({ context, items: rows }) =>
         group(context ? h("span", { class: "ctx-group" }, context.kind === "area" ? h("span", { class: "ctx-dot", "data-colour": context.colour, "aria-hidden": "true" }) : icons[(context.icon in icons ? context.icon : "tag") as keyof typeof icons](), context.name) : view.group === "area" ? "No area" : "Where not set", rows)
       );
-      show(...sections, ...doneSection(inFilter));
+      show(...(shops ? [shops] : []), ...sections, ...doneSection(inFilter));
       return;
     }
-    const sections: HTMLElement[] = [];
+    const sections: HTMLElement[] = shops ? [shops] : [];
     if (g.overdue.length) sections.push(group("Overdue", g.overdue, "late"));
     if (g.today.length) sections.push(group("Today", g.today));
     if (g.week.length) sections.push(group("Next 7 days", g.week));
     if (g.later.length) sections.push(group("Later", g.later));
     if (g.someday.length) sections.push(group("No date", g.someday));
-    if (!sections.length) sections.push(empty(area || where ? byKind : null));
+    if (sections.length === (shops ? 1 : 0)) sections.push(empty(area || where ? byKind : null));
     show(...sections, ...doneSection(inFilter));
+  }
+
+  /**
+   * Errands: the grocery list as one row on top, with what's left to buy and
+   * the usuals due, so the shop and the errands are planned together. Nothing
+   * when the list is empty and no usual is due.
+   */
+  function groceryRow(): HTMLElement | null {
+    if (!groceryAsked) {
+      groceryAsked = true;
+      void loadGrocery()
+        .then((list) => {
+          grocery = list;
+          paint();
+        })
+        .catch(() => undefined);
+    }
+    if (!grocery) return null;
+    const open = grocery.items.filter((i) => !i.ticked);
+    const due = grocery.usuals ?? [];
+    if (!open.length && !due.length) return null;
+    const meta = [open.length ? plural(open.length, "1 thing to buy", `${open.length} things to buy`) : "", due.length ? plural(due.length, "1 usual due", `${due.length} usuals due`) : ""].filter(Boolean).join(" · ");
+    const row = h(
+      "a",
+      { class: "row", href: "#/recipes/list", "data-flip": "grocery" },
+      h("span", { class: "tile tile--sm", "aria-hidden": "true" }, icons.bag()),
+      h("span", { class: "row__body" }, h("span", { class: "row__title" }, "Grocery list"), h("span", { class: "row__meta" }, meta)),
+      h("span", { class: "row__trail" }, h("span", { class: "row__chevron", "aria-hidden": "true" }, icons.chevronRight()))
+    );
+    return h("section", { class: "group", "data-flip": "group:grocery" }, h("div", { class: "card card--flush list" }, row));
   }
 
   /** Ticked in the last fortnight, folded away. */
@@ -326,11 +361,21 @@ export function renderLoops(ctx: LoopsContext): { el: HTMLElement; destroy: () =
     paintBar();
     paint();
   });
+  const unsubGrocery = onRecipesElsewhere(() => {
+    if (!groceryAsked) return;
+    void loadGrocery()
+      .then((list) => {
+        grocery = list;
+        paint();
+      })
+      .catch(() => undefined);
+  });
   return {
     el,
     destroy: () => {
       unsub();
       unsubContexts();
+      unsubGrocery();
       window.removeEventListener("scroll", onScroll);
     },
   };

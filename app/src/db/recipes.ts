@@ -4,9 +4,10 @@
  *
  * Offline: the last copy of the grid, each recipe opened, the plan and the
  * grocery list are kept in IndexedDB's meta store and shown when the server
- * can't be reached. Ticks, own lines and "Clear ticked" made offline change
- * that copy at once and wait in a queue (meta "recipes:outbox"), sent in
- * order the next time the list loads online.
+ * can't be reached. Ticks, own lines, "Done shopping" and skipping a usual
+ * made offline change that copy at once and wait in a queue (meta
+ * "recipes:outbox"), sent in order the next time the list loads online. A
+ * shop finished offline keeps the time it was finished.
  *
  * Sample mode answers from db/sample-recipes.ts and never touches the network.
  */
@@ -19,6 +20,7 @@ import { parseIngredient } from "../../../lib/recipe-units";
 import { aisleOf } from "../../../lib/grocery";
 
 export type { GroceryItem, GroceryList, ImportMiss, Recipe, RecipeCard, RecipePrefs, TimeFilter, WeekPlan };
+export type { Usual } from "../../../lib/grocery-usuals";
 export type Loaded<T> = T & { state: "online" | "offline" | "sample" };
 
 const sample = () => import("./sample-recipes");
@@ -196,7 +198,13 @@ export async function savePlan(week: string, days: Array<{ date: string; recipe_
 
 // ---------- the grocery list ----------
 
-type Op = { op: "tick"; id: string; ticked: boolean } | { op: "add"; item: string; temp: string } | { op: "remove"; id: string } | { op: "clear" };
+type Op =
+  | { op: "tick"; id: string; ticked: boolean }
+  | { op: "add"; item: string; temp: string }
+  | { op: "remove"; id: string }
+  | { op: "clear" }
+  | { op: "done"; at: string; temp: string }
+  | { op: "skip"; item: string };
 const LIST = "recipes:grocery";
 const OUTBOX = "recipes:outbox";
 
@@ -204,7 +212,7 @@ const readList = async (): Promise<GroceryList | null> => {
   const raw = await getMeta(LIST).catch(() => undefined);
   return raw ? (JSON.parse(raw) as GroceryList) : null;
 };
-const writeList = (list: GroceryList) => setMeta(LIST, JSON.stringify({ items: list.items })).catch(() => undefined);
+const writeList = (list: GroceryList) => setMeta(LIST, JSON.stringify({ items: list.items, usuals: list.usuals ?? [], order: list.order ?? null })).catch(() => undefined);
 const readOutbox = async (): Promise<Op[]> => JSON.parse((await getMeta(OUTBOX).catch(() => undefined)) ?? "[]") as Op[];
 const writeOutbox = (ops: Op[]) => setMeta(OUTBOX, JSON.stringify(ops)).catch(() => undefined);
 
@@ -223,6 +231,12 @@ async function flush(): Promise<void> {
         const id = temps.get(op.id) ?? op.id;
         if (!id.startsWith("offline-")) await request(`/recipes/grocery/items/${encodeURIComponent(id)}`, { method: "DELETE" });
       } else if (op.op === "clear") await request("/recipes/grocery/clear", { method: "POST" });
+      else if (op.op === "done") {
+        const out = await request<{ trip_id: string | null }>("/recipes/grocery/done", { method: "POST", body: JSON.stringify({ at: op.at }) });
+        // Undo on that shop's toast may come after it's sent: it needs the shop's id.
+        if (out.trip_id) await setMeta(`recipes:shop:${op.temp}`, out.trip_id).catch(() => undefined);
+      }
+      else if (op.op === "skip") await request("/recipes/grocery/skip", { method: "POST", body: JSON.stringify({ item: op.item }) });
       else {
         const list = await request<GroceryList>("/recipes/grocery/items", { method: "POST", body: JSON.stringify({ item: op.item }) });
         const made = [...list.items].reverse().find((i) => i.own);
@@ -312,6 +326,97 @@ export async function clearTicked(): Promise<Loaded<GroceryList>> {
   );
 }
 
+export interface ShopDone {
+  list: Loaded<GroceryList>;
+  count: number;
+  /** Put the shop's lines back on the list, ticked. */
+  undo: () => Promise<Loaded<GroceryList>>;
+}
+
+/**
+ * "Done shopping": the ticked lines filed as a shop, so the list learns the
+ * usuals and the walk round the shop. Offline it's queued with the time it
+ * was tapped; Undo before it's sent just takes it out of the queue.
+ */
+export async function finishShopping(): Promise<ShopDone> {
+  if (isSampleMode()) {
+    const s = await sample();
+    const out = s.sampleDone();
+    return {
+      list: { ...out, state: "sample" },
+      count: out.count,
+      undo: async () => ({ ...(out.trip_id ? (s.sampleUndoShop(out.trip_id) ?? s.sampleGrocery()) : s.sampleGrocery()), state: "sample" }),
+    };
+  }
+  const before = (await readList())?.items.filter((i) => i.ticked) ?? [];
+  const at = new Date().toISOString();
+  const temp = `offline-shop-${Date.now().toString(36)}`;
+  try {
+    if ((await readOutbox()).length) throw new Error("queued first");
+    const out = await request<GroceryList & { trip_id: string | null; count: number }>("/recipes/grocery/done", { method: "POST", body: JSON.stringify({ at }) });
+    void writeList(out);
+    return {
+      list: { ...out, state: "online" },
+      count: out.count,
+      undo: async () => {
+        const list = out.trip_id ? await request<GroceryList>(`/recipes/grocery/shops/${encodeURIComponent(out.trip_id)}`, { method: "DELETE" }) : await request<GroceryList>("/recipes/grocery");
+        void writeList(list);
+        return { ...list, state: "online" };
+      },
+    };
+  } catch (error) {
+    if (error instanceof ApiError && error.status && error.status < 500 && navigator.onLine) throw error;
+    const list = (await readList()) ?? { items: [] };
+    const ticked = list.items.filter((i) => i.ticked);
+    list.items = list.items.filter((i) => !i.ticked);
+    await writeList(list);
+    await writeOutbox([...(await readOutbox()), { op: "done", at, temp }]);
+    return {
+      list: { ...list, state: "offline" },
+      count: ticked.length || before.length,
+      undo: async () => {
+        const ops = await readOutbox();
+        const queued = ops.some((o) => o.op === "done" && o.temp === temp);
+        const now = (await readList()) ?? { items: [] };
+        if (queued) {
+          await writeOutbox(ops.filter((o) => !(o.op === "done" && o.temp === temp)));
+          now.items.push(...ticked);
+          await writeList(now);
+          return { ...now, state: "offline" };
+        }
+        // Sent already: undo the shop on the server by the id it gave back.
+        const tripId = await getMeta(`recipes:shop:${temp}`).catch(() => undefined);
+        if (!tripId) throw new ApiError("That shop has been saved already", 409);
+        const list = await request<GroceryList>(`/recipes/grocery/shops/${encodeURIComponent(tripId)}`, { method: "DELETE" });
+        void writeList(list);
+        return { ...list, state: "online" };
+      },
+    };
+  }
+}
+
+/** "Not this time": a usual isn't offered again until it's next due. */
+export async function skipUsual(item: string): Promise<Loaded<GroceryList>> {
+  const s = isSampleMode() ? await sample() : null;
+  return change(
+    { op: "skip", item },
+    () => (s ? Promise.resolve(s.sampleSkip(item)) : request<GroceryList>("/recipes/grocery/skip", { method: "POST", body: JSON.stringify({ item }) })),
+    (list) => (list.usuals = (list.usuals ?? []).filter((u) => u.item !== item))
+  );
+}
+
+/** Settings → Recipes: how many shops the list remembers. Null offline. */
+export async function loadGroceryHistory(): Promise<{ shops: number; since: string | null } | null> {
+  if (isSampleMode()) return (await sample()).sampleHistory();
+  return request<{ shops: number; since: string | null }>("/recipes/grocery/history").catch(() => null);
+}
+
+/** Forget every shop the list remembers. Needs a connection. */
+export async function forgetGroceryHistory(): Promise<{ shops: number }> {
+  if (isSampleMode()) return (await sample()).sampleForget();
+  return request<{ shops: number }>("/recipes/grocery/history", { method: "DELETE" });
+}
+
 /** Recipes (with how many each serves), or a week's plan, onto the list. Needs a connection. */
 export async function addToGrocery(body: { recipe_ids?: string[]; servings?: Record<string, number>; week?: string }): Promise<GroceryList & { added: number; pantry: string[] }> {
   if (isSampleMode()) return (await sample()).sampleAddToGrocery(body);
@@ -332,9 +437,13 @@ export async function loadRecipePrefs(): Promise<RecipePrefs> {
     return prefs;
   } catch {
     const raw = await getMeta(PREFS).catch(() => undefined);
-    if (raw) return JSON.parse(raw) as RecipePrefs;
+    // A copy kept before usuals existed says nothing about them: they're on unless turned off.
+    if (raw) {
+      const kept = JSON.parse(raw) as Partial<RecipePrefs> & Pick<RecipePrefs, "pantry" | "system">;
+      return { ...kept, usuals: kept.usuals !== false };
+    }
     const { DEFAULT_PANTRY } = await import("../../../lib/grocery");
-    return { pantry: [...DEFAULT_PANTRY], system: "metric" };
+    return { pantry: [...DEFAULT_PANTRY], system: "metric", usuals: true };
   }
 }
 

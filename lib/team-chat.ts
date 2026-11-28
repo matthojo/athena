@@ -127,7 +127,7 @@ export function saysNews(tool: string, text: string): boolean {
 // ---------- which tools ----------
 
 /** Tools that change nothing but aren't in steps.ts' LOOKS: they only look. find_times is left out (it needs a calendar). */
-const ALSO_LOOKS = new Set(["find_recipes", "find_saved"]);
+const ALSO_LOOKS = new Set(["find_recipes", "grocery_list", "find_saved"]);
 
 /** A tool that only looks: what an assistant may use when main Ask checks with it. */
 export function isLookingTool(name: string): boolean {

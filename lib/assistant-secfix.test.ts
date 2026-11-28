@@ -34,8 +34,9 @@ const NOW = new Date("2026-11-10T09:00:00Z");
 
 // ---------- A capture key files only ----------
 
-test("a capture is offered the five filing tools and nothing else", () => {
-  assert.deepEqual([...CAPTURE_TOOLS].sort(), ["add_reminder", "add_to_list", "add_to_watch_read", "add_todo", "save_note"]);
+test("a capture is offered the six filing tools and nothing else", () => {
+  // add_to_grocery_list reads the list only to skip a line already on it; what it returns names only the lines it was given.
+  assert.deepEqual([...CAPTURE_TOOLS].sort(), ["add_reminder", "add_to_grocery_list", "add_to_list", "add_to_watch_read", "add_todo", "save_note"]);
   for (const name of CAPTURE_TOOLS) assert.ok(TOOLS.some((t) => t.name === name), `${name} is one of Ask's tools`);
 });
 
@@ -60,6 +61,8 @@ test("a capture's confirmation is built from which tools ran, never from words",
   assert.equal(captureConfirmation(["add_reminder"]), "Added a reminder.");
   assert.equal(captureConfirmation(["add_to_list"]), "Added an item to a list.");
   assert.equal(captureConfirmation(["add_to_watch_read"]), "Added something to watch & read.");
+  assert.equal(captureConfirmation(["add_to_grocery_list"]), "Added shopping to the grocery list.");
+  assert.equal(captureConfirmation(["add_to_grocery_list", "add_to_grocery_list"]), "Added shopping to the grocery list.", "a count of runs isn't a count of lines");
   assert.equal(captureConfirmation(["add_todo", "add_reminder", "add_todo"]), "Added 2 to-dos and a reminder.");
   assert.equal(captureConfirmation(["add_to_list", "save_note", "add_todo"]), "Added a note, a to-do and an item to a list.");
   assert.equal(captureConfirmation(["read_note"]), "", "a tool that isn't a filing tool says nothing");

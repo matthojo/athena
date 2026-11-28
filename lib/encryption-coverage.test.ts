@@ -26,6 +26,7 @@ const NOT_LISTED: Record<string, string> = {
   day_files: "ids only",
   edges: "ids and relation names",
   goal_progress: "plain numbers (0041)",
+  grocery_trips: "a shop's date, line count and aisle ids (0096)",
   interaction_people: "ids only",
   location_todo: "dates only",
   mail_skips: "counts per day",
@@ -58,6 +59,7 @@ const PLAIN_COLUMNS: Record<string, string> = {
 const SETTINGS_WRITERS: Record<string, string> = {
   "lib/appliance-store.ts": "appliances",
   "lib/car-store.ts": "car",
+  "lib/grocery-memory.ts": "grocery_usuals",
   "lib/checkins.ts": "plain",
   "lib/team-flows.ts": "plain",
   "lib/playlist-store.ts": "music_playlists",

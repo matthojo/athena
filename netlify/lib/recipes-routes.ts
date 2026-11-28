@@ -20,6 +20,10 @@
  *   PATCH  /api/recipes/grocery/items/:id    { ticked?, item? } → GroceryList
  *   DELETE /api/recipes/grocery/items/:id    → GroceryList
  *   POST   /api/recipes/grocery/clear        → GroceryList (ticked lines removed)
+ *   POST   /api/recipes/grocery/done         { at? } → GroceryList + { trip_id, count } (ticked lines filed as a shop)
+ *   DELETE /api/recipes/grocery/shops/:id    → GroceryList (Undo: the shop's lines back on the list, ticked)
+ *   POST   /api/recipes/grocery/skip         { item } → GroceryList (a usual not offered until it's next due)
+ *   GET    /api/recipes/grocery/history      → { shops, since }; DELETE → { shops } (every shop forgotten)
  *   GET    /api/recipes/prefs, PUT { pantry?, system? } → RecipePrefs
  */
 import { AthenaInputError } from "../../lib/db";
@@ -51,6 +55,7 @@ import {
   type PlanCalendar,
 } from "../../lib/recipes";
 import type { TimeFilter } from "../../lib/recipe-rules";
+import { finishShopping, forgetGroceryHistory, groceryHistory, skipUsual, undoShopping } from "../../lib/grocery-memory";
 
 type Reply = (data: unknown, status?: number) => Response;
 
@@ -121,6 +126,25 @@ export async function handleRecipeRoutes(req: Request, url: URL, segments: strin
     if (!third) return m === "GET" ? reply(await getGroceryList()) : notAllowed();
     if (third === "add" && !fourth) return m === "POST" ? reply(await addToGroceryList(await body(req))) : notAllowed();
     if (third === "clear" && !fourth) return m === "POST" ? reply(await clearTickedGroceries()) : notAllowed();
+    if (third === "done" && !fourth) {
+      if (m !== "POST") return notAllowed();
+      const done = await finishShopping(await body(req).catch(() => ({})));
+      return reply({ ...(await getGroceryList()), ...done });
+    }
+    if (third === "shops" && fourth && segments.length === 5) {
+      if (m !== "DELETE") return notAllowed();
+      return (await undoShopping(fourth)) ? reply(await getGroceryList()) : reply({ error: "Not found" }, 404);
+    }
+    if (third === "skip" && !fourth) {
+      if (m !== "POST") return notAllowed();
+      await skipUsual((await body(req)).item);
+      return reply(await getGroceryList());
+    }
+    if (third === "history" && !fourth) {
+      if (m === "GET") return reply(await groceryHistory());
+      if (m === "DELETE") return reply(await forgetGroceryHistory());
+      return notAllowed();
+    }
     if (third === "items") {
       if (!fourth) return m === "POST" ? reply(await addOwnGroceryItem((await body(req)).item)) : notAllowed();
       if (segments.length !== 5) return reply({ error: "Not found" }, 404);

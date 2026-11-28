@@ -197,6 +197,9 @@ export const ENCRYPTED: EncryptedTable[] = [
     indexes: { columns: ["url_bidx"], compute: (p, _row, s) => ({ url_bidx: p.url ? s.index("other", `recipe-url\u0000${recipeUrlKey(p.url)}`) : null }) },
   },
   { table: "grocery_items", key: ID, text: ["item"] },
+  // What the grocery list remembers (0096): what each shop bought, and what each skipped usual is.
+  { table: "grocery_bought", key: ID, text: ["item"] },
+  { table: "grocery_skips", key: ID, text: ["item"] },
   // Sealed day rows in every domain: health, location, money, home and finance (receipts, Amazon orders).
   { table: "sensitive_blobs", key: ID, text: ["ciphertext"], where: "day IS NOT NULL" },
   // Place coordinates (0031) and what each nudge says (0051).
@@ -244,9 +247,10 @@ export const SEALED_BYTES: Array<{ name: string; table: string; where: string; k
 ];
 
 /**
- * Sealed values inside a `settings` row's JSON: the car (lib/car-store.ts)
- * and the notification key's private half (lib/push.ts). `field` is the
- * top-level key holding the sealed text.
+ * Sealed values inside a `settings` row's JSON: the car (lib/car-store.ts),
+ * the notification key's private half (lib/push.ts) and the grocery list's
+ * usuals summary (lib/grocery-memory.ts). `field` is the top-level key
+ * holding the sealed text.
  */
 export const SEALED_SETTINGS: Array<{ name: string; key: string; field: string }> = [
   { name: "settings.car", key: "car", field: "sealed" },
@@ -254,6 +258,7 @@ export const SEALED_SETTINGS: Array<{ name: string; key: string; field: string }
   { name: "settings.music_playlists", key: "music_playlists", field: "sealed" },
   { name: "settings.music_genres", key: "music_genres", field: "sealed" },
   { name: "settings.appliances", key: "appliances", field: "sealed" },
+  { name: "settings.grocery_usuals", key: "grocery_usuals", field: "sealed" },
 ];
 
 /** SQL: this row has something not sealed under the key whose prefix is $1 ('enc:v1:<kid>:%'). */

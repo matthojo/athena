@@ -96,7 +96,7 @@ import { ASSISTANT_SOURCE_KIND, isLookingTool, loadTeamDesk, type AssistantPerso
 import { loadAskMoney } from "./money";
 import { MONEY_LOG_OFF_TEXT, MONEY_OFF_TEXT, isSpendingLog, READ_SEARCHED, readToolsFor, READ_TOOL_NAMES, ReadTools, type CiteKind } from "./ask-tools";
 import { listSaved } from "./saved";
-import { FIND_RECIPES_TOOL, findRecipesJson } from "./assistant-recipes";
+import { FIND_RECIPES_TOOL, findRecipesJson, GROCERY_LIST_TOOL, groceryListJson } from "./assistant-recipes";
 import { answerStepGroups, assistantStepDone, assistantStepStart, type StepSink } from "./steps";
 import { fileBlocks, MAX_PDF_PAGES, READ_FILE_TOOL, runReadFile, summariseFiles, summaryBlocks, type FileMeta } from "./files";
 import {
@@ -576,6 +576,7 @@ const isoDay = (s: string | null | undefined): string | null => (s && /^\d{4}-\d
 const ATHENA_TOOLS: Anthropic.Tool[] = [
   // The owner's recipes by ingredient (lib/assistant-recipes.ts, shared with the assistant).
   FIND_RECIPES_TOOL,
+  GROCERY_LIST_TOOL,
   {
     name: "search_athena",
     description:
@@ -847,6 +848,8 @@ class AthenaTools {
       }
       case "find_recipes":
         return this.guarded(await findRecipesJson(raw, (id, title) => this.ev.ref("recipe", id, title)));
+      case "grocery_list":
+        return this.guarded(await groceryListJson(() => this.ev.ref("recipe", "list", "Grocery list")));
       case "saved": {
         const input = athenaInputs.saved.parse(raw);
         const page = await listSaved({ q: input.query, kind: input.kind, limit: 40 });
@@ -1213,7 +1216,7 @@ function systemPrompt(
 Now: ${weekday} ${date}, ${time} in ${tz}. Work out dates like "last month" or "on Tuesday" from this.
 
 Where to look:
-- Athena: search_athena, read_note, find_people, person_details, records_of, saved, find_recipes, find_notes, find_todos, find_items, find_watch_read, and the owner's own data: goals, trips, purchases, habits, days, health, places, patterns, taste, ${money ? "money, regular_payments, " : ""}work. A question arrives with a first search of Athena already done; search again with other words if that doesn't answer it.${kinds.length ? `\n- The owner's own ${KIND_WORD.many} (records_of lists one, with each record's fields): ${kinds.join(", ")}.` : ""}
+- Athena: search_athena, read_note, find_people, person_details, records_of, saved, find_recipes, grocery_list, find_notes, find_todos, find_items, find_watch_read, and the owner's own data: goals, trips, purchases, habits, days, health, places, patterns, taste, ${money ? "money, regular_payments, " : ""}work. A question arrives with a first search of Athena already done; search again with other words if that doesn't answer it.${kinds.length ? `\n- The owner's own ${KIND_WORD.many} (records_of lists one, with each record's fields): ${kinds.join(", ")}.` : ""}
 ${list.length ? `- The owner's connected accounts, live:\n${list.join("\n")}` : "- No connected accounts can be searched right now, so only Athena."}${skipped.length ? `\n- Not available this time: ${skipped.join(", ")}.` : ""}
 ${
   turn

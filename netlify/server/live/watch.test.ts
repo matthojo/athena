@@ -67,7 +67,7 @@ test("Days, habits and recipes are watched by date or id, and a tick moves both 
   const tables = (kind: string) => SOURCES.filter((s) => s.kind === kind).map((s) => s.table);
   assert.deepEqual(tables("day"), ["days", "day_entries"]);
   assert.deepEqual(tables("habit"), ["habits", "day_entries"]);
-  assert.deepEqual(tables("recipe"), ["recipes", "grocery_items", "recipe_cooked", "meal_plan", "settings"]);
+  assert.deepEqual(tables("recipe"), ["recipes", "grocery_items", "recipe_cooked", "grocery_trips", "grocery_skips", "meal_plan", "settings"]);
 
   const sql = watermarkSql();
   assert.match(sql, /FROM day_entries WHERE kind = 'habit' AND source = 'athena'/);

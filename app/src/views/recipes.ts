@@ -12,7 +12,11 @@
  *    kept on (Wake Lock) while it's open.
  *  - #/recipes/plan: the week's dinners, suggested around the calendar (quick
  *    on busy evenings, longer on free ones). Drag a day onto another to swap.
- *  - #/recipes/list: the grocery list, by aisle. Ticks work offline.
+ *  - #/recipes/list: the grocery list, by aisle (in the order the owner walks
+ *    their shop, once Athena has seen a couple of shops), with the usuals that
+ *    are due offered on top. "Done shopping" files the ticked lines as a shop
+ *    (lib/grocery-memory.ts). Ticks work offline.
+ *  - #/recipes/list/shop: shopping mode. Large lines, the screen kept on.
  *
  * Every word on the page is set with textContent (h()): a recipe's text
  * comes from other people's pages.
@@ -34,7 +38,6 @@ import {
   addOwnGrocery,
   addToGrocery,
   archiveRecipe,
-  clearTicked,
   createRecipe,
   importRecipe,
   loadGrocery,
@@ -45,14 +48,18 @@ import {
   markCooked,
   onRecipesChange,
   onRecipesElsewhere,
+  recipesChanged,
   patchRecipe,
   recipePhoto,
   removeGrocery,
+  finishShopping,
+  skipUsual,
   savePlan,
   tickGrocery,
   unmarkCooked,
   type GroceryItem,
   type GroceryList,
+  type Usual,
   type Recipe,
   type RecipeCard,
   type TimeFilter,
@@ -60,7 +67,9 @@ import {
 } from "../db/recipes";
 import { formatAmount, formatIngredient, itemFor, scaleIngredient, type Ingredient, type UnitSystem } from "../../../lib/recipe-units";
 import { clock, ingredientsForStep, stepTimers, type StepTimer } from "../../../lib/recipe-steps";
-import { groupByAisle } from "../../../lib/grocery";
+import { groupByAisle, type Aisle } from "../../../lib/grocery";
+import { collapse, expand } from "../lib/finish-motion";
+import { isSampleMode } from "../db/api";
 import { minutesLabel, minutesOf } from "../../../lib/recipe-rules";
 import "../styles/recipes.css";
 
@@ -135,6 +144,7 @@ export function renderRecipes(ctx: Ctx): Mounted {
   const path = ctx.path ?? "";
   if (path === "plan") return renderPlan(ctx);
   if (path === "list") return renderGrocery(ctx);
+  if (path === "list/shop") return renderShop(ctx);
   const [rid, sub] = path.split("/");
   if (rid && sub === "cook") return renderCook(ctx, rid);
   if (rid) return renderRecipe(ctx, rid);
@@ -1035,27 +1045,217 @@ function takePantry(): string[] {
   }
 }
 
-function amountOf(g: GroceryItem): string {
+function amountOf(g: Pick<GroceryItem, "quantity" | "unit">): string {
   return g.quantity === null ? "" : formatAmount({ quantity: g.quantity, quantity_max: null, unit: g.unit });
 }
 
-function renderGrocery(ctx: Ctx): Mounted {
-  let alive = true;
-  let list: GroceryList = { items: [] };
-  let state = "online";
-  let pending = 0;
-  /** Ticks on their way, and how many changes made here have landed: a reload from elsewhere gives way to both. */
-  let saving = 0;
-  let rev = 0;
+/** A usual as a list line would say it: "2 pints milk". */
+const usualText = (u: Usual) => [amountOf(u), u.item].filter(Boolean).join(" ");
 
+/** "every 4 days", "every week", "every 2 weeks". */
+function everyWords(days: number): string {
+  if (days % 7 === 0) return days === 7 ? "every week" : `every ${days / 7} weeks`;
+  return `every ${days} days`;
+}
+/** "today", "yesterday", "6 days ago", "2 weeks ago". */
+function agoWords(days: number): string {
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days % 7 === 0) return days === 7 ? "a week ago" : `${days / 7} weeks ago`;
+  return `${days} days ago`;
+}
+/** Why a usual is offered, in words: "Usually every 4 days · bought 4 days ago". */
+const usualWhy = (u: Usual) => `Usually ${everyWords(u.every)} · bought ${agoWords(u.since)}`;
+
+/** The lines still to buy, by aisle in the owner's order, as plain text to paste anywhere. */
+function listAsText(list: GroceryList): string {
+  const groups = groupByAisle(list.items.filter((i) => !i.ticked), learned(list));
+  return groups.map((g) => [g.label, ...g.lines.map((l) => `- ${[amountOf(l), l.item].filter(Boolean).join(" ")}`)].join("\n")).join("\n\n");
+}
+
+const learned = (list: GroceryList): Aisle[] | null => (list.order?.length ? (list.order as Aisle[]) : null);
+
+/**
+ * The list as both its views use it (the list and shopping mode): loading,
+ * ticks, "Done shopping" with Undo, and changes made elsewhere arriving over
+ * the live channel, which give way to a tick or a change made here.
+ */
+function groceryModel(paint: () => void) {
+  const m = {
+    alive: true,
+    list: { items: [] } as GroceryList,
+    state: "online",
+    pending: 0,
+    loaded: false,
+    failed: null as string | null,
+    /** Ticks on their way, and how many changes made here have landed. */
+    saving: 0,
+    rev: 0,
+    took(out: GroceryList & { state?: string }) {
+      m.rev++;
+      m.list = out;
+      if (out.state) m.state = out.state;
+      if (m.state === "offline") m.pending++;
+      paint();
+    },
+    async tick(g: GroceryItem, ticked: boolean) {
+      g.ticked = ticked;
+      paint();
+      m.saving++;
+      try {
+        m.took(await tickGrocery(g.id, ticked));
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "That didn't save", { icon: "wifiOff" });
+      } finally {
+        m.saving--;
+      }
+    },
+    async done() {
+      const n = m.list.items.filter((i) => i.ticked).length;
+      if (!n) return;
+      try {
+        const out = await finishShopping();
+        m.took(out.list);
+        showToast(`Shop saved, ${plural(out.count || n, "one thing", `${out.count || n} things`)} off the list`, {
+          icon: "bag",
+          timeoutMs: 8000,
+          action: {
+            label: "Undo",
+            run: () =>
+              void out
+                .undo()
+                // Shopping mode may have closed by now: the list that's showing hears it as a change.
+                .then((list) => (m.alive ? m.took(list) : recipesChanged()))
+                .catch(() => showToast("Couldn't undo that. Check you're online", { icon: "wifiOff" })),
+          },
+        });
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "That didn't save", { icon: "wifiOff" });
+      }
+    },
+    async load() {
+      try {
+        const out = await loadGrocery();
+        if (!m.alive) return;
+        m.list = out;
+        m.state = out.state;
+        m.pending = out.pending;
+        m.loaded = true;
+        m.failed = null;
+      } catch (error) {
+        if (!m.alive) return;
+        m.failed = error instanceof Error ? error.message : "Try again in a moment.";
+      }
+      paint();
+    },
+    destroy: () => undefined as void,
+  };
+  const online = () => void m.load();
+  window.addEventListener("online", online);
+  const off = onRecipesElsewhere(async () => {
+    if (m.saving) return;
+    const at = m.rev;
+    const out = await loadGrocery().catch(() => null);
+    if (!out || !m.alive || m.saving || at !== m.rev) return;
+    m.list = out;
+    m.state = out.state;
+    m.pending = out.pending;
+    paint();
+  });
+  m.destroy = () => {
+    m.alive = false;
+    off();
+    window.removeEventListener("online", online);
+  };
+  return m;
+}
+
+/** One line of the list: tick it, and take off a line the owner added. */
+function groceryLine(g: GroceryItem, model: ReturnType<typeof groceryModel>, opts: { removable: boolean }): HTMLElement {
+  const box = h("input", { type: "checkbox", class: "rc-check", "aria-label": `${g.ticked ? "Untick" : "Tick"} ${g.item}` }) as HTMLInputElement;
+  box.checked = g.ticked;
+  box.addEventListener("change", () => void model.tick(g, box.checked));
+  const amount = amountOf(g);
+  const remove = opts.removable && g.own ? h("button", { class: "icon-btn icon-btn--sm icon-btn--ghost rc-line__remove", type: "button", "aria-label": `Remove ${g.item}` }, icons.close()) : null;
+  remove?.addEventListener("click", async () => {
+    try {
+      model.took(await removeGrocery(g.id));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "That didn't save", { icon: "wifiOff" });
+    }
+  });
+  return h(
+    "li",
+    { class: `rc-line${g.ticked ? " is-ticked" : ""}` },
+    h(
+      "label",
+      { class: "rc-line__label" },
+      box,
+      h(
+        "span",
+        { class: "rc-line__text" },
+        h("span", { class: "rc-line__what" }, amount ? h("strong", { class: "rc-line__amount" }, amount) : null, amount ? " " : null, g.item),
+        g.recipes.length ? h("span", { class: "rc-line__for" }, g.recipes.map((r) => r.title).join(", ")) : null
+      )
+    ),
+    remove
+  );
+}
+
+/**
+ * The aisles, in the owner's order once it's learned. `steady`: lines keep
+ * their place when ticked (shopping mode, where a line moving under the thumb
+ * means a wrong tap), and an aisle with everything ticked fades back.
+ */
+function aisleSections(model: ReturnType<typeof groceryModel>, opts: { removable: boolean; steady?: boolean }): HTMLElement[] {
+  const groups = groupByAisle(model.list.items, learned(model.list));
+  if (opts.steady) for (const g of groups) g.lines.sort((a, b) => a.item.localeCompare(b.item, "en-GB", { sensitivity: "base" }));
+  return groups.map((g) =>
+    h(
+      "section",
+      { class: `rc-aisle${opts.steady && g.lines.every((l) => l.ticked) ? " is-done" : ""}`, "aria-label": g.label },
+      h("h2", { class: "rc-aisle__label" }, g.label, h("span", { class: "rc-aisle__n" }, String(g.lines.filter((l) => !l.ticked).length || ""))),
+      h("ul", { class: "card card--flush rc-aisle__lines" }, ...g.lines.map((l) => groceryLine(l, model, opts)))
+    )
+  );
+}
+
+/** Copy or share what's left to buy. */
+async function shareList(list: GroceryList): Promise<void> {
+  const text = listAsText(list);
+  if (!text) return;
+  const nav = navigator as Navigator & { share?: (d: { title?: string; text?: string }) => Promise<void>; canShare?: (d: { text?: string }) => boolean };
+  if (nav.share && matchMedia("(pointer: coarse)").matches) {
+    try {
+      await nav.share({ title: "Grocery list", text });
+      return;
+    } catch (error) {
+      if ((error as DOMException)?.name === "AbortError") return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("Copied the list", { icon: "copy" });
+  } catch {
+    showToast("Couldn't copy the list", { icon: "close" });
+  }
+}
+
+function renderGrocery(ctx: Ctx): Mounted {
   const count = h("span", { class: "page-count" });
-  const clear = h("button", { class: "btn btn--soft btn--sm rc-clear", type: "button" }, icons.check(), "Clear ticked");
+  const share = h("button", { class: "icon-btn", type: "button", "aria-label": "Copy or share the list" }, icons.copy());
+  const shop = h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.bag(), "Shop");
   const addRecipes = h("button", { class: "btn btn--soft btn--sm", type: "button" }, icons.plus(), "Add recipes");
   const own = h("input", { class: "quick-add__input", type: "text", placeholder: "Add an item: 2 lemons", "aria-label": "Add to the list", autocomplete: "off", enterkeyhint: "done" }) as HTMLInputElement;
   const form = h("form", { class: "quick-add rc-own" }, h("span", { class: "quick-add__icon", "aria-hidden": "true" }, icons.plus()), own);
   const leftOff = h("div", {});
   const note = h("div", {});
+  const usuals = h("div", {});
+  const orderNote = h("div", {});
   const body = h("div", { class: "rc-list", "aria-live": "polite" });
+  const done = h("button", { class: "btn btn--primary rc-done", type: "button", hidden: true });
+
+  const model = groceryModel(() => paint());
 
   const el = h(
     "div",
@@ -1064,12 +1264,15 @@ function renderGrocery(ctx: Ctx): Mounted {
       segments: librarySegments("recipes", ctx.go),
       title: "Grocery list",
       count,
+      actions: [share, shop],
       below: [tabs(ctx, "list"), h("div", { class: "rc-own-row" }, form, addRecipes)],
     }),
     note,
     leftOff,
+    usuals,
+    orderNote,
     body,
-    clear
+    done
   );
 
   const paintLeftOff = () => {
@@ -1079,60 +1282,120 @@ function renderGrocery(ctx: Ctx): Mounted {
     leftOff.replaceChildren(h("p", { class: "rc-leftoff" }, `Left off: ${off.join(", ")}. `, settings, "."));
   };
 
-  function line(g: GroceryItem): HTMLElement {
-    const box = h("input", { type: "checkbox", class: "rc-check", "aria-label": `${g.ticked ? "Untick" : "Tick"} ${g.item}` }) as HTMLInputElement;
-    box.checked = g.ticked;
-    box.addEventListener("change", async () => {
-      g.ticked = box.checked;
-      paint();
-      saving++;
-      try {
-        const out = await tickGrocery(g.id, box.checked);
-        took(out);
-      } catch (error) {
-        showToast(error instanceof Error ? error.message : "That didn't save", { icon: "wifiOff" });
-      } finally {
-        saving--;
-      }
-    });
-    const amount = amountOf(g);
-    const remove = g.own ? h("button", { class: "icon-btn icon-btn--sm icon-btn--ghost rc-line__remove", type: "button", "aria-label": `Remove ${g.item}` }, icons.close()) : null;
-    remove?.addEventListener("click", async () => took(await removeGrocery(g.id)));
-    return h(
-      "li",
-      { class: `rc-line${g.ticked ? " is-ticked" : ""}` },
-      h("label", { class: "rc-line__label" }, box, h("span", { class: "rc-line__text" }, h("span", { class: "rc-line__what" }, amount ? h("strong", { class: "rc-line__amount" }, amount) : null, amount ? " " : null, g.item), g.recipes.length ? h("span", { class: "rc-line__for" }, g.recipes.map((r) => r.title).join(", ")) : null)),
-      remove
-    );
+  /** Put a usual on the list: its row folds away and the line appears in its aisle. */
+  async function addUsual(u: Usual, row: HTMLElement | null) {
+    row?.querySelectorAll("button").forEach((b) => b.setAttribute("disabled", ""));
+    try {
+      const out = await addOwnGrocery(usualText(u));
+      if (row) await collapse(row);
+      model.took(out);
+    } catch (error) {
+      row?.querySelectorAll("button").forEach((b) => b.removeAttribute("disabled"));
+      showToast(error instanceof Error ? error.message : "That didn't save", { icon: "wifiOff" });
+    }
   }
 
-  function paint() {
-    const open = list.items.filter((i) => !i.ticked).length;
-    count.textContent = list.items.length ? String(open) : "";
-    const ticked = list.items.filter((i) => i.ticked).length;
-    clear.hidden = !ticked;
-    clear.replaceChildren(icons.check(), `Clear ${plural(ticked, "the ticked line", `${ticked} ticked lines`)}`);
-    note.replaceChildren(state === "offline" ? (offlineNote("offline", pending ? `. ${plural(pending, "One change", `${pending} changes`)} will go when you're back online` : "") ?? "") : "");
-    if (!list.items.length) {
-      body.replaceChildren(
-        h("div", { class: "empty" }, h("span", { class: "tile" }, icons.bag()), h("p", { class: "empty__title" }, "Nothing on the list"), h("p", { class: "empty__sub" }, "Add a recipe from its page, or the whole week from Meal plan."))
-      );
-      return;
+  async function skip(u: Usual, row: HTMLElement) {
+    row.querySelectorAll("button").forEach((b) => b.setAttribute("disabled", ""));
+    try {
+      const out = await skipUsual(u.item);
+      await collapse(row);
+      model.took(out);
+    } catch (error) {
+      row.querySelectorAll("button").forEach((b) => b.removeAttribute("disabled"));
+      showToast(error instanceof Error ? error.message : "That didn't save", { icon: "wifiOff" });
     }
-    body.replaceChildren(
-      ...groupByAisle(list.items).map((g) =>
-        h("section", { class: "rc-aisle", "aria-label": g.label }, h("h2", { class: "rc-aisle__label" }, g.label, h("span", { class: "rc-aisle__n" }, String(g.lines.filter((l) => !l.ticked).length || ""))), h("ul", { class: "card card--flush rc-aisle__lines" }, ...g.lines.map(line)))
+  }
+
+  function usualRow(u: Usual): HTMLElement {
+    const text = usualText(u);
+    const add = h("button", { class: "rc-usual__add", type: "button", "aria-label": `Add ${text} to the list` }, icons.plus());
+    const no = h("button", { class: "icon-btn icon-btn--sm icon-btn--ghost rc-usual__skip", type: "button", "aria-label": `Not this time: ${u.item}`, title: "Not this time" }, icons.close());
+    const amount = amountOf(u);
+    const row = h(
+      "li",
+      { class: "rc-usual" },
+      add,
+      h("span", { class: "rc-line__text" }, h("span", { class: "rc-line__what" }, amount ? h("strong", { class: "rc-line__amount" }, amount) : null, amount ? " " : null, u.item), h("span", { class: "rc-line__for" }, usualWhy(u))),
+      no
+    );
+    add.addEventListener("click", () => void addUsual(u, row));
+    no.addEventListener("click", () => void skip(u, row));
+    return row;
+  }
+
+  /** Three usuals show; the rest fold behind "Show N more", so the list itself stays near the top of a phone. */
+  const SHOWN = 3;
+  let allUsuals = false;
+  function paintUsuals() {
+    const due = model.list.usuals ?? [];
+    if (!due.length) return usuals.replaceChildren();
+    const hidden = allUsuals ? 0 : Math.max(0, due.length - SHOWN);
+    const more = hidden ? h("button", { class: "btn btn--ghost btn--sm rc-usuals__more", type: "button", "aria-expanded": "false" }, icons.chevronDown(), `Show ${hidden} more`) : null;
+    more?.addEventListener("click", () => {
+      allUsuals = true;
+      paintUsuals();
+      usuals.querySelectorAll<HTMLElement>(".rc-usual").forEach((row, i) => i >= SHOWN && void expand(row));
+    });
+    const all = due.length > 1 ? h("button", { class: "btn btn--ghost btn--sm rc-usuals__all", type: "button" }, icons.plus(), hidden ? `Add all ${due.length}` : "Add all") : null;
+    all?.addEventListener("click", async () => {
+      all.setAttribute("disabled", "");
+      let added = 0;
+      for (const u of due) {
+        try {
+          model.took(await addOwnGrocery(usualText(u)));
+          added++;
+        } catch {
+          break;
+        }
+      }
+      if (added) showToast(`Added ${plural(added, "one usual", `${added} usuals`)}`, { icon: "bag" });
+      else all.removeAttribute("disabled");
+    });
+    usuals.replaceChildren(
+      h(
+        "section",
+        { class: "rc-usuals", "aria-labelledby": "rc-usuals-title" },
+        h("div", { class: "rc-usuals__head" }, h("h2", { class: "rc-usuals__title", id: "rc-usuals-title" }, "Due about now"), all),
+        h("ul", { class: "rc-usuals__list" }, ...due.slice(0, due.length - hidden).map(usualRow)),
+        more
       )
     );
   }
 
-  const took = (out: GroceryList & { state?: string }) => {
-    rev++;
-    list = out;
-    if (out.state) state = out.state;
-    if (state === "offline") pending++;
-    paint();
-  };
+  function paint() {
+    const list = model.list;
+    const open = list.items.filter((i) => !i.ticked).length;
+    const ticked = list.items.length - open;
+    count.textContent = list.items.length ? String(open) : "";
+    share.toggleAttribute("disabled", !open);
+    done.hidden = !ticked;
+    done.replaceChildren(icons.check(), "Done shopping", h("span", { class: "rc-done__n" }, plural(ticked, "1 ticked", `${ticked} ticked`)));
+    note.replaceChildren(model.state === "offline" ? (offlineNote("offline", model.pending ? `. ${plural(model.pending, "One change", `${model.pending} changes`)} will go when you're back online` : "") ?? "") : "");
+    if (model.failed && !model.loaded) {
+      body.replaceChildren(h("div", { class: "empty" }, h("p", { class: "empty__title" }, "Couldn't load the list"), h("p", { class: "empty__sub" }, model.failed)));
+      return;
+    }
+    paintUsuals();
+    // Said only when the owner's order puts these aisles differently from the usual one.
+    const reordered = !!learned(list) && groupByAisle(list.items, learned(list)).map((g) => g.aisle).join() !== groupByAisle(list.items).map((g) => g.aisle).join();
+    orderNote.replaceChildren(reordered ? h("p", { class: "rc-ordernote" }, icons.lines(), "Aisles follow the way you walk your shop") : "");
+    if (!list.items.length) {
+      body.replaceChildren(
+        model.loaded
+          ? h(
+              "div",
+              { class: "empty" },
+              h("span", { class: "tile" }, icons.bag()),
+              h("p", { class: "empty__title" }, "Nothing on the list"),
+              h("p", { class: "empty__sub" }, list.usuals?.length ? "Add your usuals above, a recipe from its page, or the whole week from Meal plan." : "Add a recipe from its page, or the whole week from Meal plan.")
+            )
+          : ""
+      );
+      return;
+    }
+    body.replaceChildren(...aisleSections(model, { removable: true }));
+  }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -1140,63 +1403,116 @@ function renderGrocery(ctx: Ctx): Mounted {
     if (!text) return;
     own.value = "";
     try {
-      took(await addOwnGrocery(text));
+      model.took(await addOwnGrocery(text));
     } catch (error) {
       own.value = text;
       showToast(error instanceof Error ? error.message : "That didn't save", { icon: "wifiOff" });
     }
   });
-  clear.addEventListener("click", async () => {
-    const n = list.items.filter((i) => i.ticked).length;
-    took(await clearTicked());
-    showToast(`Cleared ${plural(n, "a ticked line", `${n} ticked lines`)}`, { icon: "check" });
-  });
-  addRecipes.addEventListener("click", () => void openRecipePicker(async (ids) => {
-    try {
-      const out = await addToGrocery({ recipe_ids: ids });
-      rememberPantry(out.pantry);
-      took({ ...out, state: "online" });
-      paintLeftOff();
-      showToast(`Added ${plural(out.added, "a line", `${out.added} lines`)}`, { icon: "bag" });
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : "Adding recipes needs a connection", { icon: "wifiOff" });
-    }
-  }));
+  done.addEventListener("click", () => void model.done());
+  share.addEventListener("click", () => void shareList(model.list));
+  shop.addEventListener("click", () => to(ctx, "list/shop"));
+  addRecipes.addEventListener("click", () =>
+    void openRecipePicker(async (ids) => {
+      try {
+        const out = await addToGrocery({ recipe_ids: ids });
+        rememberPantry(out.pantry);
+        model.took({ ...out, state: isSampleMode() ? "sample" : "online" });
+        paintLeftOff();
+        showToast(`Added ${plural(out.added, "a line", `${out.added} lines`)}`, { icon: "bag" });
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Adding recipes needs a connection", { icon: "wifiOff" });
+      }
+    })
+  );
 
-  const load = async () => {
+  paintLeftOff();
+  void model.load();
+  return { el, destroy: () => model.destroy() };
+}
+
+// ---------- shopping mode ----------
+
+/**
+ * #/recipes/list/shop: the list for walking round a shop. Large lines in the
+ * order the owner walks, nothing to type, the screen kept on, and "Done
+ * shopping" always in reach. Ticks work offline, as on the list.
+ */
+function renderShop(ctx: Ctx): Mounted {
+  let lock: { release: () => Promise<void> } | null = null;
+  const exit = () => to(ctx, "list");
+  const close = h("button", { class: "icon-btn rc-cook__close", type: "button", "aria-label": "Close shopping mode" }, icons.close());
+  close.addEventListener("click", exit);
+  const progress = h("p", { class: "rc-cook__count", "aria-live": "polite" });
+  const awake = h("p", { class: "rc-cook__awake", hidden: true }, "Screen stays on");
+  const bar = h("div", { class: "rc-cook__bar", "aria-hidden": "true" }, h("span", {}));
+  const note = h("div", {});
+  const body = h("div", { class: "rc-shop__aisles" });
+  const done = h("button", { class: "btn btn--primary btn--block rc-shop__done", type: "button" });
+  const el = h(
+    "div",
+    { class: "rc-cook rc-shop", role: "dialog", "aria-modal": "true", "aria-label": "Shopping mode" },
+    h("header", { class: "rc-cook__head" }, close, h("div", { class: "rc-cook__head-text" }, h("p", { class: "rc-cook__title" }, "Shopping"), progress), awake),
+    bar,
+    h("div", { class: "rc-shop__main" }, note, body),
+    h("footer", { class: "rc-shop__foot" }, done)
+  );
+
+  const model = groceryModel(() => paint());
+
+  function paint() {
+    const items = model.list.items;
+    const ticked = items.filter((i) => i.ticked).length;
+    progress.textContent = items.length ? `${ticked} of ${items.length} in the basket` : "";
+    (bar.firstChild as HTMLElement).style.width = items.length ? `${(ticked / items.length) * 100}%` : "0";
+    note.replaceChildren(model.state === "offline" ? (offlineNote("offline", ". Ticks are kept here until you're back online") ?? "") : "");
+    done.toggleAttribute("disabled", !ticked);
+    done.replaceChildren(icons.check(), ticked && ticked === items.length ? "Done shopping" : ticked ? `Done shopping · ${ticked} ticked` : "Tick things as they go in the basket");
+    if (model.failed && !model.loaded) {
+      body.replaceChildren(h("div", { class: "empty" }, h("p", { class: "empty__title" }, "Couldn't load the list"), h("p", { class: "empty__sub" }, model.failed)));
+      return;
+    }
+    if (model.loaded && !items.length) {
+      const back = h("button", { class: "btn btn--soft", type: "button" }, icons.back(), "Back to the list");
+      back.addEventListener("click", exit);
+      body.replaceChildren(h("div", { class: "empty" }, h("span", { class: "tile" }, icons.bag()), h("p", { class: "empty__title" }, "Nothing left to buy"), back));
+      return;
+    }
+    body.replaceChildren(...aisleSections(model, { removable: false, steady: true }));
+  }
+
+  done.addEventListener("click", async () => {
+    await model.done();
+    if (!model.list.items.length) exit();
+  });
+  const onKey = (e: KeyboardEvent) => e.key === "Escape" && exit();
+  document.addEventListener("keydown", onKey);
+
+  // Keep the screen on in the shop; ask again when the page comes back (the browser lets it go when hidden).
+  const wake = async () => {
+    const wl = (navigator as Navigator & { wakeLock?: { request(type: "screen"): Promise<{ release: () => Promise<void> }> } }).wakeLock;
+    if (!wl || document.visibilityState !== "visible" || !model.alive) return;
     try {
-      const out = await loadGrocery();
-      if (!alive) return;
-      list = out;
-      state = out.state;
-      pending = out.pending;
-      paint();
-    } catch (error) {
-      if (!alive) return;
-      body.replaceChildren(h("div", { class: "empty" }, h("p", { class: "empty__title" }, "Couldn't load the list"), h("p", { class: "empty__sub" }, error instanceof Error ? error.message : "Try again in a moment.")));
+      lock = await wl.request("screen");
+      awake.hidden = false;
+    } catch {
+      awake.hidden = true;
     }
   };
-  const online = () => void load();
-  window.addEventListener("online", online);
-  // The list changed somewhere else (the live channel): it loads again around the box being typed in, and gives way to a tick or a change made here.
-  const off = onRecipesElsewhere(async () => {
-    if (saving) return;
-    const at = rev;
-    const out = await loadGrocery().catch(() => null);
-    if (!out || !alive || saving || at !== rev) return;
-    list = out;
-    state = out.state;
-    pending = out.pending;
-    paint();
-  });
-  paintLeftOff();
-  void load();
+  const onVisible = () => document.visibilityState === "visible" && void wake();
+  document.addEventListener("visibilitychange", onVisible);
+  void wake();
+  document.documentElement.classList.add("is-cooking");
+  void model.load();
+
   return {
     el,
     destroy: () => {
-      alive = false;
-      off();
-      window.removeEventListener("online", online);
+      model.destroy();
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("visibilitychange", onVisible);
+      document.documentElement.classList.remove("is-cooking");
+      void lock?.release().catch(() => undefined);
     },
   };
 }
